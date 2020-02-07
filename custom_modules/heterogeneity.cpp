@@ -68,6 +68,7 @@
 #include "./heterogeneity.h"
 #include "../modules/PhysiCell_settings.h"
 
+
 void create_cell_types( void )
 {
 	// use the same random seed so that future experiments have the 
@@ -166,7 +167,26 @@ void setup_microenvironment( void )
 	initialize_microenvironment(); 	
 
 	return; 
+}
+
+/*==============================================*/
+/* Parallel version of setup_microenvironment() */
+/*==============================================*/
+
+void setup_microenvironment(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	
+	if( default_microenvironment_options.simulate_2D == true )
+	{
+		std::cout << "Warning: overriding XML config option and setting to 2D!" << std::endl; 
+		default_microenvironment_options.simulate_2D = false; 
+	}
+			
+	initialize_microenvironment(); 	
+
+	return; 
 }	
+
 
 void setup_tissue( void )
 {

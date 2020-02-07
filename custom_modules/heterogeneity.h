@@ -81,6 +81,12 @@ void create_cell_types( void );
 void setup_tissue(); 
 
 // set up the microenvironment to include the immunostimulatory factor 
-void setup_microenvironment( void );  // done 
+void setup_microenvironment( void );  // done
+
+/*================================================*/
+/* Parallel prototype of setup_microenvironment() */
+/*================================================*/
+
+void setup_microenvironment(mpi_Environment &world, mpi_Cartesian &cart_topo);
 
 std::vector<std::string> heterogeneity_coloring_function( Cell* );

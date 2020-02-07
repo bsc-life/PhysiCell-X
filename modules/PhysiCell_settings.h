@@ -220,5 +220,5 @@ bool setup_microenvironment_from_XML( void );
 
 }
 
-#endif 
+#endif /* __PhysiCell_settings_h__ */
 

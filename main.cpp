@@ -153,7 +153,7 @@ int main( int argc, char* argv[] )
 /* These objects are passed to initialize_microenvironment() which calls resize_uniform()         */
 /*================================================================================================*/
 	
-	setup_microenvironment(); 
+	setup_microenvironment(world, cart_topo); 
 
 	/* PhysiCell setup */ 
  	
