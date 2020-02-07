@@ -83,17 +83,15 @@
 /* Include ./DistPhy/DistPhy.h */
 /*=============================*/
 
-#include "./DistPhy/DistPhy.h"
-
-
-
 #include "./core/PhysiCell.h"
 #include "./modules/PhysiCell_standard_modules.h" 
 
 // custom user modules 
 
 #include "./custom_modules/heterogeneity.h" 
-	
+
+
+
 using namespace BioFVM;
 using namespace PhysiCell;
 
@@ -117,13 +115,29 @@ int main( int argc, char* argv[] )
     cart_topo.Build_Cartesian_Topology(world);     //Create 1-D X decomposition by setting dims[1]=size. 
     cart_topo.Find_Cartesian_Coordinates(world);   //Find Cartesian Topology coordinates of each process
     
-    bool XML_status = false; 
+    bool XML_status = false;
+    
+/*====================================================================================*/    
+/* Call parallel version of load_ function, all processes must load the complete file */
+/*====================================================================================*/    
+
+    
 	if( argc > 1 )
-	{ XML_status = load_PhysiCell_config_file( argv[1] ); }
+	{ 
+        XML_status = load_PhysiCell_config_file( argv[1], world ); 
+        
+    }
 	else
-	{ XML_status = load_PhysiCell_config_file( "./config/PhysiCell_settings.xml" ); }
+	{ 
+        XML_status = load_PhysiCell_config_file( "./config/PhysiCell_settings.xml", world ); 
+        
+    }
+    
 	if( !XML_status )
-	{ exit(-1); }
+	{ 
+        exit(-1); 
+        
+    }
 
 	// OpenMP setup
 	omp_set_num_threads(PhysiCell_settings.omp_num_threads);
@@ -134,7 +148,10 @@ int main( int argc, char* argv[] )
 	// time setup 
 	std::string time_units = "min"; 
 
-	/* Microenvironment setup */ 
+/*================================================================================================*/
+/* Objects of both DistPhy_Environment and DistPhy_Cartesian are needed in setup microenvironment */
+/* These objects are passed to initialize_microenvironment() which calls resize_uniform()         */
+/*================================================================================================*/
 	
 	setup_microenvironment(); 
 

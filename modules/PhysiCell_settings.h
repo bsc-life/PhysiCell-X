@@ -82,13 +82,23 @@
 
 #include "../core/PhysiCell_constants.h" 
 
-using namespace BioFVM; 
+#include "../DistPhy/DistPhy.h"
+
+
+using namespace BioFVM;
+using namespace DistPhy::mpi; 
 
 namespace PhysiCell{
  	
 extern pugi::xml_node physicell_config_root; 
 
 bool load_PhysiCell_config_file( std::string filename );
+
+/*============================================================================================================*/
+/* Parallel version of load_PhysiCell_config_file() that has mpi_Environment world object passed by reference */
+/*============================================================================================================*/
+
+bool load_PhysiCell_config_file( std::string filename, mpi_Environment &world ); 
 
 class PhysiCell_Settings
 {

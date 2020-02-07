@@ -67,7 +67,14 @@
  
 #include "./PhysiCell_settings.h"
 
+
 using namespace BioFVM; 
+
+/*==============================================================================*/
+/* Use namepsace DistPhy::mpi because using IOProcessor(mpi_Environment object) */
+/*==============================================================================*/
+
+using namespace DistPhy::mpi; 
 
 namespace PhysiCell{
 	
@@ -103,6 +110,45 @@ bool load_PhysiCell_config_file( std::string filename )
 				  << "         Either manually setup microenvironment in setup_microenvironment() (custom.cpp)" << std::endl
 				  << "         or consult documentation to add microenvironment_setup to your configuration file." << std::endl << std::endl; 
 	}
+	
+	// now read user parameters
+	
+	parameters.read_from_pugixml( physicell_config_root ); 
+
+	return true; 	
+}
+/*------------------------------------------------------------------------------------------------------------*/
+/* Parallel version of load_PhysiCell_config_file() that has mpi_Environment world object passed by reference */
+/*------------------------------------------------------------------------------------------------------------*/
+
+bool load_PhysiCell_config_file( std::string filename, mpi_Environment &world )
+{
+	if(IOProcessor(world))
+        std::cout << "Using config file " << filename << " ... " << std::endl ; 
+	pugi::xml_parse_result result = physicell_config_doc.load_file( filename.c_str()  );
+	
+	if( result.status != pugi::xml_parse_status::status_ok )
+	{
+		if(IOProcessor(world))
+            std::cout << "Error loading " << filename << "!" << std::endl; 
+		return false;
+	}
+	
+	physicell_config_root = physicell_config_doc.child("PhysiCell_settings");
+	physicell_config_dom_initialized = true; 
+	
+	PhysiCell_settings.read_from_pugixml(); 
+	
+	// now read the microenvironment (optional) 
+	
+	if(IOProcessor(world))
+        if( !setup_microenvironment_from_XML( physicell_config_root ) )
+        {
+            std::cout << std::endl 
+				  << "Warning: microenvironment_setup not found in " << filename << std::endl 
+				  << "         Either manually setup microenvironment in setup_microenvironment() (custom.cpp)" << std::endl
+				  << "         or consult documentation to add microenvironment_setup to your configuration file." << std::endl << std::endl; 
+        }
 	
 	// now read user parameters
 	
