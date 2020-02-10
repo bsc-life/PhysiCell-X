@@ -178,11 +178,12 @@ void setup_microenvironment(mpi_Environment &world, mpi_Cartesian &cart_topo)
 	
 	if( default_microenvironment_options.simulate_2D == true )
 	{
-		std::cout << "Warning: overriding XML config option and setting to 2D!" << std::endl; 
+		if(IOProcessor(world))
+            std::cout << "Warning: overriding XML config option and setting to 2D!" << std::endl; 
 		default_microenvironment_options.simulate_2D = false; 
 	}
 			
-	initialize_microenvironment(); 	
+	initialize_microenvironment(world, cart_topo); 	
 
 	return; 
 }	

@@ -53,6 +53,10 @@
 #include <vector> 
 
 #include "BioFVM_matlab.h"
+#include "../DistPhy/DistPhy_Environment.h"
+#include "../DistPhy/DistPhy_Cartesian.h" 
+
+using namespace DistPhy::mpi; 
 
 namespace BioFVM{
 
@@ -195,7 +199,14 @@ class Cartesian_Mesh : public General_Mesh
 
 	void resize( int,int,int ); 
 	void resize( double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , int x_nodes, int y_nodes, int z_nodes ); 
-	void resize( double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double dx, double dy, double dz ); 
+	void resize( double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double dx, double dy, double dz );
+    
+    /*======================================*/
+    /* Parallel prototype of function above */
+    /*======================================*/
+    
+    void resize( double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double dx_new, double dy_new , double dz_new, mpi_Environment &world, mpi_Cartesian &cart_topo);
+    
 	void resize_uniform( double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double dx ); 
 	
 	int nearest_voxel_index( std::vector<double>& position );   

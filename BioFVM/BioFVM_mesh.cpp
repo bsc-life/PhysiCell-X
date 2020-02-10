@@ -871,6 +871,135 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
 	return; 
 }
 
+/*=============================================*/
+/* Parallel version of resize() function above */
+/*=============================================*/
+
+void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double dx_new, double dy_new , double dz_new, mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	dx = dx_new;
+	dy = dy_new; 
+	dz = dz_new; 
+
+	double eps = 1e-16; 
+	int x_nodes = (int) ceil( eps + (x_end-x_start)/dx ); 
+	int y_nodes = (int) ceil( eps + (y_end-y_start)/dy ); 
+	int z_nodes = (int) ceil( eps + (z_end-z_start)/dz ); 
+
+	x_coordinates.assign( x_nodes , 0.0 ); 
+	y_coordinates.assign( y_nodes , 0.0 ); 
+	z_coordinates.assign( z_nodes , 0.0 ); 
+
+	uniform_mesh = true; 
+	regular_mesh = true; 
+	double tol = 1e-16; 
+	if( fabs( dx - dy ) > tol || fabs( dy - dz ) > tol || fabs( dx - dz ) > tol )
+	{ uniform_mesh = false; }
+
+	for( unsigned int i=0; i < x_coordinates.size() ; i++ )
+	{ x_coordinates[i] = x_start + (i+0.5)*dx; }
+	for( unsigned int i=0; i < y_coordinates.size() ; i++ )
+	{ y_coordinates[i] = y_start + (i+0.5)*dy; }
+	for( unsigned int i=0; i < z_coordinates.size() ; i++ )
+	{ z_coordinates[i] = z_start + (i+0.5)*dz; }
+
+	bounding_box[0] = x_start; 
+	bounding_box[3] = x_end; 
+	bounding_box[1] = y_start; 
+	bounding_box[4] = y_end; 
+	bounding_box[2] = z_start; 
+	bounding_box[5] = z_end; 
+
+	dV = dx*dy*dz; 
+	dS = dx*dy; 
+
+	dS_xy = dx*dy; 
+	dS_yz = dy*dz; 
+	dS_xz = dx*dz; 
+	
+	Voxel template_voxel;
+	template_voxel.volume = dV; 
+
+	voxels.assign( x_coordinates.size() * y_coordinates.size() * z_coordinates.size() , template_voxel ); 
+	
+	int n=0; 
+	for( unsigned int k=0 ; k < z_coordinates.size() ; k++ )
+	{
+		for( unsigned int j=0 ; j < y_coordinates.size() ; j++ )
+		{
+			for( unsigned int i=0 ; i < x_coordinates.size() ; i++ )
+			{
+				voxels[n].center[0] = x_coordinates[i]; 
+				voxels[n].center[1] = y_coordinates[j]; 
+				voxels[n].center[2] = z_coordinates[k]; 
+				voxels[n].mesh_index = n; 
+				voxels[n].volume = dV; 
+
+				n++; 
+			}
+		}
+	}
+	
+	// make connections 
+	
+	connected_voxel_indices.resize( voxels.size() ); 
+	voxel_faces.clear(); 
+	
+	for( unsigned int i=0; i < connected_voxel_indices.size() ; i++ )
+	{ connected_voxel_indices[i].clear(); }
+	
+	int i_jump = 1; 
+	int j_jump = x_coordinates.size(); 
+	int k_jump = x_coordinates.size() * y_coordinates.size(); 
+	
+	// x-aligned connections 
+	int count = 0; 
+	for( unsigned int k=0 ; k < z_coordinates.size() ; k++ )
+	{
+		for( unsigned int j=0 ; j < y_coordinates.size() ; j++ )
+		{
+			for( unsigned int i=0 ; i < x_coordinates.size()-1 ; i++ )
+			{
+				int n = voxel_index(i,j,k); 
+				connect_voxels_indices_only(n,n+i_jump, dS_yz ); 
+				count++; 
+			}
+		}
+	}
+
+	// y-aligned connections 
+	for( unsigned int k=0 ; k < z_coordinates.size() ; k++ )
+	{
+		for( unsigned int i=0 ; i < x_coordinates.size() ; i++ )
+		{
+			for( unsigned int j=0 ; j < y_coordinates.size()-1 ; j++ )
+			{
+				int n = voxel_index(i,j,k); 
+				connect_voxels_indices_only(n,n+j_jump, dS_xz ); 
+			}
+		}
+	}	
+
+	// z-aligned connections 
+	for( unsigned int j=0 ; j < y_coordinates.size() ; j++ )
+	{
+		for( unsigned int i=0 ; i < x_coordinates.size() ; i++ )
+		{
+			for( unsigned int k=0 ; k < z_coordinates.size()-1 ; k++ )
+			{
+				int n = voxel_index(i,j,k); 
+				connect_voxels_indices_only(n,n+k_jump, dS_xy ); 
+			}
+		}
+	}
+	
+	if( use_voxel_faces )
+	{ create_voxel_faces(); }
+	
+	create_moore_neighborhood();
+	return; 
+}
+
 void Cartesian_Mesh::resize( int x_nodes, int y_nodes, int z_nodes )
 { return resize( 0-.5, x_nodes-1+.5 , 0-.5 , y_nodes-1+.5 , 0-.5 , z_nodes - 1+.5 , x_nodes, y_nodes, z_nodes ); } 
 

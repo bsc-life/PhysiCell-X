@@ -53,6 +53,11 @@
 #include "BioFVM_agent_container.h"
 #include "BioFVM_MultiCellDS.h"
 
+#include "../DistPhy/DistPhy_Environment.h"
+#include "../DistPhy/DistPhy_Cartesian.h"
+
+using namespace DistPhy::mpi; 
+
 namespace BioFVM{
 
 /* and now some gradients */ 
@@ -171,7 +176,15 @@ class Microenvironment
 	
 	void resize_space( int x_nodes, int y_nodes, int z_nodes ); 
 	void resize_space( double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , int x_nodes, int y_nodes, int z_nodes );  
-	void resize_space( double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double dx_new , double dy_new , double dz_new ); 
+	
+    void resize_space( double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double dx_new , double dy_new , double dz_new ); 
+    
+    /*============================================================*/
+    /* Parallel prototype of function immediately above this line */
+    /*============================================================*/
+    
+    void resize_space( double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double dx_new , double dy_new , double dz_new, mpi_Environment &world, mpi_Cartesian &cart_topo);
+    
 	void resize_space_uniform( double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double dx_new ); 
 
 	void resize_densities( int new_size );  
@@ -321,6 +334,11 @@ extern Microenvironment_Options default_microenvironment_options;
 extern Microenvironment microenvironment;
 
 void initialize_microenvironment( void ); 
+
+/*===================================================*/
+/* Parallel prototype of initialize_microenvironment() */
+/*===================================================*/
+void initialize_microenvironment( mpi_Environment &world, mpi_Cartesian &cart_topo );
 
 };
 
