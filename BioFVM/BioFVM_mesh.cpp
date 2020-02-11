@@ -48,6 +48,10 @@
 
 #include "BioFVM_vector.h" 
 #include "BioFVM_mesh.h" 
+#include "../DistPhy/DistPhy_Environment.h"
+#include "../DistPhy/DistPhy_Cartesian.h"
+
+using namespace DistPhy::mpi; 
 
 namespace BioFVM{
 	
@@ -239,6 +243,21 @@ void General_Mesh::connect_voxels_indices_only(int i,int j, double SA) // done
 	
 	connected_voxel_indices[i].push_back( j ); 
 	connected_voxel_indices[j].push_back( i ); 
+
+	return;
+}
+
+/*--------------------------------------------------------------------------------------*/
+/* connect_voxels_global_indices_only() is a function added for parallel implementation */
+/* When it connects two voxels, it uss the global indexes (added Gaurav Saxena)         */
+/*---------------------------------------------------------------------------------------*/
+
+void General_Mesh::connect_voxels_global_indices_only(int i,int j, double SA) // done 
+{
+	
+	
+	connected_voxel_global_indices[i].push_back( voxels[j].global_mesh_index); 
+	connected_voxel_global_indices[j].push_back( voxels[i].global_mesh_index); 
 
 	return;
 }
@@ -598,7 +617,13 @@ void Cartesian_Mesh::create_moore_neighborhood()
 }
 unsigned int Cartesian_Mesh::voxel_index( unsigned int i, unsigned int j, unsigned int k )
 {
- return ( k*y_coordinates.size() + j )*x_coordinates.size() + i; 
+    
+ /*-------------------------------------------------------------*/   
+ /* Returns the loval index of the voxel, given the coordinates */ 
+ /* size of x/y/z_coordinates is same as local_x/y/z_nodes      */
+ /*-------------------------------------------------------------*/
+    
+ return ( k * y_coordinates.size() * x_coordinates.size() + j * x_coordinates.size() + i) ; //Wrote it in a slightly more readable form ---> Gaurav Saxena
 }
 
 std::vector<unsigned int> Cartesian_Mesh::cartesian_indices( unsigned int n )
@@ -877,32 +902,122 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
 
 void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double dx_new, double dy_new , double dz_new, mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
-	dx = dx_new;
+    int dims[3], coords[3]; 
+    
+	/*------------------------------------------------------------------------------------------------*/
+	/*		local_x/y/z_start give local starting coordinates at each process	                      */
+	/*------------------------------------------------------------------------------------------------*/
+    
+    double local_x_start;
+    double local_y_start;
+    double local_z_start;
+    
+    /*------------------------------------------------------------------------------------------------*/
+	/*		To find global_mesh_index, we declare following	                                          */
+	/*------------------------------------------------------------------------------------------------*/
+    
+    int x_index;
+    int y_index;
+    int z_index;
+    int local_start_of_global_index; 
+    
+    /*-------------------------------------------*/
+    /* Just to reduce typing _new everytime .... */
+    /*-------------------------------------------*/
+    
+    dx = dx_new;
 	dy = dy_new; 
 	dz = dz_new; 
 
 	double eps = 1e-16; 
+    
+    /*--------------------------------------------*/
+	/*		Global Nodes	                      */
+	/*--------------------------------------------*/
+    
 	int x_nodes = (int) ceil( eps + (x_end-x_start)/dx ); 
 	int y_nodes = (int) ceil( eps + (y_end-y_start)/dy ); 
 	int z_nodes = (int) ceil( eps + (z_end-z_start)/dz ); 
+    
+    /*-----------------------------------------------------------------------------------------------------------------*/
+    /* Need to store dims[index] = cart_topo.dims[index] so we can use dims array easily, need to declare this array above */
+    /*-----------------------------------------------------------------------------------------------------------------*/
+    
+    dims[0] = cart_topo.mpi_dims[0]; 
+    dims[1] = cart_topo.mpi_dims[1];
+    dims[2] = cart_topo.mpi_dims[2];
+    
+    /*--------------------------------------------*/
+	/*		Local Nodes on MPI Processes	      */
+	/*--------------------------------------------*/
+    
+    int local_x_nodes = x_nodes/dims[1];
+    int local_y_nodes = y_nodes/dims[0];
+    int local_z_nodes = z_nodes/dims[2];
 
-	x_coordinates.assign( x_nodes , 0.0 ); 
-	y_coordinates.assign( y_nodes , 0.0 ); 
-	z_coordinates.assign( z_nodes , 0.0 ); 
+	/*------------------------------------------------------------------------------------------*/
+	/*		Assign space to coordinate arrays according to 'local' nodes and NOT 'global' nodes */
+	/*------------------------------------------------------------------------------------------*/
+    
+    x_coordinates.assign( local_x_nodes , 0.0 ); 
+	y_coordinates.assign( local_y_nodes , 0.0 ); 
+	z_coordinates.assign( local_z_nodes , 0.0 ); 
 
 	uniform_mesh = true; 
 	regular_mesh = true; 
 	double tol = 1e-16; 
+    
 	if( fabs( dx - dy ) > tol || fabs( dy - dz ) > tol || fabs( dx - dz ) > tol )
-	{ uniform_mesh = false; }
-
+	{ 
+        uniform_mesh = false; 
+    }
+    
+    /*------------------------------------------------------------------------------------------*/
+    /* Need to store coordinates of processes from car_topo to the coords array for convenience */
+    /*------------------------------------------------------------------------------------------*/
+    
+    coords[0] = cart_topo.mpi_coords[0]; 
+    coords[1] = cart_topo.mpi_coords[1]; 
+    coords[2] = cart_topo.mpi_coords[2]; 
+    
+    /*-----------------------------------------------------------------------------------------------------------------*/
+    /* First find local x coordinate start of each process = global_x_start + process_y_coodinate * x_local_nodes * dx */
+    /*-----------------------------------------------------------------------------------------------------------------*/
+    
+    local_x_start = x_start + (coords[1] * local_x_nodes * dx);
+    
 	for( unsigned int i=0; i < x_coordinates.size() ; i++ )
-	{ x_coordinates[i] = x_start + (i+0.5)*dx; }
+	{ 
+        x_coordinates[i] = local_x_start + (i+0.5)*dx;         
+    }
+    
+    /*----------------------------------------------------------------------------------------------------------------------*/
+    /* First find local y coordinate start of each process = global_y_start + process_x_coodinate * y_local_nodes * dy      */
+    /* BioFVM y-coordinate is increasing from bottom to top while MPI process x-coordinate is decreasing from bottom to top */
+    /*----------------------------------------------------------------------------------------------------------------------*/
+    
+    local_y_start = y_start + ((dims[0] - coords[0] - 1) * local_y_nodes * dy);
+    
 	for( unsigned int i=0; i < y_coordinates.size() ; i++ )
-	{ y_coordinates[i] = y_start + (i+0.5)*dy; }
+	{ 
+        y_coordinates[i] = local_y_start + (i+0.5)*dy; 
+    }
+    
+	/*-----------------------------------------------------------------------------------------------------------------*/
+    /* First find local z coordinate start of each process = global_z_start + process_z_coodinate * z_local_nodes * dz */
+    /*-----------------------------------------------------------------------------------------------------------------*/
+	
+    local_z_start = z_start + (coords[2] * local_z_nodes * dz);
+    
 	for( unsigned int i=0; i < z_coordinates.size() ; i++ )
-	{ z_coordinates[i] = z_start + (i+0.5)*dz; }
+	{ 
+        z_coordinates[i] = local_z_start + (i+0.5)*dz;         
+    }
 
+    /*--------------------------*/
+	/* Global Domain dimensions */
+	/*--------------------------*/
+    
 	bounding_box[0] = x_start; 
 	bounding_box[3] = x_end; 
 	bounding_box[1] = y_start; 
@@ -910,93 +1025,343 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
 	bounding_box[2] = z_start; 
 	bounding_box[5] = z_end; 
 
-	dV = dx*dy*dz; 
+    /*----------------------------------------*/
+	/* Voxel volume and various surface areas */
+    /*----------------------------------------*/
+    
+    dV = dx*dy*dz; 
 	dS = dx*dy; 
 
 	dS_xy = dx*dy; 
 	dS_yz = dy*dz; 
 	dS_xz = dx*dz; 
 	
+    /*-------------------------------------------------------------------------------------------------------------*/
+	/* Creates a Voxel defined in BioFVM_mesh.cpp to a default Voxel having index 0, center (0,0,0), volume = 1000 */
+    /* The template Voxel now has a new volume i.e. template_voxel.volume = dV; see below                          */
+    /* Added a new field global_mesh_index to Voxel class in BioFVM_Mesh.h as we need both local voxel index       */
+    /* and global voxel index. 
+	/*-------------------------------------------------------------------------------------------------------------*/
+    
 	Voxel template_voxel;
 	template_voxel.volume = dV; 
 
-	voxels.assign( x_coordinates.size() * y_coordinates.size() * z_coordinates.size() , template_voxel ); 
+    /*------------------------------------------------*/
+    /* voxels is std::vector<Voxel> voxels;           */
+    /* Size of x/y/z_coordinates is local_x/y/z_nodes */
+    /* Next statement assigns voxels on local process */
+    /*------------------------------------------------*/
+    
+    voxels.assign( x_coordinates.size() * y_coordinates.size() * z_coordinates.size() , template_voxel );
+    
+    
+    /*--------------------------------------------------------------*/
+    /* Next Loop assigns x,y, and z coordinates to voxel centers    */
+    /* 2 indexes for every voxel are maintained: local & global     */
+    /* The starting global index of the first voxel on each process */
+    /* must be calculated to maintain global_mesh_index             */
+    /*--------------------------------------------------------------*/
+    
+    local_start_of_global_index = (coords[2] * x_nodes * y_nodes * local_z_nodes) +       //Imagine 3rd plate 'beginning' point (leftmost bottom point)
+                                  (dims[0]-coords[0]-1) * x_nodes * local_y_nodes +       //Imagine going up in 3rd plate
+                                  (coords[1] * local_x_nodes) ;                            //Imagine going right in 3rd plate
+                                          
 	
 	int n=0; 
-	for( unsigned int k=0 ; k < z_coordinates.size() ; k++ )
+	for( int k=0 ; k < z_coordinates.size() ; k++ )
 	{
-		for( unsigned int j=0 ; j < y_coordinates.size() ; j++ )
+        z_index = k * x_nodes * y_nodes; 
+		for( int j=0 ; j < y_coordinates.size() ; j++ )
 		{
-			for( unsigned int i=0 ; i < x_coordinates.size() ; i++ )
+            y_index = j * x_nodes; 
+			for( int i=0 ; i < x_coordinates.size() ; i++ )
 			{
 				voxels[n].center[0] = x_coordinates[i]; 
 				voxels[n].center[1] = y_coordinates[j]; 
 				voxels[n].center[2] = z_coordinates[k]; 
-				voxels[n].mesh_index = n; 
+				voxels[n].mesh_index = n;                                                             //This now becomes the local index
+				voxels[n].global_mesh_index = local_start_of_global_index + z_index + y_index + i;    //This is now the global index of the Voxel in the global mesh.
 				voxels[n].volume = dV; 
-
 				n++; 
 			}
 		}
 	}
 	
-	// make connections 
+	/*--------------------------*/
+	/* Make Connections next ...*/
+    /*--------------------------*/
 	
-	connected_voxel_indices.resize( voxels.size() ); 
+	connected_voxel_indices.resize( voxels.size() );             //This uses local indices
+    
+    /*-------------------------------------------------------------------------------------*/
+    /* Another array that gives connection indices according to global numbering of voxels */
+    /*-------------------------------------------------------------------------------------*/
+    
+    connected_voxel_global_indices.resize(voxels.size());         //--->This field in class Voxels has been added by Gaurav Saxena
+    
 	voxel_faces.clear(); 
 	
 	for( unsigned int i=0; i < connected_voxel_indices.size() ; i++ )
-	{ connected_voxel_indices[i].clear(); }
+	{ 
+        connected_voxel_indices[i].clear(); 
+        connected_voxel_global_indices[i].clear();                //I forgot this while parallelizing BioFVM code, possibly won't matter but for completeness...
+    }
 	
-	int i_jump = 1; 
-	int j_jump = x_coordinates.size(); 
-	int k_jump = x_coordinates.size() * y_coordinates.size(); 
+	/*----------------------------------------------------------------------------------*
+	/* Need to define two kinds of jumps between immediate neighbours in same direction */
+    /* (1) Local jump and (2) Global jump.
+    /*----------------------------------------------------------------------------------*/
 	
-	// x-aligned connections 
-	int count = 0; 
-	for( unsigned int k=0 ; k < z_coordinates.size() ; k++ )
+    int i_jump = 1;                                 //Local x-jump
+	int j_jump = local_x_nodes;                     //Local y-jump
+	int k_jump = local_x_nodes * local_y_nodes;     //Local z-jump
+	
+	int i_global_jump = i_jump;                     //Global x-jump
+    int j_global_jump = x_nodes;                    //Global y-jump
+    int k_global_jump = x_nodes * y_nodes;          //Global z-jump
+	
+	
+	/*-------------------------------------------------------------------------------*/
+	/* In a parallel environment, making connections will be divided into two parts: */ 
+    /* (1) Inner part - left, right, front, back, top, bottom neighbours all exist   */
+    /* (2) Boundary parts: immediate neighbours my exist across processes or may not */
+    /* exist, if the process touches the boundary                                    */
+    /*-------------------------------------------------------------------------------*/
+	
+    /*------------------------------------*/
+	/* x-aligned connections inner region */
+    /*------------------------------------*/
+    
+	for( int k=0 ; k < z_coordinates.size() ; k++ )
 	{
-		for( unsigned int j=0 ; j < y_coordinates.size() ; j++ )
+		for( int j=0 ; j < y_coordinates.size() ; j++ )
 		{
-			for( unsigned int i=0 ; i < x_coordinates.size()-1 ; i++ )
+			for( int i=1 ; i < x_coordinates.size()-1 ; i++ )
+			{
+				int n = voxel_index(i,j,k);                             //Returns local index of voxel  
+				connect_voxels_indices_only(n,n+i_jump, dS_yz );        //Guranteed that adjacent local index will be present
+                connect_voxels_global_indices_only(n,n+i_jump,dS_yz);   //Guranteed that global adjacent index will be present (added by Gaurav Saxena)
+			}
+		}
+	}
+	
+	
+	/*-------------------------------------*/
+	/* x-aligned connections left boundary */
+    /* Later: can be checked using process */
+    /* coordinates as well.                */
+    /*-------------------------------------*/
+	
+	 
+	for( int k=0 ; k < z_coordinates.size() ; k++ )
+	{
+		for( int j=0 ; j < y_coordinates.size() ; j++ )
+		{
+                    int n = voxel_index(0,j,k);                                 //Returns local index of voxel on the left boundary (can optimize later, reduce comparisons) 
+                    if(voxels[n].center[0] - dx/2 > x_start)                    //i.e. if true, it is not a process aligned with left physical boundary
+                    {
+                                                                                //First connect this to right neighbour then right neighbour to this. 
+                        connect_voxels_indices_only(n,n+i_jump, dS_yz );        //Guranteed that adjacent local index will be present i.e. Right Neighbour
+                        connect_voxels_global_indices_only(n,n+i_jump,dS_yz);   //Guranteed that global adjacent index will be present i.e. Right neighbour
+                        
+                        connected_voxel_indices[n].push_back(-1);               //There is no local left neighbour (because it is process boundary voxel)
+                        connected_voxel_global_indices[n].push_back(voxels[n].global_mesh_index-i_global_jump); 
+                                                                                //But there is a neighbour on previous process, so use global index
+                                                                                
+                        
+                    }
+                    else                                                        //It is the process that is aligned with left physical boundary
+                    {
+                        connect_voxels_indices_only(n,n+i_jump, dS_yz );        //Guranteed that adjacent right local index will be present
+                        connect_voxels_global_indices_only(n,n+i_jump,dS_yz);   //Guranteed that global adjacent right index will be present 
+                                                                                //No left local OR global voxel is present
+                    }
+        }
+	}
+	
+	/*--------------------------*/
+	/* x-aligned right boundary */
+    /*--------------------------*/
+    
+	/*----------------------------------------------------------------------------------------*/
+	/* Because of loops above, the rightmost voxel is already connected to its left neighbour */
+	/* but its not connected to its right neighbour (if it exists !)                          */
+    /*----------------------------------------------------------------------------------------*/
+
+	 
+	for( int k=0 ; k < z_coordinates.size() ; k++ )
+	{
+		for( int j=0 ; j < y_coordinates.size() ; j++ )
+		{
+                    int n = voxel_index(x_coordinates.size()-1,j,k);                             //Returns local index of voxel 
+                    if(voxels[n].center[0] + dx/2 < x_end)                  //i.e. it is not a process aligned with right physical boundary
+                    {
+                        connected_voxel_indices[n].push_back(-1);           //There is no "local" right neighbour (in general there is never any local right neighbour)
+                        connected_voxel_global_indices[n].push_back(voxels[n].global_mesh_index+i_global_jump); //But there is a neighbour on next process, so use global index
+                    }
+                    else                                                    //It is the process that is aligned with right physical boundary
+                    {
+                                                                            //There is no right local or neighbour across this process. Do nothing. 
+                    }
+        }
+	}
+	
+	/*---------------------------------------------------------------------------------------*/
+    /* After making x-aligned connections, the state is like the following:                  */
+    /* At the left physical boundary there is no entry for local or global left neighbour    */
+    /* At the right physical boundary, there is no entry for local or global right neighbour */
+    /* At non-physical left or right boundaries, local neighbours are -1                     */
+    /* Rest of the entries are all valid entries.                                            */
+    /*---------------------------------------------------------------------------------------*/
+
+    /*----------------------------------*/
+    /* y-aligned connections inner part */
+    /*----------------------------------*/
+	
+	for( int k=0 ; k < z_coordinates.size() ; k++ )
+	{
+		for( int i=0 ; i < x_coordinates.size() ; i++ )
+		{
+			for( int j=1 ; j < y_coordinates.size()-1 ; j++ )
 			{
 				int n = voxel_index(i,j,k); 
-				connect_voxels_indices_only(n,n+i_jump, dS_yz ); 
-				count++; 
+				connect_voxels_indices_only(n,n+j_jump, dS_xz );            //In functions, pass local indexes only 
+                connect_voxels_global_indices_only(n,n+j_jump, dS_xz);      //In functions, pass local indexes only (and NOT global indexes)
 			}
 		}
 	}
 
-	// y-aligned connections 
-	for( unsigned int k=0 ; k < z_coordinates.size() ; k++ )
-	{
-		for( unsigned int i=0 ; i < x_coordinates.size() ; i++ )
-		{
-			for( unsigned int j=0 ; j < y_coordinates.size()-1 ; j++ )
-			{
-				int n = voxel_index(i,j,k); 
-				connect_voxels_indices_only(n,n+j_jump, dS_xz ); 
-			}
-		}
-	}	
+	/*---------------------------------------------*/
+    /* y-aligned lower boundary of each sub-domain */
+    /*---------------------------------------------*/
+	
 
-	// z-aligned connections 
-	for( unsigned int j=0 ; j < y_coordinates.size() ; j++ )
+	for( int k=0 ; k < z_coordinates.size() ; k++ )
 	{
-		for( unsigned int i=0 ; i < x_coordinates.size() ; i++ )
+		for( int i=0 ; i < x_coordinates.size() ; i++ )
 		{
-			for( unsigned int k=0 ; k < z_coordinates.size()-1 ; k++ )
+                    int n = voxel_index(i,0,k);                                 //Returns local index of voxel 
+                    if(voxels[n].center[1] - dy/2 > y_start)                    //i.e. it is not a process aligned with bottom physical boundary
+                    {
+                                                                                //First connect this to right neighbour then right neighbour to this. 
+                        connect_voxels_indices_only(n,n+j_jump, dS_xz );        //Guranteed that adjacent local index will be present
+                        connect_voxels_global_indices_only(n,n+j_jump,dS_xz);   //Guranteed that global adjacent index will be present 
+                        
+                        connected_voxel_indices[n].push_back(-1);               //There is no local bottom neighbour (never a bottom "local" neighbour)
+                        connected_voxel_global_indices[n].push_back(voxels[n].global_mesh_index-j_global_jump); //But there is a neighbour on previous process, so use global index
+                    }
+                    else                                                        //It is the process that is aligned with left physical boundary
+                    {
+                        connect_voxels_indices_only(n,n+j_jump, dS_xz );        //Guranteed that there is a local top neighbour
+                        connect_voxels_global_indices_only(n,n+j_jump,dS_xz);   //Guranteed that there is global top neighbour 
+                                                                                //No downward local OR global voxel is present, so don't enter anything in list
+                    }
+        }
+	}
+	
+	/*---------------------------------------------*/
+	/* y-aligned upper boundary of each sub-domain */
+    /*---------------------------------------------*/
+	
+	
+	for( int k=0 ; k < z_coordinates.size() ; k++ )
+	{
+		for( int i=0 ; i < x_coordinates.size() ; i++ )
+		{
+                    int n = voxel_index(i,y_coordinates.size()-1,k);        //Returns local index of voxel 
+                    if(voxels[n].center[1] + dy/2 < y_end)                  //i.e. it is not a process aligned with top physical boundary
+                    {
+                        connected_voxel_indices[n].push_back(-1);           //There is no local right neighbour
+                        connected_voxel_global_indices[n].push_back(voxels[n].global_mesh_index+j_global_jump); //But there is a neighbour on next process, so use global index
+                    }
+                    else                                                    //It is the process that is aligned with right physical boundary
+                    {
+                                                                            //There is no right local or global neighbour across this process. Do nothing. 
+                    }
+        }
+	}
+	
+	/*-----------------------------------------*/
+    /* Z-aligned connections inner connections */
+    /*-----------------------------------------*/
+    
+	for( int j=0 ; j < y_coordinates.size() ; j++ )
+	{
+		for( int i=0 ; i < x_coordinates.size() ; i++ )
+		{
+			for( int k=1 ; k < z_coordinates.size()-1 ; k++ )
 			{
 				int n = voxel_index(i,j,k); 
-				connect_voxels_indices_only(n,n+k_jump, dS_xy ); 
+				connect_voxels_indices_only(n,n+k_jump, dS_xy );
+                connect_voxels_global_indices_only(n, n+k_jump, dS_xy);
 			}
 		}
 	}
+	
+	/*-----------------------------*/
+    /* Z-aligned front connections */
+    /*-----------------------------*/
+	
+	for( int j=0 ; j < y_coordinates.size() ; j++ )
+	{
+		for( int i=0 ; i < x_coordinates.size() ; i++ )
+		{
+                    int n = voxel_index(i,j,0);                                 //Returns local index of voxel 
+                    if(voxels[n].center[2] - dz/2 > z_start)                    //i.e. it is not a process aligned with front physical boundary
+                    {
+                                                                            
+                        connect_voxels_indices_only(n,n+k_jump, dS_xy );        //Guranteed that adjacent local immediate back neighbour is present
+                        connect_voxels_global_indices_only(n,n+k_jump,dS_xy);   //Guranteed that global local immediate back neighbour ispresent 
+                        
+                        connected_voxel_indices[n].push_back(-1);               //There is no local front neighbour
+                        connected_voxel_global_indices[n].push_back(voxels[n].global_mesh_index-k_global_jump); //But there is a global neighbour on previous process, so use global index
+                    }
+                    else                                                        //It is the process that is aligned with left physical boundary
+                    {
+                        connect_voxels_indices_only(n,n+k_jump, dS_xy );        //Guranteed that adjacent immediate local back neighbour is present
+                        connect_voxels_global_indices_only(n,n+k_jump,dS_xy);   //Guranteed that adjacent immediate global back neighbour is present 
+                                                                                //No front immediate neighbour is present
+                    }
+        }
+	}
+	
+	/*-------------------------------------*/
+	/* z-aligned back boundary connections */
+    /*-------------------------------------*/
+	
+	for( int j=0 ; j < y_coordinates.size() ; j++ )
+	{
+		for( int i=0 ; i < x_coordinates.size() ; i++ )
+		{
+                    int n = voxel_index(i,j,z_coordinates.size()-1);        //Returns local index of voxel 
+                    if(voxels[n].center[2] + dz/2 < z_end)                  //i.e. it is not a process aligned with back physical boundary
+                    {
+                        connected_voxel_indices[n].push_back(-1);           //There is no local immediate back neighbour
+                        connected_voxel_global_indices[n].push_back(voxels[n].global_mesh_index+k_global_jump); //But there is a neighbour on next process, so use global index
+                    }
+                    else                                                    //It is the process that is aligned with back physical boundary
+                    {
+                                                                             
+                    }
+        }
+	}
+	
+	/*----------------------------------------------------------------------------------------*/
+	/* Checking through DDT step-by-step execution, use_voxel_faces is false for this example */
+    /* Leave parallelization for later                                                        */
+    /*----------------------------------------------------------------------------------------*/
 	
 	if( use_voxel_faces )
-	{ create_voxel_faces(); }
+	{ 
+        create_voxel_faces(); 
+    }
 	
+	/*--------------------------------------------------------------------*/
+	/* No need to parallelize as Moore neighbourhood is not used anywhere */
+    /*--------------------------------------------------------------------*/
+    
 	create_moore_neighborhood();
+    
 	return; 
 }
 

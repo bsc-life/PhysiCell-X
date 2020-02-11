@@ -84,8 +84,14 @@ class Voxel
 
  public:
 	Voxel(); 
-	int mesh_index; /*!< voxel's index in a General_Mesh */ 
+	int mesh_index; /*!< voxel's index in a General_Mesh :---> In parallel this is local voxel index (Gaurav Saxena)*/ 
 
+	/*-----------------------------------------------------------------------------------*/
+	/* Adding an index global_mesh_index to signify a global voxel index (Gaurav Saxena) */
+    /*-----------------------------------------------------------------------------------*/
+    
+    int global_mesh_index; 
+	
 	double volume; /*!< voxel's volume (cubic spatial units) */ 
 	std::vector<double> center; /*!< center of volume */
 	bool is_Dirichlet;
@@ -127,7 +133,12 @@ class General_Mesh
 	std::vector<Voxel> voxels; 
 	std::vector<Voxel_Face> voxel_faces; 
 	// each voxel[k] has a list of connected voxels -- helpful for some numerical methods 
-	std::vector< std::vector<int> > connected_voxel_indices; 
+	std::vector< std::vector<int> > connected_voxel_indices;
+    
+    /*-------------------------------------------------------------------------------*/
+    /* Need to specify global indices connected_voxel_global_indices (Gaurav Saxena) */
+    /*-------------------------------------------------------------------------------*/
+    std::vector< std::vector<int> > connected_voxel_global_indices; //(added by Gaurav Saxena)
 	
 	int nearest_voxel_index( std::vector<double>& position );   
 	bool is_position_valid(double x, double y, double z);
@@ -147,7 +158,13 @@ class General_Mesh
 	void connect_voxels(int i,int j, double SA);   
 	
 	void connect_voxels_faces_only(int i,int j, double SA); 
-	void connect_voxels_indices_only(int i,int j, double SA); 
+	void connect_voxels_indices_only(int i,int j, double SA);
+    
+    /*-----------------------------------------------------------------------------*/
+    /* For parallel implementation, need to maintain global indices adjacency list */
+    /*-----------------------------------------------------------------------------*/
+    
+    void connect_voxels_global_indices_only(int i,int j, double SA); //---> to maintain a list of connected global indices (added Gaurav Saxena)
 	
 	/*! This removes all connections between voxels[i] and voxels[j], and deletes the associated 
 	    Voxel_Face(s). */
