@@ -407,7 +407,7 @@ void Microenvironment::resize_space( double x_start, double x_end, double y_star
 
 void Microenvironment::resize_space( double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double dx_new , double dy_new , double dz_new, mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
-	mesh.resize( x_start, x_end, y_start, y_end, z_start, z_end,  dx_new , dy_new , dz_new ); 
+	mesh.resize( x_start, x_end, y_start, y_end, z_start, z_end,  dx_new , dy_new , dz_new, world, cart_topo ); 
 
 	temporary_density_vectors1.assign( mesh.voxels.size() , zero ); 
 	temporary_density_vectors2.assign( mesh.voxels.size() , zero ); 
@@ -1340,7 +1340,7 @@ void initialize_microenvironment( mpi_Environment &world, mpi_Cartesian &cart_to
 	microenvironment.resize_space( default_microenvironment_options.X_range[0], default_microenvironment_options.X_range[1] , 
 		default_microenvironment_options.Y_range[0], default_microenvironment_options.Y_range[1], 
 		default_microenvironment_options.Z_range[0], default_microenvironment_options.Z_range[1], 
-		default_microenvironment_options.dx,default_microenvironment_options.dy,default_microenvironment_options.dz );
+		default_microenvironment_options.dx,default_microenvironment_options.dy,default_microenvironment_options.dz, world, cart_topo);
 		
 	// set units
 	microenvironment.spatial_units = default_microenvironment_options.spatial_units;
