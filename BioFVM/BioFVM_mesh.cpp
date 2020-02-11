@@ -1439,7 +1439,7 @@ void Cartesian_Mesh::display_information( std::ostream& os )
 			<< ", dz = " << dz << " " << units ; 
 	}
 	os << std::endl 
-	<< "   voxels: " << voxels.size() << std::endl
+	<< "   voxels (per-process): " << voxels.size() << std::endl //--->These are voxels per-process now (Gaurav Saxena)
 	<< "   voxel faces: " << voxel_faces.size() << std::endl
 	<< "   volume: " << ( bounding_box[3]-bounding_box[0] )*( bounding_box[4]-bounding_box[1] )*( bounding_box[5]-bounding_box[2] ) 
 		<< " cubic " << units << std::endl; 	
