@@ -93,6 +93,18 @@ void Cell_Container::initialize(double x_start, double x_end, double y_start, do
 	return; 
 }
 
+/*-------------------------------------------------*/
+/* Parallel version of initialize() function above */
+/*-------------------------------------------------*/
+
+void Cell_Container::initialize(double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double voxel_size, mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	initialize(x_start, x_end, y_start, y_end, z_start, z_end , voxel_size, voxel_size, voxel_size, world, cart_topo);
+	
+	return; 
+}
+
+
 void Cell_Container::initialize(double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double dx, double dy, double dz)
 {
 	all_cells = (std::vector<Cell*> *) &all_basic_agents;	
@@ -101,6 +113,25 @@ void Cell_Container::initialize(double x_start, double x_end, double y_start, do
 	std::vector<Cell*> cells_ready_to_die;
 
 	underlying_mesh.resize(x_start, x_end, y_start, y_end, z_start, z_end , dx, dy, dz);
+	agent_grid.resize(underlying_mesh.voxels.size());
+	max_cell_interactive_distance_in_voxel.resize(underlying_mesh.voxels.size(), 0.0);
+	agents_in_outer_voxels.resize(6);
+	
+	return; 
+}
+
+/*-------------------------------------------------*/
+/* Parallel version of initialize() function above */
+/*-------------------------------------------------*/
+
+void Cell_Container::initialize(double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double dx, double dy, double dz, mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	all_cells = (std::vector<Cell*> *) &all_basic_agents;	
+	boundary_condition_for_pushed_out_agents= PhysiCell_constants::default_boundary_condition_for_pushed_out_agents;
+	std::vector<Cell*> cells_ready_to_divide;
+	std::vector<Cell*> cells_ready_to_die;
+
+	underlying_mesh.resize(x_start, x_end, y_start, y_end, z_start, z_end , dx, dy, dz, world, cart_topo);
 	agent_grid.resize(underlying_mesh.voxels.size());
 	max_cell_interactive_distance_in_voxel.resize(underlying_mesh.voxels.size(), 0.0);
 	agents_in_outer_voxels.resize(6);
@@ -436,6 +467,26 @@ Cell_Container* create_cell_container_for_microenvironment( BioFVM::Microenviron
 	cell_container->initialize( m.mesh.bounding_box[0], m.mesh.bounding_box[3], 
 		m.mesh.bounding_box[1], m.mesh.bounding_box[4], 
 		m.mesh.bounding_box[2], m.mesh.bounding_box[5],  mechanics_voxel_size );
+	m.agent_container = (Agent_Container*) cell_container; 
+	
+	if( BioFVM::get_default_microenvironment() == NULL )
+	{ 
+		BioFVM::set_default_microenvironment( &m ); 
+	}
+	
+	return cell_container; 
+}
+
+/*------------------------------------------------------------------*/
+/* Parallel version of create_cell_container_for_microenvironment() */
+/*------------------------------------------------------------------*/
+
+Cell_Container* create_cell_container_for_microenvironment( BioFVM::Microenvironment& m , double mechanics_voxel_size, mpi_Environment &world, mpi_Cartesian &cart_topo )
+{
+	Cell_Container* cell_container = new Cell_Container;
+	cell_container->initialize( m.mesh.bounding_box[0], m.mesh.bounding_box[3], 
+		m.mesh.bounding_box[1], m.mesh.bounding_box[4], 
+		m.mesh.bounding_box[2], m.mesh.bounding_box[5],  mechanics_voxel_size, world, cart_topo );
 	m.agent_container = (Agent_Container*) cell_container; 
 	
 	if( BioFVM::get_default_microenvironment() == NULL )

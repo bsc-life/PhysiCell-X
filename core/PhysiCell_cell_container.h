@@ -73,6 +73,10 @@
 #include "../BioFVM/BioFVM_agent_container.h"
 #include "../BioFVM/BioFVM_mesh.h"
 #include "../BioFVM/BioFVM_microenvironment.h"
+#include "../DistPhy/DistPhy_Environment.h"
+#include "../DistPhy/DistPhy_Cartesian.h"
+
+using namespace DistPhy::mpi; 
 
 namespace PhysiCell{
 
@@ -97,7 +101,19 @@ class Cell_Container : public BioFVM::Agent_Container
 	double last_mechanics_time  = 0.0;
 	Cell_Container();
  	void initialize(double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double voxel_size);
+    
+    /*-------------------------------------*/
+    /* Parallel prototype of function above*/
+    /*-------------------------------------*/
+    void initialize(double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double voxel_size, mpi_Environment &world, mpi_Cartesian &cart_topo);
+    
 	void initialize(double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double dx, double dy, double dz);
+    
+    /*-------------------------------------*/
+    /* Parallel prototype of function above*/
+    /*-------------------------------------*/
+    void initialize(double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double dx, double dy, double dz, mpi_Environment &world, mpi_Cartesian &cart_topo);
+    
 	std::vector<std::vector<Cell*> > agent_grid;
 	std::vector<std::vector<Cell*> > agents_in_outer_voxels;
 	
@@ -121,6 +137,7 @@ int find_escaping_face_index(Cell* agent);
 extern std::vector<Cell*> *all_cells; 
 
 Cell_Container* create_cell_container_for_microenvironment( BioFVM::Microenvironment& m , double mechanics_voxel_size );
+Cell_Container* create_cell_container_for_microenvironment( BioFVM::Microenvironment& m , double mechanics_voxel_size, mpi_Environment &world, mpi_Cartesian &cart_topo ); 
 
 
 

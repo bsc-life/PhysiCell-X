@@ -158,8 +158,14 @@ int main( int argc, char* argv[] )
 	/* PhysiCell setup */ 
  	
 	// set mechanics voxel size, and match the data structure to BioFVM
-	double mechanics_voxel_size = 30; 
-	Cell_Container* cell_container = create_cell_container_for_microenvironment( microenvironment, mechanics_voxel_size );
+	
+	double mechanics_voxel_size = 30;
+    
+    /*---------------------------------------------------------*/
+    /* Calling the parallel version of Cell Container creation */
+    /*---------------------------------------------------------*/
+    
+	Cell_Container* cell_container = create_cell_container_for_microenvironment( microenvironment, mechanics_voxel_size, world, cart_topo);
 	
 	create_cell_types();
 	setup_tissue();
