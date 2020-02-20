@@ -34,7 +34,7 @@ CFLAGS := -march=$(ARCH) -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -s
 
 COMPILE_COMMAND := $(CC) $(CFLAGS) 
 
-DistPhy_OBJECTS:= DistPhy_Environment.o DistPhy_Cartesian.o
+DistPhy_OBJECTS:= DistPhy_Environment.o DistPhy_Cartesian.o DistPhy_Utils.o
 
 BioFVM_OBJECTS := BioFVM_vector.o BioFVM_mesh.o BioFVM_microenvironment.o BioFVM_solvers.o BioFVM_matlab.o \
 BioFVM_utilities.o BioFVM_basic_agent.o BioFVM_MultiCellDS.o BioFVM_agent_container.o 
@@ -64,6 +64,9 @@ DistPhy_Environment.o: ./DistPhy/DistPhy_Environment.cpp
 
 DistPhy_Cartesian.o: ./DistPhy/DistPhy_Cartesian.cpp
 	$(COMPILE_COMMAND) -c ./DistPhy/DistPhy_Cartesian.cpp
+	
+DistPhy_Utils.o: ./DistPhy/DistPhy_Utils.cpp
+	$(COMPILE_COMMAND) -c ./DistPhy/DistPhy_Utils.cpp
 
 PhysiCell_phenotype.o: ./core/PhysiCell_phenotype.cpp
 	$(COMPILE_COMMAND) -c ./core/PhysiCell_phenotype.cpp

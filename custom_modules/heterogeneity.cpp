@@ -67,7 +67,9 @@
 
 #include "./heterogeneity.h"
 #include "../modules/PhysiCell_settings.h"
+#include "../DistPhy/DistPhy_Utils.h"
 
+using namespace DistPhy::mpi;
 
 void create_cell_types( void )
 {
@@ -271,6 +273,133 @@ void setup_tissue( void )
 		n++; 
 	}
 	
+	double sum = 0.0; 
+	double min = 9e9; 
+	double max = -9e9; 
+	for( int i=0; i < all_cells->size() ; i++ )
+	{
+		double r = (*all_cells)[i]->custom_data[0]; 
+		sum += r;
+		if( r < min )
+		{ min = r; } 
+		if( r > max )
+		{ max = r; }
+	}
+	double mean = sum / ( all_cells->size() + 1e-15 ); 
+	// compute standard deviation 
+	sum = 0.0; 
+	for( int i=0; i < all_cells->size(); i++ )
+	{
+		sum +=  ( (*all_cells)[i]->custom_data[0] - mean )*( (*all_cells)[i]->custom_data[0] - mean ); 
+	}
+	double standard_deviation = sqrt( sum / ( all_cells->size() - 1.0 + 1e-15 ) ); 
+	
+	std::cout << std::endl << "Oncoprotein summary: " << std::endl
+			  << "===================" << std::endl; 
+	std::cout << "mean: " << mean << std::endl; 
+	std::cout << "standard deviation: " << standard_deviation << std::endl; 
+	std::cout << "[min max]: [" << min << " " << max << "]" << std::endl << std::endl; 
+	
+	return; 
+}
+
+/*-----------------------------------------------------*/
+/* Miguel's function for generating positions of cells */
+/*-----------------------------------------------------*/
+
+std::vector<std::vector<double>> create_cell_sphere_positions(double cell_radius, double sphere_radius)
+{
+	std::vector<std::vector<double>> cells;
+	int xc=0,yc=0,zc=0;
+	double x_spacing= cell_radius*sqrt(3);
+	double y_spacing= cell_radius*2;
+	double z_spacing= cell_radius*sqrt(3);
+
+	std::vector<double> tempPoint(3,0.0);
+	// std::vector<double> cylinder_center(3,0.0);
+
+	for(double z=-sphere_radius;z<sphere_radius;z+=z_spacing, zc++)
+	{
+		for(double x=-sphere_radius;x<sphere_radius;x+=x_spacing, xc++)
+		{
+			for(double y=-sphere_radius;y<sphere_radius;y+=y_spacing, yc++)
+			{
+				tempPoint[0]=x + (zc%2) * 0.5 * cell_radius;
+				tempPoint[1]=y + (xc%2) * cell_radius;
+				tempPoint[2]=z;
+
+				if(sqrt(norm_squared(tempPoint))< sphere_radius)
+				{ cells.push_back(tempPoint); }
+			}
+
+		}
+	}
+	return cells;
+
+}
+
+
+/*------------------------------------------------------------------------*/
+/* Parallel version of setup_tissue(), replacing this function completely */
+/* by Miguel's version of setup_tissue and then parallelizing             */
+/*------------------------------------------------------------------------*/
+
+void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+    // place a cluster of tumor cells at the center 
+	double cell_radius = cell_defaults.phenotype.geometry.radius; 
+	double cell_spacing = 0.95 * 2.0 * cell_radius; 
+	
+	double tumor_radius = parameters.doubles( "tumor_radius" ); // 250.0; 
+	
+	// Parameter<double> temp; 
+	
+	int i = parameters.doubles.find_index( "tumor_radius" ); 
+	
+	Cell* pCell = NULL; 
+    
+    std::vector<std::vector<double>> positions; 
+    std::vector<std::vector<double>> generated_positions_at_root; 
+	
+    if(world.rank == 0) //Only the MPI Rank 0 process will generate positions
+    {
+        generated_positions_at_root = create_cell_sphere_positions(cell_radius,tumor_radius);   //Generate the cell positions
+        
+        int strt_cell_ID = Basic_Agent::get_max_ID_in_parallel();                               //IDs for new cells (positions) will start from the current highest ID
+        mpi_CellPositions cp;
+        
+        cp.positions_to_rank_list(generated_positions_at_root, 
+                                  m.mesh.bounding_box[0], m.mesh.bounding_box[3], m.mesh.bounding_box[1], m.mesh.bounding_box[4], m.mesh.bounding_box[2], m.mesh.bounding_box[5], 
+                                  m.mesh.dx, m.mesh.dy, m.mesh.dz, 
+                                  world, cart_topo, strt_cell_ID);
+        Basic_Agent::set_max_ID_in_parallel(strt_cell_ID + generated_positions_at_root.size()); //Highest ID now is the starting ID + no. of generated coordinates ! 
+    }
+	
+    if(IOProcessor(world))
+        std::cout << "creating " << positions.size() << " closely-packed tumor cells ... " << std::endl;
+
+	double x = 0.0; 
+	double x_outer = tumor_radius; 
+	double y = 0.0; 
+	
+	double p_mean = parameters.doubles( "oncoprotein_mean" ); 
+	double p_sd = parameters.doubles( "oncoprotein_sd" ); 
+	double p_min = parameters.doubles( "oncoprotein_min" ); 
+	double p_max = parameters.doubles( "oncoprotein_max" ); 
+	
+
+	for( int i=0; i < positions.size(); i++ )
+	{
+		pCell = create_cell(); // tumor cell
+		pCell->assign_position( positions[i] );
+		pCell->custom_data[0] = NormalRandom( p_mean, p_sd );
+		if( pCell->custom_data[0] < p_min )
+		{ pCell->custom_data[0] = p_min; }
+		if( pCell->custom_data[0] > p_max )
+		{ pCell->custom_data[0] = p_max; }
+	}
+	
+
 	double sum = 0.0; 
 	double min = 9e9; 
 	double max = -9e9; 

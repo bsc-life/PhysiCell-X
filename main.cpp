@@ -168,7 +168,8 @@ int main( int argc, char* argv[] )
 	Cell_Container* cell_container = create_cell_container_for_microenvironment( microenvironment, mechanics_voxel_size, world, cart_topo);
 	
 	create_cell_types();
-	setup_tissue();
+    
+	setup_tissue(microenvironment, world, cart_topo);      //Send all three like create_cell_container_for_microenvironment above
 	
 	/* Users typically start modifying here. START USERMODS */ 
 	

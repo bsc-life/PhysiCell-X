@@ -54,6 +54,8 @@ namespace BioFVM{
 
 std::vector<Basic_Agent*> all_basic_agents(0); 
 
+int Basic_Agent::max_ID_in_parallel = 0;                //----> Added by Gaurav Saxena, max_ID_in_parallel maintains the (highest ID+1) corresponding to the last agent created
+
 Basic_Agent::Basic_Agent()
 {
 	//give the agent a unique ID  
@@ -84,6 +86,20 @@ Basic_Agent::Basic_Agent()
 	// internalized_substrates.assign( get_default_microenvironment()->number_of_densities() , 0.0 ); 
 	
 	return;	
+}
+
+/*--------------------------------------------------------------------------------------------*/
+/* Two functions get and set the value of max_ID_in_parallel (variable added by Gaurav Saxena)*/
+/*--------------------------------------------------------------------------------------------*/
+
+int Basic_Agent::get_max_ID_in_parallel()           //No "static" keyword is used here
+{
+    return max_ID_in_parallel;                  
+}
+
+void Basic_Agent::set_max_ID_in_parallel(int id)    //No "static" keyword is used here
+{
+    max_ID_in_parallel = id; 
 }
 
 void Basic_Agent::update_position(double dt){ 

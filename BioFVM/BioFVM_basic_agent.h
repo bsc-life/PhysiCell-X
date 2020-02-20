@@ -98,6 +98,15 @@ class Basic_Agent
 	int ID; 
 	int index; 
 	int type;
+    
+    /*----------------------------------------------------------------*/
+    /* One variable and 2 functions added for Parallel Implementation */
+    /*----------------------------------------------------------------*/
+    
+    static int max_ID_in_parallel;                      //Static variable that maintains the highest ID number generated.(--->added by Gaurav Saxena)
+	static int get_max_ID_in_parallel();                //--->Added by Gaurav Saxena
+    static void set_max_ID_in_parallel(int id);         //--->Added by Gaurav Saxena
+	
 	
 	bool assign_position(double x, double y, double z);
 	bool assign_position(std::vector<double> new_position);
