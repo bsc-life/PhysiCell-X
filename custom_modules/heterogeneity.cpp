@@ -359,21 +359,32 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 	Cell* pCell = NULL; 
     
     std::vector<std::vector<double>> positions; 
-    std::vector<std::vector<double>> generated_positions_at_root; 
+    std::vector<std::vector<double>> generated_positions_at_root;
+    
+    /*----------------------------------------------------------------------------------------------------*/
+    /* Object of mpi_CellPositions must be declared for all processes because distribute_cell_positions() */
+    /* function will pass 2 objects of the kind mpi_CellPositions and mpi_MyCells                         */
+    /*----------------------------------------------------------------------------------------------------*/
+    
+    mpi_CellPositions cp;                //To store cell positions, cell IDs, no. of cell IDs at root only (for all processes)
+    mpi_MyCells       mc;                //To store cell positions, cell IDs, no. of cells at each process.
 	
     if(world.rank == 0) //Only the MPI Rank 0 process will generate positions
     {
         generated_positions_at_root = create_cell_sphere_positions(cell_radius,tumor_radius);   //Generate the cell positions
         
         int strt_cell_ID = Basic_Agent::get_max_ID_in_parallel();                               //IDs for new cells (positions) will start from the current highest ID
-        mpi_CellPositions cp;
+        
         
         cp.positions_to_rank_list(generated_positions_at_root, 
                                   m.mesh.bounding_box[0], m.mesh.bounding_box[3], m.mesh.bounding_box[1], m.mesh.bounding_box[4], m.mesh.bounding_box[2], m.mesh.bounding_box[5], 
                                   m.mesh.dx, m.mesh.dy, m.mesh.dz, 
                                   world, cart_topo, strt_cell_ID);
+        
         Basic_Agent::set_max_ID_in_parallel(strt_cell_ID + generated_positions_at_root.size()); //Highest ID now is the starting ID + no. of generated coordinates ! 
     }
+    
+    distribute_cell_positions(cp, mc, world, cart_topo);                                        //Distribute cell positions to individual processes
 	
     if(IOProcessor(world))
         std::cout << "creating " << positions.size() << " closely-packed tumor cells ... " << std::endl;
