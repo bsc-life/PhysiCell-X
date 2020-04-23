@@ -77,9 +77,10 @@ Preparation of example to be parallelized
     (f) Voxels already 20^3.
 
 (3) **./sample_projects/custom_modules/heterogeneity.cpp** change 
-`if(2D == false) then 2D = True;` 
-to 
-`if(2D == true) then 2D = false;` to change this example to force 3-D domain.
+`if(2D == false) then 2D = True;`
+ to 
+`if(2D == true) then 2D = false;` 
+ to change this example to force 3-D domain.
 
 (4) Change **./sample_projects/Makefile**
 
