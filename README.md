@@ -4,20 +4,20 @@ Aim: Parallelize heterogeneity-sample example in 3-D.
 
 Important
 =========
-$make heterogeneity-sample 
+`$make heterogeneity-sample` 
 
-copies multiple files in generic directories like ./config, ./custom_modules. 
+copies multiple files in generic directories like **./config, ./custom_modules.** 
 
-When parallelizing, we are not changing the files inside the sample_projects directory. So when doing $make heterogeneity-sample again, several files in the current 
+When parallelizing, we are not changing the files inside the **sample_projects** directory. So when doing `$make heterogeneity-sample` again, several files in the current 
 
-directory will be replaced by the original files (which will not be parallel). Need to be **CAREFUL** before executing $make heterogeneity-sample again. 
+directory will be replaced by the original files (which will not be parallel). Need to be **CAREFUL** before executing `$make heterogeneity-sample` again. 
 
 
 Preparation of example to be parallelized
 =========================================
 (1) Extract version 1.1.6, then rename to GS_PhysiCell_X (Gaurav Saxena PhysiCell X decomposition)
 
-(2) Adjust ./sample_projects/heterogeneity/config/PhysiCell_settings.xml 
+(2) Adjust **./sample_projects/heterogeneity/config/PhysiCell_settings.xml** 
 
     (a) Domain: from -240 to +240 in all dimensions, 
 
@@ -31,17 +31,20 @@ Preparation of example to be parallelized
 
     (f) Voxels already 20^3.
 
-(3) ./sample_projects/custom_modules/heterogeneity.cpp change if(2D == false) then 2D = True; to if(2D == true) then 2D = false; to change this example to force 3-D domain.
+(3) **./sample_projects/custom_modules/heterogeneity.cpp** change 
+`if(2D == false) then 2D = True;` 
+to 
+`if(2D == true) then 2D = false;` to change this example to force 3-D domain.
 
-(4) Change ./sample_projects/Makefile
+(4) Change **./sample_projects/Makefile**
 
-    (a) Program name: heterogeneity.exe (so that we can list .exe in .gitignore)
+    (a) Program name: **heterogeneity.exe** (so that we can list .exe in .gitignore)
 
-    (b) List DistPhy_OBJECTS
+    (b) List **DistPhy_OBJECTS**
 
-    (c) Include DistPhy_OBJECTS in PhysiCell_OBJECTS
+    (c) Include **DistPhy_OBJECTS** in **PhysiCell_OBJECTS**
 
-    (d) Change g++ to mpic++
+    (d) Change **g++** to **mpic++**
 
     (e) Write rules for DistPhy target .o files.
 
