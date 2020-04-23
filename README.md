@@ -8,9 +8,54 @@ Important
 
 copies multiple files in generic directories like **./config, ./custom_modules.** 
 
-When parallelizing, we are not changing the files inside the **sample_projects** directory. So when doing `$make heterogeneity-sample` again, several files in the current 
+When parallelizing, we are not changing the files inside the **sample_projects** directory. 
+So when doing `$make heterogeneity-sample` again, several files in the current directory 
+will be replaced by the original files (which will not be parallel). 
+Need to be **CAREFUL** before executing `$make heterogeneity-sample` again. 
 
-directory will be replaced by the original files (which will not be parallel). Need to be **CAREFUL** before executing `$make heterogeneity-sample` again. 
+But only `$make` can be done without any problems - for example if we change the main.cpp file and we `$make` then no files are replaced. 
+Thus we can do `$make clean` - this removes all `.o` files and the executable i.e. `heterogeneity.exe` are deleted.
+
+```
+bsc99102@login1:~/GS_PhysiCell_X> make clean
+rm -f *.o
+rm -f heterogeneity.exe*
+```
+Then:
+
+```
+bsc99102@login1:~/GS_PhysiCell_X> make
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./BioFVM/BioFVM_vector.cpp 
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./BioFVM/BioFVM_mesh.cpp 
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./BioFVM/BioFVM_microenvironment.cpp 
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./BioFVM/BioFVM_solvers.cpp 
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./BioFVM/BioFVM_matlab.cpp
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./BioFVM/BioFVM_utilities.cpp 
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./BioFVM/BioFVM_basic_agent.cpp 
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./BioFVM/BioFVM_MultiCellDS.cpp
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./BioFVM/BioFVM_agent_container.cpp 
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./BioFVM/pugixml.cpp
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./core/PhysiCell_phenotype.cpp
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./core/PhysiCell_cell_container.cpp 
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./core/PhysiCell_standard_models.cpp 
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./core/PhysiCell_cell.cpp 
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./core/PhysiCell_custom.cpp 
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./core/PhysiCell_utilities.cpp 
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./core/PhysiCell_constants.cpp 
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./modules/PhysiCell_SVG.cpp
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./modules/PhysiCell_pathology.cpp
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./modules/PhysiCell_MultiCellDS.cpp
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./modules/PhysiCell_various_outputs.cpp
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./modules/PhysiCell_pugixml.cpp
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./modules/PhysiCell_settings.cpp	
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./DistPhy/DistPhy_Environment.cpp
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./DistPhy/DistPhy_Cartesian.cpp
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./DistPhy/DistPhy_Utils.cpp
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./custom_modules/heterogeneity.cpp
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -o heterogeneity.exe BioFVM_vector.o BioFVM_mesh.o BioFVM_microenvironment.o BioFVM_solvers.o BioFVM_matlab.o BioFVM_utilities.o BioFVM_basic_agent.o BioFVM_MultiCellDS.o BioFVM_agent_container.o   pugixml.o PhysiCell_phenotype.o PhysiCell_cell_container.o PhysiCell_standard_models.o PhysiCell_cell.o PhysiCell_custom.o PhysiCell_utilities.o PhysiCell_constants.o PhysiCell_SVG.o PhysiCell_pathology.o PhysiCell_MultiCellDS.o PhysiCell_various_outputs.o PhysiCell_pugixml.o PhysiCell_settings.o DistPhy_Environment.o DistPhy_Cartesian.o DistPhy_Utils.o heterogeneity.o main.cpp 
+bsc99102@login1:~/GS_PhysiCell_X>
+```
+
 
 
 Preparation of example to be parallelized
