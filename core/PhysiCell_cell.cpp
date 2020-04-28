@@ -329,6 +329,44 @@ Cell::Cell()
 	return; 
 }
 
+/*--------------------------------------------------------------------------------------------------*/
+/* Parallel version of Cell class Constructor which takes as input the cell id in parallel settings */
+/* It must call explicitly a new constructor of Basic_Agent which takes as input this cell id				*/
+/*--------------------------------------------------------------------------------------------------*/
+
+Cell::Cell(int p_ID):Basic_Agent(p_ID) //----> Correct syntax for calling parametrized base class constructor
+{
+	// use the cell defaults; 
+	
+	//Basic_Agent(p_ID);---> this syntax is incorrect to call Base class parametrized constructor
+	type = cell_defaults.type; 
+	type_name = cell_defaults.name; 
+	
+	custom_data = cell_defaults.custom_data; 
+	parameters 	= cell_defaults.parameters; 
+	functions 	= cell_defaults.functions; 
+	
+	phenotype 	= cell_defaults.phenotype; 
+	
+	phenotype.molecular.sync_to_cell( this ); 
+	
+	// cell state should be fine by the default constructor 
+	
+	current_mechanics_voxel_index					=-1;	
+	updated_current_mechanics_voxel_index = 0;
+	
+	is_movable 				= true;
+	is_out_of_domain 	= false;
+	displacement.resize(3,0.0); // state? 
+	
+	assign_orientation();				//Just assigns a random unit vector to the cell. 
+	container = NULL;
+	
+	
+	return; 
+}
+
+
 void Cell::flag_for_division( void )
 {
 	get_container()->flag_cell_for_division( this );
@@ -817,6 +855,30 @@ Cell* create_cell( Cell_Definition& cd )
 	pNew->displacement.resize(3,0.0); // state? 
 	
 	pNew->assign_orientation();
+	
+	return pNew; 
+}
+
+/*---------------------------------------------------------------------*/
+/* New function for parallel environment: Cell* create_cell(int p_ID)  */
+/* Very similar body to the serial Cell* create_cell( void ) above 	 	 */
+/* It will call a new Constructor pNew = new Cell(p_ID);							 */
+/* This new Constructor will explicitly call a new Constructor of		 	 */
+/* the Basic_Agent class : Basic_Agent(int p_ID)											 */ 
+/*---------------------------------------------------------------------*/
+
+Cell* create_cell( int p_ID )
+{
+	Cell* pNew; 
+	pNew = new Cell(p_ID);		
+	(*all_cells).push_back( pNew ); 
+	pNew->index=(*all_cells).size()-1;
+	
+	
+	if( BioFVM::get_default_microenvironment() )
+	{
+		pNew->register_microenvironment( BioFVM::get_default_microenvironment() );
+	} 
 	
 	return pNew; 
 }

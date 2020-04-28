@@ -180,6 +180,13 @@ class Cell : public Basic_Agent
 	void die( void );
 	void step(double dt);
 	Cell();
+
+/*=======================================================================*/
+/* New Cell class Constructor for parallel version which accepts cell ID */
+/* in parallel settings																									 */
+/*=======================================================================*/
+
+	Cell(int p_ID); 
 	
 	bool assign_position(std::vector<double> new_position);
 	bool assign_position(double, double, double);
@@ -215,7 +222,14 @@ class Cell : public Basic_Agent
 };
 
 Cell* create_cell( void );  
-Cell* create_cell( Cell_Definition& cd );  
+Cell* create_cell( Cell_Definition& cd ); 
+
+/*=======================================================================*/
+/* Parallel prototype of creat_cell() ---> Cell *create_cell(int my_ID); */
+/* Analogous serial version does not exist for this parallel prototype 	 */
+/*=======================================================================*/
+
+Cell* create_cell(int cell_id); 
 
 
 void delete_cell( int ); 

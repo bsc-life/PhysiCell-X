@@ -10,5 +10,5 @@
 
 # set application and parameters
 export OMP_NUM_THREADS=1
-ddt srun ./heterogeneity.exe
-
+#ddt srun ./heterogeneity.exe
+ddt --connect srun ./heterogeneity.exe

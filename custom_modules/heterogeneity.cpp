@@ -350,7 +350,7 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 	double cell_radius = cell_defaults.phenotype.geometry.radius; 
 	double cell_spacing = 0.95 * 2.0 * cell_radius; 
 	
-	double tumor_radius = parameters.doubles( "tumor_radius" ); // 250.0; 
+	double tumor_radius = parameters.doubles( "tumor_radius" ); // 250.0; now changed to 150 in PhysiCell_settings.xml file
 	
 	// Parameter<double> temp; 
 	
@@ -358,7 +358,7 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 	
 	Cell* pCell = NULL; 
     
-    std::vector<std::vector<double>> positions; 
+    std::vector<std::vector<double>> positions;		//What is this variable for ?  
     std::vector<std::vector<double>> generated_positions_at_root;
     
     /*----------------------------------------------------------------------------------------------------*/
@@ -387,27 +387,31 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
     distribute_cell_positions(cp, mc, world, cart_topo);                                        //Distribute cell positions to individual processes
 	
     if(IOProcessor(world))
-        std::cout << "creating " << positions.size() << " closely-packed tumor cells ... " << std::endl;
+        std::cout << "creating " << generated_positions_at_root.size() << " closely-packed tumor cells ... " << std::endl;
 
 	double x = 0.0; 
 	double x_outer = tumor_radius; 
 	double y = 0.0; 
 	
 	double p_mean = parameters.doubles( "oncoprotein_mean" ); 
-	double p_sd = parameters.doubles( "oncoprotein_sd" ); 
-	double p_min = parameters.doubles( "oncoprotein_min" ); 
-	double p_max = parameters.doubles( "oncoprotein_max" ); 
+	double p_sd 	= parameters.doubles( "oncoprotein_sd" ); 
+	double p_min 	= parameters.doubles( "oncoprotein_min" ); 
+	double p_max 	= parameters.doubles( "oncoprotein_max" ); 
 	
 
-	for( int i=0; i < positions.size(); i++ )
+	for( int i=0; i < mc.my_no_of_cell_IDs; i++ )
 	{
-		pCell = create_cell(); // tumor cell
+		pCell = create_cell(mc.my_cell_IDs[i]); // tumor cell --> This has to be replaced by create_cell(mc.my_cell_IDs[i])
 		pCell->assign_position( positions[i] );
 		pCell->custom_data[0] = NormalRandom( p_mean, p_sd );
 		if( pCell->custom_data[0] < p_min )
-		{ pCell->custom_data[0] = p_min; }
+		{ 
+			pCell->custom_data[0] = p_min; 
+		}
 		if( pCell->custom_data[0] > p_max )
-		{ pCell->custom_data[0] = p_max; }
+		{ 
+			pCell->custom_data[0] = p_max; 
+		}
 	}
 	
 

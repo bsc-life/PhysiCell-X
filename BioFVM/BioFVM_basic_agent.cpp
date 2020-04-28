@@ -88,6 +88,39 @@ Basic_Agent::Basic_Agent()
 	return;	
 }
 
+/*------------------------------------------------------------------------------------------------*/
+/* Parallel version of the Constructor of Basic_Agent class which takes as input the ID of a cell */
+/* in parallel settings. The body is very similar to Basic_Agent() constructor above. 						*/
+/*------------------------------------------------------------------------------------------------*/
+
+Basic_Agent::Basic_Agent(int p_ID)
+{
+	
+	ID = p_ID; 				//The p_ID is coming from create_cell(p_ID)-->new Cell(p_ID)-->Basic_Agent(p_ID)
+										//p_ID is an abbreviation of parallel_ID i.e. ID in parallel settings 
+  is_active=true;
+	
+	volume = 1.0; 
+	
+	position.assign( 3 , 0.0 ); 
+	velocity.assign( 3 , 0.0 );
+	previous_velocity.assign( 3 , 0.0 );
+	 
+	// link into the microenvironment, if one is defined
+	 
+	secretion_rates			= new std::vector<double>(0);
+	uptake_rates				= new std::vector<double>(0);
+	saturation_densities= new std::vector<double>(0);
+	
+	internalized_substrates 						= new std::vector<double>(0); // 
+	fraction_released_at_death 					= new std::vector<double>(0); 
+	fraction_transferred_when_ingested 	= new std::vector<double>(0); 
+	
+	register_microenvironment( get_default_microenvironment() );
+	
+	return;	
+}
+
 /*--------------------------------------------------------------------------------------------*/
 /* Two functions get and set the value of max_ID_in_parallel (variable added by Gaurav Saxena)*/
 /*--------------------------------------------------------------------------------------------*/

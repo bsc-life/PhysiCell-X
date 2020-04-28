@@ -99,13 +99,13 @@ class Basic_Agent
 	int index; 
 	int type;
     
-    /*----------------------------------------------------------------*/
-    /* One variable and 2 functions added for Parallel Implementation */
-    /*----------------------------------------------------------------*/
+/*----------------------------------------------------------------*/
+/* One variable and 2 functions added for Parallel Implementation */
+/*----------------------------------------------------------------*/
     
-    static int max_ID_in_parallel;                      //Static variable that maintains the highest ID number generated.(--->added by Gaurav Saxena)
+  static int max_ID_in_parallel;                      //Static variable that maintains the highest ID number generated.(--->added by Gaurav Saxena)
 	static int get_max_ID_in_parallel();                //--->Added by Gaurav Saxena
-    static void set_max_ID_in_parallel(int id);         //--->Added by Gaurav Saxena
+  static void set_max_ID_in_parallel(int id);         //--->Added by Gaurav Saxena
 	
 	
 	bool assign_position(double x, double y, double z);
@@ -115,7 +115,13 @@ class Basic_Agent
 	std::vector<double> velocity; 
 	void update_position( double dt );
 	
-	Basic_Agent(); 
+	Basic_Agent();
+	
+/*============================================================================================*/
+/* New Constructor of Basic_Agent class which takes as input the cell id in parallel settings */
+/*============================================================================================*/
+
+	Basic_Agent(int p_ID);  
 
 	// simulate secretion and uptake at the nearest voxel at the indicated microenvironment.
 	// if no microenvironment indicated, use the currently selected microenvironment. 
