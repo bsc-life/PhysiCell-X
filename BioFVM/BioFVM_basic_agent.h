@@ -54,6 +54,8 @@
 #include "BioFVM_matlab.h"
 #include "BioFVM_vector.h"
 
+//using namespace DistPhy::mpi; 
+
 namespace BioFVM{
 
 
@@ -83,6 +85,11 @@ class Basic_Agent
 	double get_total_volume();
 	void set_total_volume(double);
 	void update_voxel_index();
+
+/*----------------------------------------------------------------*/
+/* Parallel prototype of update_voxel_index() 										*/
+/*----------------------------------------------------------------*/	
+	void update_voxel_index(mpi_Environment &world, mpi_Cartesian &cart_topo);
 
 	/* new for internalized substrates in 1.5.0 */ 
 	std::vector<double> * internalized_substrates; 

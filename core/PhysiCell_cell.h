@@ -75,7 +75,8 @@
 #include "./PhysiCell_cell_container.h"
 #include "./PhysiCell_constants.h"
 
-using namespace BioFVM; 
+using namespace BioFVM;
+using namespace DistPhy::mpi; 
 
 namespace PhysiCell{
 class Cell_Container;
@@ -190,6 +191,12 @@ class Cell : public Basic_Agent
 	
 	bool assign_position(std::vector<double> new_position);
 	bool assign_position(double, double, double);
+	
+/*=======================================================================*/
+/* Parallel prototype of assign_position */
+/*=======================================================================*/
+	
+	bool assign_position(double x, double y, double z, mpi_Environment &world, mpi_Cartesian &cart_topo);	
 	void set_total_volume(double);
 	
 	double& get_total_volume(void); // NEW

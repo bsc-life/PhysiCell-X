@@ -177,11 +177,11 @@ class Microenvironment
 	void resize_space( int x_nodes, int y_nodes, int z_nodes ); 
 	void resize_space( double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , int x_nodes, int y_nodes, int z_nodes );  
 	
-    void resize_space( double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double dx_new , double dy_new , double dz_new ); 
+  void resize_space( double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double dx_new , double dy_new , double dz_new ); 
     
-    /*============================================================*/
-    /* Parallel prototype of function immediately above this line */
-    /*============================================================*/
+  /*============================================================*/
+	/* Parallel prototype of function immediately above this line */
+  /*============================================================*/
     
     void resize_space( double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double dx_new , double dy_new , double dz_new, mpi_Environment &world, mpi_Cartesian &cart_topo);
     
@@ -201,6 +201,13 @@ class Microenvironment
 	std::vector<unsigned int> cartesian_indices( int n ); 
 	
 	int nearest_voxel_index( std::vector<double>& position ); 
+	
+	/*================================================================*/
+  /* Parallel prototype of a new function nearest_voxel_local_index */
+  /*================================================================*/
+  
+  int nearest_voxel_local_index( std::vector<double>& position, mpi_Environment &world, mpi_Cartesian &cart_topo ); 
+  
 	std::vector<unsigned int> nearest_cartesian_indices( std::vector<double>& position ); 
 	Voxel& nearest_voxel( std::vector<double>& position ); 
 	Voxel& voxels( int voxel_index );

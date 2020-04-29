@@ -171,6 +171,22 @@ void Basic_Agent::update_voxel_index()
 	current_voxel_index= microenvironment->nearest_voxel_index( position );
 }
 
+/*-----------------------------------------------------*/
+/* Parallel version of update_voxel_index() function	 */
+/*-----------------------------------------------------*/
+
+void Basic_Agent::update_voxel_index(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	if( !get_microenvironment()->mesh.is_position_valid(position[0],position[1],position[2]))
+	{	
+		current_voxel_index=-1;
+		is_active=false;
+		return;
+	}
+	current_voxel_index= microenvironment->nearest_voxel_local_index( position, world, cart_topo );
+}
+
+
 void Basic_Agent::set_internal_uptake_constants( double dt )
 {
 	// overall form: dp/dt = S*(T-p) - U*p 

@@ -1391,6 +1391,105 @@ int Cartesian_Mesh::nearest_voxel_index( std::vector<double>& position )
 	return ( k*y_coordinates.size() + j )*x_coordinates.size() + i; 
 }
 
+/*-----------------------------------------------------------------------------------*/
+/* Parallel new function that returns a process specific local index 								 */
+/* in which the Basic_Agent resides. 																								 */
+/*-----------------------------------------------------------------------------------*/
+
+int Cartesian_Mesh::nearest_voxel_local_index( std::vector<double>& position, mpi_Environment &world, mpi_Cartesian &cart_topo )
+{
+		/*----------------------------------------------------*/
+    /* Routine should return the local index of the voxel */
+    /* of the process having rank world.rank that contains*/
+    /* the Basic_Agent. The local index is needed because */
+    /* voxels[global_index] is not a valid position       */
+    /* voxels[local_index] = some_global_index is ok      */  
+    /*----------------------------------------------------*/
+    
+    /*----------------------------------------------------*/
+    /* Coordinates of Voxel containing Basic_Agent, 			*/
+    /* dx, dy and dz are members of Cartesian_Mesh class  */
+    /*----------------------------------------------------*/
+    
+    int x_vox = (int) floor( (position[0]-bounding_box[0])/dx ); 
+		int y_vox = (int) floor( (position[1]-bounding_box[1])/dy ); 
+		int z_vox = (int) floor( (position[2]-bounding_box[2])/dz );
+    
+    /*----------------------------------------------------*/
+    /* Global Voxels in each directions                   */
+    /*----------------------------------------------------*/
+    
+    int global_num_x_voxels = (bounding_box[3]-bounding_box[0])/dx;
+    int global_num_y_voxels = (bounding_box[4]-bounding_box[1])/dy;
+    int global_num_z_voxels = (bounding_box[5]-bounding_box[2])/dz;
+    
+    /*----------------------------------------------------*/
+    /* Local Voxels in each directions                    */
+    /*----------------------------------------------------*/
+    
+    int local_num_x_voxels = (bounding_box[3]-bounding_box[0])/(cart_topo.mpi_dims[1] * dx);
+    int local_num_y_voxels = (bounding_box[4]-bounding_box[1])/(cart_topo.mpi_dims[0] * dy);
+    int local_num_z_voxels = (bounding_box[5]-bounding_box[2])/(cart_topo.mpi_dims[2] * dz);
+    
+    /*---------------------------------------------------------------*/
+    /* bounds checking - truncate to inside the computational domain */                   
+    /*---------------------------------------------------------------*/
+
+	if( x_vox >= global_num_x_voxels ){x_vox = global_num_x_voxels-1;}
+    if( x_vox < 0 ){x_vox = 0;}
+
+	if( y_vox >= global_num_y_voxels ){y_vox = global_num_y_voxels-1;}
+    if( y_vox < 0 ){y_vox = 0;}
+
+	if( z_vox >= global_num_z_voxels ){z_vox = global_num_z_voxels-1;}
+    if( z_vox < 0 ){ z_vox = 0;}
+    
+    /*---------------------------------------------------------------*/
+    /* Find process coordinates using mpi_Rank and mpi_Dims					 */
+    /* Now there is no need as coordinates are in cart_topo object   */                   
+    /*---------------------------------------------------------------*/
+    
+// 		 int prod12 = mpi_Dims[1] * mpi_Dims[2]; 
+//     int proc_x_coord = floor(mpi_Rank/prod12);
+//     int proc_y_coord = floor((mpi_Rank - proc_x_coord * prod12)/mpi_Dims[2]); 
+//     int proc_z_coord = mpi_Rank - proc_x_coord * prod12 - proc_y_coord * mpi_Dims[2];
+		
+		int proc_x_coord = cart_topo.mpi_coords[0];
+		int proc_y_coord = cart_topo.mpi_coords[1];
+		int proc_z_coord = cart_topo.mpi_coords[2]; 
+    
+    /*---------------------------------------------------------------*/
+    /* Calculate the X/Y/Z coordinate of the first voxel             */                   
+    /* of the process (given its process coordinates as above)       */
+    /* Remember X/Y Mesh direction and MPI are different             */
+    /*---------------------------------------------------------------*/
+    
+    int proc_start_vox_x_coord = proc_y_coord * local_num_x_voxels;         
+    int proc_start_vox_y_coord = (cart_topo.mpi_dims[0] - 1 - proc_x_coord) * local_num_y_voxels; 
+    int proc_start_vox_z_coord = proc_z_coord * local_num_z_voxels;
+    
+    /*---------------------------------------------------------------*/
+    /* Calculate the difference between x/y/z coord of the Voxel     */                   
+    /* that contains the Basic_Agent and the first starting Voxel    */
+    /* of that process. Clearly, this diff >= 0.                     */
+    /*---------------------------------------------------------------*/
+    
+    int diff_x_coord = x_vox - proc_start_vox_x_coord; 
+    int diff_y_coord = y_vox - proc_start_vox_y_coord;
+    int diff_z_coord = z_vox - proc_start_vox_z_coord;
+    
+    /*---------------------------------------------------------------*/
+    /* Now calculate how many voxels are between the starting voxel  */
+    /* and the voxel that contains the Basic_Agent.                  */
+    /*---------------------------------------------------------------*/
+    
+    int process_local_index_of_voxel_containing_basic_agent = diff_z_coord * local_num_x_voxels * local_num_y_voxels + \
+                                                              diff_y_coord * local_num_x_voxels + \
+                                                              diff_x_coord; 
+    
+    return (process_local_index_of_voxel_containing_basic_agent); 
+}
+
 std::vector<unsigned int> Cartesian_Mesh::nearest_cartesian_indices( std::vector<double>& position )
 {
 	std::vector<unsigned int> out; 

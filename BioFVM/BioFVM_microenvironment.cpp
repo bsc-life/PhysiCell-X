@@ -678,6 +678,18 @@ std::vector<unsigned int> Microenvironment::cartesian_indices( int n )
 int Microenvironment::nearest_voxel_index( std::vector<double>& position )
 { return mesh.nearest_voxel_index( position ); }
 
+/*----------------------------------------------------------------*/
+/* Parallel version of a new function nearest_voxel_local_index()	*/
+/* This returns the process specific local index which contains		*/
+/* the Basic_Agent																								*/ 
+/*----------------------------------------------------------------*/
+
+int Microenvironment::nearest_voxel_local_index( std::vector<double>& position, mpi_Environment &world, mpi_Cartesian &cart_topo )
+{ 
+return mesh.nearest_voxel_local_index( position, world, cart_topo ); 
+}
+
+
 Voxel& Microenvironment::voxels( int voxel_index )
 { return mesh.voxels[voxel_index]; }
 

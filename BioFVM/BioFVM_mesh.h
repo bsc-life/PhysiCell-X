@@ -88,7 +88,7 @@ class Voxel
 
 	/*-----------------------------------------------------------------------------------*/
 	/* Adding an index global_mesh_index to signify a global voxel index (Gaurav Saxena) */
-    /*-----------------------------------------------------------------------------------*/
+  /*-----------------------------------------------------------------------------------*/
     
     int global_mesh_index; 
 	
@@ -135,12 +135,14 @@ class General_Mesh
 	// each voxel[k] has a list of connected voxels -- helpful for some numerical methods 
 	std::vector< std::vector<int> > connected_voxel_indices;
     
-    /*-------------------------------------------------------------------------------*/
-    /* Need to specify global indices connected_voxel_global_indices (Gaurav Saxena) */
-    /*-------------------------------------------------------------------------------*/
+  /*-------------------------------------------------------------------------------*/
+  /* Need to specify global indices connected_voxel_global_indices (Gaurav Saxena) */
+  /*-------------------------------------------------------------------------------*/
     std::vector< std::vector<int> > connected_voxel_global_indices; //(added by Gaurav Saxena)
 	
-	int nearest_voxel_index( std::vector<double>& position );   
+	int nearest_voxel_index( std::vector<double>& position );
+
+	   
 	bool is_position_valid(double x, double y, double z);
 	/* the following help manage the voxel faces */ 
 
@@ -226,7 +228,14 @@ class Cartesian_Mesh : public General_Mesh
     
 	void resize_uniform( double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double dx ); 
 	
-	int nearest_voxel_index( std::vector<double>& position );   
+	int nearest_voxel_index( std::vector<double>& position ); 
+	
+	/*-----------------------------------------------------------------------------------*/
+  /* Parallel prototype of a new function which returns a process specific local index */
+  /* in which the Basic_Agent resides. 																								 */
+  /*-----------------------------------------------------------------------------------*/
+	int nearest_voxel_local_index( std::vector<double>& position, mpi_Environment &world, mpi_Cartesian &cart_topo );
+	  
 	int nearest_voxel_face_index( std::vector<double>& position );  
 	std::vector<unsigned int> nearest_cartesian_indices( std::vector<double>& position ); 
 	Voxel& nearest_voxel( std::vector<double>& position ); 

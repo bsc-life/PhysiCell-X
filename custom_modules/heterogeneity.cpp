@@ -402,7 +402,10 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 	for( int i=0; i < mc.my_no_of_cell_IDs; i++ )
 	{
 		pCell = create_cell(mc.my_cell_IDs[i]); // tumor cell --> This has to be replaced by create_cell(mc.my_cell_IDs[i])
-		pCell->assign_position( positions[i] );
+		
+		//pCell->assign_position( positions[i] );
+		
+		pCell->assign_position(mc.my_cell_coords[3*i],mc.my_cell_coords[3*i+1],mc.my_cell_coords[3*i+2],world, cart_topo);
 		pCell->custom_data[0] = NormalRandom( p_mean, p_sd );
 		if( pCell->custom_data[0] < p_min )
 		{ 

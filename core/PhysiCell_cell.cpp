@@ -532,6 +532,34 @@ bool Cell::assign_position(double x, double y, double z)
 	return true;
 }
 
+/*-------------------------------------------------------*/
+/* Parallel version of assign_position() function				 */
+/*-------------------------------------------------------*/
+
+bool Cell::assign_position(double x, double y, double z, mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	position[0]=x;
+	position[1]=y;
+	position[2]=z;
+	
+	// update microenvironment current voxel index - this becomes the local voxel index in parallel settings
+	update_voxel_index(world, cart_topo);
+	// update current_mechanics_voxel_index
+	current_mechanics_voxel_index= get_container()->underlying_mesh.nearest_voxel_index( position );
+	get_container()->register_agent(this);
+	
+	if( !get_container()->underlying_mesh.is_position_valid(x,y,z) )
+	{	
+		is_out_of_domain = true; 
+		is_active = false; 
+		is_movable = false; 
+		
+		return false;
+	}
+	
+	return true;
+}
+
 void Cell::set_total_volume(double volume)
 {
 	Basic_Agent::set_total_volume(volume);
