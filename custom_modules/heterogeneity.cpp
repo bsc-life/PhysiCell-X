@@ -68,6 +68,7 @@
 #include "./heterogeneity.h"
 #include "../modules/PhysiCell_settings.h"
 #include "../DistPhy/DistPhy_Utils.h"
+#include "../DistPhy/DistPhy_Collective.h"
 
 using namespace DistPhy::mpi;
 
@@ -407,6 +408,8 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 		
 		pCell->assign_position(mc.my_cell_coords[3*i],mc.my_cell_coords[3*i+1],mc.my_cell_coords[3*i+2],world, cart_topo);
 		pCell->custom_data[0] = NormalRandom( p_mean, p_sd );
+		
+		//pCell->custom_data[0] must be kept in range [p_min, p_max]
 		if( pCell->custom_data[0] < p_min )
 		{ 
 			pCell->custom_data[0] = p_min; 
@@ -417,33 +420,63 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 		}
 	}
 	
+	double local_sum = 0.0, global_sum; 
+	double local_min = 9e9, global_min; 
+	double local_max = -9e9, global_max; 
+	int local_cells, global_cells; 
 
-	double sum = 0.0; 
-	double min = 9e9; 
-	double max = -9e9; 
+/*---------------------------------------------------*/
+/* The global_min/max are only for display purposes	 */
+/* We can just calculate local_min then do MPI_Reduce*/
+/* at the root process to display it. Since the mean */
+/* is needed by all processes to calculate squared 	 */
+/* sum of differences, I should do MPI_Allreduce()	 */
+/* Right now everything is globally distributed			 */
+/* later we can decide to use MPI_Reduce selectively */
+/*---------------------------------------------------*/	
+	
 	for( int i=0; i < all_cells->size() ; i++ )
 	{
 		double r = (*all_cells)[i]->custom_data[0]; 
-		sum += r;
-		if( r < min )
-		{ min = r; } 
-		if( r > max )
-		{ max = r; }
+		local_sum += r;
+		if( r < local_min )
+		{ 
+			local_min = r; 
+		} 
+		if( r > local_max )
+		{ 
+			local_max = r; 
+		}
 	}
-	double mean = sum / ( all_cells->size() + 1e-15 ); 
+	
+	local_cells 	= mc.my_no_of_cell_IDs; 											//or all_cells->size()
+	
+	global_sum 		= distribute_global_sum(local_sum, cart_topo);
+	global_cells 	= distribute_global_sum(local_cells, cart_topo); 
+	global_max		= distribute_global_max(local_max, cart_topo); 
+	global_min	  = distribute_global_min(local_min, cart_topo); 
+	
+	double mean = global_sum / ( global_cells + 1e-15 ); 
+	
 	// compute standard deviation 
-	sum = 0.0; 
+	local_sum = 0.0;
+	 
 	for( int i=0; i < all_cells->size(); i++ )
 	{
-		sum +=  ( (*all_cells)[i]->custom_data[0] - mean )*( (*all_cells)[i]->custom_data[0] - mean ); 
+		local_sum +=  ( (*all_cells)[i]->custom_data[0] - mean )*( (*all_cells)[i]->custom_data[0] - mean ); 
 	}
-	double standard_deviation = sqrt( sum / ( all_cells->size() - 1.0 + 1e-15 ) ); 
+	global_sum = distribute_global_sum(local_sum, cart_topo);
 	
-	std::cout << std::endl << "Oncoprotein summary: " << std::endl
-			  << "===================" << std::endl; 
-	std::cout << "mean: " << mean << std::endl; 
-	std::cout << "standard deviation: " << standard_deviation << std::endl; 
-	std::cout << "[min max]: [" << min << " " << max << "]" << std::endl << std::endl; 
+	
+	double standard_deviation = sqrt( global_sum / ( global_cells - 1.0 + 1e-15 ) ); 
+	
+	if(IOProcessor(world))
+	{
+		std::cout << std::endl << "Oncoprotein summary: " << std::endl<< "===================" << std::endl; 
+		std::cout << "mean: " << mean << std::endl; 
+		std::cout << "standard deviation: " << standard_deviation << std::endl; 
+		std::cout << "[min max]: [" << global_min << " " << global_max << "]" << std::endl << std::endl;
+	} 
 	
 	return; 
 }
