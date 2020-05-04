@@ -156,8 +156,22 @@ class Microenvironment
 	
 	Microenvironment(); 
 	Microenvironment(std::string name);
-	
-	void (*diffusion_decay_solver)( Microenvironment&, double); 
+
+/*======================================================================================================*/
+/* Let this function pointer remain as it is as MANY things will need to be changed if we change				*/
+/* the signature of this pointer i.e. the type of functions it points to.																*/	
+/*======================================================================================================*/
+			
+	void (*diffusion_decay_solver)( Microenvironment&, double);
+
+/*======================================================================================================*/
+/* Declared a new function pointer with the suffix "_mpi"	to differentiate it from the pointer above 		*/
+/* Make sure this points to the parallel version of 3D Thomas solver EVERYWHERE.												*/	
+/*======================================================================================================*/
+
+ void (*diffusion_decay_solver_mpi)(Microenvironment&, double, mpi_Environment&, mpi_Cartesian&); 	
+
+	 
 	void (*bulk_supply_rate_function)( Microenvironment* pMicroenvironment, int voxel_index, std::vector<double>* write_destination );
 	void (*bulk_supply_target_densities_function)( Microenvironment* pMicroenvironment, int voxel_index, std::vector<double>* write_destination );
 	void (*bulk_uptake_rate_function)( Microenvironment* pMicroenvironment, int voxel_index, std::vector<double>* write_destination );
@@ -241,6 +255,12 @@ class Microenvironment
 	/*! advance the diffusion-decay solver by dt time */
 	void simulate_diffusion_decay( double dt ); 
 	
+	/*================================================================*/
+  /* Parallel prototype of a new function simulate_diffusion_decay  */
+  /*================================================================*/
+	
+	void simulate_diffusion_decay( double dt, mpi_Environment &world, mpi_Cartesian &cart_topo ); 
+	
 	/*! advance the source/sink solver by dt time */
 	void simulate_bulk_sources_and_sinks( double dt ); 
 	
@@ -265,7 +285,14 @@ class Microenvironment
 	friend void diffusion_decay_solver__constant_coefficients_explicit( Microenvironment& S, double dt ); 
 	friend void diffusion_decay_solver__constant_coefficients_explicit_uniform_mesh( Microenvironment& S, double dt ); 
 
-	friend void diffusion_decay_solver__constant_coefficients_LOD_3D( Microenvironment& S, double dt ); 
+	friend void diffusion_decay_solver__constant_coefficients_LOD_3D( Microenvironment& S, double dt );
+	
+	/*=================================================================================================*/
+	/* Parallel friend function for above:
+	/*=================================================================================================*/
+	
+	friend void diffusion_decay_solver__constant_coefficients_LOD_3D( Microenvironment& S, double dt, mpi_Environment &, mpi_Cartesian & );	
+	 
 	friend void diffusion_decay_solver__constant_coefficients_LOD_2D( Microenvironment& S, double dt ); 
 	
 	friend void diffusion_decay_explicit_uniform_rates( Microenvironment& M, double dt );
@@ -289,7 +316,13 @@ extern void diffusion_decay_solver__variable_coefficients_explicit_uniform_mesh(
 extern void diffusion_decay_solver__constant_coefficients_LOD_3D( Microenvironment& S, double dt ); 
 extern void diffusion_decay_solver__constant_coefficients_LOD_2D( Microenvironment& S, double dt ); 
 
-extern void diffusion_decay_solver__variable_coefficients_LOD_3D( Microenvironment& S, double dt ); 
+extern void diffusion_decay_solver__variable_coefficients_LOD_3D( Microenvironment& S, double dt );
+
+/*=================================================================================================*/
+/* Extern declaration of parallel friend function for above:																			 */
+/*=================================================================================================*/ 
+extern void diffusion_decay_solver__variable_coefficients_LOD_3D( Microenvironment& S, double dt, mpi_Environment &, mpi_Cartesian & );
+
 extern void diffusion_decay_solver__variable_coefficients_LOD_2D( Microenvironment& S, double dt ); 
 
 extern void diffusion_decay_source_sink_solver__constant_coefficients_LOD_3D( Microenvironment& S, double dt );

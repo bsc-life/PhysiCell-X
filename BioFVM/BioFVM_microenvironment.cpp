@@ -116,7 +116,16 @@ Microenvironment::Microenvironment()
 	diffusion_solver_setup_done = false; 
 
 	diffusion_decay_solver = empty_diffusion_solver;
-	diffusion_decay_solver = diffusion_decay_solver__constant_coefficients_LOD_3D; 
+	diffusion_decay_solver = diffusion_decay_solver__constant_coefficients_LOD_3D;
+
+	diffusion_decay_solver_mpi = diffusion_decay_solver__constant_coefficients_LOD_3D;
+
+	/*------------------------------------------------------------------------------*/
+	/* Added this statment such that the new function pointer points to the new			*/
+	/* parallel prototype of the 3-D solver function. 															*/
+	/*------------------------------------------------------------------------------*/
+
+	diffusion_decay_solver_mpi = diffusion_decay_solver__constant_coefficients_LOD_3D; 
 
 	mesh.resize(1,1,1); 
 	
@@ -736,6 +745,26 @@ void Microenvironment::simulate_diffusion_decay( double dt )
 	return; 
 }
 
+/*============================================================*/
+/* Parallel version of simulate_diffusion_decay()						  */
+/*============================================================*/
+
+void Microenvironment::simulate_diffusion_decay( double dt, mpi_Environment &world, mpi_Cartesian &cart_topo )
+{
+	if( diffusion_decay_solver_mpi )
+	{ 
+		diffusion_decay_solver_mpi( *this, dt, world, cart_topo ); 
+	}
+	else
+	{
+		std::cout << "Warning: diffusion-reaction-source/sink solver not set for Microenvironment object at " << this << ". Nothing happened!" << std::endl; 
+		std::cout << "   Consider using Microenvironment::auto_choose_diffusion_decay_solver(void) ... " << std::endl 
+		<< std::endl; 
+	}
+	return; 
+}
+
+
 void Microenvironment::auto_choose_diffusion_decay_solver( void )
 {
 	// set the safest choice 
@@ -1228,7 +1257,7 @@ void initialize_microenvironment( void )
 	}
 	else
 	{
-		microenvironment.diffusion_decay_solver = diffusion_decay_solver__constant_coefficients_LOD_3D; 
+		microenvironment.diffusion_decay_solver = diffusion_decay_solver__constant_coefficients_LOD_3D; 		 
 	}
 	
 	// set the default substrate to oxygen (with typical units of mmHg)
@@ -1335,7 +1364,11 @@ void initialize_microenvironment( mpi_Environment &world, mpi_Cartesian &cart_to
 	}
 	else
 	{
-		microenvironment.diffusion_decay_solver = diffusion_decay_solver__constant_coefficients_LOD_3D; 
+		microenvironment.diffusion_decay_solver = diffusion_decay_solver__constant_coefficients_LOD_3D;
+		/*--------------------------------------------------------------------------------------------*/
+		/* The new function pointer should point to the parallel version of the 3-D solver 						*/
+		/*--------------------------------------------------------------------------------------------*/
+		microenvironment.diffusion_decay_solver_mpi = diffusion_decay_solver__constant_coefficients_LOD_3D; 
 	}
 	
 	// set the default substrate to oxygen (with typical units of mmHg)

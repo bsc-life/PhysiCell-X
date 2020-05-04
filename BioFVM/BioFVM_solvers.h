@@ -49,13 +49,23 @@
 #ifndef __BioFVM_solvers_h__
 #define __BioFVM_solvers_h__
 
-#include "BioFVM_microenvironment.h" 
+#include "BioFVM_microenvironment.h"
+#include "../DistPhy/DistPhy_Environment.h"
+#include "../DistPhy/DistPhy_Cartesian.h" 
 
 namespace BioFVM{
 // /*! diffusion-decay solvers for the equation du/dt = D*Laplacian(u) - lambda*u - U(x)*u + M(X)*(uT-u) */ 
 
 // /*! diffusion-decay solver: 3D LOD implicit (stable method). D and r uniform */  
 void diffusion_decay_solver__constant_coefficients_LOD_3D( Microenvironment& M, double dt ); // done
+
+/*=============================================================================================================*/
+/* Parallel prototype of diffusion_decay_solver__constant_coefficients_LOD_3D(Microenvironment &M, double dt); */
+/*=============================================================================================================*/
+
+void diffusion_decay_solver__constant_coefficients_LOD_3D( Microenvironment& M, double dt, mpi_Environment &world, mpi_Cartesian &cart_topo);
+
+
 // /*! diffusion-decay solver: 2D LOD implicit (stable method). D and r uniform */  
 void diffusion_decay_solver__constant_coefficients_LOD_2D( Microenvironment& M, double dt ); // done
 
