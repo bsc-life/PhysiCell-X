@@ -75,6 +75,7 @@
 #include "../BioFVM/BioFVM_microenvironment.h"
 #include "../DistPhy/DistPhy_Environment.h"
 #include "../DistPhy/DistPhy_Cartesian.h"
+#include "../DistPhy/DistPhy_Utils.h"
 
 using namespace DistPhy::mpi; 
 
@@ -105,7 +106,7 @@ class Cell_Container : public BioFVM::Agent_Container
     /*-------------------------------------*/
     /* Parallel prototype of function above*/
     /*-------------------------------------*/
-    void initialize(double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double voxel_size, mpi_Environment &world, mpi_Cartesian &cart_topo);
+  void initialize(double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double voxel_size, mpi_Environment &world, mpi_Cartesian &cart_topo);
     
 	void initialize(double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double dx, double dy, double dz);
     
@@ -118,9 +119,22 @@ class Cell_Container : public BioFVM::Agent_Container
 	std::vector<std::vector<Cell*> > agents_in_outer_voxels;
 	
 	void update_all_cells(double t);
+	
+		/*-------------------------------------*/
+    /* Parallel prototype of function above*/
+    /*-------------------------------------*/
+    
+  void update_all_cells(double t, mpi_Environment &world, mpi_Cartesian &cart_topo); 
+	
 	void update_all_cells(double t, double dt);
 	void update_all_cells(double t, double phenotype_dt, double mechanics_dt);
 	void update_all_cells(double t, double phenotype_dt, double mechanics_dt, double diffusion_dt ); 
+	
+		/*-------------------------------------*/
+    /* Parallel prototype of function above*/
+    /*-------------------------------------*/
+  
+  void update_all_cells(double t, double phenotype_dt, double mechanics_dt, double diffusion_dt, mpi_Environment &world, mpi_Cartesian &cart_topo );
 
 	void register_agent( Cell* agent );
 	void add_agent_to_outer_voxel(Cell* agent);

@@ -275,6 +275,14 @@ int main( int argc, char* argv[] )
 			//GS commented out
 			//((Cell_Container *)microenvironment.agent_container)->update_all_cells( PhysiCell_globals.current_time );
 			
+			//((Cell_Container *)microenvironment.agent_container)->update_all_cells( PhysiCell_globals.current_time, world, cart_topo);
+			
+			/*----------------------------------------------------------------------------------*/
+			/* Need a parallel version that would also send world&, cart_topo&									*/
+			/*----------------------------------------------------------------------------------*/
+
+			
+			
 			PhysiCell_globals.current_time += diffusion_dt;
 		}
 		
