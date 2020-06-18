@@ -141,10 +141,6 @@ void Cell_Container::initialize(double x_start, double x_end, double y_start, do
 	return; 
 }
 
-/*----------------------------------------------------------------------------------*/
-/* Need a parallel version that would also send world&, cart_topo&									*/
-/*----------------------------------------------------------------------------------*/
-
 void Cell_Container::update_all_cells(double t)
 {
 	// update_all_cells(t, dt_settings.cell_cycle_dt_default, dt_settings.mechanics_dt_default);
@@ -295,9 +291,6 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 {
 	// secretions and uptakes. Syncing with BioFVM is automated. 
 
-	/*===============================================================================*/
-	/* This is Section I to be parallelized, but I am parallelizing Section II first */
-	/*===============================================================================*/
 
 	#pragma omp parallel for 
 	for( int i=0; i < (*all_cells).size(); i++ )
@@ -332,9 +325,7 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 				(*all_cells)[i]->advance_bundled_phenotype_functions( time_since_last_cycle ); 
 			}
 		}
-		/*=================================================================================================*/
-		/* Section II - division(), death(), compute_gradients(), update_veclocity() and update_position() */	
-		/*=================================================================================================*/
+
 		
 		// process divides / removes 
 		
@@ -417,7 +408,9 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double mechanics_dt_ , double diffusion_dt_ , mpi_Environment &world, mpi_Cartesian &cart_topo )
 {
 	// secretions and uptakes. Syncing with BioFVM is automated. 
-
+	
+	
+	
 	/*===============================================================================*/
 	/* This is Section I to be parallelized, but I am parallelizing Section II first */
 	/*===============================================================================*/
@@ -425,6 +418,10 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 	#pragma omp parallel for 
 	for( int i=0; i < (*all_cells).size(); i++ )
 	{
+		//Just trying to print and see - remove later
+		if( (*all_cells)[i]->ID == 29 )
+				(*all_cells)[i]->print_cell(5);
+				 
 		(*all_cells)[i]->phenotype.secretion.advance( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
 	}
 	
@@ -466,16 +463,22 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 		/*-------------------------------------------------------------------------------------------*/
 		
 		int no_of_requested_IDs = cells_ready_to_divide.size(); 		//no. of IDs requested by each process
-		int range_ID[2]; 																					//range_ID[0] contains start ID, range_ID[1] contains end ID
+		int range_ID[2]; 																						//range_ID[0] contains start ID, range_ID[1] contains end ID
 		
-		int strt_cell_ID = Basic_Agent::get_max_ID_in_parallel();	//Get the starting ID (the last agent ID plus one)
+		int strt_cell_ID = Basic_Agent::get_max_ID_in_parallel();		//Get the starting ID (the last agent ID plus one)
 		int last_ID = request_IDs_from_root(no_of_requested_IDs, range_ID, strt_cell_ID, world, cart_topo);	
-		Basic_Agent::set_max_ID_in_parallel(last_ID);							//This is the ID with which we start next
+		Basic_Agent::set_max_ID_in_parallel(last_ID);								//This is the ID with which we start next
+		
+		int p_ID = range_ID[0]; 
 		
 		for( int i=0; i < cells_ready_to_divide.size(); i++ )
 		{
-			cells_ready_to_divide[i]->divide();
+				//cells_ready_to_divide[i]->divide();											//GS commented this out
+				
+				cells_ready_to_divide[i]->divide(p_ID, world, cart_topo); //Calls new parallel version of divide()
+				p_ID = p_ID + 1; 																					//ID of cell to be created passed into divide()
 		}
+		
 		for( int i=0; i < cells_ready_to_die.size(); i++ )
 		{	
 			cells_ready_to_die[i]->die();	
@@ -536,7 +539,7 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 		// Update cell indices in the container
 		for( int i=0; i < (*all_cells).size(); i++ )
 			if(!(*all_cells)[i]->is_out_of_domain && (*all_cells)[i]->is_movable)
-				(*all_cells)[i]->update_voxel_in_container();
+				(*all_cells)[i]->update_voxel_in_container(world, cart_topo);					//Changed to parallel version
 		last_mechanics_time=t;
 	}
 	

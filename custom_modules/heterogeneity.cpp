@@ -79,7 +79,9 @@ void create_cell_types( void )
 	// that future division and other events are still not identical 
 	// for all runs 
 	
-	SeedRandom( parameters.ints( "random_seed" ) ); 
+	//Gaurav Saxena commented this out in an attempt to remove randomness. 
+	
+	//SeedRandom( parameters.ints( "random_seed" ) ); 
 	
 	// housekeeping 
 	
@@ -313,8 +315,13 @@ std::vector<std::vector<double>> create_cell_sphere_positions(double cell_radius
 	std::vector<std::vector<double>> cells;
 	int xc=0,yc=0,zc=0;
 	double x_spacing= cell_radius*sqrt(3);
-	double y_spacing= cell_radius*2;
-	double z_spacing= cell_radius*sqrt(3);
+  double y_spacing= cell_radius*2;
+  double z_spacing= cell_radius*sqrt(3);
+	
+	//Attempt to generate very small number of cells
+	// double x_spacing= 80;
+	// double y_spacing= 80;
+	// double z_spacing= 80;
 
 	std::vector<double> tempPoint(3,0.0);
 	// std::vector<double> cylinder_center(3,0.0);
@@ -406,9 +413,10 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 	  	  		
 		pCell->assign_position(mc.my_cell_coords[3*i],mc.my_cell_coords[3*i+1],mc.my_cell_coords[3*i+2],world, cart_topo); //pCell->assign_position( positions[i] );
 		
-		pCell->custom_data[0] = NormalRandom( p_mean, p_sd );
-		
-		
+		 pCell->custom_data[0] = NormalRandom( p_mean, p_sd );
+		//Gaurav Saxena attempt to generate same random numbers
+		//pCell->custom_data[0] = i*1.0/(positions.size());
+		//std::cout<<pCell->custom_data[0]<<std::endl;
 		//pCell->custom_data[0] must be kept in range [p_min, p_max]
 		
 		if( pCell->custom_data[0] < p_min )

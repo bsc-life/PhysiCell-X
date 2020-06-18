@@ -183,6 +183,14 @@ void Basic_Agent::update_voxel_index(mpi_Environment &world, mpi_Cartesian &cart
 		is_active=false;
 		return;
 	}
+	
+	/*----------------------------------------------------------*/
+	/* Called in the same manner as is_position_valid() above 	*/
+	/* Can change position[0] if cells don't respect sub-domain */
+	/* boundaries. 																							*/
+	/*----------------------------------------------------------*/
+	get_microenvironment()->mesh.correct_position_within_subdomain(position, world, cart_topo); 
+	
 	current_voxel_index= microenvironment->nearest_voxel_local_index( position, world, cart_topo );
 }
 
@@ -349,6 +357,15 @@ void Basic_Agent::set_total_volume(double volume)
 double Basic_Agent::get_total_volume()
 {
 	return volume;
+}
+
+/*---------------------------------------------------------------*/
+/*Gaurav Saxena wrote this function to assist printing cell data */
+/*---------------------------------------------------------------*/
+
+bool Basic_Agent::get_is_volume_changed()
+{
+	return volume_is_changed; 
 }
 
 void Basic_Agent::simulate_secretion_and_uptake( Microenvironment* pS, double dt )

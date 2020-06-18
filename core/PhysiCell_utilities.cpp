@@ -75,6 +75,7 @@
 
 namespace PhysiCell{
 
+//Gaurav Saxena commented it out - later enable. 
 std::random_device rd;
 std::mt19937 gen(rd());
 

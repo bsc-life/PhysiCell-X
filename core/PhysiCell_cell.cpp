@@ -494,6 +494,110 @@ Cell* Cell::divide( )
 	return child;
 }
 
+/*-------------------------------------------------------------------------*/
+/* Parallel version of the divide() function above												 */
+/*-------------------------------------------------------------------------*/
+
+Cell* Cell::divide(int p_ID, mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	// phenotype.flagged_for_division = false; 
+	// phenotype.flagged_for_removal = false; 
+	
+	Cell* child = create_cell(p_ID);					//Calls new version of create_cell function.
+	
+	child->copy_data( this );	
+	child->copy_function_pointers(this);
+	child->parameters = parameters;
+	
+	// evenly divide internalized substrates 
+	// if these are not actively tracked, they are zero anyway 
+	*internalized_substrates *= 0.5; 
+	*(child->internalized_substrates) = *internalized_substrates ; 
+	
+	// The following is already performed by create_cell(). JULY 2017 ***
+	// child->register_microenvironment( get_microenvironment() );
+	
+	// randomly place the new agent close to me, accounting for orientation and 
+	// polarity (if assigned)
+		
+	double temp_angle = 6.28318530717959*UniformRandom();
+	double temp_phi = 3.1415926535897932384626433832795*UniformRandom();
+	
+	double radius= phenotype.geometry.radius;
+	std::vector<double> rand_vec (3, 0.0);
+	
+	rand_vec[0]= cos( temp_angle ) * sin( temp_phi );
+	rand_vec[1]= sin( temp_angle ) * sin( temp_phi );
+	rand_vec[2]= cos( temp_phi );
+	rand_vec = rand_vec- phenotype.geometry.polarity*(rand_vec[0]*state.orientation[0]+ 
+		rand_vec[1]*state.orientation[1]+rand_vec[2]*state.orientation[2])*state.orientation;
+	
+	if( norm(rand_vec) < 1e-16 )
+	{
+		std::cout<<"************ERROR********************"<<std::endl;
+	}
+	normalize( &rand_vec ); 
+	// rand_vec/= norm(rand_vec);
+	child->assign_position(position[0] + 0.5 * radius*rand_vec[0],
+						 						 position[1] + 0.5 * radius*rand_vec[1],
+						 						 position[2] + 0.5 * radius*rand_vec[2], 
+						 						 world, cart_topo);
+	//change my position to keep the center of mass intact and then see if I need to update my voxel index
+	
+	
+	/*------------------------------------------------------------------------------------*/
+	/* SIDENOTE: In naxpy() below we are passing &position. position is declared as 			*/
+	/* std::vector<double> position. Now, "position" does not mean the address of the 		*/
+	/* vector i.e. "position" is NOT a pointer. When we pass &position, it doesn't mean		*/
+	/* that we are passing a pointer to a pointer. It JUST means we are passing the 			*/
+	/* address of the vector - which is caught in std::vector<double> *y	i.e. a pointer	*/
+	/* a type "vector". This is a big difference between arrays and vectors. 							*/
+	/*------------------------------------------------------------------------------------*/
+	
+	/*------------------------------------------------------------------------------------*/
+	/* TICKET: depending on the solution of the ticket, I may have to change the value of	*/
+	/* negative_one_half = +0.5 and then call naxpy(). 																		*/
+	/*------------------------------------------------------------------------------------*/
+	
+	static double negative_one_half = -0.5; 
+	naxpy( &position, negative_one_half , rand_vec );// position = position - 0.5*rand_vec;
+	 
+	// position[0] -= 0.5*radius*rand_vec[0];
+	// position[1] -= 0.5*radius*rand_vec[1]; 
+	// position[2] -= 0.5*radius*rand_vec[2]; 
+	
+	//If this cell has been moved outside of the boundaries, mark it as such.
+	//(If the child cell is outside of the boundaries, that has been taken care of in the assign_position function.)
+	
+	if( !get_container()->underlying_mesh.is_position_valid(position[0], position[1], position[2])){
+		is_out_of_domain = true;
+		is_active = false;
+		is_movable = false;
+	}	
+	
+	/*-----------------------------------------------------------------------------------*/
+	/* Now the parent cell has also moved after division, so there is a possibility that */
+	/* it may not be respecting sub-domain boundaries - therefore we need to call 			 */
+	/* correct_position_within_subdomain() for the parent cell.													 */
+	/*-----------------------------------------------------------------------------------*/
+	
+	get_container()->underlying_mesh.correct_position_within_subdomain(position, world, cart_topo); 
+	 	
+	update_voxel_in_container(world, cart_topo);			//Though world, cart_topo are not needed in this, just to distinguish
+	
+	phenotype.volume.divide(); 												//Don't think anything to parallelize
+	child->phenotype.volume.divide();
+	
+	child->set_total_volume(child->phenotype.volume.total);
+	set_total_volume(phenotype.volume.total);
+	
+	// child->set_phenotype( phenotype ); 
+	child->phenotype = phenotype; 
+	
+	return child;
+}
+
+
 bool Cell::assign_position(std::vector<double> new_position)
 {
 	return assign_position(new_position[0], new_position[1], new_position[2]);
@@ -543,13 +647,35 @@ bool Cell::assign_position(double x, double y, double z, mpi_Environment &world,
 	position[2]=z;
 	
 	// update microenvironment current voxel index - this becomes the local voxel index in parallel settings
+	
+	/*------------------------------------------------------------------------------------*/
+	/* update_voxel_index(world, cart_topo) is in BioFVM_basic_agent.cpp									*/
+	/* First it calls is_position_valid() for the "Diffusion" mesh. 											*/
+	/* If position invalid then sets out_of_domain=true, current_voxel_index=-1 & returns	*/
+	/* Otherwise calls nearest_voxel_local_index()<---new function (GS).									*/
+	/*------------------------------------------------------------------------------------*/
+
 	update_voxel_index(world, cart_topo);
-	// update current_mechanics_voxel_index
+	
+	//update current_mechanics_voxel_index
 	//current_mechanics_voxel_index= get_container()->underlying_mesh.nearest_voxel_index( position);
+	//Changed the call above to a parallel call.
+	
 	current_mechanics_voxel_index= get_container()->underlying_mesh.nearest_voxel_local_index( position, world, cart_topo);
 
 	get_container()->register_agent(this);
 	
+	/*--------------------------------------------------------------------------------------------*/
+	/* What is the need to call this from underlying_mesh ? the boundaries of the physical domain */
+	/* remain the same.  																																					*/
+	/* IMPORTANT: update_voxel_index() above calls a "position" modifying function created by 		*/
+	/* Gaurav Saxena which adjusts cell positions if it doesn't respect sub-domain boundaries.		*/
+	/* Hence, when calling !get_container()->underlying_mesh.is_position_valid(x,y,z), it is 			*/
+	/* BETTER to replace (x,y,z) with (position[0], position[1], position[2]) as after calling		*/
+	/* the function correct_position_within_subdomain(), MAYBE position[0] != x, position[1] != y,*/ 
+	/* position[2] !=z. BUT for NOW let it remain like this, THINK then replace										*/
+	/*--------------------------------------------------------------------------------------------*/
+
 	if( !get_container()->underlying_mesh.is_position_valid(x,y,z) )
 	{	
 		is_out_of_domain = true; 
@@ -729,6 +855,40 @@ void Cell::update_voxel_in_container()
 		current_mechanics_voxel_index=updated_current_mechanics_voxel_index;
 	}
 	
+	return; 
+}
+
+/*------------------------------------------------------------------*/
+/* Parallel version of function: update_voxel_in_container() above  */
+/*------------------------------------------------------------------*/
+
+void Cell::update_voxel_in_container(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	
+	update_voxel_index(world, cart_topo);							 //This is in BioFVM_basic_agent.cpp
+	
+	// Check to see if we need to remove agents that are pushed out of boundary
+			
+	if(updated_current_mechanics_voxel_index==-1)			//This is updated in update_position() and -1 indicates outside physical boundary 
+	{
+		if( get_current_mechanics_voxel_index() >= 0)		//If agent had valid voxel index, need to remove agent from that voxel
+			  get_container()->remove_agent_from_voxel(this, get_current_mechanics_voxel_index());			
+		
+		
+		get_container()->add_agent_to_outer_voxel(this); //std::cout<<"cell out of boundary..."<< __LINE__<<" "<<ID<<std::endl;		
+		current_mechanics_voxel_index=-1;
+		is_out_of_domain=true;
+		is_active=false;
+		return;
+	}
+	
+	// update mesh indices (if needed)
+	if(updated_current_mechanics_voxel_index!= get_current_mechanics_voxel_index())
+	{
+			container->remove_agent_from_voxel(this, get_current_mechanics_voxel_index());
+			container->add_agent_to_voxel(this, updated_current_mechanics_voxel_index);
+			current_mechanics_voxel_index=updated_current_mechanics_voxel_index;
+	}	
 	return; 
 }
 
@@ -1123,6 +1283,342 @@ void Cell::lyse_cell( void )
 	functions.custom_cell_rule = NULL; 
 
 	return; 
+}
+
+void Cell::print_cell(int id)
+{
+	/*-------------------------------------------------------------------------------------*/
+	/* Trying to print all the data fields of the Cell class 															 */
+	/* Since Cell is publicly derived from the Basic_Agent class, the protected and	public */
+	/* member of Basic_Agent can be accessed in member functions of the Cell class but the */
+	/* private members of the Basic_Agent class cannot be accessed by member functions of  */
+	/* Derived class. For example: "volume" is not directly accessible but cell_source_sink*/
+	/* solver_temp1[i] is directly accessible. 																						 */
+	/*-------------------------------------------------------------------------------------*/
+	
+	static int prnt_counter = 0; 
+	if(prnt_counter % 1000 == 0)
+	{
+	
+	std::cout<<std::endl; 
+	std::cout<<"=================CELL DATA : "<<prnt_counter<<"======================"; 
+	std::cout<<std::endl; 
+	
+	/*================CELL===================== */
+
+	std::cout<<"type_name:"<<type_name<<std::endl;
+	std::cout<<"is_out_of_domain:"<<is_out_of_domain<<std::endl; 
+	std::cout<<"is_movable:"<<is_movable<<std::endl;
+	std::cout<<"Disp[0]:"<<displacement[0]<<" Disp[1]:"<<displacement[1]<<" Disp[2]:"<<displacement[2]<<std::endl; 
+	
+	/*===============BASIC_AGENT================ */
+	
+	std::cout<<endl; 
+	std::cout<<"Volume:"<<get_total_volume()<<std::endl;
+	std::cout<<"volume_is_changed:"<<get_is_volume_changed()<<std::endl; 
+	
+	std::cout<<"cell_source_sink_solver_temp1"<<std::endl;
+	for(int i=0; i<cell_source_sink_solver_temp1.size();i++)
+	 	std::cout<<i<<":"<<cell_source_sink_solver_temp1[i]<<std::endl; 	
+	 
+	
+	std::cout<<"cell_source_sink_solver_temp2"<<std::endl;
+	for(int i=0; i<cell_source_sink_solver_temp2.size();i++)
+	 	std::cout<<i<<":"<<cell_source_sink_solver_temp2[i]<<std::endl; 	
+	
+	 
+	std::cout<<"Prev_Vel[0]:"<<previous_velocity[0]<<" Prev_Vel[1]:"<<previous_velocity[1]<<" Prev_Vel[2]:"<<previous_velocity[2]<<std::endl;
+	std::cout<<"is_active:"<<is_active<<std::endl; 
+	
+	std::cout<<"total_extracellular_substrate_change"<<std::endl;
+	for(int i=0; i<total_extracellular_substrate_change.size();i++)
+	 	std::cout<<i<<":"<<total_extracellular_substrate_change[i]<<std::endl; 	
+	
+	
+	std::cout<<"Secretion Rates"<<std::endl;
+	for(int i=0; i<secretion_rates->size();i++)
+	 	std::cout<<i<<":"<<secretion_rates[i]<<std::endl; 	
+	
+	
+	std::cout<<"Saturation Densities"<<std::endl;
+	for(int i=0; i<saturation_densities->size();i++)
+	 	std::cout<<i<<":"<<saturation_densities[i]<<std::endl; 	
+	
+	
+	std::cout<<"Uptake Rates"<<std::endl;
+	for(int i=0; i<uptake_rates->size();i++)
+	 	std::cout<<i<<":"<<uptake_rates[i]<<std::endl; 	
+	
+	
+	std::cout<<"Internalized Substrates"<<std::endl;
+	for(int i=0; i<internalized_substrates->size();i++)
+	 	std::cout<<i<<":"<<internalized_substrates[i]<<std::endl; 	
+	
+	
+	std::cout<<"Fraction Released At Death"<<std::endl;
+	for(int i=0; i<fraction_released_at_death->size();i++)
+	 	std::cout<<i<<":"<<fraction_released_at_death[i]<<std::endl; 	
+	
+	
+	std::cout<<"Fraction Transferred When Ingested;"<<std::endl;
+	for(int i=0; i<fraction_transferred_when_ingested->size();i++)
+	 	std::cout<<i<<":"<<fraction_transferred_when_ingested[i]<<std::endl; 	
+	
+	
+	std::cout<<"ID Number:"<<ID<<std::endl;
+	std::cout<<"Type:"<<type<<std::endl; 
+	
+	std::cout<<"Position[0]: "<<position[0]<<" Position[1]:"<<position[1]<<" Position[2]:"<<position[2]<<std::endl;
+	std::cout<<"Vel[0]:"<< velocity[0]<<" Vel[1]:"<<velocity[1]<<" Vel[2]:"<<velocity[2]<<std::endl;
+	
+	/*==============CUSTOM_CELL_DATA====================*/
+	
+	std::cout<<endl; 
+	std::cout<<"Custom Cell Data"<<std::endl; 
+	std::cout<<"Name to Index Map"<<std::endl;
+	for(auto it = (this->custom_data.get_name_to_index_map()).cbegin(); it != (this->custom_data.get_name_to_index_map()).cend(); it++)
+		std::cout<<"{"<<(*it).first<<":"<<(*it).second<<"}"<<std::endl; 
+	
+	/*===============CELL_PARAMETERS====================*/
+	
+	std::cout<<std::endl; 
+	std::cout<<"Cell Parameters"<<std::endl;
+	std::cout<<"o2_hypoxic_threshold:"<<this->parameters.o2_hypoxic_threshold<<std::endl;
+	std::cout<<"o2_hypoxic_response:"<<this->parameters.o2_hypoxic_response<<std::endl; 
+	std::cout<<"o2_hypoxic_saturation:"<<this->parameters.o2_hypoxic_saturation<<std::endl;
+	std::cout<<"o2_proliferation_saturation:"<<this->parameters.o2_proliferation_saturation<<std::endl;
+	std::cout<<"o2_proliferation_threshold"<<this->parameters.o2_proliferation_threshold<<std::endl;
+	std::cout<<"o2_reference"<<this->parameters.o2_reference<<std::endl;
+	std::cout<<"o2_necrosis_threshold"<<this->parameters.o2_necrosis_threshold<<std::endl;
+	std::cout<<"o2_necrosis_max"<<this->parameters.o2_necrosis_max<<std::endl;
+	std::cout<<"max_necrosis_rate"<<this->parameters.max_necrosis_rate<<std::endl;
+	std::cout<<"necrosis_type"<<this->parameters.necrosis_type<<std::endl;
+	if(this->parameters.pReference_live_phenotype != NULL)
+		std::cout<<"pReference_live_phenotype pointer in Cell_Parameters is NOT NULL"<<std::endl; 
+	
+	/*=========CELL_STATE============*/
+	
+	std::cout<<std::endl; 
+	std::cout<<"Orientation"<<std::endl;
+	std::cout<<"Orient[0]:"<< (this->state).orientation[0] << " Orient[1]:" << (this->state).orientation[1] << " Orient[2]:" << (this->state).orientation[2] << std::endl; 
+	std::cout<<"Simple Pressure:"<<this->state.simple_pressure<<std::endl; 
+	
+	/*=========PHENOTYPE===============*/
+	
+	std::cout<<std::endl; 
+	std::cout<<"Phenotype Data"<<std::endl;
+	std::cout<<"flagged_for_division:"<<this->phenotype.flagged_for_division<<std::endl;
+	std::cout<<"flagged_for_removal:"<<this->phenotype.flagged_for_removal<<std::endl; 
+	
+	
+	/*===========VARIABLE==============*/
+	
+	std::cout<<std::endl; 
+	std::cout<<"Custom Cell Data variables"<<std::endl;
+	for(int i=0; i<this->custom_data.variables.size(); i++)
+		std::cout<<"i:"<<i<<" name:"<<this->custom_data.variables[i].name<<" value:"<<this->custom_data.variables[i].value << " units:"<<this->custom_data.variables[i].units<<std::endl;  
+	
+	/*=========VECTOR_VARIABLE==========*/
+	
+	std::cout<<std::endl; 
+	std::cout<<"Custom Cell Data Variables Vectors"<<std::endl; 
+	for(int i=0; i<this->custom_data.vector_variables.size();i++)
+	{
+		std::cout<<"i:"<<i<<" name:"<<this->custom_data.vector_variables[i].name<<" units:"<<this->custom_data.variables[i].units<<std::endl;
+		for(int j=0; j<this->custom_data.vector_variables[i].value.size();j++)
+			std::cout<<" value "<<j<<":"<<this->custom_data.vector_variables[i].value[j]<<std::endl;
+	}
+	
+	/*===========CYCLE_MODEL=============*/
+	
+	std::cout<<std::endl; 
+	std::cout<<"Cycle Model data"<<std::endl;
+	std::cout<<"name:"<<this->functions.cycle_model.name<<" code:"<<this->functions.cycle_model.code<<std::endl; 
+	std::cout<<"default_phase_index:"<<this->functions.cycle_model.default_phase_index<<std::endl; 
+	std::vector<std::unordered_map<int,int>> &inverse_index_maps_cycle_model = this->functions.cycle_model.get_inverse_index_maps();
+	std::cout<<"Vector of unordered maps"<<std::endl;  
+	for(int i=0; i<inverse_index_maps_cycle_model.size(); i++)
+	{
+		for(auto it = inverse_index_maps_cycle_model[i].cbegin(); it != inverse_index_maps_cycle_model[i].cend(); it++)
+			std::cout<<"{"<<(*it).first<<":"<<(*it).second<<"}"<<std::endl;
+		std::cout<<endl; 
+	}
+	
+	/*==============CYCLE=================*/
+	
+	std::cout<<std::endl; 
+	std::cout<<"Cycle data - only pointer checking"<<std::endl;
+	if(this->phenotype.cycle.pCycle_Model != NULL)
+		std::cout<<"Pointer pCycle_Model in Cycle class is NOT NULL"<<std::endl; 
+	
+	
+	/*===============DEATH=================*/
+	
+	std::cout<<std::endl; 
+	std::cout<<"Death Data"<<std::endl;
+	std::cout<<"dead:"<<this->phenotype.death.dead<<std::endl; 
+	std::cout<<"current_death_model_index:"<<this->phenotype.death.current_death_model_index<<std::endl; 
+	for(int i=0; i < this->phenotype.death.rates.size(); i++)
+		std::cout<<"rates "<<i<<":"<<this->phenotype.death.rates[i]<<std::endl;
+	std::cout<<"Checking if vector of Cycle_Model pointers contains NULL entries"<<std::endl;
+	for(int i=0; i< this->phenotype.death.models.size(); i++)
+		if(this->phenotype.death.models[i] != NULL)
+			cout<<"models["<<i<<"]"<<" is NOT NULL"<<std::endl; 
+		
+	/*===============VOLUME================*/
+	
+	std::cout<<std::endl; 
+	std::cout<<"Volume Data"<<std::endl;
+	std::cout<<"total:"<<this->phenotype.volume.total<<std::endl; 
+	std::cout<<"solid:"<<this->phenotype.volume.solid<<std::endl;
+	std::cout<<"fluid:"<<this->phenotype.volume.fluid<<std::endl;
+	std::cout<<"fluid_fraction:"<<this->phenotype.volume.fluid_fraction<<std::endl;
+	std::cout<<"nuclear:"<<this->phenotype.volume.nuclear<<std::endl;
+	std::cout<<"nuclear_fluid:"<<this->phenotype.volume.nuclear_fluid<<std::endl; 
+	std::cout<<"nuclear_solid:"<<this->phenotype.volume.nuclear_solid<<std::endl;
+	std::cout<<"cytoplasmic:"<<this->phenotype.volume.cytoplasmic<<std::endl;
+	std::cout<<"cytoplasmic_fluid:"<<this->phenotype.volume.cytoplasmic_fluid<<std::endl;
+	std::cout<<"cytoplasmic_solid:"<<this->phenotype.volume.cytoplasmic_solid<<std::endl;
+	std::cout<<"calcified_fraction:"<<this->phenotype.volume.calcified_fraction<<std::endl; 
+	std::cout<<"cytoplasmic_to_nuclear_ratio:"<<this->phenotype.volume.cytoplasmic_to_nuclear_ratio<<std::endl;
+	std::cout<<"rupture_volume:"<<this->phenotype.volume.rupture_volume<<std::endl;
+	std::cout<<"cytoplasmic_biomass_change_rate:"<<this->phenotype.volume.cytoplasmic_biomass_change_rate<<std::endl;
+	std::cout<<"nuclear_biomass_change_rate:"<<this->phenotype.volume.nuclear_biomass_change_rate<<std::endl;
+	std::cout<<"fluid_change_rate:"<<this->phenotype.volume.fluid_change_rate<<std::endl; 
+	std::cout<<"calcification_rate:"<<this->phenotype.volume.calcification_rate<<std::endl;
+	std::cout<<"target_solid_cytoplasmic:"<<this->phenotype.volume.target_solid_cytoplasmic<<std::endl;
+	std::cout<<"target_solid_nuclear:"<<this->phenotype.volume.target_solid_nuclear<<std::endl;
+	std::cout<<"target_fluid_fraction:"<<this->phenotype.volume.target_fluid_fraction<<std::endl;
+	std::cout<<"target_cytoplasmic_to_nuclear_ratio:"<<this->phenotype.volume.target_cytoplasmic_to_nuclear_ratio<<std::endl;
+	std::cout<<"relative_rupture_volume:"<<this->phenotype.volume.relative_rupture_volume<<std::endl;
+
+	/*===============GEOMETRY============*/
+	
+	std::cout<<std::endl; 
+	std::cout<<"Geometry Data"<<std::endl;
+	std::cout<<"radius:"<<this->phenotype.geometry.radius<<std::endl;
+	std::cout<<"nuclear_radius:"<<this->phenotype.geometry.nuclear_radius<<std::endl;
+	std::cout<<"surface_area:"<<this->phenotype.geometry.surface_area<<std::endl;
+	std::cout<<"polarity:"<<this->phenotype.geometry.polarity<<std::endl;
+	
+	/*===============MECHANICS============*/
+	
+	std::cout<<std::endl; 
+	std::cout<<"Mechanics Data"<<std::endl;
+	std::cout<<"cell_adhesion_strength:"<<this->phenotype.mechanics.cell_cell_adhesion_strength<<std::endl;
+	std::cout<<"cell_BM_adhesion_strength:"<<this->phenotype.mechanics.cell_BM_adhesion_strength<<std::endl;
+	std::cout<<"cell_cell_repulsion_strength:"<<this->phenotype.mechanics.cell_cell_repulsion_strength<<std::endl;
+	std::cout<<"cell_BM_repulsion_strength:"<<this->phenotype.mechanics.cell_BM_repulsion_strength<<std::endl;	 
+	std::cout<<"relative_maximum_adhesion_distance:"<<this->phenotype.mechanics.relative_maximum_adhesion_distance<<std::endl;
+	
+	/*=================MOTILITY===========*/
+	
+	std::cout<<std::endl; 
+	std::cout<<"Motility Data"<<std::endl;
+	std::cout<<"is_motile:"<<this->phenotype.motility.is_motile<<std::endl;
+	std::cout<<"persistence_time:"<<this->phenotype.motility.persistence_time<<std::endl;
+	std::cout<<"migration_speed:"<<this->phenotype.motility.migration_speed<<std::endl;
+	std::cout<<"migration_bias:"<<this->phenotype.motility.migration_bias<<std::endl;
+	std::cout<<"restrict_to_2D:"<<this->phenotype.motility.restrict_to_2D<<std::endl;
+	for(int i=0; i<this->phenotype.motility.migration_bias_direction.size(); i++)
+		std::cout<<"bias direction "<<i<<":"<<this->phenotype.motility.migration_bias_direction[i]<<std::endl;
+	for(int i=0; i<this->phenotype.motility.motility_vector.size(); i++)
+		std::cout<<"motility vector "<<i<<":"<<this->phenotype.motility.motility_vector[i]<<std::endl; 
+	
+	/*=================SECRETION============*/
+	
+	std::cout<<std::endl; 
+	std::cout<<"Secretion Data"<<std::endl;
+	for(int i=0; i<this->phenotype.secretion.secretion_rates.size();i++)
+			std::cout<<"secretion_rates "<<i<<":"<<this->phenotype.secretion.secretion_rates[i]<<std::endl; 
+	for(int i=0; i<this->phenotype.secretion.uptake_rates.size();i++)
+			std::cout<<"uptake_rates "<<i<<":"<<this->phenotype.secretion.uptake_rates[i]<<std::endl;
+	for(int i=0; i<this->phenotype.secretion.saturation_densities.size();i++)
+			std::cout<<"saturation densities "<<i<<":"<<this->phenotype.secretion.saturation_densities[i]<<std::endl;
+			
+	/*=================MOLECULAR============*/
+		
+	std::cout<<std::endl; 
+	std::cout<<"Molecular Data"<<std::endl;
+	for(int i=0; i<this->phenotype.molecular.internalized_total_substrates.size();i++)
+			std::cout<<"internalized_total_substrates "<<i<<":"<<this->phenotype.molecular.internalized_total_substrates[i]<<std::endl; 
+	for(int i=0; i<this->phenotype.molecular.fraction_released_at_death.size();i++)
+			std::cout<<"fraction_released_at_death "<<i<<":"<<this->phenotype.molecular.fraction_released_at_death[i]<<std::endl;
+	for(int i=0; i<this->phenotype.molecular.fraction_transferred_when_ingested.size();i++)
+			std::cout<<"fraction_transferred_when_ingested "<<i<<":"<<this->phenotype.molecular.fraction_transferred_when_ingested[i]<<std::endl;	
+		
+	/*===================PHASE===============*/
+	
+	std::cout<<std::endl; 
+	std::cout<<"Phase Data"<<std::endl;
+	for(int i=0; i<this->functions.cycle_model.phases.size();i++)
+	{
+		std::cout<<i<<":"<<std::endl;
+		std::cout<<"index:"<<this->functions.cycle_model.phases[i].index<<std::endl;
+		std::cout<<"code:"<<this->functions.cycle_model.phases[i].code<<std::endl; 
+		std::cout<<"name"<<this->functions.cycle_model.phases[i].name<<std::endl;
+		std::cout<<"division_at_phase_exit"<<this->functions.cycle_model.phases[i].division_at_phase_exit<<std::endl;
+		std::cout<<"removal_at_phase_exit"<<this->functions.cycle_model.phases[i].removal_at_phase_exit<<std::endl; 
+	}
+	
+	/*================PHASE_LINKS==============*/
+	
+	std::cout<<std::endl; 
+	std::cout<<"Phase Links Data"<<std::endl;
+	for(int i=0; i<this->functions.cycle_model.phase_links.size();i++)
+		{
+			std::cout<<"Vector:"<<i<<std::endl;
+			for(int j=0; j<this->functions.cycle_model.phase_links[i].size();j++)
+			{
+				std::cout<<"Vector:"<<j<<std::endl;
+				std::cout<<"start_phase_index"<<this->functions.cycle_model.phase_links[i][j].start_phase_index<<std::endl;
+				std::cout<<"end_phase_index"<<this->functions.cycle_model.phase_links[i][j].end_phase_index<<std::endl;
+				std::cout<<"fixed_duration"<<this->functions.cycle_model.phase_links[i][j].fixed_duration<<std::endl;
+			}
+		}
+	
+	/*==================CYCLE_DATA==============*/
+	
+	std::cout<<std::endl; 
+	std::cout<<"Cycle_Data"<<std::endl;
+	std::cout<<"time_units:"<<this->phenotype.cycle.data.time_units<<std::endl;
+	std::cout<<"current_phase_index:"<<this->phenotype.cycle.data.current_phase_index<<std::endl;
+	std::cout<<"elapsed_time_in_phase:"<<this->phenotype.cycle.data.elapsed_time_in_phase<<std::endl;
+	for(int i=0; i<this->phenotype.cycle.data.transition_rates.size();i++)
+		{
+			std::cout<<"Transition Rates Vector:"<<i<<std::endl;
+			for(int j=0; j<this->phenotype.cycle.data.transition_rates[i].size();j++)
+				std::cout<<"rate "<<j<<":"<<this->phenotype.cycle.data.transition_rates[i][j]<<std::endl; 
+		}
+	std::vector<std::unordered_map<int,int>> &inverse_index_maps_cycle_data = this->phenotype.cycle.data.get_inverse_index_maps();
+	std::cout<<"Vector of unordered maps";  
+	for(int i=0; i<inverse_index_maps_cycle_data.size(); i++)
+	{
+		for(auto it = inverse_index_maps_cycle_data[i].cbegin(); it != inverse_index_maps_cycle_data[i].cend(); it++)
+			std::cout<<"{"<<(*it).first<<":"<<(*it).second<<"}"<<std::endl;
+		std::cout<<endl; 
+	}
+	std::cout<<"Checking if pCycle_Model pointer is NULL"<<std::endl;
+	if(this->phenotype.cycle.data.pCycle_Model != NULL)
+		std::cout<<"pCycle_Model is NOY NULL"; 
+		
+	/*=============DEATH_PARAMETERS===============*/
+		
+	std::cout<<std::endl; 
+	std::cout<<"Death Parameters"<<std::endl;
+	for(int i=0; i<this->phenotype.death.parameters.size(); i++)
+		{	
+			std::cout<<i<<":"<<std::endl;
+			std::cout<<"time_units:"<<this->phenotype.death.parameters[i].time_units<<std::endl;
+			std::cout<<"unlysed_fluid_change_rate:"<<this->phenotype.death.parameters[i].unlysed_fluid_change_rate<<std::endl;
+			std::cout<<"lysed_fluid_change_rate:"<<this->phenotype.death.parameters[i].lysed_fluid_change_rate<<std::endl;
+			std::cout<<"cytoplasmic_biomass_change_rate:"<<this->phenotype.death.parameters[i].cytoplasmic_biomass_change_rate<<std::endl;
+			std::cout<<"nuclear_biomass_change_rate:"<<this->phenotype.death.parameters[i].nuclear_biomass_change_rate<<std::endl;
+			std::cout<<"calcification rate:"<<this->phenotype.death.parameters[i].calcification_rate<<std::endl;
+			std::cout<<"relative_rupture_volume:"<<this->phenotype.death.parameters[i].relative_rupture_volume<<std::endl;
+		}	
+	}
+	prnt_counter++; 
 }
 
 };

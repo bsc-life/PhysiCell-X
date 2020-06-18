@@ -139,8 +139,9 @@ int main( int argc, char* argv[] )
         
     }
 
-	// OpenMP setup
-	omp_set_num_threads(PhysiCell_settings.omp_num_threads);
+	// OpenMP setup ---> Commenting it for time being as compiling without -fopenmp flag
+	//Later can enable Or really not needed
+	//omp_set_num_threads(PhysiCell_settings.omp_num_threads);
 	
 	// PNRG setup 
 	//GS commenting this out to see if same random numbers are generated
@@ -275,7 +276,7 @@ int main( int argc, char* argv[] )
 			//GS commented out
 			//((Cell_Container *)microenvironment.agent_container)->update_all_cells( PhysiCell_globals.current_time );
 			
-			//((Cell_Container *)microenvironment.agent_container)->update_all_cells( PhysiCell_globals.current_time, world, cart_topo);
+			((Cell_Container *)microenvironment.agent_container)->update_all_cells( PhysiCell_globals.current_time, world, cart_topo);
 			
 			/*----------------------------------------------------------------------------------*/
 			/* Need a parallel version that would also send world&, cart_topo&									*/

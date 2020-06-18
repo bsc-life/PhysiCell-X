@@ -167,6 +167,13 @@ class Cycle_Data
 	double& exit_rate(int phase_index ); // This returns the first transition rate out of 
 		// phase # phase_index. It is only relevant if the phase has only one phase link 
 		// (true for many cycle models). 
+	
+	/*=========================================================*/
+	/* Gaurav Saxena added this function to return the private */
+	/* data member inverse_index_maps so that it can be printed*/
+	/*=========================================================*/
+	
+	std::vector<std::unordered_map<int,int>> & get_inverse_index_maps();
 };
 
 class Cycle_Model
@@ -209,6 +216,14 @@ class Cycle_Model
 	Phase_Link& phase_link(int start_index,int end_index ); // done 
 	
 	std::ostream& display( std::ostream& os ); // done 
+	
+	/*=========================================================*/
+	/* Gaurav Saxena added this function to return the private */
+	/* data member inverse_index_maps so that it can be printed*/
+	/*=========================================================*/
+	
+	std::vector<std::unordered_map<int,int>> & get_inverse_index_maps(); 
+	
 };
 
 class Cycle

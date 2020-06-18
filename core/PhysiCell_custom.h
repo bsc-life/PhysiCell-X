@@ -131,6 +131,12 @@ class Custom_Cell_Data
 	
 	Custom_Cell_Data(); // done 
 	Custom_Cell_Data( const Custom_Cell_Data& ccd ); 
+	
+	/*======================================================================================*/
+	/* Gaurav Saxena wrote this to help with printing the {Key,Value} in this unordered map */
+	/*======================================================================================*/
+	
+	std::unordered_map<std::string,int> & get_name_to_index_map(); 
 };
 
 }; 

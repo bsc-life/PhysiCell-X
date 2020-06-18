@@ -144,6 +144,13 @@ General_Mesh::General_Mesh()
 	bounding_box[mesh_max_y_index] = 0.5; 
 	bounding_box[mesh_max_z_index] = 0.5; 
 	
+	/*----------------------------------------------------------------------*/
+	/* Space allocated for a vector of doubles called 'local_bounding_box', */
+	/* added by Gaurav Saxena, to contain local sub-domain boundaries				*/
+	/*----------------------------------------------------------------------*/
+	
+	local_bounding_box.assign(6,0.0); 
+	
 	voxels.resize( 1 );  
 	voxel_faces.resize( 0 ); 
 	
@@ -208,6 +215,56 @@ bool General_Mesh::is_position_valid(double x, double y, double z)
 		return false;
 	return true;
 }
+
+/*------------------------------------------------------------------------*/
+/* A parallel function which determines if the position of the cell within*/
+/* a sub-domain is valid or not. Can be used anytime we have a cell at		*/
+/* the boundary of a sub-domain (i) if at left boundary then shift right  */
+/* by +eps and (ii) if at right boundary then shift left by -eps.					*/
+/* No need to examine the left and right boundary of process 0 and process*/
+/* n-1, respectively, as if a cell is outside these, then it is marked 		*/
+/* as a non-functional cell.																							*/
+/*------------------------------------------------------------------------*/
+
+void General_Mesh::correct_position_within_subdomain(std::vector<double> &pos, mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	/*---------------------------------------------------*/
+	/* Only for 1-dimensional pure x-decomposition 			 */
+	/*---------------------------------------------------*/
+	
+	double eps = 1e-16;
+	
+	/*----------------------------------------------------------------------------*/
+	/* None of this is needed if there exists only 1 process i.e. world.size == 1 */
+	/* If world.size == 1, then this code should not be executed otherwise it 		*/
+	/* will pull back the cells from outside the domain into the domain.					*/
+	/*----------------------------------------------------------------------------*/
+	
+	if(world.size > 1)
+	{
+		if(world.rank == 0)
+		{
+			if(pos[0] >= local_bounding_box[mesh_max_x_index])					//If cell position is right of right sub-boundary
+			 	pos[0] =  local_bounding_box[mesh_max_x_index] - eps; 		//pull cell a bit left
+		}
+	
+		if(world.rank == (world.size-1))
+		{
+			if(pos[0] <= local_bounding_box[mesh_min_x_index])					//If cell position is left of left sub-boundary
+			 pos[0] =  local_bounding_box[mesh_min_x_index] + eps; 			//pull cell a bit right
+		}
+	
+		if(world.rank > 0 && world.rank < (world.size-1))							//Do both the above for processes 1 to (n-1)
+		{
+			if(pos[0] <= local_bounding_box[mesh_min_x_index])
+			 	pos[0] =  local_bounding_box[mesh_min_x_index] + eps;
+			 
+			if(pos[0] >= local_bounding_box[mesh_max_x_index])
+			 	pos[0] =  local_bounding_box[mesh_max_x_index] - eps;				
+		}	
+	}
+}
+
 
 void General_Mesh::connect_voxels_faces_only(int i,int j, double SA) // done 
 {
@@ -401,7 +458,13 @@ Cartesian_Mesh::Cartesian_Mesh()
 	
 	x_coordinates.assign( 1 , 0.0 ); 
 	y_coordinates.assign( 1 , 0.0 ); 
-	z_coordinates.assign( 1 , 0.0 ); 
+	z_coordinates.assign( 1 , 0.0 );
+	
+	/*------------------------------------------------------------------------------------*/ 
+	/* By calculating dx, dy and dz like this, I think they are assuming that there is 		*/
+	/* only 1 voxel present initially and it spans the complete domain. 									*/
+	/*------------------------------------------------------------------------------------*/ 
+
 	
 	dx = bounding_box[3] - bounding_box[0]; 
 	dy = bounding_box[4] - bounding_box[1]; 
@@ -912,7 +975,7 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
     double local_y_start;
     double local_z_start;
     
-    /*------------------------------------------------------------------------------------------------*/
+  /*------------------------------------------------------------------------------------------------*/
 	/*		To find global_mesh_index, we declare following	                                          */
 	/*------------------------------------------------------------------------------------------------*/
     
@@ -926,12 +989,12 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
     /*-------------------------------------------*/
     
     dx = dx_new;
-	dy = dy_new; 
-	dz = dz_new; 
+		dy = dy_new; 
+		dz = dz_new; 
 
 	double eps = 1e-16; 
     
-    /*--------------------------------------------*/
+  /*--------------------------------------------*/
 	/*		Global Nodes	                      */
 	/*--------------------------------------------*/
     
@@ -947,7 +1010,7 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
     dims[1] = cart_topo.mpi_dims[1];
     dims[2] = cart_topo.mpi_dims[2];
     
-    /*--------------------------------------------*/
+  /*--------------------------------------------*/
 	/*		Local Nodes on MPI Processes	      */
 	/*--------------------------------------------*/
     
@@ -959,7 +1022,7 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
 	/*		Assign space to coordinate arrays according to 'local' nodes and NOT 'global' nodes */
 	/*------------------------------------------------------------------------------------------*/
     
-    x_coordinates.assign( local_x_nodes , 0.0 ); 
+  x_coordinates.assign( local_x_nodes , 0.0 ); 
 	y_coordinates.assign( local_y_nodes , 0.0 ); 
 	z_coordinates.assign( local_z_nodes , 0.0 ); 
 
@@ -1004,8 +1067,8 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
     }
     
 	/*-----------------------------------------------------------------------------------------------------------------*/
-    /* First find local z coordinate start of each process = global_z_start + process_z_coodinate * z_local_nodes * dz */
-    /*-----------------------------------------------------------------------------------------------------------------*/
+  /* First find local z coordinate start of each process = global_z_start + process_z_coodinate * z_local_nodes * dz */
+  /*-----------------------------------------------------------------------------------------------------------------*/
 	
     local_z_start = z_start + (coords[2] * local_z_nodes * dz);
     
@@ -1014,33 +1077,48 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
         z_coordinates[i] = local_z_start + (i+0.5)*dz;         
     }
 
-    /*--------------------------*/
+  /*--------------------------*/
 	/* Global Domain dimensions */
 	/*--------------------------*/
     
 	bounding_box[0] = x_start; 
 	bounding_box[3] = x_end; 
+	
 	bounding_box[1] = y_start; 
 	bounding_box[4] = y_end; 
+	
 	bounding_box[2] = z_start; 
-	bounding_box[5] = z_end; 
+	bounding_box[5] = z_end;
+	
+	/*--------------------------------------*/
+	/* Local sub-domain bounding box limits */
+	/*--------------------------------------*/
+	
+	local_bounding_box[0] = local_x_start;
+	local_bounding_box[3] = local_x_start + local_x_nodes * dx;
+	
+	local_bounding_box[1] = local_y_start;
+	local_bounding_box[4] = local_y_start + local_y_nodes * dy;
+	
+	local_bounding_box[2] = local_z_start; 	
+	local_bounding_box[5] = local_z_start + local_z_nodes * dz;
 
-    /*----------------------------------------*/
+  /*----------------------------------------*/
 	/* Voxel volume and various surface areas */
-    /*----------------------------------------*/
+  /*----------------------------------------*/
     
-    dV = dx*dy*dz; 
+  dV = dx*dy*dz; 
 	dS = dx*dy; 
 
 	dS_xy = dx*dy; 
 	dS_yz = dy*dz; 
 	dS_xz = dx*dz; 
 	
-    /*-------------------------------------------------------------------------------------------------------------*/
+  /*-------------------------------------------------------------------------------------------------------------*/
 	/* Creates a Voxel defined in BioFVM_mesh.cpp to a default Voxel having index 0, center (0,0,0), volume = 1000 */
-    /* The template Voxel now has a new volume i.e. template_voxel.volume = dV; see below                          */
-    /* Added a new field global_mesh_index to Voxel class in BioFVM_Mesh.h as we need both local voxel index       */
-    /* and global voxel index. 
+  /* The template Voxel now has a new volume i.e. template_voxel.volume = dV; see below                          */
+  /* Added a new field global_mesh_index to Voxel class in BioFVM_Mesh.h as we need both local voxel index       */
+  /* and global voxel index. 
 	/*-------------------------------------------------------------------------------------------------------------*/
     
 	Voxel template_voxel;
@@ -1064,7 +1142,7 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
     
     local_start_of_global_index = (coords[2] * x_nodes * y_nodes * local_z_nodes) +       //Imagine 3rd plate 'beginning' point (leftmost bottom point)
                                   (dims[0]-coords[0]-1) * x_nodes * local_y_nodes +       //Imagine going up in 3rd plate
-                                  (coords[1] * local_x_nodes) ;                            //Imagine going right in 3rd plate
+                                  (coords[1] * local_x_nodes) ;                           //Imagine going right in 3rd plate
                                           
 	
 	int n=0; 
@@ -1089,7 +1167,7 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
 	
 	/*--------------------------*/
 	/* Make Connections next ...*/
-    /*--------------------------*/
+  /*--------------------------*/
 	
 	connected_voxel_indices.resize( voxels.size() );             //This uses local indices
     
@@ -1105,32 +1183,32 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
 	{ 
         connected_voxel_indices[i].clear(); 
         connected_voxel_global_indices[i].clear();                //I forgot this while parallelizing BioFVM code, possibly won't matter but for completeness...
-    }
+  }
 	
 	/*----------------------------------------------------------------------------------*
 	/* Need to define two kinds of jumps between immediate neighbours in same direction */
-    /* (1) Local jump and (2) Global jump.
-    /*----------------------------------------------------------------------------------*/
+  /* (1) Local jump and (2) Global jump.
+  /*----------------------------------------------------------------------------------*/
 	
-    int i_jump = 1;                                 //Local x-jump
+  int i_jump = 1;                                 //Local x-jump
 	int j_jump = local_x_nodes;                     //Local y-jump
 	int k_jump = local_x_nodes * local_y_nodes;     //Local z-jump
 	
 	int i_global_jump = i_jump;                     //Global x-jump
-    int j_global_jump = x_nodes;                    //Global y-jump
-    int k_global_jump = x_nodes * y_nodes;          //Global z-jump
+  int j_global_jump = x_nodes;                    //Global y-jump
+  int k_global_jump = x_nodes * y_nodes;          //Global z-jump
 	
 	
 	/*-------------------------------------------------------------------------------*/
 	/* In a parallel environment, making connections will be divided into two parts: */ 
-    /* (1) Inner part - left, right, front, back, top, bottom neighbours all exist   */
-    /* (2) Boundary parts: immediate neighbours my exist across processes or may not */
-    /* exist, if the process touches the boundary                                    */
-    /*-------------------------------------------------------------------------------*/
+  /* (1) Inner part - left, right, front, back, top, bottom neighbours all exist   */
+  /* (2) Boundary parts: immediate neighbours my exist across processes or may not */
+  /* exist, if the process touches the boundary                                    */
+  /*-------------------------------------------------------------------------------*/
 	
-    /*------------------------------------*/
+  /*------------------------------------*/
 	/* x-aligned connections inner region */
-    /*------------------------------------*/
+  /*------------------------------------*/
     
 	for( int k=0 ; k < z_coordinates.size() ; k++ )
 	{
@@ -1148,9 +1226,9 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
 	
 	/*-------------------------------------*/
 	/* x-aligned connections left boundary */
-    /* Later: can be checked using process */
-    /* coordinates as well.                */
-    /*-------------------------------------*/
+  /* Later: can be checked using process */
+  /* coordinates as well.                */
+  /*-------------------------------------*/
 	
 	 
 	for( int k=0 ; k < z_coordinates.size() ; k++ )
@@ -1181,12 +1259,12 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
 	
 	/*--------------------------*/
 	/* x-aligned right boundary */
-    /*--------------------------*/
+  /*--------------------------*/
     
 	/*----------------------------------------------------------------------------------------*/
 	/* Because of loops above, the rightmost voxel is already connected to its left neighbour */
 	/* but its not connected to its right neighbour (if it exists !)                          */
-    /*----------------------------------------------------------------------------------------*/
+	/*----------------------------------------------------------------------------------------*/
 
 	 
 	for( int k=0 ; k < z_coordinates.size() ; k++ )
@@ -1207,12 +1285,12 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
 	}
 	
 	/*---------------------------------------------------------------------------------------*/
-    /* After making x-aligned connections, the state is like the following:                  */
-    /* At the left physical boundary there is no entry for local or global left neighbour    */
-    /* At the right physical boundary, there is no entry for local or global right neighbour */
-    /* At non-physical left or right boundaries, local neighbours are -1                     */
-    /* Rest of the entries are all valid entries.                                            */
-    /*---------------------------------------------------------------------------------------*/
+  /* After making x-aligned connections, the state is like the following:                  */
+  /* At the left physical boundary there is no entry for local or global left neighbour    */
+  /* At the right physical boundary, there is no entry for local or global right neighbour */
+  /* At non-physical left or right boundaries, local neighbours are -1                     */
+  /* Rest of the entries are all valid entries.                                            */
+  /*---------------------------------------------------------------------------------------*/
 
     /*----------------------------------*/
     /* y-aligned connections inner part */
@@ -1232,8 +1310,8 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
 	}
 
 	/*---------------------------------------------*/
-    /* y-aligned lower boundary of each sub-domain */
-    /*---------------------------------------------*/
+  /* y-aligned lower boundary of each sub-domain */
+  /*---------------------------------------------*/
 	
 
 	for( int k=0 ; k < z_coordinates.size() ; k++ )
@@ -1489,6 +1567,8 @@ int Cartesian_Mesh::nearest_voxel_local_index( std::vector<double>& position, mp
     
     return (process_local_index_of_voxel_containing_basic_agent); 
 }
+
+
 
 std::vector<unsigned int> Cartesian_Mesh::nearest_cartesian_indices( std::vector<double>& position )
 {

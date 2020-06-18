@@ -83,6 +83,13 @@ class Basic_Agent
 	std::vector<double> * saturation_densities; 
 	std::vector<double> * uptake_rates;  
 	double get_total_volume();
+	
+/*---------------------------------------------------------------*/
+/* Gaurav Saxena wrote this function to assist printing 				 */
+/*---------------------------------------------------------------*/
+
+	bool get_is_volume_changed(); 
+	
 	void set_total_volume(double);
 	void update_voxel_index();
 

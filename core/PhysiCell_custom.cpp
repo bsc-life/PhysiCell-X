@@ -194,6 +194,16 @@ int Custom_Cell_Data::find_variable_index( std::string name )
 	return name_to_index_map[ name ]; 
 }
 
+/*======================================================================================*/
+/* Gaurav Saxena wrote this to help with printing the {Key,Value} in this unordered map */
+/*======================================================================================*/
+
+
+std::unordered_map<std::string,int> & Custom_Cell_Data::get_name_to_index_map()
+{
+	return name_to_index_map; 
+}
+
 /*
 int Custom_Cell_Data::find_vector_variable_index( std::string name )
 {

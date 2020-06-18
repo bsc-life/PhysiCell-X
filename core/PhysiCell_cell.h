@@ -75,6 +75,8 @@
 #include "./PhysiCell_cell_container.h"
 #include "./PhysiCell_constants.h"
 
+#include <unordered_map>
+
 using namespace BioFVM;
 using namespace DistPhy::mpi; 
 
@@ -178,6 +180,13 @@ class Cell : public Basic_Agent
 	void lyse_cell( void ); 
 
 	Cell* divide( void );
+	
+/*=========================================================================*/
+/* Parallel prototype of the divide() function above											 */
+/*=========================================================================*/
+
+	Cell* divide(int p_ID, mpi_Environment &world, mpi_Cartesian &cart_topo); 
+	
 	void die( void );
 	void step(double dt);
 	Cell();
@@ -212,6 +221,14 @@ class Cell : public Basic_Agent
 	void copy_function_pointers(Cell*);
 	
 	void update_voxel_in_container(void);
+	
+	
+/*=======================================================================*/
+/* Parallel prototype of update_voxel_in_container 											 */
+/*=======================================================================*/	
+	
+	void update_voxel_in_container(mpi_Environment &world, mpi_Cartesian &cart_topo); 
+	
 	void copy_data(Cell *);
 	
 	void ingest_cell( Cell* pCell_to_eat ); // for use in predation, e.g., immune cells 
@@ -226,6 +243,12 @@ class Cell : public Basic_Agent
 	std::vector<Cell*>& cells_in_my_container( void ); 
 	
 	void convert_to_cell_definition( Cell_Definition& cd ); 
+	
+	/*=============================================================*/
+	/* Prints all data fields of a cell - will help in serializing */
+	/* to send data across processes 															 */
+	/*=============================================================*/
+	void print_cell(int id); 
 };
 
 Cell* create_cell( void );  

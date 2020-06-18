@@ -130,6 +130,13 @@ class General_Mesh
 	// [xmin ymin zmin xmax ymax zmax ]
 	std::vector<double> bounding_box; 
 	
+	/*---------------------------------------------------------------------------------*/
+	/* Adding a new vector of doubles, which would contain local sub-domain boundaries */
+	/* Added by Gaurav Saxena, allocate space in General_Mesh()												 */
+	/*---------------------------------------------------------------------------------*/
+	
+	std::vector<double> local_bounding_box; 
+	
 	std::vector<Voxel> voxels; 
 	std::vector<Voxel_Face> voxel_faces; 
 	// each voxel[k] has a list of connected voxels -- helpful for some numerical methods 
@@ -145,6 +152,13 @@ class General_Mesh
 	   
 	bool is_position_valid(double x, double y, double z);
 	/* the following help manage the voxel faces */ 
+	
+	/*=====================================================================================*/
+	/* Parallel prototype of a function which handles cell positions at the sub-domain		 */
+	/* boundaries. Remember it can change the x-coordinates in the "position" vector.			 */
+	/*=====================================================================================*/
+	
+  void correct_position_within_subdomain(std::vector<double> &pos, mpi_Environment &world, mpi_Cartesian &cart_topo);
 
 	// returns the index of the voxel face connecting from voxels[i] to voxels[j] 
 	int voxel_face_index( int i, int j ); 

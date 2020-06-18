@@ -150,6 +150,17 @@ double& Cycle_Data::exit_rate(int phase_index )
 {
 	return transition_rates[phase_index][0]; 
 }
+
+/*-----------------------------------------------*/
+/* Adding a function get_inverse_index_maps() to */ 
+/* return a reference to the private data 			 */
+/* Added by Gaurav Saxena												 */
+/*-----------------------------------------------*/
+
+std::vector<std::unordered_map<int,int>> & Cycle_Data:: get_inverse_index_maps()
+{
+	return inverse_index_maps; 
+}
 	
 Cycle_Model::Cycle_Model()
 {
@@ -356,6 +367,17 @@ void Cycle_Model::advance_model( Cell* pCell, Phenotype& phenotype, double dt )
 	}
 	
 	return; 
+}
+
+/*-----------------------------------------------*/
+/* Adding a function get_inverse_index_maps() to */ 
+/* return a reference to the private data 			 */
+/* Added by Gaurav Saxena												 */
+/*-----------------------------------------------*/
+
+std::vector<std::unordered_map<int,int>> & Cycle_Model:: get_inverse_index_maps()
+{
+	return inverse_index_maps; 
 }
 	
 Phase& Cycle_Data::current_phase( void )
