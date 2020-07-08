@@ -77,6 +77,7 @@
 
 #include <unordered_map>
 
+
 using namespace BioFVM;
 using namespace DistPhy::mpi; 
 
@@ -173,6 +174,15 @@ class Cell : public Basic_Agent
 	bool is_out_of_domain;
 	bool is_movable;
 	
+	/*===============================================*/
+	/* Added by Gaurav Saxena to see if cell crosses */
+	/* to left sub-domain or right sub-domain after	 */
+	/* position is updated. Initially both = false	 */
+	/*===============================================*/
+	
+	bool crossed_to_left_subdomain; 
+	bool crossed_to_right_subdomain;
+	
 	void flag_for_division( void ); // done 
 	void flag_for_removal( void ); // done 
 	
@@ -188,6 +198,17 @@ class Cell : public Basic_Agent
 	Cell* divide(int p_ID, mpi_Environment &world, mpi_Cartesian &cart_topo); 
 	
 	void die( void );
+
+/*=======================================================================*/
+/* Prototype of a function remove_crossed_cell() which helps to remove	 */
+/* cells which have crossed the subdomain into another subdomain.				 */
+/* This function is only used to pass the 'this->index' to the actual		 */
+/* function which carries out the necessary actions. Placing it here as  */
+/* it is analogous to the die() function above. 												 */
+/*=======================================================================*/
+
+ void remove_crossed_cell();	
+	
 	void step(double dt);
 	Cell();
 
@@ -204,14 +225,21 @@ class Cell : public Basic_Agent
 /*=======================================================================*/
 /* Parallel prototype of assign_position */
 /*=======================================================================*/
-	
 	bool assign_position(double x, double y, double z, mpi_Environment &world, mpi_Cartesian &cart_topo);	
+	
 	void set_total_volume(double);
 	
 	double& get_total_volume(void); // NEW
 	
 	// mechanics 
 	void update_position( double dt ); //
+
+/*=======================================================================*/
+/* Parallel prototype of update_position(double dt, mpi_Environment &)	 */
+/*=======================================================================*/
+
+	void update_position( double dt, mpi_Environment &world );
+	
 	std::vector<double> displacement; // this should be moved to state, or made private  
 
 	
@@ -263,7 +291,13 @@ Cell* create_cell(int cell_id);
 
 
 void delete_cell( int ); 
-void delete_cell( Cell* ); 
+void delete_cell( Cell* );
+void vaporize_teleported_cell(int index); 
+
+
+
+ 
+ 
 void save_all_cells_to_matlab( std::string filename ); 
 
 //function to check if a neighbor voxel contains any cell that can interact with me

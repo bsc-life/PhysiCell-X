@@ -72,7 +72,8 @@
 #include "../BioFVM/BioFVM_vector.h" 
 #include<limits.h>
 
-namespace PhysiCell{
+namespace PhysiCell
+{
 
 Cell_Parameters::Cell_Parameters()
 {
@@ -320,6 +321,16 @@ Cell::Cell()
 	
 	is_movable = true;
 	is_out_of_domain = false;
+	
+	/*-----------------------------------*/
+	/* Added by Gaurav Saxena to say that*/
+	/* when cell created, both = 0			 */
+	/*-----------------------------------*/
+	
+	crossed_to_left_subdomain = false;
+	crossed_to_right_subdomain = false; 
+
+	
 	displacement.resize(3,0.0); // state? 
 	
 	assign_orientation();
@@ -758,7 +769,17 @@ void Cell::die()
 {
 	delete_cell(this);
 	return; 
-} 
+}
+
+/*--------------------------------------------------------------------------------------*/
+/* A function needed in the distributed parallel scenario which removes a cell that has */ 
+/* crossed to the neighbouring sub-domain. 																							*/
+/*--------------------------------------------------------------------------------------*/
+
+void Cell::remove_crossed_cell()
+{
+	 vaporize_teleported_cell(this->index); 
+}
 
 void Cell::update_position( double dt )
 {
@@ -807,6 +828,81 @@ void Cell::update_position( double dt )
 		is_out_of_domain = true; 
 		is_active = false; 
 		is_movable = false; 
+	}
+	return; 
+}
+
+/*----------------------------------------------*/
+/* Parallel Implementation of update_position() */
+/*----------------------------------------------*/
+
+void Cell::update_position( double dt, mpi_Environment &world )
+{
+	/* use Adams-Bashforth */
+	
+	static double d1; 
+	static double d2; 
+	static bool constants_defined = false; 
+	
+	if( constants_defined == false )
+	{
+		d1  = dt; 
+		d1 *= 1.5; 
+		d2  = dt; 
+		d2 *= -0.5; 
+		constants_defined = true; 
+	}
+	
+
+	if(default_microenvironment_options.simulate_2D == true ) 
+		 velocity[2] = 0.0; 
+	
+	
+	std::vector<double> old_position(position); 
+	axpy( &position , d1 , velocity );  
+	axpy( &position , d2 , previous_velocity );
+		 
+	/* overwrite previous_velocity for future use */
+		
+	previous_velocity = velocity; 
+	
+	velocity[0]=0; 
+	velocity[1]=0; 
+	velocity[2]=0;
+	
+	crossed_to_left_subdomain  = get_container()->underlying_mesh.has_it_crossed_to_left_subdomain(position[0], world);
+	crossed_to_right_subdomain = get_container()->underlying_mesh.has_it_crossed_to_right_subdomain(position[0], world); 
+		
+	bool crossed = crossed_to_left_subdomain || crossed_to_right_subdomain;
+	if(crossed == true)
+	{
+			std::cout<<std::endl; 
+			std::cout<<"Rank="<<world.rank<<" Cell ID="<<ID<<" Old Position:("<<old_position[0]<<","<<old_position[1]<<","<<old_position[2]<<")"<<std::endl;  
+			std::cout<<"Cell ID="<<ID<<" New Position:("<<position[0]<<","<<position[1]<<","<<position[2]<<")"<<std::endl;  
+	}
+	
+	/*------------------------------------------------------------------------------*/
+	/* If it has crossed to left OR right subdomain (from a non-boundary processes) */
+	/* then we don't need to check if it is out-of-domain as it CANNOT be. 					*/
+	/* If BOTH _left and _right above are false, then there is a possibility 				*/
+	/* that process is boundary process and cell has gone out of physical boundary	*/
+	/* In this case, the code below will execute 																		*/
+	/* In case the cell is still within sub-domain, a new voxel index IS recomputed */
+	/*------------------------------------------------------------------------------*/
+	 
+	if(crossed == false)
+	{
+		if(get_container()->underlying_mesh.is_position_valid(position[0],position[1],position[2]))
+		{
+			updated_current_mechanics_voxel_index=get_container()->underlying_mesh.nearest_voxel_index( position );
+		}
+		else
+		{
+			updated_current_mechanics_voxel_index=-1;
+			is_out_of_domain = true; 
+			is_active = false; 
+			is_movable = false; 
+		}
 	}
 	return; 
 }
@@ -1122,6 +1218,36 @@ void delete_cell( Cell* pDelete )
 	return; 
 }
 
+/*--------------------------------------------------------------------------------------------*/
+/* The function vaporize_teleported_cell(int index) is only for distributed parallel scenario */
+/* It is exactly like delete(int) function above except for it doesn't call 								  */
+/* 'release_internalized_substrates()' as the cell does not die but only leaves the current		*/
+/* sub-domain and enters a neighbouring sub-domain 																						*/
+/*--------------------------------------------------------------------------------------------*/
+
+void vaporize_teleported_cell(int index)
+{
+	
+	// deregister agent in from the agent container
+	/* get the container of the cell and remove the basic agent (basically cell) from it */
+	(*all_cells)[index]->get_container()->remove_agent((*all_cells)[index]);
+	
+	// de-allocate (delete) the cell;
+	/* Will it not create a memory leak as there are dynamic members of cell class ?*/ 
+	delete (*all_cells)[index]; 
+
+	// performance goal: don't delete in the middle -- very expensive reallocation
+	// alternative: copy last element to index position, then shrink vector by 1 at the end O(constant)
+	// move last item to index location 
+	 
+	(*all_cells)[ (*all_cells).size()-1 ]->index=index;
+	(*all_cells)[index] = (*all_cells)[ (*all_cells).size()-1 ];
+	
+	// shrink the vector
+	(*all_cells).pop_back();	
+	
+}
+
 bool is_neighbor_voxel(Cell* pCell, std::vector<double> my_voxel_center, std::vector<double> other_voxel_center, int other_voxel_index)
 {
 	double max_interactive_distance = pCell->phenotype.mechanics.relative_maximum_adhesion_distance * pCell->phenotype.geometry.radius 
@@ -1285,6 +1411,12 @@ void Cell::lyse_cell( void )
 	return; 
 }
 
+/*---------------------------------------------*/
+/* Added by Gaurav Saxena to print 'most' of	 */
+/* the fields of the Cell data structure,			 */
+/* useful when comparing cell fields after 		 */
+/* pack_and_send() function. 									 */
+/*---------------------------------------------*/
 void Cell::print_cell(int id)
 {
 	/*-------------------------------------------------------------------------------------*/
@@ -1394,7 +1526,9 @@ void Cell::print_cell(int id)
 	std::cout<<"max_necrosis_rate"<<this->parameters.max_necrosis_rate<<std::endl;
 	std::cout<<"necrosis_type"<<this->parameters.necrosis_type<<std::endl;
 	if(this->parameters.pReference_live_phenotype != NULL)
-		std::cout<<"pReference_live_phenotype pointer in Cell_Parameters is NOT NULL"<<std::endl; 
+		std::cout<<"pReference_live_phenotype pointer in Cell_Parameters is NOT NULL"<<std::endl;
+	if(this->parameters.pReference_live_phenotype == &phenotype)
+		std::cout<<"pReference_live_phenotype pointer in Cell_Parameters is pointing to object phenotype of class Phenotype"<<std::endl; 
 	
 	/*=========CELL_STATE============*/
 	
@@ -1600,7 +1734,7 @@ void Cell::print_cell(int id)
 	}
 	std::cout<<"Checking if pCycle_Model pointer is NULL"<<std::endl;
 	if(this->phenotype.cycle.data.pCycle_Model != NULL)
-		std::cout<<"pCycle_Model is NOY NULL"; 
+		std::cout<<"pCycle_Model is NOT NULL"; 
 		
 	/*=============DEATH_PARAMETERS===============*/
 		
@@ -1619,6 +1753,1557 @@ void Cell::print_cell(int id)
 		}	
 	}
 	prnt_counter++; 
+}
+
+
+/*---------------------------------------------*/
+/* Added by Gaurav Saxena to pack almost all 	 */
+/* fields of Cell data structure when cells		 */
+/* cross sub-domain boundaries.								 */
+/*---------------------------------------------*/
+
+void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+
+/*-----------------------------------------------------------------------------*/	
+/* Right now test for a single cell. Then later (1) Loop through all cells		 */
+/* (2) Test if crossed_to_left_subdomain == true or crossed_to_right_subdomain */
+/* == true. Only one can be true. (3) If anyone is true pack cells contents 	 */
+/* in snd_buf_to_left or snd_buf_to_right data members, respectively. 				 */
+/*-----------------------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------*/
+/* Temporary help variables to contain lengths and temporarily variables */
+/* Need to maintain two positions: one for left buffer and one for right */
+/* buffer. 
+/*-----------------------------------------------------------------------*/	
+
+	
+	
+	int len_snd_buf_left  	 = 0; 
+	int len_snd_buf_right 	 = 0; 
+	
+	 
+	
+	int 	 																	temp_int;
+	double 																	temp_double;
+	std::string 														temp_str;
+	std::unordered_map<std::string, int> :: iterator it;
+	Cell 																		*pCell; 
+	  
+	
+	int len_int 						 = 0; 
+	int len_double 					 = 0; 
+	int len_str 						 = 0; 
+	int len_vector					 = 0; 
+	
+	/*---------------------------------------------------------*/
+	/* All 6 members below are now in the Cell_Container class */
+	/*---------------------------------------------------------*/
+	
+	position_left 			 		= 0;					//Must be initialized to 0
+	position_right 			 		= 0;					//Must be initialized to 0
+	no_cells_cross_left  		= 0;					//Must be initialized to 0
+	no_cells_cross_right		= 0;					//Must be initialized to 0
+	no_of_cells_from_right 	= 0;
+	no_of_cells_from_left 	= 0; 
+	
+	snd_buf_left.resize(0); 					//When we enter function again, this is reset
+	snd_buf_right.resize(0);					//Reset the others also
+	rcv_buf_left.resize(0);
+	rcv_buf_right.resize(0); 
+
+	
+	/*--------------------------------------------------------------------------------*/
+	/* First count the number of cells crossing to left subdomain and right subdomain */
+	/*--------------------------------------------------------------------------------*/
+	
+	for(int i=0; i<(*all_cells).size();i++)
+	{
+		pCell = (*all_cells)[i]; 		
+		if(pCell->crossed_to_left_subdomain == true)
+			no_cells_cross_left++; 
+		if(pCell->crossed_to_right_subdomain == true)
+			no_cells_cross_right++; 		
+	}
+
+	/*-----------------------------------------------------------------------------------*/	
+	/* There is no need to pack crossed_to_left_subdomain and crossed_to_right_subdomain */
+	/* as we send these two fields as the First Communication between MPI processes. 		 */
+	/* Also try to send the length of the buffer to be allocated when sending.					 */
+	/*-----------------------------------------------------------------------------------*/	
+	
+  //std::cout<<"Total cells crossing to left in Rank "<<world.rank<<":"<<no_cells_cross_left<<std::endl;
+	//std::cout<<"Total cells crossing to right in Rank "<<world.rank<<":"<<no_cells_cross_right<<std::endl;
+
+	
+	/* IMPORTANT: CANNOT USE #pragma omp for HERE AS ALL THREADS WILL WRITE TO THE SAME SHARED BUFFER */
+	for(int i=0; i<(*all_cells).size();i++)
+	{
+		pCell = (*all_cells)[i]; 
+					
+		if(pCell->crossed_to_left_subdomain == true)
+		{			
+			//pCell->crossed_to_left_subdomain = false; //RESET IT BUT LATER REMOVE THIS LINE
+			/* Cell ID first - needed to create a cell */
+						
+			len_snd_buf_left = position_left + sizeof(pCell->ID);
+			snd_buf_left.resize(len_snd_buf_left);
+			MPI_Pack(&(pCell->ID), 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+			
+			/* Pack double position[0], position[1], position[2] - needed to assign position 							 */
+			/* This is the only array where I am not packing the length of the array with the array values */
+			/* as we're only dealing with 3-dimensions here, hence position has x, y, z values						 */
+			
+			len_snd_buf_left = position_left + 3 * sizeof(pCell->position[0]); 
+			snd_buf_left.resize(len_snd_buf_left); 
+			MPI_Pack(&(pCell->position[0]), 3, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+			
+			/* Pack length of string (MPI_INT) and then string pCell->type_name (MPI_CHAR) */
+			
+			len_str = pCell->type_name.length(); 
+			len_snd_buf_left = position_left + sizeof(len_str) + len_str;
+			snd_buf_left.resize(len_snd_buf_left); 
+			MPI_Pack(&len_str, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+			MPI_Pack(&(pCell->type_name[0]), len_str , MPI_CHAR, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+			
+			/* Packing unordered_map<std::string, int> in Custom_Data class */
+			/* First pack the number of entries in the unordered_map 				*/
+			
+			len_int = pCell->custom_data.get_name_to_index_map().size();
+			len_snd_buf_left = position_left + sizeof(len_int);
+			snd_buf_left.resize(len_snd_buf_left);  
+			MPI_Pack(&len_int, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);  
+			
+			/* Now pack the <string, int> pairs but store length(string) before string */
+					
+			for(auto it = (pCell->custom_data.get_name_to_index_map()).cbegin(); it != (pCell->custom_data.get_name_to_index_map()).cend(); it++)
+			{
+				/* resize buffer to contain length of string, string and integer */
+				
+				temp_str = it->first; 
+				temp_int = it->second; 
+				len_str = temp_str.length();
+				len_snd_buf_left = position_left + sizeof(len_str) + len_str + sizeof(temp_int); 
+				snd_buf_left.resize(len_snd_buf_left);
+				 
+				MPI_Pack(&len_str, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+				MPI_Pack(&temp_str[0], len_str, MPI_CHAR, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+				MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD ); 			
+			}	
+			
+		 /* Packing members of class 'Variable' (as we are going depth first i.e. Inorder traversal of data members) */
+		 
+		 	for(int i=0; i<pCell->custom_data.variables.size(); i++)
+		 	{
+		    temp_str = pCell->custom_data.variables[i].name; 
+		    len_str = temp_str.length();
+		    len_snd_buf_left = position_left + len_str + sizeof(len_str); 
+		    snd_buf_left.resize(len_snd_buf_left);
+		    MPI_Pack(&len_str, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+		    MPI_Pack(&temp_str[0], len_str, MPI_CHAR, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+		    
+		    /* There was a mistake in MPI_Pack here, instead of &snd_buf_left[0], I had &snd_buf_left */
+		    temp_double = pCell->custom_data.variables[i].value;
+		    len_snd_buf_left = position_left + sizeof(temp_double); 
+		    MPI_Pack(&temp_double, 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+		    
+		    temp_str = pCell->custom_data.variables[i].units; 
+		    len_str = temp_str.length();
+		    len_snd_buf_left = position_left + len_str + sizeof(len_str); 
+		    snd_buf_left.resize(len_snd_buf_left);
+		    MPI_Pack(&len_str, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+		    MPI_Pack(&temp_str[0], len_str, MPI_CHAR, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);		     
+			}
+			
+			/* Packing members of class 'Vector_Variable' i.e. string name, a vector<double> value and string units */
+			
+			for(int i=0; i<pCell->custom_data.vector_variables.size(); i++)
+			{
+				temp_str = pCell->custom_data.vector_variables[i].name; 
+		    len_str = temp_str.length();
+		    len_snd_buf_left = position_left + len_str + sizeof(len_str); 
+		    snd_buf_left.resize(len_snd_buf_left);
+		    MPI_Pack(&len_str, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+		    MPI_Pack(&temp_str[0], len_str, MPI_CHAR, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		    
+		    len_vector = pCell->custom_data.vector_variables[i].value.size(); 
+		    len_snd_buf_left = position_left + len_vector * sizeof(double);
+		    snd_buf_left.resize(len_snd_buf_left); 
+		    MPI_Pack(&(pCell->custom_data.vector_variables[i].value[0]), len_vector, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+		    
+		    temp_str = pCell->custom_data.vector_variables[i].units; 
+		    len_str = temp_str.length();
+		    len_snd_buf_left = position_left + len_str + sizeof(len_str); 
+		    snd_buf_left.resize(len_snd_buf_left);
+		    MPI_Pack(&len_str, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+		    MPI_Pack(&temp_str[0], len_str, MPI_CHAR, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);  	    
+			}
+			
+			/* Packing members of class 'Cell_Parameters' except for pReference_live_phenotype pointer */
+			/* There are 9 doubles and 1 int in this class except for the pointer */
+			
+			/*=====================================================================*/
+			/* pReference_live_phenotype * IS NOT PACKED 													 */
+			/*=====================================================================*/
+			
+			len_snd_buf_left = position_left + 9 * sizeof(double) + 1 * sizeof(int); 
+			snd_buf_left.resize(len_snd_buf_left); 
+			
+			MPI_Pack(&(pCell->parameters.o2_hypoxic_threshold), 				1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+			MPI_Pack(&(pCell->parameters.o2_hypoxic_response), 					1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+			MPI_Pack(&(pCell->parameters.o2_hypoxic_saturation), 				1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+			MPI_Pack(&(pCell->parameters.o2_proliferation_saturation), 	1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+			MPI_Pack(&(pCell->parameters.o2_proliferation_threshold), 	1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+			MPI_Pack(&(pCell->parameters.o2_reference), 								1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+			MPI_Pack(&(pCell->parameters.o2_necrosis_threshold), 				1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+			MPI_Pack(&(pCell->parameters.o2_necrosis_max), 							1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+			MPI_Pack(&(pCell->parameters.max_necrosis_rate), 						1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+			MPI_Pack(&(pCell->parameters.necrosis_type), 								1, MPI_INT, 	 &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+		
+		
+		
+		/* Packing data members of Cell_Functions in depth first manner */
+		/* It only has Cycle_Model data member, so pack Cycle_Model data members depth first */
+		
+		std::vector<std::unordered_map<int,int>> &inverse_index_maps_cycle_model = pCell->functions.cycle_model.get_inverse_index_maps();
+		len_vector = inverse_index_maps_cycle_model.size(); 
+		len_snd_buf_left = position_left + sizeof(len_vector); 
+		snd_buf_left.resize(len_snd_buf_left); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+		
+		for(int i=0; i<len_vector; i++)
+		{
+			 len_int = inverse_index_maps_cycle_model[i].size();
+			 len_snd_buf_left = position_left + sizeof(len_int) + len_int * 2 * sizeof(int); 
+			 snd_buf_left.resize(len_snd_buf_left);
+			 MPI_Pack(&len_int, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+			 
+			for(auto it = inverse_index_maps_cycle_model[i].cbegin(); it != inverse_index_maps_cycle_model[i].cend(); it++)
+			{	 
+				MPI_Pack(&(it->first),  1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+				MPI_Pack(&(it->second), 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD ); 			
+			}				 
+		}
+		
+		temp_str = pCell->functions.cycle_model.name; 
+		len_str  = temp_str.length();
+		len_snd_buf_left = position_left + sizeof(len_str) + len_str; 
+		snd_buf_left.resize(len_snd_buf_left); 
+		MPI_Pack(&len_str, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+		MPI_Pack(&temp_str[0], len_str, MPI_CHAR, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+		
+		len_snd_buf_left = position_left + sizeof(int);
+		snd_buf_left.resize(len_snd_buf_left); 
+		MPI_Pack(&(pCell->functions.cycle_model.code), 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+		
+		/* Packing of data members of Phases as its object is a member of Cycle_Model */
+		/* std::vector<Phase> phases; is a member of it - its a vector */		
+		
+		len_vector = pCell->functions.cycle_model.phases.size(); 
+		len_snd_buf_left = position_left + sizeof(len_vector);
+		snd_buf_left.resize(len_snd_buf_left);
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+		
+		for(int i=0; i<len_vector; i++)
+		{
+			len_snd_buf_left = position_left + 2 * sizeof(int);
+			snd_buf_left.resize(len_snd_buf_left); 
+			 
+			temp_int = pCell->functions.cycle_model.phases[i].index; 
+			MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+			temp_int = pCell->functions.cycle_model.phases[i].code;
+			MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+			
+			temp_str = pCell->functions.cycle_model.phases[i].name; 
+			len_str  = temp_str.length();
+			len_snd_buf_left = position_left + sizeof(len_str) + len_str; 
+			snd_buf_left.resize(len_snd_buf_left); 
+			MPI_Pack(&len_str, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+			MPI_Pack(&temp_str[0], len_str, MPI_CHAR, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+			
+			/* There are 2 remaining bool values which I will pack in 2 ints */
+			len_snd_buf_left = position_left + 2 * sizeof(int);
+			snd_buf_left.resize(len_snd_buf_left);
+			
+			if(pCell->functions.cycle_model.phases[i].division_at_phase_exit == true)
+				temp_int = 1; 
+			else
+				temp_int = 0;
+			MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+			
+			if(pCell->functions.cycle_model.phases[i].removal_at_phase_exit == true)
+				temp_int = 1; 
+			else
+				temp_int = 0;
+			MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);		
+		}
+		
+		/* Packing members of Phase_Link - std::vector<std::vector<Phase_Link>> phase_links is a member of */
+		/* class Cycle_Model which is a member of Functions - we're packing in DFS i.e. Inorder traversal	 */
+		
+		len_vector = pCell->functions.cycle_model.phase_links.size();
+		len_snd_buf_left = position_left + sizeof(len_vector);
+		snd_buf_left.resize(len_snd_buf_left); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		
+		for(int i=0; i<len_vector; i++)
+		{
+			len_int = pCell->functions.cycle_model.phase_links[i].size();
+			len_snd_buf_left = position_left + sizeof(len_int) + len_int * 3 * sizeof(int); 
+			snd_buf_left.resize(len_snd_buf_left); 
+			MPI_Pack(&len_int, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+			for(int j=0; j<len_int; j++)
+			{
+				temp_int = pCell->functions.cycle_model.phase_links[i][j].start_phase_index; 
+				MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+				temp_int = pCell->functions.cycle_model.phase_links[i][j].end_phase_index;
+				MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+				if(pCell->functions.cycle_model.phase_links[i][j].fixed_duration == true)
+					temp_int = 1;
+				else
+					temp_int = 0; 
+				MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+			}
+		}
+		
+		/* Going back to packing the remaning data fields of Cycle_Model */
+		/* Next field is is 'default_phase_index' of Cycle_Model class */
+		
+		temp_int = pCell->functions.cycle_model.default_phase_index; 
+		len_snd_buf_left = position_left + sizeof(temp_int);
+		snd_buf_left.resize(len_snd_buf_left); 
+		MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+		
+		 /* Packing data fields of Cycle_Data as it is an object of Cycle_Model class above */
+		 /* First field is std::vector<std::unordered_map<int,int>> inverse_index_maps;			*/
+		 
+		std::vector<std::unordered_map<int,int>> &inverse_index_maps_cycle_data = pCell->functions.cycle_model.data.get_inverse_index_maps();	 
+		len_vector = inverse_index_maps_cycle_data.size(); 
+		len_snd_buf_left = position_left + sizeof(len_vector); 
+		snd_buf_left.resize(len_snd_buf_left); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+		
+		for(int i=0; i<len_vector; i++)
+		{
+			 len_int = inverse_index_maps_cycle_data[i].size();
+			 len_snd_buf_left = position_left + sizeof(len_int) + len_int * 2 * sizeof(int); 
+			 snd_buf_left.resize(len_snd_buf_left);
+			 MPI_Pack(&len_int, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+			 
+			for(auto it = inverse_index_maps_cycle_data[i].cbegin(); it != inverse_index_maps_cycle_data[i].cend(); it++)
+			{	 
+				MPI_Pack(&(it->first),  1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+				MPI_Pack(&(it->second), 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD ); 			
+			}				 
+		}
+		
+			/*=====================================================================*/
+			/* Cycle_Model* pCycle_Model;  IS NOT PACKED 													 */
+			/*=====================================================================*/
+			
+			temp_str = pCell->functions.cycle_model.data.time_units;
+			len_str = temp_str.length();
+			len_snd_buf_left = position_left + sizeof(len_str) + len_str; 
+			snd_buf_left.resize(len_snd_buf_left);
+			MPI_Pack(&len_str, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+			MPI_Pack(&temp_str[0], len_str, MPI_CHAR, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		 
+		 len_vector = pCell->functions.cycle_model.data.transition_rates.size(); 
+		 len_snd_buf_left = position_left + sizeof(len_vector);
+		 snd_buf_left.resize(len_snd_buf_left);
+		 MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		 
+		 for(int i=0; i<len_vector; i++)
+		 {
+		 	len_int = pCell->functions.cycle_model.data.transition_rates[i].size();
+		 	len_snd_buf_left = position_left + sizeof(len_int) + len_int * sizeof(double);
+		 	snd_buf_left.resize(len_snd_buf_left);
+		 	MPI_Pack(&len_int, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		 	
+		 	for(int j=0; j<len_int; j++)
+		 	{
+		 		temp_double = pCell->functions.cycle_model.data.transition_rates[i][j];
+		 		MPI_Pack(&temp_double, 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+		 	}
+		 }
+		 
+		 /* 1 int and 1 double are next to be packed in class Cycle_Data */
+		 
+		 len_snd_buf_left = position_left + sizeof(int) + sizeof(double);
+		 snd_buf_left.resize(len_snd_buf_left);
+		 MPI_Pack(&(pCell->functions.cycle_model.data.current_phase_index), 	1, MPI_INT, 	 &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+		 MPI_Pack(&(pCell->functions.cycle_model.data.elapsed_time_in_phase), 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+
+		/* Now packing members of class Cell_State as this is the next member in class Cell */
+		/* has std::vector<double> orientation and double simple_pressure 									*/
+		
+		len_vector = pCell->state.orientation.size();
+		len_snd_buf_left = position_left + sizeof(len_vector) + len_vector * sizeof(double) + sizeof(double); 
+		snd_buf_left.resize(len_snd_buf_left); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+		MPI_Pack(&(pCell->state.orientation[0]), len_vector, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);		
+		MPI_Pack(&(pCell->state.simple_pressure), 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+		
+		/* Packing data members of class Phenotype next */
+		
+		/* First it has 2 boolean variables - allocate sizeof(int) space for both of them */
+		len_snd_buf_left = position_left + 2 * sizeof(int);
+		snd_buf_left.resize(len_snd_buf_left);
+		if(pCell->phenotype.flagged_for_division == true)
+			temp_int = 1;
+		else
+			temp_int = 0;
+		MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		if(pCell->phenotype.flagged_for_removal == true)
+			temp_int = 1;
+		else
+			temp_int = 0;
+		MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		
+		/* Packing of members of class Cycle as the class Phenotype contains a data member of this class */
+		/* Not packing pCell->phenotype.cycle.pCycle_Model pointer data member *
+		
+			/*=====================================================================*/
+			/* Cycle_Model* pCycle_Model;  IS NOT PACKED 													 */
+			/*=====================================================================*/
+		
+		 /* Packing data fields of Cycle_Data as it is an object of Cycle class which is    */
+		 /* a data member of the Phenotype class which is a member of class Cell						*/
+		 /* First field is std::vector<std::unordered_map<int,int>> inverse_index_maps;			*/
+		 
+		std::vector<std::unordered_map<int,int>> &inverse_index_maps_cycle_data_1 = pCell->phenotype.cycle.data.get_inverse_index_maps();	 
+		len_vector = inverse_index_maps_cycle_data_1.size(); 
+		len_snd_buf_left = position_left + sizeof(len_vector);
+		snd_buf_left.resize(len_snd_buf_left); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+		
+		for(int i=0; i<len_vector; i++)
+		{
+			 len_int = inverse_index_maps_cycle_data_1[i].size();
+			 len_snd_buf_left = position_left + sizeof(len_int) + len_int * 2 * sizeof(int); 
+			 snd_buf_left.resize(len_snd_buf_left);
+			 MPI_Pack(&len_int, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+			 
+			for(auto it = inverse_index_maps_cycle_data_1[i].cbegin(); it != inverse_index_maps_cycle_data_1[i].cend(); it++)
+			{	 
+				MPI_Pack(&(it->first),  1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+				MPI_Pack(&(it->second), 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD ); 			
+			}				 
+		}
+		
+			/*=====================================================================*/
+			/* Cycle_Model* pCycle_Model;  IS NOT PACKED  												 */
+			/*=====================================================================*/
+			
+			temp_str = pCell->phenotype.cycle.data.time_units;
+			len_str = temp_str.length();
+			len_snd_buf_left = position_left + sizeof(len_str) + len_str; 
+			snd_buf_left.resize(len_snd_buf_left);
+			MPI_Pack(&len_str, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+			MPI_Pack(&temp_str[0], len_str, MPI_CHAR, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		 
+		 len_vector = pCell->phenotype.cycle.data.transition_rates.size(); 
+		 len_snd_buf_left = position_left + sizeof(len_vector);
+		 snd_buf_left.resize(len_snd_buf_left);
+		 MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		 
+		 for(int i=0; i<len_vector; i++)
+		 {
+		 	len_int = pCell->phenotype.cycle.data.transition_rates[i].size();
+		 	len_snd_buf_left = position_left + sizeof(len_int) + len_int * sizeof(double);
+		 	snd_buf_left.resize(len_snd_buf_left);
+		 	MPI_Pack(&len_int, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		 	
+		 	for(int j=0; j<len_int; j++)
+		 	{
+		 		temp_double = pCell->phenotype.cycle.data.transition_rates[i][j];
+		 		MPI_Pack(&temp_double, 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+		 	}
+		 }
+		 
+		 /* 1 int and 1 double are next to be packed in class Cycle_Data */
+		 
+		 len_snd_buf_left = position_left + sizeof(int) + sizeof(double);
+		 snd_buf_left.resize(len_snd_buf_left);
+		 MPI_Pack(&(pCell->phenotype.cycle.data.current_phase_index), 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+		 MPI_Pack(&(pCell->phenotype.cycle.data.elapsed_time_in_phase), 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		
+		/* Now packing data members of class Death as there is an object of class Death in Phenotype class */
+		
+		len_vector = pCell->phenotype.death.rates.size();
+		len_snd_buf_left = position_left + sizeof(len_vector) + len_vector * sizeof(double); 
+		snd_buf_left.resize(len_snd_buf_left);
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.death.rates[0]), len_vector, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+		
+		/* Next field is std::vector<Cycle_Model*> models ;  this is a vector of Cycle_Model * pointers */
+		
+		/*=====================================================================*/
+		/* std::vector<Cycle_Model*> models ;  IS NOT PACKED  								 */
+		/*=====================================================================*/
+		
+		/* Now packing members of class Death_Parameters as class Death contains */
+		/* std::vector<Death_Parameters> parameters 														 */
+		
+		len_vector = pCell->phenotype.death.parameters.size();
+		len_snd_buf_left = position_left + sizeof(len_vector);
+		snd_buf_left.resize(len_snd_buf_left);
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		 
+		for(int i=0; i<len_vector; i++)
+		{
+			temp_str = pCell->phenotype.death.parameters[i].time_units;
+			len_str  = temp_str.length();
+			len_snd_buf_left = position_left + sizeof(len_str) + len_str; 
+			snd_buf_left.resize(len_snd_buf_left); 
+			MPI_Pack(&len_str, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+			MPI_Pack(&temp_str[0], len_str, MPI_CHAR, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+			
+			/* 6 double data types are to be packed now */
+			len_snd_buf_left = position_left + 6 * sizeof(double);
+			snd_buf_left.resize(len_snd_buf_left);
+			
+			temp_double = pCell->phenotype.death.parameters[i].unlysed_fluid_change_rate;
+			MPI_Pack(&temp_double, 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+			temp_double = pCell->phenotype.death.parameters[i].lysed_fluid_change_rate;
+			MPI_Pack(&temp_double, 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);			
+			temp_double = pCell->phenotype.death.parameters[i].cytoplasmic_biomass_change_rate;
+			MPI_Pack(&temp_double, 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+			temp_double = pCell->phenotype.death.parameters[i].nuclear_biomass_change_rate;
+			MPI_Pack(&temp_double, 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+			temp_double = pCell->phenotype.death.parameters[i].calcification_rate;
+			MPI_Pack(&temp_double, 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+			temp_double = pCell->phenotype.death.parameters[i].relative_rupture_volume;
+			MPI_Pack(&temp_double, 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		}
+		 
+		 /* Next 1 bool value (allocate sizeof(int)) and 1 int value are to be packed */
+		 
+		 len_snd_buf_left = position_left + 2 * sizeof(int);
+		 snd_buf_left.resize(len_snd_buf_left);
+		 
+		 if(pCell->phenotype.death.dead == true)
+		 		temp_int = 1;
+		 else
+		 		temp_int = 0; 
+		 MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		 
+		 temp_int = pCell->phenotype.death.current_death_model_index;
+		 MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		
+		/* Next data members of class Volume are packed as class Phenotype contains its object */
+		/* 22 doubles are to be packed */
+		
+		len_snd_buf_left = position_left + 22 * sizeof(double); 
+		snd_buf_left.resize(len_snd_buf_left);
+		
+		MPI_Pack(&(pCell->phenotype.volume.total), 						 							 		 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.solid), 						 							 		 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.fluid), 						 							 		 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.fluid_fraction), 	 							 		 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.nuclear), 					 							 		 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.nuclear_fluid), 		 							 		 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.nuclear_solid), 		 							 		 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.cytoplasmic), 			 							 		 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.cytoplasmic_fluid), 							 		 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.cytoplasmic_solid), 							 		 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.calcified_fraction), 						 		 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.cytoplasmic_to_nuclear_ratio), 	 		 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.rupture_volume), 								 		 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.cytoplasmic_biomass_change_rate), 		 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.nuclear_biomass_change_rate), 		 		 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.fluid_change_rate), 							 		 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.calcification_rate), 						 		 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.target_solid_cytoplasmic), 			 		 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.target_solid_nuclear), 					 		 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.target_fluid_fraction), 					 		 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.target_cytoplasmic_to_nuclear_ratio), 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.relative_rupture_volume), 						 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		
+		/* Next packing data members of class Geometry as this class has an object in class Phenotype */
+		/* 4 doubles are to be packed */
+		
+		len_snd_buf_left = position_left + 4 * sizeof(double);
+		snd_buf_left.resize(len_snd_buf_left);
+		
+		MPI_Pack(&(pCell->phenotype.geometry.radius), 				1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.geometry.nuclear_radius), 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.geometry.surface_area), 	1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.geometry.polarity), 			1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		
+		/* Next packing object of class Mechanics as class Phenotype contains object of this class */
+		/* 5 doubles are to be packed */
+		
+		len_snd_buf_left = position_left + 5 * sizeof(double);
+		snd_buf_left.resize(len_snd_buf_left);
+
+		MPI_Pack(&(pCell->phenotype.mechanics.cell_cell_adhesion_strength), 			 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.mechanics.cell_BM_adhesion_strength), 				 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.mechanics.cell_cell_repulsion_strength), 			 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.mechanics.cell_BM_repulsion_strength), 				 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.mechanics.relative_maximum_adhesion_distance), 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+
+		/* Next Packing data members of class Motility */
+		/* First bool value is to be packed - allocate sizeof(int) */
+		
+		len_snd_buf_left = position_left + sizeof(int);
+		snd_buf_left.resize(len_snd_buf_left);
+		if(pCell->phenotype.motility.is_motile == true)
+			temp_int = 1;
+		else
+			temp_int = 0;
+		MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		
+		/* Now pack 2 doubles */
+		
+		len_snd_buf_left = position_left + 2 * sizeof(double);		
+		snd_buf_left.resize(len_snd_buf_left);
+		MPI_Pack(&(pCell->phenotype.motility.persistence_time), 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.motility.migration_speed),  1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		
+		len_vector = pCell->phenotype.motility.migration_bias_direction.size();
+		len_snd_buf_left = position_left + sizeof(len_vector) + len_vector * sizeof(double);
+		snd_buf_left.resize(len_snd_buf_left);
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.motility.migration_bias_direction[0]), len_vector, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		
+		len_snd_buf_left = position_left + sizeof(double);		
+		snd_buf_left.resize(len_snd_buf_left);
+		MPI_Pack(&(pCell->phenotype.motility.migration_bias), 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		
+		len_snd_buf_left = position_left + sizeof(int);		
+		snd_buf_left.resize(len_snd_buf_left);
+		if(pCell->phenotype.motility.restrict_to_2D == true)
+			temp_int = 1; 
+		else
+			temp_int = 0; 
+		MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+	
+		len_vector = pCell->phenotype.motility.motility_vector.size();
+		len_snd_buf_left = position_left + sizeof(len_vector) + len_vector * sizeof(double);
+		snd_buf_left.resize(len_snd_buf_left);
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.motility.motility_vector[0]), len_vector, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+	
+		/* Now packing data members of class Secretion as its object is a data member of class Phenotype */
+		
+		len_vector = pCell->phenotype.secretion.secretion_rates.size();
+		len_snd_buf_left = position_left + sizeof(len_vector) + len_vector * sizeof(double);
+		snd_buf_left.resize(len_snd_buf_left);
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.secretion.secretion_rates[0]), len_vector, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		
+		len_vector = pCell->phenotype.secretion.uptake_rates.size();
+		len_snd_buf_left = position_left + sizeof(len_vector) + len_vector * sizeof(double);
+		snd_buf_left.resize(len_snd_buf_left);
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.secretion.uptake_rates[0]), len_vector, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		
+		len_vector = pCell->phenotype.secretion.saturation_densities.size();
+		len_snd_buf_left = position_left + sizeof(len_vector) + len_vector * sizeof(double);
+		snd_buf_left.resize(len_snd_buf_left);
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.secretion.saturation_densities[0]), len_vector, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		
+		/* Now packing data members of class Molcular as its object is a data member of class Phenotype */
+		
+		len_vector = pCell->phenotype.molecular.internalized_total_substrates.size();
+		len_snd_buf_left = position_left + sizeof(len_vector) + len_vector * sizeof(double);
+		snd_buf_left.resize(len_snd_buf_left);
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.molecular.internalized_total_substrates[0]), len_vector, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		
+		len_vector = pCell->phenotype.molecular.fraction_released_at_death.size();
+		len_snd_buf_left = position_left + sizeof(len_vector) + len_vector * sizeof(double);
+		snd_buf_left.resize(len_snd_buf_left);
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.molecular.fraction_released_at_death[0]), len_vector, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		
+		len_vector = pCell->phenotype.molecular.fraction_transferred_when_ingested.size();
+		len_snd_buf_left = position_left + sizeof(len_vector) + len_vector * sizeof(double);
+		snd_buf_left.resize(len_snd_buf_left);
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.molecular.fraction_transferred_when_ingested[0]), len_vector, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		
+		/* Returning to class Cell to pack the remaining data members : 2 bools + 1 std::vector<double> */
+		
+		len_snd_buf_left = position_left + 2 * sizeof(int);
+		snd_buf_left.resize(len_snd_buf_left);
+		
+		if(pCell->is_out_of_domain == true)
+			temp_int = 1;
+		else
+			temp_int = 0;
+		MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+		
+		if(pCell->is_movable == true)
+			temp_int = 1;
+		else
+			temp_int = 0;
+		MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		
+		len_vector = pCell->displacement.size();
+		len_snd_buf_left = position_left + sizeof(len_vector) + len_vector * sizeof(double);
+		snd_buf_left.resize(len_snd_buf_left); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->displacement[0]), len_vector, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		
+		/* Now Packing data members of class Basic_Agent - the parent class of class Cell */
+		/* First 2 private data members are to be packed: double and bool 								*/
+
+		temp_double = pCell->get_total_volume();
+		len_snd_buf_left = position_left + sizeof(temp_double);
+		snd_buf_left.resize(len_snd_buf_left);
+		MPI_Pack(&temp_double, 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		
+		if(pCell->get_is_volume_changed() == true)
+			temp_int = 1;
+		else
+			temp_int = 0; 
+		
+		len_snd_buf_left = position_left + sizeof(temp_int);
+		snd_buf_left.resize(len_snd_buf_left);
+		MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+		
+		/* Now 3 std::vector<double> are to be packed - but are protected, hence write helper functions */
+		
+		
+		std::vector<double> & temp_cell_source_sink_solver_temp1 = pCell->get_cell_source_sink_solver_temp1();
+		len_vector = temp_cell_source_sink_solver_temp1.size(); 
+		len_snd_buf_left = position_left + sizeof(len_vector) + len_vector * sizeof(double);
+		snd_buf_left.resize(len_snd_buf_left); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&temp_cell_source_sink_solver_temp1[0], len_vector, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+		
+		std::vector<double> & temp_cell_source_sink_solver_temp2 = pCell->get_cell_source_sink_solver_temp2();
+		len_vector = temp_cell_source_sink_solver_temp2.size(); 
+		len_snd_buf_left = position_left + sizeof(len_vector) + len_vector * sizeof(double);
+		snd_buf_left.resize(len_snd_buf_left); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&temp_cell_source_sink_solver_temp2[0], len_vector, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+
+		std::vector<double> & temp_previous_velocity = pCell->get_previous_velocity();
+		len_vector = temp_previous_velocity.size(); 
+		len_snd_buf_left = position_left + sizeof(len_vector) + len_vector * sizeof(double);
+		snd_buf_left.resize(len_snd_buf_left); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&temp_previous_velocity[0], len_vector, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+
+		if(pCell->get_is_active() == true)
+			temp_int = 1;
+		else
+			temp_int = 0;
+			
+		len_snd_buf_left = position_left + sizeof(int);
+		snd_buf_left.resize(len_snd_buf_left);
+		MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		
+		std::vector<double> & temp_total_extracellular_substrate_change = pCell->get_total_extracellular_substrate_change();
+		len_vector = temp_total_extracellular_substrate_change.size(); 
+		len_snd_buf_left = position_left + sizeof(len_vector) + len_vector * sizeof(double);
+		snd_buf_left.resize(len_snd_buf_left); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&temp_total_extracellular_substrate_change[0], len_vector, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		
+		/* Now need to pack multiple std::vector<double> *ptr ; type pointers to vectors */
+		
+		len_vector = pCell->secretion_rates->size(); 
+		len_snd_buf_left = position_left + sizeof(len_vector) + len_vector * sizeof(double); 
+		snd_buf_left.resize(len_snd_buf_left); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->secretion_rates[0]), len_vector, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		
+		len_vector = pCell->saturation_densities->size(); 
+		len_snd_buf_left = position_left + sizeof(len_vector) + len_vector * sizeof(double); 
+		snd_buf_left.resize(len_snd_buf_left); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->saturation_densities[0]), len_vector, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		
+		len_vector = pCell->uptake_rates->size(); 
+		len_snd_buf_left = position_left + sizeof(len_vector) + len_vector * sizeof(double); 
+		snd_buf_left.resize(len_snd_buf_left); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->uptake_rates[0]), len_vector, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+
+		len_vector = pCell->internalized_substrates->size(); 
+		len_snd_buf_left = position_left + sizeof(len_vector) + len_vector * sizeof(double); 
+		snd_buf_left.resize(len_snd_buf_left); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->internalized_substrates[0]), len_vector, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+
+		len_vector = pCell->fraction_released_at_death->size(); 
+		len_snd_buf_left = position_left + sizeof(len_vector) + len_vector * sizeof(double); 
+		snd_buf_left.resize(len_snd_buf_left); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->fraction_released_at_death[0]), len_vector, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);		
+
+		len_vector = pCell->fraction_transferred_when_ingested->size(); 
+		len_snd_buf_left = position_left + sizeof(len_vector) + len_vector * sizeof(double); 
+		snd_buf_left.resize(len_snd_buf_left); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->fraction_transferred_when_ingested[0]), len_vector, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);	
+		
+		/* 1 single int type; to be packed next, remember ID and position are already packed */
+		
+		len_snd_buf_left = position_left + sizeof(int);
+		snd_buf_left.resize(len_snd_buf_left);
+		MPI_Pack(&(pCell->type), 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		
+		len_vector = pCell->velocity.size(); 
+		len_snd_buf_left = position_left + sizeof(len_vector) + len_vector * sizeof(double); 
+		snd_buf_left.resize(len_snd_buf_left); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->velocity[0]), len_vector, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+					
+	}
+	
+		/*----------------------------------------------------------------------*/
+		/* PACKING OF BUFFER TO BE SENT TO LEFT PROCESS ENDS 										*/
+		/* THE RIGHT BUFFER IS IDENTICAL EXCEPT FOR _LEFT IS REPLACED BY _RIGHT */
+		/*----------------------------------------------------------------------*/
+		 
+		if(pCell->crossed_to_right_subdomain == true)
+		{
+		
+			//pCell->crossed_to_right_subdomain = false;
+			/* Cell ID first - needed to create a cell */
+						
+			len_snd_buf_right = position_right + sizeof(pCell->ID);
+			snd_buf_right.resize(len_snd_buf_right);
+			MPI_Pack(&(pCell->ID), 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+			
+			/* Pack double position[0], position[1], position[2] - needed to assign position 							 */
+			/* This is the only array where I am not packing the length of the array with the array values */
+			/* as we're only dealing with 3-dimensions here, hence position has x, y, z values						 */
+			
+			len_snd_buf_right = position_right + 3 * sizeof(pCell->position[0]); 
+			snd_buf_right.resize(len_snd_buf_right); 
+			MPI_Pack(&(pCell->position[0]), 3, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+			
+			/* Pack length of string (MPI_INT) and then string pCell->type_name (MPI_CHAR) */
+			
+			len_str = pCell->type_name.length(); 
+			len_snd_buf_right = position_right + sizeof(len_str) + len_str;
+			snd_buf_right.resize(len_snd_buf_right); 
+			MPI_Pack(&len_str, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+			MPI_Pack(&(pCell->type_name[0]), len_str , MPI_CHAR, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+			
+			/* Packing unordered_map<std::string, int> in Custom_Data class */
+			/* First pack the number of entries in the unordered_map 				*/
+			
+			len_int = pCell->custom_data.get_name_to_index_map().size();
+			len_snd_buf_right = position_right + sizeof(len_int);
+			snd_buf_right.resize(len_snd_buf_right);  
+			MPI_Pack(&len_int, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);  
+			
+			/* Now pack the <string, int> pairs but store length(string) before string */
+					
+			for(auto it = (pCell->custom_data.get_name_to_index_map()).cbegin(); it != (pCell->custom_data.get_name_to_index_map()).cend(); it++)
+			{
+				/* resize buffer to contain length of string, string and integer */
+				
+				temp_str = it->first; 
+				temp_int = it->second; 
+				len_str = temp_str.length();
+				len_snd_buf_right = position_right + sizeof(len_str) + len_str + sizeof(temp_int); 
+				snd_buf_right.resize(len_snd_buf_right);
+				 
+				MPI_Pack(&len_str, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+				MPI_Pack(&temp_str[0], len_str, MPI_CHAR, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+				MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD ); 			
+			}	
+			
+		 /* Packing members of class 'Variable' (as we are going depth first i.e. Inorder traversal of data members) */
+		 
+		 	for(int i=0; i<pCell->custom_data.variables.size(); i++)
+		 	{
+		    temp_str = pCell->custom_data.variables[i].name; 
+		    len_str = temp_str.length();
+		    len_snd_buf_right = position_right + len_str + sizeof(len_str); 
+		    snd_buf_right.resize(len_snd_buf_right);
+		    MPI_Pack(&len_str, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+		    MPI_Pack(&temp_str[0], len_str, MPI_CHAR, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+		    
+		    /* There was a mistake in MPI_Pack here, instead of &snd_buf_right[0], I had &snd_buf_right */
+		    temp_double = pCell->custom_data.variables[i].value;
+		    len_snd_buf_right = position_right + sizeof(temp_double); 
+		    MPI_Pack(&temp_double, 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+		    
+		    temp_str = pCell->custom_data.variables[i].units; 
+		    len_str = temp_str.length();
+		    len_snd_buf_right = position_right + len_str + sizeof(len_str); 
+		    snd_buf_right.resize(len_snd_buf_right);
+		    MPI_Pack(&len_str, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+		    MPI_Pack(&temp_str[0], len_str, MPI_CHAR, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);		     
+			}
+			
+			/* Packing members of class 'Vector_Variable' i.e. string name, a vector<double> value and string units */
+			
+			for(int i=0; i<pCell->custom_data.vector_variables.size(); i++)
+			{
+				temp_str = pCell->custom_data.vector_variables[i].name; 
+		    len_str = temp_str.length();
+		    len_snd_buf_right = position_right + len_str + sizeof(len_str); 
+		    snd_buf_right.resize(len_snd_buf_right);
+		    MPI_Pack(&len_str, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+		    MPI_Pack(&temp_str[0], len_str, MPI_CHAR, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		    
+		    len_vector = pCell->custom_data.vector_variables[i].value.size(); 
+		    len_snd_buf_right = position_right + len_vector * sizeof(double);
+		    snd_buf_right.resize(len_snd_buf_right); 
+		    MPI_Pack(&(pCell->custom_data.vector_variables[i].value[0]), len_vector, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+		    
+		    temp_str = pCell->custom_data.vector_variables[i].units; 
+		    len_str = temp_str.length();
+		    len_snd_buf_right = position_right + len_str + sizeof(len_str); 
+		    snd_buf_right.resize(len_snd_buf_right);
+		    MPI_Pack(&len_str, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+		    MPI_Pack(&temp_str[0], len_str, MPI_CHAR, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);  	    
+			}
+			
+			/* Packing members of class 'Cell_Parameters' except for pReference_live_phenotype pointer */
+			/* There are 9 doubles and 1 int in this class except for the pointer */
+			
+			/*=====================================================================*/
+			/* pReference_live_phenotype * IS NOT PACKED 													 */
+			/*=====================================================================*/
+			
+			len_snd_buf_right = position_right + 9 * sizeof(double) + 1 * sizeof(int); 
+			snd_buf_right.resize(len_snd_buf_right); 
+			
+			MPI_Pack(&(pCell->parameters.o2_hypoxic_threshold), 				1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+			MPI_Pack(&(pCell->parameters.o2_hypoxic_response), 					1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+			MPI_Pack(&(pCell->parameters.o2_hypoxic_saturation), 				1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+			MPI_Pack(&(pCell->parameters.o2_proliferation_saturation), 	1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+			MPI_Pack(&(pCell->parameters.o2_proliferation_threshold), 	1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+			MPI_Pack(&(pCell->parameters.o2_reference), 								1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+			MPI_Pack(&(pCell->parameters.o2_necrosis_threshold), 				1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+			MPI_Pack(&(pCell->parameters.o2_necrosis_max), 							1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+			MPI_Pack(&(pCell->parameters.max_necrosis_rate), 						1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+			MPI_Pack(&(pCell->parameters.necrosis_type), 								1, MPI_INT, 	 &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+		
+		
+		
+		/* Packing data members of Cell_Functions in depth first manner */
+		/* It only has Cycle_Model data member, so pack Cycle_Model data members depth first */
+		
+		std::vector<std::unordered_map<int,int>> &inverse_index_maps_cycle_model = pCell->functions.cycle_model.get_inverse_index_maps();
+		len_vector = inverse_index_maps_cycle_model.size(); 
+		len_snd_buf_right = position_right + sizeof(len_vector); 
+		snd_buf_right.resize(len_snd_buf_right); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+		
+		for(int i=0; i<len_vector; i++)
+		{
+			 len_int = inverse_index_maps_cycle_model[i].size();
+			 len_snd_buf_right = position_right + sizeof(len_int) + len_int * 2 * sizeof(int); 
+			 snd_buf_right.resize(len_snd_buf_right);
+			 MPI_Pack(&len_int, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+			 
+			for(auto it = inverse_index_maps_cycle_model[i].cbegin(); it != inverse_index_maps_cycle_model[i].cend(); it++)
+			{	 
+				MPI_Pack(&(it->first),  1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+				MPI_Pack(&(it->second), 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD ); 			
+			}				 
+		}
+		
+		temp_str = pCell->functions.cycle_model.name; 
+		len_str  = temp_str.length();
+		len_snd_buf_right = position_right + sizeof(len_str) + len_str; 
+		snd_buf_right.resize(len_snd_buf_right); 
+		MPI_Pack(&len_str, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+		MPI_Pack(&temp_str[0], len_str, MPI_CHAR, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+		
+		len_snd_buf_right = position_right + sizeof(int);
+		snd_buf_right.resize(len_snd_buf_right); 
+		MPI_Pack(&(pCell->functions.cycle_model.code), 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+		
+		/* Packing of data members of Phases as its object is a member of Cycle_Model */
+		/* std::vector<Phase> phases; is a member of it - its a vector */		
+		
+		len_vector = pCell->functions.cycle_model.phases.size(); 
+		len_snd_buf_right = position_right + sizeof(len_vector);
+		snd_buf_right.resize(len_snd_buf_right);
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+		
+		for(int i=0; i<len_vector; i++)
+		{
+			len_snd_buf_right = position_right + 2 * sizeof(int);
+			snd_buf_right.resize(len_snd_buf_right); 
+			 
+			temp_int = pCell->functions.cycle_model.phases[i].index; 
+			MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+			temp_int = pCell->functions.cycle_model.phases[i].code;
+			MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+			
+			temp_str = pCell->functions.cycle_model.phases[i].name; 
+			len_str  = temp_str.length();
+			len_snd_buf_right = position_right + sizeof(len_str) + len_str; 
+			snd_buf_right.resize(len_snd_buf_right); 
+			MPI_Pack(&len_str, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+			MPI_Pack(&temp_str[0], len_str, MPI_CHAR, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+			
+			/* There are 2 remaining bool values which I will pack in 2 ints */
+			len_snd_buf_right = position_right + 2 * sizeof(int);
+			snd_buf_right.resize(len_snd_buf_right);
+			
+			if(pCell->functions.cycle_model.phases[i].division_at_phase_exit == true)
+				temp_int = 1; 
+			else
+				temp_int = 0;
+			MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+			
+			if(pCell->functions.cycle_model.phases[i].removal_at_phase_exit == true)
+				temp_int = 1; 
+			else
+				temp_int = 0;
+			MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);		
+		}
+		
+		/* Packing members of Phase_Link - std::vector<std::vector<Phase_Link>> phase_links is a member of */
+		/* class Cycle_Model which is a member of Functions - we're packing in DFS i.e. Inorder traversal	 */
+		
+		len_vector = pCell->functions.cycle_model.phase_links.size();
+		len_snd_buf_right = position_right + sizeof(len_vector);
+		snd_buf_right.resize(len_snd_buf_right); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		
+		for(int i=0; i<len_vector; i++)
+		{
+			len_int = pCell->functions.cycle_model.phase_links[i].size();
+			len_snd_buf_right = position_right + sizeof(len_int) + len_int * 3 * sizeof(int); 
+			snd_buf_right.resize(len_snd_buf_right); 
+			MPI_Pack(&len_int, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+			for(int j=0; j<len_int; j++)
+			{
+				temp_int = pCell->functions.cycle_model.phase_links[i][j].start_phase_index; 
+				MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+				temp_int = pCell->functions.cycle_model.phase_links[i][j].end_phase_index;
+				MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+				if(pCell->functions.cycle_model.phase_links[i][j].fixed_duration == true)
+					temp_int = 1;
+				else
+					temp_int = 0; 
+				MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+			}
+		}
+		
+		/* Going back to packing the remaning data fields of Cycle_Model */
+		/* Next field is is 'default_phase_index' of Cycle_Model class */
+		
+		temp_int = pCell->functions.cycle_model.default_phase_index; 
+		len_snd_buf_right = position_right + sizeof(temp_int);
+		snd_buf_right.resize(len_snd_buf_right); 
+		MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+		
+		 /* Packing data fields of Cycle_Data as it is an object of Cycle_Model class above */
+		 /* First field is std::vector<std::unordered_map<int,int>> inverse_index_maps;			*/
+		 
+		std::vector<std::unordered_map<int,int>> &inverse_index_maps_cycle_data = pCell->functions.cycle_model.data.get_inverse_index_maps();	 
+		len_vector = inverse_index_maps_cycle_data.size(); 
+		len_snd_buf_right = position_right + sizeof(len_vector); 
+		snd_buf_right.resize(len_snd_buf_right); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+		
+		for(int i=0; i<len_vector; i++)
+		{
+			 len_int = inverse_index_maps_cycle_data[i].size();
+			 len_snd_buf_right = position_right + sizeof(len_int) + len_int * 2 * sizeof(int); 
+			 snd_buf_right.resize(len_snd_buf_right);
+			 MPI_Pack(&len_int, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+			 
+			for(auto it = inverse_index_maps_cycle_data[i].cbegin(); it != inverse_index_maps_cycle_data[i].cend(); it++)
+			{	 
+				MPI_Pack(&(it->first),  1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+				MPI_Pack(&(it->second), 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD ); 			
+			}				 
+		}
+		
+			/*=====================================================================*/
+			/* Cycle_Model* pCycle_Model;  IS NOT PACKED 													 */
+			/*=====================================================================*/
+			
+			temp_str = pCell->functions.cycle_model.data.time_units;
+			len_str = temp_str.length();
+			len_snd_buf_right = position_right + sizeof(len_str) + len_str; 
+			snd_buf_right.resize(len_snd_buf_right);
+			MPI_Pack(&len_str, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+			MPI_Pack(&temp_str[0], len_str, MPI_CHAR, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		 
+		 len_vector = pCell->functions.cycle_model.data.transition_rates.size(); 
+		 len_snd_buf_right = position_right + sizeof(len_vector);
+		 snd_buf_right.resize(len_snd_buf_right);
+		 MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		 
+		 for(int i=0; i<len_vector; i++)
+		 {
+		 	len_int = pCell->functions.cycle_model.data.transition_rates[i].size();
+		 	len_snd_buf_right = position_right + sizeof(len_int) + len_int * sizeof(double);
+		 	snd_buf_right.resize(len_snd_buf_right);
+		 	MPI_Pack(&len_int, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		 	
+		 	for(int j=0; j<len_int; j++)
+		 	{
+		 		temp_double = pCell->functions.cycle_model.data.transition_rates[i][j];
+		 		MPI_Pack(&temp_double, 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+		 	}
+		 }
+		 
+		 /* 1 int and 1 double are next to be packed in class Cycle_Data */
+		 
+		 len_snd_buf_right = position_right + sizeof(int) + sizeof(double);
+		 snd_buf_right.resize(len_snd_buf_right);
+		 MPI_Pack(&(pCell->functions.cycle_model.data.current_phase_index), 	1, MPI_INT, 	 &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+		 MPI_Pack(&(pCell->functions.cycle_model.data.elapsed_time_in_phase), 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+
+		/* Now packing members of class Cell_State as this is the next member in class Cell */
+		/* has std::vector<double> orientation and double simple_pressure 									*/
+		
+		len_vector = pCell->state.orientation.size();
+		len_snd_buf_right = position_right + sizeof(len_vector) + len_vector * sizeof(double) + sizeof(double); 
+		snd_buf_right.resize(len_snd_buf_right); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+		MPI_Pack(&(pCell->state.orientation[0]), len_vector, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);		
+		MPI_Pack(&(pCell->state.simple_pressure), 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+		
+		/* Packing data members of class Phenotype next */
+		
+		/* First it has 2 boolean variables - allocate sizeof(int) space for both of them */
+		len_snd_buf_right = position_right + 2 * sizeof(int);
+		snd_buf_right.resize(len_snd_buf_right);
+		if(pCell->phenotype.flagged_for_division == true)
+			temp_int = 1;
+		else
+			temp_int = 0;
+		MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		if(pCell->phenotype.flagged_for_removal == true)
+			temp_int = 1;
+		else
+			temp_int = 0;
+		MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		
+		/* Packing of members of class Cycle as the class Phenotype contains a data member of this class */
+		/* Not packing pCell->phenotype.cycle.pCycle_Model pointer data member *
+		
+			/*=====================================================================*/
+			/* Cycle_Model* pCycle_Model;  IS NOT PACKED 													 */
+			/*=====================================================================*/
+		
+		 /* Packing data fields of Cycle_Data as it is an object of Cycle class which is    */
+		 /* a data member of the Phenotype class which is a member of class Cell						*/
+		 /* First field is std::vector<std::unordered_map<int,int>> inverse_index_maps;			*/
+		 
+		std::vector<std::unordered_map<int,int>> &inverse_index_maps_cycle_data_1 = pCell->phenotype.cycle.data.get_inverse_index_maps();	 
+		len_vector = inverse_index_maps_cycle_data_1.size(); 
+		len_snd_buf_right = position_right + sizeof(len_vector);
+		snd_buf_right.resize(len_snd_buf_right); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+		
+		for(int i=0; i<len_vector; i++)
+		{
+			 len_int = inverse_index_maps_cycle_data_1[i].size();
+			 len_snd_buf_right = position_right + sizeof(len_int) + len_int * 2 * sizeof(int); 
+			 snd_buf_right.resize(len_snd_buf_right);
+			 MPI_Pack(&len_int, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+			 
+			for(auto it = inverse_index_maps_cycle_data_1[i].cbegin(); it != inverse_index_maps_cycle_data_1[i].cend(); it++)
+			{	 
+				MPI_Pack(&(it->first),  1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+				MPI_Pack(&(it->second), 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD ); 			
+			}				 
+		}
+		
+			/*=====================================================================*/
+			/* Cycle_Model* pCycle_Model;  IS NOT PACKED  												 */
+			/*=====================================================================*/
+			
+			temp_str = pCell->phenotype.cycle.data.time_units;
+			len_str = temp_str.length();
+			len_snd_buf_right = position_right + sizeof(len_str) + len_str; 
+			snd_buf_right.resize(len_snd_buf_right);
+			MPI_Pack(&len_str, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+			MPI_Pack(&temp_str[0], len_str, MPI_CHAR, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		 
+		 len_vector = pCell->phenotype.cycle.data.transition_rates.size(); 
+		 len_snd_buf_right = position_right + sizeof(len_vector);
+		 snd_buf_right.resize(len_snd_buf_right);
+		 MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		 
+		 for(int i=0; i<len_vector; i++)
+		 {
+		 	len_int = pCell->phenotype.cycle.data.transition_rates[i].size();
+		 	len_snd_buf_right = position_right + sizeof(len_int) + len_int * sizeof(double);
+		 	snd_buf_right.resize(len_snd_buf_right);
+		 	MPI_Pack(&len_int, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		 	
+		 	for(int j=0; j<len_int; j++)
+		 	{
+		 		temp_double = pCell->phenotype.cycle.data.transition_rates[i][j];
+		 		MPI_Pack(&temp_double, 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+		 	}
+		 }
+		 
+		 /* 1 int and 1 double are next to be packed in class Cycle_Data */
+		 
+		 len_snd_buf_right = position_right + sizeof(int) + sizeof(double);
+		 snd_buf_right.resize(len_snd_buf_right);
+		 MPI_Pack(&(pCell->phenotype.cycle.data.current_phase_index), 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+		 MPI_Pack(&(pCell->phenotype.cycle.data.elapsed_time_in_phase), 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		
+		/* Now packing data members of class Death as there is an object of class Death in Phenotype class */
+		
+		len_vector = pCell->phenotype.death.rates.size();
+		len_snd_buf_right = position_right + sizeof(len_vector) + len_vector * sizeof(double); 
+		snd_buf_right.resize(len_snd_buf_right);
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.death.rates[0]), len_vector, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+		
+		/* Next field is std::vector<Cycle_Model*> models ;  this is a vector of Cycle_Model * pointers */
+		
+		/*=====================================================================*/
+		/* std::vector<Cycle_Model*> models ;  IS NOT PACKED  								 */
+		/*=====================================================================*/
+		
+		/* Now packing members of class Death_Parameters as class Death contains */
+		/* std::vector<Death_Parameters> parameters 														 */
+		
+		len_vector = pCell->phenotype.death.parameters.size();
+		len_snd_buf_right = position_right + sizeof(len_vector);
+		snd_buf_right.resize(len_snd_buf_right);
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		 
+		for(int i=0; i<len_vector; i++)
+		{
+			temp_str = pCell->phenotype.death.parameters[i].time_units;
+			len_str  = temp_str.length();
+			len_snd_buf_right = position_right + sizeof(len_str) + len_str; 
+			snd_buf_right.resize(len_snd_buf_right); 
+			MPI_Pack(&len_str, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+			MPI_Pack(&temp_str[0], len_str, MPI_CHAR, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+			
+			/* 6 double data types are to be packed now */
+			len_snd_buf_right = position_right + 6 * sizeof(double);
+			snd_buf_right.resize(len_snd_buf_right);
+			
+			temp_double = pCell->phenotype.death.parameters[i].unlysed_fluid_change_rate;
+			MPI_Pack(&temp_double, 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+			temp_double = pCell->phenotype.death.parameters[i].lysed_fluid_change_rate;
+			MPI_Pack(&temp_double, 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);			
+			temp_double = pCell->phenotype.death.parameters[i].cytoplasmic_biomass_change_rate;
+			MPI_Pack(&temp_double, 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+			temp_double = pCell->phenotype.death.parameters[i].nuclear_biomass_change_rate;
+			MPI_Pack(&temp_double, 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+			temp_double = pCell->phenotype.death.parameters[i].calcification_rate;
+			MPI_Pack(&temp_double, 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+			temp_double = pCell->phenotype.death.parameters[i].relative_rupture_volume;
+			MPI_Pack(&temp_double, 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		}
+		 
+		 /* Next 1 bool value (allocate sizeof(int)) and 1 int value are to be packed */
+		 
+		 len_snd_buf_right = position_right + 2 * sizeof(int);
+		 snd_buf_right.resize(len_snd_buf_right);
+		 
+		 if(pCell->phenotype.death.dead == true)
+		 		temp_int = 1;
+		 else
+		 		temp_int = 0; 
+		 MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		 
+		 temp_int = pCell->phenotype.death.current_death_model_index;
+		 MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		
+		/* Next data members of class Volume are packed as class Phenotype contains its object */
+		/* 22 doubles are to be packed */
+		
+		len_snd_buf_right = position_right + 22 * sizeof(double); 
+		snd_buf_right.resize(len_snd_buf_right);
+		
+		MPI_Pack(&(pCell->phenotype.volume.total), 						 							 		 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.solid), 						 							 		 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.fluid), 						 							 		 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.fluid_fraction), 	 							 		 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.nuclear), 					 							 		 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.nuclear_fluid), 		 							 		 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.nuclear_solid), 		 							 		 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.cytoplasmic), 			 							 		 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.cytoplasmic_fluid), 							 		 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.cytoplasmic_solid), 							 		 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.calcified_fraction), 						 		 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.cytoplasmic_to_nuclear_ratio), 	 		 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.rupture_volume), 								 		 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.cytoplasmic_biomass_change_rate), 		 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.nuclear_biomass_change_rate), 		 		 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.fluid_change_rate), 							 		 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.calcification_rate), 						 		 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.target_solid_cytoplasmic), 			 		 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.target_solid_nuclear), 					 		 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.target_fluid_fraction), 					 		 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.target_cytoplasmic_to_nuclear_ratio), 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.volume.relative_rupture_volume), 						 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		
+		/* Next packing data members of class Geometry as this class has an object in class Phenotype */
+		/* 4 doubles are to be packed */
+		
+		len_snd_buf_right = position_right + 4 * sizeof(double);
+		snd_buf_right.resize(len_snd_buf_right);
+		
+		MPI_Pack(&(pCell->phenotype.geometry.radius), 				1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.geometry.nuclear_radius), 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.geometry.surface_area), 	1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.geometry.polarity), 			1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		
+		/* Next packing object of class Mechanics as class Phenotype contains object of this class */
+		/* 5 doubles are to be packed */
+		
+		len_snd_buf_right = position_right + 5 * sizeof(double);
+		snd_buf_right.resize(len_snd_buf_right);
+
+		MPI_Pack(&(pCell->phenotype.mechanics.cell_cell_adhesion_strength), 			 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.mechanics.cell_BM_adhesion_strength), 				 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.mechanics.cell_cell_repulsion_strength), 			 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.mechanics.cell_BM_repulsion_strength), 				 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.mechanics.relative_maximum_adhesion_distance), 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+
+		/* Next Packing data members of class Motility */
+		/* First bool value is to be packed - allocate sizeof(int) */
+		
+		len_snd_buf_right = position_right + sizeof(int);
+		snd_buf_right.resize(len_snd_buf_right);
+		if(pCell->phenotype.motility.is_motile == true)
+			temp_int = 1;
+		else
+			temp_int = 0;
+		MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		
+		/* Now pack 2 doubles */
+		
+		len_snd_buf_right = position_right + 2 * sizeof(double);		
+		snd_buf_right.resize(len_snd_buf_right);
+		MPI_Pack(&(pCell->phenotype.motility.persistence_time), 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.motility.migration_speed),  1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		
+		len_vector = pCell->phenotype.motility.migration_bias_direction.size();
+		len_snd_buf_right = position_right + sizeof(len_vector) + len_vector * sizeof(double);
+		snd_buf_right.resize(len_snd_buf_right);
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.motility.migration_bias_direction[0]), len_vector, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		
+		len_snd_buf_right = position_right + sizeof(double);		
+		snd_buf_right.resize(len_snd_buf_right);
+		MPI_Pack(&(pCell->phenotype.motility.migration_bias), 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		
+		len_snd_buf_right = position_right + sizeof(int);		
+		snd_buf_right.resize(len_snd_buf_right);
+		if(pCell->phenotype.motility.restrict_to_2D == true)
+			temp_int = 1; 
+		else
+			temp_int = 0; 
+		MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+	
+		len_vector = pCell->phenotype.motility.motility_vector.size();
+		len_snd_buf_right = position_right + sizeof(len_vector) + len_vector * sizeof(double);
+		snd_buf_right.resize(len_snd_buf_right);
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.motility.motility_vector[0]), len_vector, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+	
+		/* Now packing data members of class Secretion as its object is a data member of class Phenotype */
+		
+		len_vector = pCell->phenotype.secretion.secretion_rates.size();
+		len_snd_buf_right = position_right + sizeof(len_vector) + len_vector * sizeof(double);
+		snd_buf_right.resize(len_snd_buf_right);
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.secretion.secretion_rates[0]), len_vector, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		
+		len_vector = pCell->phenotype.secretion.uptake_rates.size();
+		len_snd_buf_right = position_right + sizeof(len_vector) + len_vector * sizeof(double);
+		snd_buf_right.resize(len_snd_buf_right);
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.secretion.uptake_rates[0]), len_vector, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		
+		len_vector = pCell->phenotype.secretion.saturation_densities.size();
+		len_snd_buf_right = position_right + sizeof(len_vector) + len_vector * sizeof(double);
+		snd_buf_right.resize(len_snd_buf_right);
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.secretion.saturation_densities[0]), len_vector, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		
+		/* Now packing data members of class Molcular as its object is a data member of class Phenotype */
+		
+		len_vector = pCell->phenotype.molecular.internalized_total_substrates.size();
+		len_snd_buf_right = position_right + sizeof(len_vector) + len_vector * sizeof(double);
+		snd_buf_right.resize(len_snd_buf_right);
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.molecular.internalized_total_substrates[0]), len_vector, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		
+		len_vector = pCell->phenotype.molecular.fraction_released_at_death.size();
+		len_snd_buf_right = position_right + sizeof(len_vector) + len_vector * sizeof(double);
+		snd_buf_right.resize(len_snd_buf_right);
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.molecular.fraction_released_at_death[0]), len_vector, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		
+		len_vector = pCell->phenotype.molecular.fraction_transferred_when_ingested.size();
+		len_snd_buf_right = position_right + sizeof(len_vector) + len_vector * sizeof(double);
+		snd_buf_right.resize(len_snd_buf_right);
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.molecular.fraction_transferred_when_ingested[0]), len_vector, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		
+		/* Returning to class Cell to pack the remaining data members : 2 bools + 1 std::vector<double> */
+		
+		len_snd_buf_right = position_right + 2 * sizeof(int);
+		snd_buf_right.resize(len_snd_buf_right);
+		
+		if(pCell->is_out_of_domain == true)
+			temp_int = 1;
+		else
+			temp_int = 0;
+		MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+		
+		if(pCell->is_movable == true)
+			temp_int = 1;
+		else
+			temp_int = 0;
+		MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		
+		len_vector = pCell->displacement.size();
+		len_snd_buf_right = position_right + sizeof(len_vector) + len_vector * sizeof(double);
+		snd_buf_right.resize(len_snd_buf_right); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->displacement[0]), len_vector, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		
+		/* Now Packing data members of class Basic_Agent - the parent class of class Cell */
+		/* First 2 private data members are to be packed: double and bool 								*/
+
+		temp_double = pCell->get_total_volume();
+		len_snd_buf_right = position_right + sizeof(temp_double);
+		snd_buf_right.resize(len_snd_buf_right);
+		MPI_Pack(&temp_double, 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		
+		if(pCell->get_is_volume_changed() == true)
+			temp_int = 1;
+		else
+			temp_int = 0; 
+		
+		len_snd_buf_right = position_right + sizeof(temp_int);
+		snd_buf_right.resize(len_snd_buf_right);
+		MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+		
+		/* Now 3 std::vector<double> are to be packed - but are protected, hence write helper functions */
+		
+		
+		std::vector<double> & temp_cell_source_sink_solver_temp1 = pCell->get_cell_source_sink_solver_temp1();
+		len_vector = temp_cell_source_sink_solver_temp1.size(); 
+		len_snd_buf_right = position_right + sizeof(len_vector) + len_vector * sizeof(double);
+		snd_buf_right.resize(len_snd_buf_right); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&temp_cell_source_sink_solver_temp1[0], len_vector, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+		
+		std::vector<double> & temp_cell_source_sink_solver_temp2 = pCell->get_cell_source_sink_solver_temp2();
+		len_vector = temp_cell_source_sink_solver_temp2.size(); 
+		len_snd_buf_right = position_right + sizeof(len_vector) + len_vector * sizeof(double);
+		snd_buf_right.resize(len_snd_buf_right); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&temp_cell_source_sink_solver_temp2[0], len_vector, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+
+		std::vector<double> & temp_previous_velocity = pCell->get_previous_velocity();
+		len_vector = temp_previous_velocity.size(); 
+		len_snd_buf_right = position_right + sizeof(len_vector) + len_vector * sizeof(double);
+		snd_buf_right.resize(len_snd_buf_right); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&temp_previous_velocity[0], len_vector, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+
+		if(pCell->get_is_active() == true)
+			temp_int = 1;
+		else
+			temp_int = 0;
+			
+		len_snd_buf_right = position_right + sizeof(int);
+		snd_buf_right.resize(len_snd_buf_right);
+		MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		
+		std::vector<double> & temp_total_extracellular_substrate_change = pCell->get_total_extracellular_substrate_change();
+		len_vector = temp_total_extracellular_substrate_change.size(); 
+		len_snd_buf_right = position_right + sizeof(len_vector) + len_vector * sizeof(double);
+		snd_buf_right.resize(len_snd_buf_right); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&temp_total_extracellular_substrate_change[0], len_vector, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		
+		/* Now need to pack multiple std::vector<double> *ptr ; type pointers to vectors */
+		
+		len_vector = pCell->secretion_rates->size(); 
+		len_snd_buf_right = position_right + sizeof(len_vector) + len_vector * sizeof(double); 
+		snd_buf_right.resize(len_snd_buf_right); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->secretion_rates[0]), len_vector, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		
+		len_vector = pCell->saturation_densities->size(); 
+		len_snd_buf_right = position_right + sizeof(len_vector) + len_vector * sizeof(double); 
+		snd_buf_right.resize(len_snd_buf_right); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->saturation_densities[0]), len_vector, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		
+		len_vector = pCell->uptake_rates->size(); 
+		len_snd_buf_right = position_right + sizeof(len_vector) + len_vector * sizeof(double); 
+		snd_buf_right.resize(len_snd_buf_right); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->uptake_rates[0]), len_vector, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+
+		len_vector = pCell->internalized_substrates->size(); 
+		len_snd_buf_right = position_right + sizeof(len_vector) + len_vector * sizeof(double); 
+		snd_buf_right.resize(len_snd_buf_right); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->internalized_substrates[0]), len_vector, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+
+		len_vector = pCell->fraction_released_at_death->size(); 
+		len_snd_buf_right = position_right + sizeof(len_vector) + len_vector * sizeof(double); 
+		snd_buf_right.resize(len_snd_buf_right); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->fraction_released_at_death[0]), len_vector, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);		
+
+		len_vector = pCell->fraction_transferred_when_ingested->size(); 
+		len_snd_buf_right = position_right + sizeof(len_vector) + len_vector * sizeof(double); 
+		snd_buf_right.resize(len_snd_buf_right); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->fraction_transferred_when_ingested[0]), len_vector, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);	
+		
+		/* 1 single int type; to be packed next, remember ID and position are already packed */
+		
+		len_snd_buf_right = position_right + sizeof(int);
+		snd_buf_right.resize(len_snd_buf_right);
+		MPI_Pack(&(pCell->type), 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		
+		len_vector = pCell->velocity.size(); 
+		len_snd_buf_right = position_right + sizeof(len_vector) + len_vector * sizeof(double); 
+		snd_buf_right.resize(len_snd_buf_right); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->velocity[0]), len_vector, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+			
+		}
+	}
+}
+
+void Cell_Container::unpack(mpi_Environment &world)
+{
+		
+		int position_left = 0, position_right = 0;
+		int size;
+		int cell_ID;  
+		
+		if(no_of_cells_from_right > 0)
+		{
+			size = rcv_buf_right.size();
+			MPI_Unpack(&rcv_buf_right[0], size, &position_right, &cell_ID, 1, MPI_INT, MPI_COMM_WORLD);
+			std::cout<<"Rank = "<<world.rank<< " First Cell ID received = "<<cell_ID<<std::endl;  
+		}
+		
+		if(no_of_cells_from_left > 0)
+		{
+			size = rcv_buf_left.size();
+			MPI_Unpack(&rcv_buf_left[0], size, &position_left, &cell_ID, 1, MPI_INT, MPI_COMM_WORLD);
+			std::cout<<"Rank = "<<world.rank<< " First Cell ID received = "<<cell_ID<<std::endl;  
+		}
+		
+		
 }
 
 };

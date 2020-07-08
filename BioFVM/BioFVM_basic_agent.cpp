@@ -359,13 +359,38 @@ double Basic_Agent::get_total_volume()
 	return volume;
 }
 
-/*---------------------------------------------------------------*/
-/*Gaurav Saxena wrote this function to assist printing cell data */
-/*---------------------------------------------------------------*/
+/*-------------------------------------------------------------------------------*/
+/*Gaurav Saxena wrote these 6 functions to assist printing and packing cell data */
+/*-------------------------------------------------------------------------------*/
 
 bool Basic_Agent::get_is_volume_changed()
 {
 	return volume_is_changed; 
+}
+
+std::vector<double> & Basic_Agent::get_cell_source_sink_solver_temp1()
+{
+	return cell_source_sink_solver_temp1;  
+}
+
+std::vector<double> & Basic_Agent::get_cell_source_sink_solver_temp2()
+{
+	return cell_source_sink_solver_temp2;  
+}
+
+std::vector<double> & Basic_Agent::get_previous_velocity()
+{
+	return previous_velocity;  
+}
+
+bool Basic_Agent::get_is_active()
+{
+	return is_active; 
+}
+
+std::vector<double> & Basic_Agent::get_total_extracellular_substrate_change()
+{
+	return total_extracellular_substrate_change; 
 }
 
 void Basic_Agent::simulate_secretion_and_uptake( Microenvironment* pS, double dt )

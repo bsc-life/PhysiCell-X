@@ -151,7 +151,13 @@ class General_Mesh
 
 	   
 	bool is_position_valid(double x, double y, double z);
-	/* the following help manage the voxel faces */ 
+	
+	/*=======================================================================================*/
+	/* Parallel prototype of two functions which determine if cell has crossed sub-domain		 */
+	/*=======================================================================================*/
+	
+	bool has_it_crossed_to_left_subdomain (double x, mpi_Environment &world);
+	bool has_it_crossed_to_right_subdomain(double x, mpi_Environment &world);
 	
 	/*=====================================================================================*/
 	/* Parallel prototype of a function which handles cell positions at the sub-domain		 */
@@ -160,6 +166,7 @@ class General_Mesh
 	
   void correct_position_within_subdomain(std::vector<double> &pos, mpi_Environment &world, mpi_Cartesian &cart_topo);
 
+	/* the following help manage the voxel faces */ 
 	// returns the index of the voxel face connecting from voxels[i] to voxels[j] 
 	int voxel_face_index( int i, int j ); 
 	

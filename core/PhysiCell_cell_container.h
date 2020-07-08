@@ -96,10 +96,52 @@ class Cell_Container : public BioFVM::Agent_Container
 	std::vector<double> max_cell_interactive_distance_in_voxel;
 	int num_divisions_in_current_step;
 	int num_deaths_in_current_step;
+	
+	/*--------------------------------------*/
+	/* Added by Gaurav Saxena								*/
+	/* snd_buf_left - send to left process	*/
+	/* snd_buf_right - send to right process*/
+	/* rcv_buf_left - rcv from left process	*/
+	/* rcv_buf_right - rcv from right prcess*/
+	/*--------------------------------------*/
+	
+	std::vector<char> snd_buf_left;
+	std::vector<char> snd_buf_right;
+	std::vector<char> rcv_buf_left;
+	std::vector<char> rcv_buf_right;
+	
+	/*--------------------------------------------------------------------------------------------------*/
+	/* Added by Gaurav Saxena																																						*/
+	/* position_left gives where the position in the snd_buf_left where the element being packed goes		*/
+	/* position_right gives where the position in the snd_buf_right where the element being packed goes	*/
+	/* Ultimately position_left/right give the length of the snd_buf's in bytes directly								*/
+	/* They are reset to 0 in the pack() function.																											*/
+	/*--------------------------------------------------------------------------------------------------*/
+	
+	int position_left;
+	int position_right;
+	
+	/*--------------------------------------------------------------------------------------------------*/
+	/* Added by Gaurav Saxena																																						*/
+	/* no_cell_cross_left/right give the number of cells crossing to left or right. 										*/
+	/* They are reset to a value 0 in the pack() function.																							*/
+	/*--------------------------------------------------------------------------------------------------*/
+	
+	int no_cells_cross_left ;
+	int no_cells_cross_right ; 
+	
+	/*--------------------------------------------------------------------------------------------------*/
+	/* Added by Gaurav Saxena																																						*/
+	/* no_of_cells_from_left/right give the number of cells coming from left/right neighbour 						*/
+	/*--------------------------------------------------------------------------------------------------*/
+	
+	int no_of_cells_from_right;
+	int no_of_cells_from_left; 
 
 	double last_diffusion_time  = 0.0; 
 	double last_cell_cycle_time = 0.0;
 	double last_mechanics_time  = 0.0;
+	
 	Cell_Container();
  	void initialize(double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double voxel_size);
     
@@ -145,6 +187,16 @@ class Cell_Container : public BioFVM::Agent_Container
 	void flag_cell_for_division( Cell* pCell ); 
 	void flag_cell_for_removal( Cell* pCell ); 
 	bool contain_any_cell(int voxel_index);
+	
+	/*-----------------------------------------------------------------*/
+	/* Added by Gaurav Saxena, a new function which would 'byte' pack	 */
+	/* the Cell data structure using MPI_Pack() and send it to the left*/
+	/* or right process.																							 */
+	/*-----------------------------------------------------------------*/
+	
+	void pack(std::vector<Cell*> *all_cells, mpi_Environment &world, mpi_Cartesian &cart_topo);
+	void unpack(mpi_Environment &world); //As of now this is a dummy function
+	
 };
 
 int find_escaping_face_index(Cell* agent);

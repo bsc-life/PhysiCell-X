@@ -409,19 +409,13 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 {
 	// secretions and uptakes. Syncing with BioFVM is automated. 
 	
-	
-	
 	/*===============================================================================*/
 	/* This is Section I to be parallelized, but I am parallelizing Section II first */
 	/*===============================================================================*/
 
 	#pragma omp parallel for 
 	for( int i=0; i < (*all_cells).size(); i++ )
-	{
-		//Just trying to print and see - remove later
-		if( (*all_cells)[i]->ID == 29 )
-				(*all_cells)[i]->print_cell(5);
-				 
+	{		 
 		(*all_cells)[i]->phenotype.secretion.advance( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
 	}
 	
@@ -465,8 +459,12 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 		int no_of_requested_IDs = cells_ready_to_divide.size(); 		//no. of IDs requested by each process
 		int range_ID[2]; 																						//range_ID[0] contains start ID, range_ID[1] contains end ID
 		
+		
 		int strt_cell_ID = Basic_Agent::get_max_ID_in_parallel();		//Get the starting ID (the last agent ID plus one)
-		int last_ID = request_IDs_from_root(no_of_requested_IDs, range_ID, strt_cell_ID, world, cart_topo);	
+		
+		int last_ID = request_IDs_from_root(no_of_requested_IDs, range_ID, strt_cell_ID, world, cart_topo);
+		
+		//Maybe I can just ask rank 0 to set the maxi	
 		Basic_Agent::set_max_ID_in_parallel(last_ID);								//This is the ID with which we start next
 		
 		int p_ID = range_ID[0]; 
@@ -504,7 +502,9 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 		// new February 2018 
 		// if we need gradients, compute them
 		if( default_microenvironment_options.calculate_gradients ) 
-		{ microenvironment.compute_all_gradient_vectors();  }
+		{ 
+			microenvironment.compute_all_gradient_vectors();  
+		}
 		// end of new in Feb 2018 		
 		
 		// Compute velocities
@@ -524,15 +524,45 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 				(*all_cells)[i]->functions.custom_cell_rule((*all_cells)[i], (*all_cells)[i]->phenotype, time_since_last_mechanics);
 			}
 		}
+		
 		// Calculate new positions
 		#pragma omp parallel for 
 		for( int i=0; i < (*all_cells).size(); i++ )
 		{
 			if(!(*all_cells)[i]->is_out_of_domain && (*all_cells)[i]->is_movable)
 			{
-				(*all_cells)[i]->update_position(time_since_last_mechanics);
+				//For serial call just remove the argument 'world'
+				(*all_cells)[i]->update_position(time_since_last_mechanics, world);
 			}
 		}
+		
+		pack(all_cells, world, cart_topo);
+		
+		cart_topo.Send_and_Receive_Cells(no_cells_cross_left,  position_left,  snd_buf_left, 
+       															 no_cells_cross_right, position_right, snd_buf_right,
+       															 no_of_cells_from_left,  rcv_buf_left,
+       															 no_of_cells_from_right, rcv_buf_right,
+       															 world
+       															);
+    
+    unpack(world); //Just a dummy function right now
+    
+     
+    for(int i=0; i< (*all_cells).size(); i++)
+    	if((*all_cells)[i]->crossed_to_left_subdomain || (*all_cells)[i]->crossed_to_right_subdomain)
+    	{
+    		std::cout<<"CELL ID REMOVED:"<<(*all_cells)[i]->ID<<" from Rank:"<<world.rank<<std::endl; 
+    		(*all_cells)[i]->remove_crossed_cell();
+    	}
+    		
+		
+		/*------------------------------------------------------------------------*/
+		/* Here I need to (1) Check if crossed_to_left_subdomain or crossed_to 		*/
+		/* right_subdomain is true. If yes then call Cell packing function				*/
+		/* send cell across and then run a loop on all cells again to delete			*/
+		/* the cells whose crossed_to_left_subdomain or crossed_to_right_subdomain*/
+		/* is true.																																*/ 		
+		/*------------------------------------------------------------------------*/
 		
 		// When somebody reviews this code, let's add proper braces for clarity!!! 
 		

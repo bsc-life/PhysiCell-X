@@ -89,6 +89,11 @@ class Basic_Agent
 /*---------------------------------------------------------------*/
 
 	bool get_is_volume_changed(); 
+	std::vector<double> & get_cell_source_sink_solver_temp1();
+	std::vector<double> & get_cell_source_sink_solver_temp2();
+	std::vector<double> & get_previous_velocity();
+	bool 									get_is_active();
+	std::vector<double> & get_total_extracellular_substrate_change(); 
 	
 	void set_total_volume(double);
 	void update_voxel_index();
