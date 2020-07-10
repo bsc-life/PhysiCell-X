@@ -545,7 +545,7 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
        															 world
        															);
     
-    unpack(world); //Just a dummy function right now
+    unpack(world, cart_topo); //Just a dummy function right now
     
      
     for(int i=0; i< (*all_cells).size(); i++)

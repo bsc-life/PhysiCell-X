@@ -366,6 +366,14 @@ Cell::Cell(int p_ID):Basic_Agent(p_ID) //----> Correct syntax for calling parame
 	current_mechanics_voxel_index					=-1;	
 	updated_current_mechanics_voxel_index = 0;
 	
+	/*-----------------------------------------------------------------------------------------------*/
+	/* Added by Gaurav Saxena to say that when cell created, both = 0. (I had forgotten to add this  */
+	/* condition in this Cell::Cell(int p_ID):Basic_Agent(p_ID) constructor (See below) 						 */
+	/*-----------------------------------------------------------------------------------------------*/
+	
+	crossed_to_left_subdomain = false;
+	crossed_to_right_subdomain = false;
+	
 	is_movable 				= true;
 	is_out_of_domain 	= false;
 	displacement.resize(3,0.0); // state? 
@@ -3282,25 +3290,84 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 	}
 }
 
-void Cell_Container::unpack(mpi_Environment &world)
+void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
 		
 		int position_left = 0, position_right = 0;
+		
 		int size;
-		int cell_ID;  
+		int cell_ID;
+		Cell *pCell; 
+		double cell_position[3];  
 		
 		if(no_of_cells_from_right > 0)
 		{
 			size = rcv_buf_right.size();
 			MPI_Unpack(&rcv_buf_right[0], size, &position_right, &cell_ID, 1, MPI_INT, MPI_COMM_WORLD);
-			std::cout<<"Rank = "<<world.rank<< " First Cell ID received = "<<cell_ID<<std::endl;  
+			std::cout<<"Rank = "<<world.rank<< " First Cell ID received = "<<cell_ID<<std::endl; 
+			pCell = create_cell(cell_ID);  
+			MPI_Unpack(&rcv_buf_right[0], size, &position_right, cell_position, 3, MPI_DOUBLE, MPI_COMM_WORLD);
+			
+			/*==========================================================================================*/
+			/* If we don't call assign_position() immediately after create_cell(), the program crashes  */
+			/* as positions are assigned randomly, which lead to non-permissible voxel values etc. 			*/
+			/*==========================================================================================*/
+
+			pCell->assign_position(cell_position[0], cell_position[1], cell_position[2], world, cart_topo);
+			std::cout<<"Cell ID:"<<cell_ID<<" created in Rank="<<world.rank<<" at ("<<cell_position[0]<<","<<cell_position[1]<<","<<cell_position[2]<<")"<<std::endl; 
+			
+			
+// 			if(pCell->parameters.pReference_live_phenotype == NULL)
+// 				std::cout<<"Cell { Cell_Parameters { Phenotype* pReference_live_phenotype } } } is NULL" << std::endl;
+// 			else
+// 				 std::cout<<"Cell { Cell_Parameters { Phenotype* pReference_live_phenotype } } } is not NULL" << std::endl;
+// 			
+// 			int len_vector = pCell->phenotype.death.models.size();
+// 			for(int i=0; i<len_vector; i++)
+// 			{
+// 				if(pCell->phenotype.death.models[i] == NULL)
+// 					std::cout<<"Cell { Phenotype { Death { std::vector<Cycle_Model*> models[i] } } } } is NULL"<<std::endl;
+// 				else
+// 					std::cout<<"Cell { Phenotype { Death { std::vector<Cycle_Model*> models[i] } } } } is not NULL"<<std::endl;					
+// 			}
+// 			
+// 			/* Cycle_Model* pCycle_Model appears in three paths */
+// 			
+// 			if(pCell->phenotype.cycle.pCycle_Model == NULL)
+// 				std::cout<<"Cell { Phenotype { Cycle { Cycle_Model * pCycle_Model } } } is NULL"<<std::endl;
+// 			else
+// 				std::cout<<"Cell { Phenotype { Cycle { Cycle_Model * pCycle_Model } } } is not NULL"<<std::endl;
+// 				
+// 			if(pCell->phenotype.cycle.data.pCycle_Model == NULL)
+// 				std::cout<<"Cell { Phenotype { Cycle { Cycle_Data { Cycle_Model *pCycle_Model } } } } is NULL"<<std::endl;
+// 			else
+// 				std::cout<<"Cell { Phenotype { Cycle { Cycle_Data { Cycle_Model *pCycle_Model } } } } is not NULL"<<std::endl;
+// 				
+// 			if(pCell->functions.cycle_model.data.pCycle_Model == NULL)
+// 				std::cout<<"Cell { Functions { Cycle_Model { Cycle_Data { Cycle_Model *pCycle_Model } } } } is NULL"<<std::endl;
+// 			else
+// 				std::cout<<"Cell { Functions { Cycle_Model { Cycle_Data { Cycle_Model *pCycle_Model } } } } is not NULL"<<std::endl;
+				
+			 
+			
 		}
 		
 		if(no_of_cells_from_left > 0)
 		{
 			size = rcv_buf_left.size();
 			MPI_Unpack(&rcv_buf_left[0], size, &position_left, &cell_ID, 1, MPI_INT, MPI_COMM_WORLD);
-			std::cout<<"Rank = "<<world.rank<< " First Cell ID received = "<<cell_ID<<std::endl;  
+			std::cout<<"Rank = "<<world.rank<< " First Cell ID received = "<<cell_ID<<std::endl;
+			pCell = create_cell(cell_ID); 
+			MPI_Unpack(&rcv_buf_left[0], size, &position_left, cell_position, 3, MPI_DOUBLE, MPI_COMM_WORLD);
+			
+			/*==========================================================================================*/
+			/* If we don't call assign_position() immediately after create_cell(), the program crashes  */
+			/* as positions are assigned randomly, which lead to non-permissible voxel values etc. 			*/
+			/*==========================================================================================*/
+			
+			pCell->assign_position(cell_position[0], cell_position[1], cell_position[2], world, cart_topo);
+			std::cout<<"Cell ID:"<<cell_ID<<" created in Rank="<<world.rank<<" at ("<<cell_position[0]<<","<<cell_position[1]<<","<<cell_position[2]<<")"<<std::endl;  
+  
 		}
 		
 		

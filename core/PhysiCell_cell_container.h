@@ -195,7 +195,7 @@ class Cell_Container : public BioFVM::Agent_Container
 	/*-----------------------------------------------------------------*/
 	
 	void pack(std::vector<Cell*> *all_cells, mpi_Environment &world, mpi_Cartesian &cart_topo);
-	void unpack(mpi_Environment &world); //As of now this is a dummy function
+	void unpack(mpi_Environment &world, mpi_Cartesian &cart_topo); //As of now this is a dummy function
 	
 };
 
