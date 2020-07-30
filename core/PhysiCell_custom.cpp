@@ -196,6 +196,7 @@ int Custom_Cell_Data::find_variable_index( std::string name )
 
 /*======================================================================================*/
 /* Gaurav Saxena wrote this to help with printing the {Key,Value} in this unordered map */
+/* Here return by reference is valid as "name_to_index_map" is a persistent object 			*/
 /*======================================================================================*/
 
 

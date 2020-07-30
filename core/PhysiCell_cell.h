@@ -238,7 +238,7 @@ class Cell : public Basic_Agent
 /* Parallel prototype of update_position(double dt, mpi_Environment &)	 */
 /*=======================================================================*/
 
-	void update_position( double dt, mpi_Environment &world );
+	void update_position( double dt, mpi_Environment &world, mpi_Cartesian &cart_topo );
 	
 	std::vector<double> displacement; // this should be moved to state, or made private  
 

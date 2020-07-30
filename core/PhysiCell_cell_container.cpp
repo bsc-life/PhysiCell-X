@@ -532,11 +532,26 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 			if(!(*all_cells)[i]->is_out_of_domain && (*all_cells)[i]->is_movable)
 			{
 				//For serial call just remove the argument 'world'
-				(*all_cells)[i]->update_position(time_since_last_mechanics, world);
+				(*all_cells)[i]->update_position(time_since_last_mechanics, world, cart_topo);
 			}
 		}
 		
 		pack(all_cells, world, cart_topo);
+		
+		for(int i=0; i< (*all_cells).size(); i++)
+    	if((*all_cells)[i]->crossed_to_left_subdomain || (*all_cells)[i]->crossed_to_right_subdomain)
+    	{
+    		std::cout<<"CELL ID="<<(*all_cells)[i]->ID<<" removed from Rank="<<world.rank<<std::endl;
+    		
+    		/* Since the current cell is exchanged with the last cell and the last cell is deleted */
+    		/* a situation can arise where the current cell + last cell is to be deleted 					 */
+    		/* In this case the last cell comes into the current position BUT since the loop 			 */
+    		/* is incremented, the curent cell (i.e. the last cell) is NOT deleted 								 */
+    		/* Thus, we need to decrement the counter IF we delete a cell 												 */
+    		 
+    		(*all_cells)[i]->remove_crossed_cell();
+    		i = i - 1; 
+    	}
 		
 		cart_topo.Send_and_Receive_Cells(no_cells_cross_left,  position_left,  snd_buf_left, 
        															 no_cells_cross_right, position_right, snd_buf_right,
@@ -545,17 +560,8 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
        															 world
        															);
     
-    unpack(world, cart_topo); //Just a dummy function right now
-    
-     
-    for(int i=0; i< (*all_cells).size(); i++)
-    	if((*all_cells)[i]->crossed_to_left_subdomain || (*all_cells)[i]->crossed_to_right_subdomain)
-    	{
-    		std::cout<<"CELL ID REMOVED:"<<(*all_cells)[i]->ID<<" from Rank:"<<world.rank<<std::endl; 
-    		(*all_cells)[i]->remove_crossed_cell();
-    	}
-    		
-		
+    unpack(world, cart_topo); 
+    	
 		/*------------------------------------------------------------------------*/
 		/* Here I need to (1) Check if crossed_to_left_subdomain or crossed_to 		*/
 		/* right_subdomain is true. If yes then call Cell packing function				*/

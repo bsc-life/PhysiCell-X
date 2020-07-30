@@ -232,6 +232,11 @@ bool General_Mesh::has_it_crossed_to_right_subdomain (double x, mpi_Environment 
 		return false; 		
 }
 
+std::vector<double> General_Mesh::get_subdomain_limits()
+{
+	return local_bounding_box; 
+}
+
 bool General_Mesh::is_position_valid(double x, double y, double z)
 {
 	if(x< bounding_box[mesh_min_x_index] || x>bounding_box[mesh_max_x_index])
@@ -259,18 +264,19 @@ void General_Mesh::correct_position_within_subdomain(std::vector<double> &pos, m
 	/* Only for 1-dimensional pure x-decomposition 			 */
 	/*---------------------------------------------------*/
 	
-	double eps = 1e-16;
+	double eps2 = 2 * 1e-16 ;
 	
 	/*----------------------------------------------------------------------------*/
 	/* None of this is needed if there exists only 1 process i.e. world.size == 1 */
 	/* If world.size == 1, then this code should not be executed otherwise it 		*/
 	/* will pull back the cells from outside the domain into the domain.					*/
-	/* IMPORTANT: Once we are able to pack cells and send across sub-domains then	*/
-	/* this function should remove the '>' comparison and keep only the '==' compa*/
-	/* rison because we would want that ONLY cells at the sub-domain boundary are */
-	/* pulled back a little (i.e. by eps). The cells which have position > 				*/
-	/* sub-domain boundary have already left the sub-domain and should be part of */
-	/* the neighbouring sub-domain.																								*/ 
+	/* IMPORTANT: This function pulls back the parent after cell division IF it 	*/
+	/* has crossed the sub-domain boundary (in order to preserve center of mass)  */ 
+	/* This function should NOT be called from the update_position() function.		*/
+	/* TBD: If both daughter and parent cross sub-domain boundary, then the parent*/
+	/* can be pulled back by 2 * eps units instead of just 1 * eps units - just 	*/
+	/* to make the cell x-coordinate different (Later ask Miguel/Arnau to give a	*/
+	/* better value or think of a strategy to remove it. 													*/
 	/*----------------------------------------------------------------------------*/
 	
 	if(world.size > 1)
@@ -278,22 +284,22 @@ void General_Mesh::correct_position_within_subdomain(std::vector<double> &pos, m
 		if(world.rank == 0)
 		{
 			if(pos[0] >= local_bounding_box[mesh_max_x_index])					//If cell position is right of right sub-boundary
-			 	 pos[0] =  local_bounding_box[mesh_max_x_index] - eps; 		//pull cell a bit left
+			 	 pos[0] =  local_bounding_box[mesh_max_x_index] - eps2; 		//pull cell a bit left
 		}
 	
 		if(world.rank == (world.size-1))
 		{
 			if(pos[0] <= local_bounding_box[mesh_min_x_index])					//If cell position is left of left sub-boundary
-			   pos[0] =  local_bounding_box[mesh_min_x_index] + eps; 			//pull cell a bit right
+			   pos[0] =  local_bounding_box[mesh_min_x_index] + eps2; 			//pull cell a bit right
 		}
 	
 		if(world.rank > 0 && world.rank < (world.size-1))							//Do both the above for processes 1 to (n-1)
 		{
 			if(pos[0] <= local_bounding_box[mesh_min_x_index])
-			 	 pos[0] =  local_bounding_box[mesh_min_x_index] + eps;
+			 	 pos[0] =  local_bounding_box[mesh_min_x_index] + eps2;
 			 
 			if(pos[0] >= local_bounding_box[mesh_max_x_index])
-			 	 pos[0] =  local_bounding_box[mesh_max_x_index] - eps;				
+			 	 pos[0] =  local_bounding_box[mesh_max_x_index] - eps2;				
 		}	
 	}
 }

@@ -165,6 +165,10 @@ class General_Mesh
 	/*=====================================================================================*/
 	
   void correct_position_within_subdomain(std::vector<double> &pos, mpi_Environment &world, mpi_Cartesian &cart_topo);
+  
+  /* In parallel scenario, return the local_bounding_box vector */
+  
+  std::vector<double> get_subdomain_limits();
 
 	/* the following help manage the voxel faces */ 
 	// returns the index of the voxel face connecting from voxels[i] to voxels[j] 

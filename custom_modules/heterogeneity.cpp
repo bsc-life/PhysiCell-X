@@ -319,9 +319,9 @@ std::vector<std::vector<double>> create_cell_sphere_positions(double cell_radius
   double z_spacing= cell_radius*sqrt(3);
 	
 	//Attempt to generate very small number of cells
-	// double x_spacing= 80;
-	// double y_spacing= 80;
-	// double z_spacing= 80;
+	 //double x_spacing= 10;
+	 //double y_spacing= 10;
+	 //double z_spacing= 10;
 
 	std::vector<double> tempPoint(3,0.0);
 	// std::vector<double> cylinder_center(3,0.0);
@@ -407,27 +407,32 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 	double p_max 	= parameters.doubles( "oncoprotein_max" ); 
 	
 
-	for( int i=0; i < mc.my_no_of_cell_IDs; i++ )
-	{
-		pCell = create_cell(mc.my_cell_IDs[i]); // tumor cell --> This has to be replaced by create_cell(mc.my_cell_IDs[i])
+		for( int i=0; i < mc.my_no_of_cell_IDs; i++ )
+		{
+		  
+			pCell = create_cell(mc.my_cell_IDs[i]); // tumor cell --> This has to be replaced by create_cell(mc.my_cell_IDs[i])
 	  	  		
-		pCell->assign_position(mc.my_cell_coords[3*i],mc.my_cell_coords[3*i+1],mc.my_cell_coords[3*i+2],world, cart_topo); //pCell->assign_position( positions[i] );
+			pCell->assign_position(mc.my_cell_coords[3*i],mc.my_cell_coords[3*i+1],mc.my_cell_coords[3*i+2],world, cart_topo); //pCell->assign_position( positions[i] );
 		
-		 pCell->custom_data[0] = NormalRandom( p_mean, p_sd );
-		//Gaurav Saxena attempt to generate same random numbers
-		//pCell->custom_data[0] = i*1.0/(positions.size());
-		//std::cout<<pCell->custom_data[0]<<std::endl;
-		//pCell->custom_data[0] must be kept in range [p_min, p_max]
+			//std::cout<<"CELL ID="<<mc.my_cell_IDs[i]<<"Position="<<"("<<mc.my_cell_coords[3*i]<<","<<mc.my_cell_coords[3*i+1]<<","<<mc.my_cell_coords[3*i+2]<<")"<<std::endl; 
+		 	
+		 	pCell->custom_data[0] = NormalRandom( p_mean, p_sd );
 		
-		if( pCell->custom_data[0] < p_min )
-		{ 
+			//Gaurav Saxena attempt to generate same random numbers
+			//pCell->custom_data[0] = i*1.0/(positions.size());
+			//std::cout<<pCell->custom_data[0]<<std::endl;
+			//pCell->custom_data[0] must be kept in range [p_min, p_max]
+		
+			if( pCell->custom_data[0] < p_min )
+			{ 
 				pCell->custom_data[0] = p_min; 
-		}
-		if( pCell->custom_data[0] > p_max )
-		{ 
+			}
+			if( pCell->custom_data[0] > p_max )
+			{ 
 				pCell->custom_data[0] = p_max; 
-		}
-	}
+			}
+		} 
+ 
 	
 	
 	double local_sum = 0.0, global_sum = 0.0; 

@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=4
+#SBATCH --ntasks-per-node=2
 #SBATCH --cpus-per-task=1
 #SBATCH -t 00:60:00
 #SBATCH -o output-%j
@@ -14,6 +14,7 @@
 #export OMP_PLACES="{0:1}:48:1"
 #export OMP_PLACES='cores(48)'
 #mpiexec --map-by ppr:1:socket:pe=24  --report-bindings ./examples/tutorial1
- mpiexec ./heterogeneity.exe
+#ddt --connect srun ./heterogeneity.exe
+mpiexec ./heterogeneity.exe
 #mpiexec --map-by socket --bind-to core  --report-bindings ./examples/tutorial1
 #mpiexec --map-by node --bind-to none --report-bindings ./examples/tutorial1

@@ -84,16 +84,26 @@ class Basic_Agent
 	std::vector<double> * uptake_rates;  
 	double get_total_volume();
 	
-/*---------------------------------------------------------------*/
-/* Gaurav Saxena wrote this function to assist printing 				 */
-/*---------------------------------------------------------------*/
+/*--------------------------------------------------------------------------*/
+/* Gaurav Saxena wrote these functions to assist printing/packing/unpacking */
+/*--------------------------------------------------------------------------*/
 
 	bool get_is_volume_changed(); 
+	void set_is_volume_changed(int flag); 
+	
 	std::vector<double> & get_cell_source_sink_solver_temp1();
 	std::vector<double> & get_cell_source_sink_solver_temp2();
 	std::vector<double> & get_previous_velocity();
+	
 	bool 									get_is_active();
-	std::vector<double> & get_total_extracellular_substrate_change(); 
+	
+	std::vector<double> & get_total_extracellular_substrate_change();
+	
+	void set_cell_source_sink_solver_temp1(std::vector<double> & ref_vec);
+  void set_cell_source_sink_solver_temp2(std::vector<double> & ref_vec);
+//  void set_previous_velocity(std::vector<double> & ref_vec);----> already in class Cell
+  void set_is_active(int flag);
+  void set_total_extracellular_substrate_change(std::vector<double> & ref_vec);
 	
 	void set_total_volume(double);
 	void update_voxel_index();

@@ -363,6 +363,8 @@ double Basic_Agent::get_total_volume()
 /*Gaurav Saxena wrote these 6 functions to assist printing and packing cell data */
 /*-------------------------------------------------------------------------------*/
 
+/* get_ helper functions */
+
 bool Basic_Agent::get_is_volume_changed()
 {
 	return volume_is_changed; 
@@ -391,6 +393,38 @@ bool Basic_Agent::get_is_active()
 std::vector<double> & Basic_Agent::get_total_extracellular_substrate_change()
 {
 	return total_extracellular_substrate_change; 
+}
+
+/* set_ helper functions */
+
+void Basic_Agent::set_is_volume_changed(int flag)
+{
+	volume_is_changed = (flag == 1 ? true : false); 
+}
+
+void Basic_Agent::set_cell_source_sink_solver_temp1(std::vector<double> & ref_vec)
+{
+	cell_source_sink_solver_temp1 = ref_vec;
+}
+
+void Basic_Agent::set_cell_source_sink_solver_temp2(std::vector<double> & ref_vec)
+{
+	cell_source_sink_solver_temp2 = ref_vec;	
+}
+
+// void Basic_Agent::set_previous_velocity(std::vector<double> & ref_vec)---> already in class Cell
+// {
+// 	previous_velocity = ref_vec; 	
+// }
+
+void Basic_Agent::set_is_active(int flag)
+{
+	is_active = flag == 1 ? true : false; 
+}
+
+void Basic_Agent::set_total_extracellular_substrate_change(std::vector<double> & ref_vec)
+{
+	total_extracellular_substrate_change = ref_vec; 	
 }
 
 void Basic_Agent::simulate_secretion_and_uptake( Microenvironment* pS, double dt )
