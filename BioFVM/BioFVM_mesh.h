@@ -219,8 +219,25 @@ class Cartesian_Mesh : public General_Mesh
 	std::vector<double> x_coordinates; 
 	std::vector<double> y_coordinates;
 	std::vector<double> z_coordinates; 	
-	std::vector< std::vector<int> > moore_connected_voxel_indices; // Keeps the list of voxels in the Moore nighborhood 
+	std::vector< std::vector<int> > moore_connected_voxel_indices; // Keeps the list of voxels in the Moore nighborhood
+	
+	/*============================================================================*/
+	/* Adding 2 moore lists that will contain global indexes of voxels 						*/
+	/* one for left and one for right sub-domain boundary.												*/
+	/*============================================================================*/
+	
+	std::vector< std::vector<int> > moore_connected_voxel_global_indices_left;
+	std::vector< std::vector<int> > moore_connected_voxel_global_indices_right;
+	 
 	void create_moore_neighborhood(void);
+	
+	/*============================================================================*/
+	/* Parallel version of create_mmore_neighbourhood() function above. 					*/
+	/* Builds a local list of voxel indices and 2 lists of global indices.				*/
+	/*============================================================================*/
+	
+	void create_moore_neighborhood(mpi_Environment &world, mpi_Cartesian &cart_topo);
+	
 	unsigned int voxel_index( unsigned int i, unsigned int j, unsigned int k ); 
 	std::vector<unsigned int> cartesian_indices( unsigned int n ); 
 	

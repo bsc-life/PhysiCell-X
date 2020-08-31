@@ -69,6 +69,7 @@
 #define __PhysiCell_cell_container_h__
 
 #include <vector>
+#include <unordered_map>
 #include "PhysiCell_cell.h"
 #include "../BioFVM/BioFVM_agent_container.h"
 #include "../BioFVM/BioFVM_mesh.h"
@@ -81,12 +82,41 @@ using namespace DistPhy::mpi;
 
 namespace PhysiCell{
 
-class Cell; 
+class Cell;
+
+/*==========================================================================================*/
+/* Gaurav Saxena added these 2 classes before class Cell_Container as objects of these 			*/
+/* 2 classes are used inside Cell_Container class i.e. Moore_Cell_Info and Moore_Voxel_Info */
+/* No need for forward declaration now as we have fully defined classes now 								*/
+/*==========================================================================================*/
+
+class Moore_Cell_Info
+{
+public:
+	int ID;
+	std::vector<double> position;
+	double radius;
+	double nuclear_radius;
+	double cell_cell_repulsion_strength;
+	double relative_maximum_adhesion_distance;
+	double cell_cell_adhesion_strength;
+};
+
+class Moore_Voxel_Info
+{
+public:
+	int global_mesh_index;
+	int no_of_cells_in_vxl;
+	std::vector<double> center;
+	double max_cell_interactive_distance_in_voxel;
+	std::vector<Moore_Cell_Info> moore_cells;
+};
+
 
 class Cell_Container : public BioFVM::Agent_Container
 {
  private:	
-	std::vector<Cell*> cells_ready_to_divide; // the index of agents ready to divide
+	std::vector<Cell*> cells_ready_to_divide; 			// the index of agents ready to divide
 	std::vector<Cell*> cells_ready_to_die;
 	int boundary_condition_for_pushed_out_agents; 	// what to do with pushed out cells
 	bool initialzed = false;
@@ -97,13 +127,13 @@ class Cell_Container : public BioFVM::Agent_Container
 	int num_divisions_in_current_step;
 	int num_deaths_in_current_step;
 	
-	/*--------------------------------------*/
-	/* Added by Gaurav Saxena								*/
-	/* snd_buf_left - send to left process	*/
-	/* snd_buf_right - send to right process*/
-	/* rcv_buf_left - rcv from left process	*/
-	/* rcv_buf_right - rcv from right prcess*/
-	/*--------------------------------------*/
+	/*-----------------------------------------------------------*/
+	/* Added by Gaurav Saxena: left/right refer to the 'process' */
+	/* snd_buf_left - send to left process											 */
+	/* snd_buf_right - send to right process										 */
+	/* rcv_buf_left - rcv from left process											 */
+	/* rcv_buf_right - rcv from right process									   */
+	/*-----------------------------------------------------------*/
 	
 	std::vector<char> snd_buf_left;
 	std::vector<char> snd_buf_right;
@@ -197,6 +227,30 @@ class Cell_Container : public BioFVM::Agent_Container
 	void pack(std::vector<Cell*> *all_cells, mpi_Environment &world, mpi_Cartesian &cart_topo);
 	void unpack(mpi_Environment &world, mpi_Cartesian &cart_topo); //As of now this is a dummy function
 	
+	/*------------------------------------------------------------------------*/
+	/* Added by Gaurav Saxena 																								*/
+	/* velocity of a cell is updated using (1) other cells in its voxel	 			*/
+	/* (2) cells in 26 neighbouring voxels (a physically neighbouring 	 			*/
+	/* voxel MAY NOT be a logical neighbour) 														 			*/
+	/* Functions below help to pack, exchange, unpack some required fields		*/
+	/* of a cell and voxels in neighbouring processes which are needed to 		*/
+	/* update the velocity. 																									*/
+	/* Later change name of function to exchange_moore_info 									*/
+	/*------------------------------------------------------------------------*/
+	
+	void pack_moore_info(mpi_Environment &world, mpi_Cartesian &cart_topo);
+	
+	/*-----------------------------------------------------------------------------------------------------*/
+	/* Added by Gaurav Saxena - mbfr is a vector that contains info of boundary voxels in adjacent process */
+	/* and specific data fields of all the cells in these voxels, similarly mbfl 													 */
+	/*-----------------------------------------------------------------------------------------------------*/
+	
+	std::vector<Moore_Voxel_Info> mbfr;		//Moore Boundary From Right (mbfr from right process)
+	std::vector<Moore_Voxel_Info> mbfl; 	//Moore Boundary From Left 	(mbfl from left process)
+	
+	std::unordered_map<int, Moore_Voxel_Info> um_mbfl; //um_mbfl[globa_mesh_index]=Moore_Voxel_Info[index]
+	std::unordered_map<int, Moore_Voxel_Info> um_mbfr; //um_mbfr[globa_mesh_index]=Moore_Voxel_Info[index]
+	
 };
 
 int find_escaping_face_index(Cell* agent);
@@ -205,6 +259,14 @@ extern std::vector<Cell*> *all_cells;
 Cell_Container* create_cell_container_for_microenvironment( BioFVM::Microenvironment& m , double mechanics_voxel_size );
 Cell_Container* create_cell_container_for_microenvironment( BioFVM::Microenvironment& m , double mechanics_voxel_size, mpi_Environment &world, mpi_Cartesian &cart_topo ); 
 
+/*-----------------------------------------------------------------------------*/
+/* Added by Gaurav Saxena: To update the velocity a cell requires all the cells*/
+/* in the neighbouring 26 voxels. For voxels at the sub-domain boundary, cells */
+/* in the adjoining process boundary must all be packed and sent across.			 */
+/* They need to be unpacked in a specially made class called Moore_Voxel_Info	 */
+/* which contains Voxel specific info AND info of ALL the cells in that Voxel	 */
+/* The latter info is a class in itself called Moore_Cell_Info 								 */
+/*-----------------------------------------------------------------------------*/
 
 
 };

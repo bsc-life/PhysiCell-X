@@ -717,6 +717,362 @@ void Cartesian_Mesh::create_moore_neighborhood()
 		}
 	}
 }
+
+/*-------------------------------------------------------------*/
+/* Parallel version of create_moore_neighborhood 							 */
+/*-------------------------------------------------------------*/
+
+void Cartesian_Mesh::create_moore_neighborhood(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	/*--------------------------------------------------------------------------------------*/
+	/* I need to divide moore neighborhood construction into 3 parts: 											*/
+	/* (1) Non-subdomain boundary voxels: create a list of local 26 neighbouring voxels 		*/
+	/* (2) Left sub-domain boundary voxels: create a list of global 9 voxels, residing 			*/
+	/* in neighbouring process only, in moore_connected_global_voxel_indices_left  					*/
+	/* (3) Right sub-domain boundary voxels: create a list of global 9 voxels only 					*/
+	/* residing in neighbouring process only, in moore_connected_global_voxel_indices_right */
+	/*--------------------------------------------------------------------------------------*/
+	
+	/* Create local list of voxels NOT ONLY for non-boundary voxels BUT ALSO for boundary voxels 			*/
+	/* because we want the local neighbouring voxels for boundary voxels to be contained in this list */
+	/* and we will make 2 more separate lists */
+	
+	/* For optimization loop-order can be changed from outer to inner : z then y then x */
+	
+	moore_connected_voxel_indices.resize( voxels.size() );
+	
+	for( unsigned int j=0 ; j < y_coordinates.size() ; j++ )
+	{
+		for( unsigned int i=0 ; i < x_coordinates.size() ; i++ )
+		{
+			for( unsigned int k=0 ; k < z_coordinates.size() ; k++ )
+			{
+				int center_inex = voxel_index(i,j,k); 
+				for(int ii=-1;ii<=1;ii++)
+					for(int jj=-1;jj<=1;jj++)
+						for(int kk=-1;kk<=1;kk++)
+							if(i+ii >= 0  && i+ii < x_coordinates.size() &&
+								 j+jj >= 0  && j+jj < y_coordinates.size() &&
+								 k+kk >= 0  && k+kk < z_coordinates.size() &&
+								 !(ii==0  && jj==0 && kk==0)
+								)
+								 {
+									int neighbor_index = voxel_index(i+ii,j+jj,k+kk);
+									moore_connected_voxel_indices[center_inex].push_back( neighbor_index );
+								 }
+			}
+		}
+	}
+	
+	/* Allocate space to _left/_right moore lists = number of voxels in yz-plane */
+	
+	moore_connected_voxel_global_indices_left.resize (y_coordinates.size() * z_coordinates.size());
+	moore_connected_voxel_global_indices_right.resize(y_coordinates.size() * z_coordinates.size());
+	
+	
+	int x_nodes = (bounding_box[3]-bounding_box[0])/dx;
+	int y_nodes = (bounding_box[4]-bounding_box[1])/dy;
+	
+	int global_z_jump = x_nodes * y_nodes;
+	int global_y_jump = x_nodes; 
+	
+	/* Now build the moore list of global voxel indices for the left sub-domain boundary voxels */
+	
+	if(world.rank > 0)
+	{
+		
+		int vxl_indx_ctr = 0;
+		
+		for(int k=0; k<z_coordinates.size(); k++)
+		{
+			for(int j=0; j<y_coordinates.size(); j++)
+			{
+				int center_inex_local  = voxel_index(0, j, k); 
+				int center_inex_global = voxels[center_inex_local].global_mesh_index;
+				
+				/* First tackle Inner region (IC of a sub-domain !) 																*/
+				/* Such a voxel will have 9 global neighbouring voxels on neighbouring left process */
+				
+				if(j > 0 && j < y_coordinates.size()-1 && k > 0 && k < z_coordinates.size()-1)
+				{
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1); 								 // LEFT-1
+				
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_y_jump); // LEFT-1,UP+1
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_y_jump); // LEFT-1,DOWN-1
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_z_jump); // LEFT-1,IN+1	
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_z_jump); // LEFT-1,OUT-1
+				
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_y_jump + global_z_jump); //LEFT-1,UP+1,IN+1
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_y_jump - global_z_jump); //LEFT-1,UP+1,OUT-1
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_y_jump + global_z_jump); //LEFT-1,DOWN-1,IN+1
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_y_jump - global_z_jump); //LEFT-1,DOWN-1,OUT-1
+				}
+				
+				/* Now tackle 4 extreme corner voxels : SW, SE, NW, NE */
+				/* Such voxels will have 4 neighbouring voxels in neighbouring left process */
+				
+				if(j == 0 && k == 0)
+				{
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_y_jump + global_z_jump);
+				}
+				
+				if(j == y_coordinates.size()-1 && k == 0)
+				{
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1); // LEFT-1
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_y_jump + global_z_jump);
+				}
+				
+				if(j == 0 && k == z_coordinates.size()-1)
+				{
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_y_jump - global_z_jump);
+				}
+				
+				if(j == y_coordinates.size()-1 && k == z_coordinates.size()-1)
+				{
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_y_jump - global_z_jump);
+				}
+				
+				/* Now tackle 2 vertical strips and 2 horizontal strips not containing the 4 extreme corner voxels  */
+				/* Such voxels have 6 neighbouring voxels in neighbouring left process 															*/
+				
+				/* Front vertical strip */
+				if(k == 0 && j > 0 && j < y_coordinates.size()-1)
+				{
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_z_jump + global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_z_jump - global_y_jump);
+				}
+				
+				/* Back Vertical strip */
+				if(k == z_coordinates.size()-1 && j > 0 && j < y_coordinates.size()-1)
+				{
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_z_jump + global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_z_jump - global_y_jump);
+				}
+				
+				/* Bottom horizontal strip */
+				
+				if(j == 0 && k > 0 && k < z_coordinates.size()-1)
+				{
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_y_jump + global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_y_jump - global_z_jump);
+				}
+				
+				/* Top horizontal strip */
+				
+				if(j == y_coordinates.size()-1 && k > 0 && k < z_coordinates.size()-1)
+				{
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_y_jump + global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_y_jump - global_z_jump);						
+				}
+				
+				vxl_indx_ctr = vxl_indx_ctr + 1;
+			}
+		}
+	}
+	
+	/* Now build the moore list of global voxel indices for the right sub-domain boundary voxels */
+
+	if(world.rank < (world.size-1))
+	{
+		int vxl_indx_ctr = 0;
+		
+		for(int k=0; k<z_coordinates.size(); k++)
+		{
+			for(int j=0; j<y_coordinates.size(); j++)
+			{
+				int center_inex_local  = voxel_index(x_coordinates.size()-1, j, k); 
+				int center_inex_global = voxels[center_inex_local].global_mesh_index;
+				
+				/* First tackle Inner region (IC of a sub-domain !) 																*/
+				/* Such a voxel will have 9 global neighbouring voxels on neighbouring right process */
+				
+				if(j > 0 && j < y_coordinates.size()-1 && k > 0 && k < z_coordinates.size()-1)
+				{
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1); 								 // RIGHT+1
+				
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_y_jump); // RIGHT+1,UP+1
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_y_jump); // RIGHT+1,DOWN-1
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_z_jump); // RIGHT+1,IN+1	
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_z_jump); // RIGHT+1,OUT-1
+				
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_y_jump + global_z_jump); //RIGHT+1,UP+1,IN+1
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_y_jump - global_z_jump); //RIGHT+1,UP+1,OUT-1
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_y_jump + global_z_jump); //RIGHT+1,DOWN-1,IN+1
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_y_jump - global_z_jump); //RIGHT+1,DOWN-1,OUT-1
+				}
+				
+				/* Now tackle 4 extreme corner voxels : SW, SE, NW, NE */
+				/* Such voxels will have 4 neighbouring voxels in neighbouring right process */
+				
+				if(j == 0 && k == 0)
+				{
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_y_jump + global_z_jump);
+				}
+				
+				if(j == y_coordinates.size()-1 && k == 0)
+				{
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1); 
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_y_jump + global_z_jump);
+				}
+				
+				if(j == 0 && k == z_coordinates.size()-1)
+				{
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_y_jump - global_z_jump);
+				}
+				
+				if(j == y_coordinates.size()-1 && k == z_coordinates.size()-1)
+				{
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_y_jump - global_z_jump);
+				}
+				
+				/* Now tackle 2 vertical strips and 2 horizontal strips not containing the 4 extreme corner voxels  */
+				/* Such voxels have 6 neighbouring voxels in neighbouring right process 															*/
+				
+				/* Front vertical strip */
+				
+				if(k == 0 && j > 0 && j < y_coordinates.size()-1)
+				{
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_z_jump + global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_z_jump - global_y_jump);
+				}
+				
+				/* Back Vertical strip */
+				
+				if(k == z_coordinates.size()-1 && j > 0 && j < y_coordinates.size()-1)
+				{
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_z_jump + global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_z_jump - global_y_jump);
+				}
+				
+				/* Bottom horizontal strip */
+				
+				if(j == 0 && k > 0 && k < z_coordinates.size()-1)
+				{
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_y_jump + global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_y_jump - global_z_jump);
+				}
+				
+				/* Top horizontal strip */
+				
+				if(j == y_coordinates.size()-1 && k > 0 && k < z_coordinates.size()-1)
+				{
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_y_jump + global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_y_jump - global_z_jump);						
+				}
+				
+				vxl_indx_ctr = vxl_indx_ctr + 1;
+			}
+		}	
+	}
+	
+// 	for(int rank_ctr=0; rank_ctr < world.size; rank_ctr++)
+// 	{
+// 		if(world.rank == rank_ctr)
+// 		{
+// 			if(world.rank > 0)
+// 			{
+// 				int ctr = 0;
+// 				for(int k=0; k<z_coordinates.size();k++)
+// 				{
+// 					for(int j=0; j<y_coordinates.size();j++)
+// 					{
+// 						int vxl_inex = voxel_index(0,j,k);
+// 						int glbl_vxl_inex = voxels[vxl_inex].global_mesh_index; 
+// 						std::cout<<"Global Mesh Index="<<glbl_vxl_inex<<std::endl; 
+// 						for(int vec_len=0; vec_len < moore_connected_voxel_global_indices_left[ctr].size(); vec_len++)
+// 							std::cout<<"\t-->"<<moore_connected_voxel_global_indices_left[ctr][vec_len];
+// 						ctr = ctr + 1; 
+// 						std::cout<<std::endl;
+// 					}	
+// 				}
+// 			}
+// 		}
+// 		MPI_Barrier(cart_topo.mpi_cart_comm); 
+//   }
+// 		
+// for(int rank_ctr=0; rank_ctr < world.size; rank_ctr++)
+// 	{
+// 		if(world.rank == rank_ctr)
+// 		{
+// 			if(world.rank < world.size-1)
+// 			{
+// 				int ctr = 0;
+// 				for(int k=0; k<z_coordinates.size();k++)
+// 				{
+// 					for(int j=0; j<y_coordinates.size();j++)
+// 					{
+// 						int vxl_inex = voxel_index(x_coordinates.size()-1,j,k);
+// 						int glbl_vxl_inex = voxels[vxl_inex].global_mesh_index; 
+// 						std::cout<<"Global Mesh Index="<<glbl_vxl_inex<<std::endl; 
+// 						for(int vec_len=0; vec_len < moore_connected_voxel_global_indices_right[ctr].size(); vec_len++)
+// 							std::cout<<"\t-->"<<moore_connected_voxel_global_indices_right[ctr][vec_len];
+// 						ctr = ctr + 1; 
+// 						std::cout<<std::endl;
+// 					}	
+// 				}
+// 			}
+// 		}
+// 		MPI_Barrier(cart_topo.mpi_cart_comm); 
+//   }
+
+
+
+}
+
 unsigned int Cartesian_Mesh::voxel_index( unsigned int i, unsigned int j, unsigned int k )
 {
     
@@ -1473,11 +1829,16 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
         create_voxel_faces(); 
     }
 	
-	/*--------------------------------------------------------------------*/
-	/* No need to parallelize as Moore neighbourhood is not used anywhere */
-    /*--------------------------------------------------------------------*/
+	/*------------------------------------------------------------------------------*/
+	/* Creating moore neighbourhood is now parallelized in the sense that: 					*/
+	/* Inner sub-domain region maintains 26 local voxel indices and sub-domain			*/
+	/* boundary voxels maintain (26-9=17) local voxel indices												*/
+	/* The remaining 9 neighbours (not within the process) are maintained as global	*/
+	/* voxels indices list in 2 different lists i.e. _left/_right										*/
+	/* Now call the parallelized version 																						*/
+  /*------------------------------------------------------------------------------*/
     
-	create_moore_neighborhood();
+	create_moore_neighborhood(world, cart_topo);
     
 	return; 
 }

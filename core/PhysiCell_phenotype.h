@@ -456,6 +456,14 @@ class Cell_Functions
 	
 	void (*update_velocity)( Cell* pCell, Phenotype& phenotype, double dt ); 
 	
+	/*=======================================================================================*/
+	/* Gaurav Saxena added the parallel version of the function pointer update_velocity 	 	 */
+	/* Reason for a different name: Function pointer is like a variable pointer in the sense */
+	/* that 2 pointers cannot have the same name. Thus, a new name is needed.								 */
+	/*=======================================================================================*/
+	
+	void (*update_velocity_parallel)(Cell *pCell, Phenotype &phenotype, double dt, mpi_Environment &world, mpi_Cartesian &cart_topo);
+	
 	void (*add_cell_basement_membrane_interactions)(Cell* pCell, Phenotype& phenotype, double dt );
 	double (*calculate_distance_to_membrane)( Cell* pCell, Phenotype& phenotype, double dt );
 	

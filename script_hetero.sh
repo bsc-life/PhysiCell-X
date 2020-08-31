@@ -2,7 +2,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=2
 #SBATCH --cpus-per-task=1
-#SBATCH -t 00:60:00
+#SBATCH -t 08:00:00
 #SBATCH -o output-%j
 #SBATCH -e error-%j
 #SBATCH --exclusive

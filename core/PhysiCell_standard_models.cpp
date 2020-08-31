@@ -605,6 +605,143 @@ void standard_update_cell_velocity( Cell* pCell, Phenotype& phenotype, double dt
 	return; 
 }
 
+/*-----------------------------------------------*/
+/* Parallel implementation of the function above */
+/*-----------------------------------------------*/
+
+void standard_update_cell_velocity( Cell* pCell, Phenotype& phenotype, double dt, mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	
+	/*--------------------------------------------------------------------------*/
+	/* This is the first part which is identical to the complete function above */
+	/* This takes care of the local part i.e. (1) cells in the same voxel	(2)		*/
+	/* cells in the neighbouring voxels in the same process.										*/
+	/*--------------------------------------------------------------------------*/
+	
+	if( pCell->functions.add_cell_basement_membrane_interactions )
+	{
+		pCell->functions.add_cell_basement_membrane_interactions(pCell, phenotype,dt);
+	}
+	
+	pCell->state.simple_pressure = 0.0; 
+	
+	//First check the neighbors in my current voxel
+	std::vector<Cell*>::iterator neighbor;
+	std::vector<Cell*>::iterator end = pCell->get_container()->agent_grid[pCell->get_current_mechanics_voxel_index()].end();
+	for(neighbor = pCell->get_container()->agent_grid[pCell->get_current_mechanics_voxel_index()].begin(); neighbor != end; ++neighbor)
+	{
+		pCell->add_potentials(*neighbor);
+	}
+	std::vector<int>::iterator neighbor_voxel_index;
+	std::vector<int>::iterator neighbor_voxel_index_end = 
+		pCell->get_container()->underlying_mesh.moore_connected_voxel_indices[pCell->get_current_mechanics_voxel_index()].end();
+
+	for( neighbor_voxel_index = 
+		pCell->get_container()->underlying_mesh.moore_connected_voxel_indices[pCell->get_current_mechanics_voxel_index()].begin();
+		neighbor_voxel_index != neighbor_voxel_index_end; 
+		++neighbor_voxel_index )
+	{
+		if(!is_neighbor_voxel(pCell, pCell->get_container()->underlying_mesh.voxels[pCell->get_current_mechanics_voxel_index()].center, pCell->get_container()->underlying_mesh.voxels[*neighbor_voxel_index].center, *neighbor_voxel_index))
+			continue;
+		end = pCell->get_container()->agent_grid[*neighbor_voxel_index].end();
+		for(neighbor = pCell->get_container()->agent_grid[*neighbor_voxel_index].begin();neighbor != end; ++neighbor)
+		{
+			pCell->add_potentials(*neighbor);
+		}
+	}
+
+	/*--------------------------------------------------------------------------------------------*/
+	/* The parallel part should start here. This part takes care of the cells in the neighbouring */
+	/* voxels which are NOT within the process i.e. boundary voxels of neighbour process.					*/
+	/*--------------------------------------------------------------------------------------------*/
+	
+	int x_dim = pCell->get_container()->underlying_mesh.x_coordinates.size(); 
+	int y_dim = pCell->get_container()->underlying_mesh.y_coordinates.size();
+	int z_dim = pCell->get_container()->underlying_mesh.z_coordinates.size();
+	
+	int local_vxl_inex = pCell->get_current_mechanics_voxel_index();
+	int position_voxel = (local_vxl_inex % (x_dim * y_dim)) % x_dim; 
+	
+	/* if position_voxel = 0 then voxel is in left sub-domain boundary 					*/
+	/* if position_voxel = x_dim-1, then voxel is in right sub-domain boundary  */
+	/* if 0 < position_voxel < (x_dim-1), then it is an internal voxel and there*/
+	/* is no need to do anything 																								*/
+	
+	/*------------------------------------------------------------------------------------------------*/
+	/* Mapping local_vxl_inex to moore list index 																										*/
+	/* Use moore_connected_voxel_global_indices_left 																									*/
+	/* IMPORTANT: The index range of moore_coonected_voxel_global_indices_left/right varies from 			*/
+	/* 0 to y_dim*z_dim-1 and the range of local_vxl_inex varies from 0 to x_dim*y_dim*z_dim-1 	 			*/
+	/* We need to create a mapping from local_vxl_inex to the index to be used in the moore list 			*/
+	/* local_vxl_index = 0 ---> moore_list index = 0, local_vxl_index = 8 ---> moore_list index = 1		*/
+	/* local_vxl_index = 16 ---> moore_list index = 2,local_vxl_index = 24 ---> moore_list index = 3	*/
+	/* I am assuming x_dim = 8 (i.e. local x voxels), thus using the above pattern, we get 						*/
+	/* moore_list index = local_vxl_inex % (x_dim-1) 																									*/
+	/*------------------------------------------------------------------------------------------------*/
+
+	
+	if(position_voxel == 0)
+	{
+		if(world.rank > 0)
+		{
+			std::vector<int> moore_list = pCell->get_container()->underlying_mesh.moore_connected_voxel_global_indices_left[local_vxl_inex%(x_dim-1)];
+			
+			for(int i=0; i<moore_list.size(); i++)
+			{
+				
+				Moore_Voxel_Info &mvi = pCell->get_container()->um_mbfl.at(moore_list[i]);
+				
+				std::vector<double> my_voxel_center 	 = pCell->get_container()->underlying_mesh.voxels[pCell->get_current_mechanics_voxel_index()].center;
+				std::vector<double> other_voxel_center = mvi.center;
+				double mcidiv 												 = mvi.max_cell_interactive_distance_in_voxel;
+				
+				if(!is_neighbor_voxel(pCell, my_voxel_center, other_voxel_center , mcidiv, world, cart_topo))
+					continue;
+					
+				for(int cell_ctr=0; cell_ctr<mvi.moore_cells.size(); cell_ctr++)
+					pCell->add_potentials(mvi.moore_cells[cell_ctr], world, cart_topo); 
+			}
+		}
+	}
+	
+	/* Use moore_connected_voxel_global_indices_right */
+	
+	if(position_voxel == (x_dim-1))
+	{
+		if(world.rank < world.size-1)
+		{
+			std::vector<int> moore_list = pCell->get_container()->underlying_mesh.moore_connected_voxel_global_indices_right[local_vxl_inex%(x_dim-1)];
+			
+			for(int i=0; i<moore_list.size(); i++)
+			{
+		
+				Moore_Voxel_Info &mvi = pCell->get_container()->um_mbfr.at(moore_list[i]);
+				
+				std::vector<double> my_voxel_center 	 = pCell->get_container()->underlying_mesh.voxels[pCell->get_current_mechanics_voxel_index()].center;
+				std::vector<double> other_voxel_center = mvi.center;
+				double mcidiv 												 = mvi.max_cell_interactive_distance_in_voxel;
+				
+				if(!is_neighbor_voxel(pCell, my_voxel_center, other_voxel_center , mcidiv, world, cart_topo))
+					continue;
+					
+				for(int cell_ctr=0; cell_ctr<mvi.moore_cells.size(); cell_ctr++)
+					pCell->add_potentials(mvi.moore_cells[cell_ctr], world, cart_topo); 
+			}
+		}
+	}
+	
+	
+	/*----------------------------------------------------------------------------------*/
+	/* Parallel part should end before the update_motility_vector() function is called. */
+	/*----------------------------------------------------------------------------------*/
+	
+	pCell->update_motility_vector(dt); 
+	pCell->velocity += phenotype.motility.motility_vector;
+	 
+	
+	return;
+}
+
 void standard_add_basement_membrane_interactions( Cell* pCell, Phenotype phenotype, double dt )
 {
 	if( pCell->functions.calculate_distance_to_membrane == NULL )
@@ -681,6 +818,17 @@ void initialize_default_cell_definition( void )
 	cell_defaults.functions.custom_cell_rule = NULL; 
 	
 	cell_defaults.functions.update_velocity = standard_update_cell_velocity;
+	
+	/*----------------------------------------------------------------------------------*/
+	/* There are 2 versions of standard_update_cell_velocity: (1) Serial (2) Parallel 	*/
+	/* The function pointer update_velocity points to the serial versions and a newly 	*/
+	/* added function pointer named update_velocity_parallel will point to the parallel */
+	/* version of standard_update_cell_velocity. 																				*/
+	/* NOTE: The functions are overloaded functions.																		*/
+	/*----------------------------------------------------------------------------------*/
+	
+	cell_defaults.functions.update_velocity_parallel = standard_update_cell_velocity; 
+	
 	cell_defaults.functions.add_cell_basement_membrane_interactions = NULL; 
 	cell_defaults.functions.calculate_distance_to_membrane = NULL; 
 	

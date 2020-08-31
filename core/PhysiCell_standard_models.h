@@ -107,7 +107,19 @@ void standard_volume_update_function( Cell* pCell, Phenotype& phenotype, double 
 
 // standard mechanics functions 
 
-void standard_update_cell_velocity( Cell* pCell, Phenotype& phenotype, double dt); // done 
+void standard_update_cell_velocity( Cell* pCell, Phenotype& phenotype, double dt); // done
+
+/*=======================================================================================*/
+/* Parallel prototype of the standard_udate_velocity_function above 										 */
+/* Added by Gaurav Saxena																																 */
+/* I can keep the same name but when defining the prototype of the function ptr					 */
+/* i.e. void (*update_velocity_parallel)(Cell*, Phenotype&, double, mpi_Env &, mpi_Cart&)*/
+/* so update_velocity_parallel will point to the correct overloaed function							 */ 
+/*=======================================================================================*/
+
+void standard_update_cell_velocity( Cell* pCell, Phenotype& phenotype, double dt, mpi_Environment &world, mpi_Cartesian &cart_topo);
+
+ 
 void standard_add_basement_membrane_interactions( Cell* pCell, Phenotype phenotype, double dt );
 
 // other standard functions 

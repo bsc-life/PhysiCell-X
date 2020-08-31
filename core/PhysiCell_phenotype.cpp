@@ -1032,7 +1032,14 @@ Cell_Functions::Cell_Functions()
 	update_phenotype = NULL; 
 	custom_cell_rule = NULL; 
 	
-	update_velocity = NULL; 
+	update_velocity = NULL;
+	
+	/*------------------------------------------------------------------------------------*/
+	/* For completion making update_velocity_parallel = NULL 															*/
+	/*------------------------------------------------------------------------------------*/
+	
+	update_velocity_parallel = NULL; 
+	 
 	add_cell_basement_membrane_interactions = NULL; 
 	calculate_distance_to_membrane = NULL; 
 	

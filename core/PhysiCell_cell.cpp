@@ -123,7 +123,14 @@ Cell_Definition::Cell_Definition()
 	functions.update_phenotype = NULL; 
 	functions.custom_cell_rule = NULL; 
 	
-	functions.update_velocity = NULL; // standard_update_cell_velocity;
+	functions.update_velocity = NULL; 										// standard_update_cell_velocity;
+	
+	/*-------------------------------------------------------------------------------------*/
+	/* For completion making update_velocity_parallel = NULL here as well 								 */
+	/*-------------------------------------------------------------------------------------*/
+	
+	functions.update_velocity_parallel = NULL; 
+	
 	functions.add_cell_basement_membrane_interactions = NULL; 
 	functions.calculate_distance_to_membrane = NULL; 
 	
@@ -1154,6 +1161,108 @@ void Cell::add_potentials(Cell* other_agent)
 	return;
 }
 
+/*----------------------------------------------------------------------------------*/
+/* Parallel version of the function above: add_potentials 													*/
+/* Instead of taking a Cell* argument, it takes an argument of type Moore_Cell_Info */
+/* defined in PhysiCell_cell_container.h 																						*/
+/*----------------------------------------------------------------------------------*/
+
+void Cell::add_potentials(Moore_Cell_Info &other_agent, mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	if( this->ID == other_agent.ID )
+	{ 
+		return; 
+	}
+
+	// 12 uniform neighbors at a close packing distance, after dividing out all constants
+	static double simple_pressure_scale = 0.027288820670331; // 12 * (1 - sqrt(pi/(2*sqrt(3))))^2 
+																														// 9.820170012151277; // 12 * ( 1 - sqrt(2*pi/sqrt(3)))^2
+
+	double distance = 0; 
+	for( int i = 0 ; i < 3 ; i++ ) 
+	{ 
+		displacement[i] = position[i] - other_agent.position[i]; 
+		distance += displacement[i] * displacement[i]; 
+	}
+	// Make sure that the distance is not zero
+	
+	distance = std::max(sqrt(distance), 0.00001); 
+	
+	//Repulsive
+	double R = phenotype.geometry.radius+ other_agent.radius; 
+	
+	double RN = phenotype.geometry.nuclear_radius + other_agent.nuclear_radius;	
+	double temp_r, c;
+	if( distance > R ) 
+	{
+		temp_r=0;
+	}
+	// else if( distance < RN ) 
+	// {
+		// double M = 1.0; 
+		// c = 1.0 - RN/R; 
+		// c *= c; 
+		// c -= M; 
+		// temp_r = ( c*distance/RN  + M  ); 
+	// }
+	else
+	{
+		// temp_r = 1 - distance/R;
+		temp_r = -distance; // -d
+		temp_r /= R; // -d/R
+		temp_r += 1.0; // 1-d/R
+		temp_r *= temp_r; // (1-d/R)^2 
+		
+		// add the relative pressure contribution 
+		state.simple_pressure += ( temp_r / simple_pressure_scale ); // New July 2017 
+	}
+	
+	// August 2017 - back to the original if both have same coefficient 
+	double effective_repulsion = sqrt( phenotype.mechanics.cell_cell_repulsion_strength * other_agent.cell_cell_repulsion_strength ); 
+	temp_r *= effective_repulsion; 
+	
+	// temp_r *= phenotype.mechanics.cell_cell_repulsion_strength; // original 
+	//////////////////////////////////////////////////////////////////
+	
+	// Adhesive
+	//double max_interactive_distance = parameters.max_interaction_distance_factor * phenotype.geometry.radius + 
+	//	(*other_agent).parameters.max_interaction_distance_factor * (*other_agent).phenotype.geometry.radius;
+		
+	double max_interactive_distance = phenotype.mechanics.relative_maximum_adhesion_distance * 
+																		phenotype.geometry.radius + 
+		     														other_agent.relative_maximum_adhesion_distance * 
+		     														other_agent.radius;
+		
+	if(distance < max_interactive_distance ) 
+	{	
+		// double temp_a = 1 - distance/max_interactive_distance; 
+		double temp_a = -distance; // -d
+		temp_a /= max_interactive_distance; // -d/S
+		temp_a += 1.0; // 1 - d/S 
+		temp_a *= temp_a; // (1-d/S)^2 
+		// temp_a *= phenotype.mechanics.cell_cell_adhesion_strength; // original 
+		
+		// August 2017 - back to the original if both have same coefficient 
+		double effective_adhesion = sqrt( phenotype.mechanics.cell_cell_adhesion_strength * other_agent.cell_cell_adhesion_strength ); 
+		temp_a *= effective_adhesion; 
+		
+		temp_r -= temp_a;
+	}
+	/////////////////////////////////////////////////////////////////
+	if( fabs(temp_r) < 1e-16 )
+	{ return; }
+	temp_r /= distance;
+	// for( int i = 0 ; i < 3 ; i++ ) 
+	// {
+	//	velocity[i] += displacement[i] * temp_r; 
+	// }
+	axpy( &velocity , temp_r , displacement ); 
+	
+	return;
+}
+
+
+
 Cell* create_cell( void )
 {
 	Cell* pNew; 
@@ -1358,6 +1467,86 @@ bool is_neighbor_voxel(Cell* pCell, std::vector<double> my_voxel_center, std::ve
 	{ return false; }
 	return true;
 }
+
+/*------------------------------------------------------------------------------------------*/
+/* Parallel version of the is_neighbor_voxel() function above, the 4th argument here is the */
+/* max_voxel_interactive_distance_of_other_voxel INSTEAD of the neighbour voxel index. 			*/
+/* There is no need for mpi_Environment, mpi_Cartesian objects but maybe will be used later	*/ 
+/*------------------------------------------------------------------------------------------*/
+
+bool is_neighbor_voxel(Cell* pCell, std::vector<double> my_voxel_center, std::vector<double> other_voxel_center, double max_cell_interactive_distance_in_voxel, mpi_Environment &world, mpi_Cartesian &cart_topo)  
+{
+	double max_interactive_distance = pCell->phenotype.mechanics.relative_maximum_adhesion_distance * 
+																		pCell->phenotype.geometry.radius + 
+																		max_cell_interactive_distance_in_voxel;
+	
+	int comparing_dimension = -1, comparing_dimension2 = -1;
+	
+	if(my_voxel_center[0] == other_voxel_center[0] && my_voxel_center[1] == other_voxel_center[1])
+	{
+		comparing_dimension = 2;
+	}
+	else if(my_voxel_center[0] == other_voxel_center[0] && my_voxel_center[2] == other_voxel_center[2])
+	{
+		comparing_dimension = 1;
+	}
+	else if(my_voxel_center[1] == other_voxel_center[1] && my_voxel_center[2] == other_voxel_center[2])
+	{
+		comparing_dimension = 0;
+	}
+	
+	if(comparing_dimension != -1) 
+	{ 
+		//then it is an immediate neighbor (through side faces)
+		
+		double surface_coord= 0.5*(my_voxel_center[comparing_dimension] + other_voxel_center[comparing_dimension]);
+		if(std::fabs(pCell->position[comparing_dimension] - surface_coord) > max_interactive_distance)
+		{ 
+			return false; 
+		}
+		return true;
+	}
+	
+	comparing_dimension=-1;
+	
+	if(my_voxel_center[0] == other_voxel_center[0])
+	{
+		comparing_dimension = 1; comparing_dimension2 = 2;
+	}
+	else if(my_voxel_center[1] == other_voxel_center[1])
+	{
+		comparing_dimension=0; comparing_dimension2 = 2;
+	}
+	else if(my_voxel_center[2] == other_voxel_center[2])
+	{
+		comparing_dimension = 0; comparing_dimension2=1;
+	}
+	if(comparing_dimension != -1)
+	{
+		double line_coord1= 0.5*(my_voxel_center[comparing_dimension] + other_voxel_center[comparing_dimension]);
+		double line_coord2= 0.5*(my_voxel_center[comparing_dimension2] + other_voxel_center[comparing_dimension2]);
+		double distance_squared= std::pow( pCell->position[comparing_dimension] - line_coord1,2)+ std::pow( pCell->position[comparing_dimension2] - line_coord2,2);
+		
+		if(distance_squared > max_interactive_distance * max_interactive_distance)
+		{ 
+			return false; 
+		}
+		return true;
+	}
+	
+	std::vector<double> corner_point= 0.5*(my_voxel_center+other_voxel_center);
+	double distance_squared = (corner_point[0]-pCell->position[0])* (corner_point[0]-pCell->position[0])+
+														(corner_point[1]-pCell->position[1])* (corner_point[1]-pCell->position[1])+
+														(corner_point[2]-pCell->position[2])* (corner_point[2]-pCell->position[2]);
+	
+	if(distance_squared > max_interactive_distance * max_interactive_distance)
+	{ 
+		return false; 
+	}
+	
+	return true;
+}
+
 
 std::vector<Cell*>& Cell::cells_in_my_container( void )
 {

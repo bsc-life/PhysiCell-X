@@ -167,6 +167,13 @@ class Cell : public Basic_Agent
 	void advance_bundled_phenotype_functions( double dt_ ); 
 	
 	void add_potentials(Cell*);       // Add repulsive and adhesive forces.
+	
+	/*=========================================================*/
+	/* Parallel prototype of the add_potentials function above */
+	/*=========================================================*/
+	
+	void add_potentials(Moore_Cell_Info &other_agent, mpi_Environment &world, mpi_Cartesian &cart_topo);
+	
 	void set_previous_velocity(double xV, double yV, double zV);
 	int get_current_mechanics_voxel_index();
 	void turn_off_reactions(double); 		  // Turn off all the reactions of the cell
@@ -302,6 +309,14 @@ void save_all_cells_to_matlab( std::string filename );
 
 //function to check if a neighbor voxel contains any cell that can interact with me
 bool is_neighbor_voxel(Cell* pCell, std::vector<double> myVoxelCenter, std::vector<double> otherVoxelCenter, int otherVoxelIndex);  
+
+/*=============================================================================================================*/
+/* Parallel version of the is_neighbor_voxel(Cell*, myCenter[], otherCenter[], MaxInteractiveDist, world, topo)*/
+/* Although there is no need for mpi_Environment, mpi_Cartesian object, we use them anyway for future expansion*/
+/*=============================================================================================================*/
+
+bool is_neighbor_voxel(Cell* pCell, std::vector<double> myVoxelCenter, std::vector<double> otherVoxelCenter, double maxVoxelInteracticeDistance, mpi_Environment &world, mpi_Cartesian & cart_topo);  
+
 
 };
 
