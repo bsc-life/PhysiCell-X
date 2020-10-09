@@ -16,5 +16,5 @@
 #mpiexec --map-by ppr:1:socket:pe=24  --report-bindings ./examples/tutorial1
 #ddt --connect srun ./heterogeneity.exe
 mpiexec ./heterogeneity.exe
-#mpiexec --map-by socket --bind-to core  --report-bindings ./examples/tutorial1
+#mpiexec --map-by socket --bind-to core  --report-bindings ./heterogeneity.exe
 #mpiexec --map-by node --bind-to none --report-bindings ./examples/tutorial1

@@ -117,6 +117,12 @@ std::string formatted_minutes_to_DDHHMM( double minutes );
 
 void SVG_plot( std::string filename , Microenvironment& M, double z_slice , double time, std::vector<std::string> (*cell_coloring_function)(Cell*) ); // done
 
+/*========================================================*/
+/* Parallel version of SVG_Plot() 												*/
+/*========================================================*/
+
+void SVG_plot( std::string filename , Microenvironment& M, double z_slice , double time, std::vector<std::string> (*cell_coloring_function)(Cell*), mpi_Environment &world, mpi_Cartesian &cart_topo ); // done
+
 void SVG_plot_with_stroma( std::string filename , Microenvironment& M, double z_slice , double time, std::vector<std::string> (*cell_coloring_function)(Cell*) , 
 	int ECM_index, std::vector<std::string> (*ECM_coloring_function)(double) ); // planned
 

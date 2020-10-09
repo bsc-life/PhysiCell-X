@@ -74,14 +74,56 @@
 #ifndef _PhysiCell_SVG_h_
 #define _PhysiCell_SVG_h_
 
+#include "../DistPhy/DistPhy_Environment.h"
+#include "../DistPhy/DistPhy_Cartesian.h"
+
+using namespace DistPhy::mpi; 
+
 bool Write_SVG_start( std::ostream& os, double width, double height );
+
+/*======================================*/
+/* Parallel prototype of function above */
+/*======================================*/
+
+bool Write_SVG_start( std::string &file_str, double width, double height, mpi_Environment &world, mpi_Cartesian &cart_topo );
+
+
 bool Write_SVG_end( std::ostream& os );
 
+/*======================================*/
+/* Parallel prototype of function above */
+/*======================================*/
+
+bool Write_SVG_end( std::string &file_str, mpi_Environment &world, mpi_Cartesian &cart_topo );
+
 bool Write_SVG_text( std::ostream& os, const char* str , double position_x, double position_y, double font_size , const char* color , const char* font);
+
+
+/*======================================*/
+/* Parallel prototype of function above */
+/*======================================*/
+
+bool Write_SVG_text( std::string & file_str, const char* str , double position_x, double position_y, double font_size , const char* color , const char* font, mpi_Environment &world, mpi_Cartesian &cart_topo);
+
+
 bool Write_SVG_circle( std::ostream& os, double center_x, double center_y, double radius, double stroke_size, std::string stroke_color , std::string fill_color );
+
+/*======================================*/
+/* Parallel prototype of function above */
+/*======================================*/
+
+bool Write_SVG_circle( std::string& file_str, double center_x, double center_y, double radius, double stroke_size, std::string stroke_color , std::string fill_color, mpi_Environment &world, mpi_Cartesian &cart_topo );
+
 
 bool Write_SVG_rect( std::ostream& os , double UL_corner_x, double UL_corner_y, double width, double height,
                      double stroke_size, std::string stroke_color , std::string fill_color );
+
+/*======================================*/
+/* Parallel prototype of function above */
+/*======================================*/
+                     
+bool Write_SVG_rect( std::string & file_str , double UL_corner_x, double UL_corner_y, double width, double height, 
+                     double stroke_size, std::string stroke_color , std::string fill_color, mpi_Environment &world, mpi_Cartesian &cart_topo  );
 
 bool Write_SVG_line( std::ostream& os , double start_x, double start_y, double end_x , double end_y, double thickness, 
                     std::string stroke_color );  

@@ -1,3 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
 /*
 ###############################################################################
 # If you use PhysiCell in your project, please cite PhysiCell and the version #
@@ -64,82 +66,89 @@
 #                                                                             #
 ###############################################################################
 */
+--> 
 
-#ifndef __PhysiCell_standard_models_h__
-#define __PhysiCell_standard_models_h__
+<!--
+<user_details />
+-->
 
-#include "./PhysiCell_constants.h" 
-#include "./PhysiCell_phenotype.h" 
-
-
-namespace PhysiCell
-{
-
-// standard cycle models: 
-
-extern Cycle_Model Ki67_advanced, Ki67_basic, live, flow_cytometry_cycle_model, flow_cytometry_separated_cycle_model, cycling_quiescent; 
-extern Cycle_Model apoptosis, necrosis; 
-extern Death_Parameters apoptosis_parameters, necrosis_parameters; 
-
-
-extern bool PhysiCell_standard_models_initialized; 
-extern bool PhysiCell_standard_death_models_initialized; 
-extern bool PhysiCell_standard_cycle_models_initialized; 
-
-// standard entry function for the cycle models 
-
-void standard_Ki67_positive_phase_entry_function( Cell* pCell, Phenotype& phenotype, double dt ); // done 
-void standard_Ki67_negative_phase_entry_function( Cell* pCell, Phenotype& phenotype, double dt ); // done 
-void standard_live_phase_entry_function( Cell* pCell, Phenotype& phenotype, double dt ); // done 
-
-void G1_phase_entry_function( Cell* pCell, Phenotype& phenotype, double dt ); 
-void G0_phase_entry_function( Cell* pCell, Phenotype& phenotype, double dt ); 
-void S_phase_entry_function( Cell* pCell, Phenotype& phenotype, double dt ); // done 
-
-void standard_apoptosis_entry_function( Cell* pCell, Phenotype& phenotype, double dt ); // done 
-void standard_necrosis_entry_function( Cell* pCell, Phenotype& phenotype, double dt );  // done 
-void standard_lysis_entry_function( Cell* pCell, Phenotype& phenotype, double dt ); // done 
-
-bool standard_necrosis_arrest_function( Cell* pCell, Phenotype& phenotype, double dt ); // done 
-
-// standard volume functions 
-
-void standard_volume_update_function( Cell* pCell, Phenotype& phenotype, double dt ); // done 
-
-// standard mechanics functions 
-
-void standard_update_cell_velocity( Cell* pCell, Phenotype& phenotype, double dt); // done
-
-/*=======================================================================================*/
-/* Parallel prototype of the standard_udate_velocity_function above 										 */
-/* Added by Gaurav Saxena																																 */
-/* I can keep the same name but when defining the prototype of the function ptr					 */
-/* i.e. void (*update_velocity_parallel)(Cell*, Phenotype&, double, mpi_Env &, mpi_Cart&)*/
-/* so update_velocity_parallel will point to the correct overloaed function							 */ 
-/*=======================================================================================*/
-
-void standard_update_cell_velocity( Cell* pCell, Phenotype& phenotype, double dt, mpi_Environment &world, mpi_Cartesian &cart_topo);
-
- 
-void standard_add_basement_membrane_interactions( Cell* pCell, Phenotype phenotype, double dt );
-
-// other standard functions 
-
-void empty_function( Cell* pCell, Phenotype& phenotype, double dt ); // done 
-void up_orientation( Cell* pCell, Phenotype& phenotype, double dt ); // done
-
-// standard o2-based phenotype changes 
-
-void update_cell_and_death_parameters_O2_based( Cell* pCell, Phenotype& phenotype, double dt ); 
-
-// create standard models 
-
-bool create_standard_cell_cycle_models( void ); // done 
-bool create_standard_cell_death_models( void ); // done 
-bool create_standard_cycle_and_death_models( void ); // done 
-
-void initialize_default_cell_definition( void ); // done 
+<PhysiCell_settings version="devel-version">
+	<domain>
+		<x_min>-240</x_min>
+		<x_max>240</x_max>
+		<y_min>-240</y_min>
+		<y_max>240</y_max>
+		<z_min>-240</z_min>
+		<z_max>240</z_max>
+		<dx>20</dx>
+		<dy>20</dy>
+		<dz>20</dz>
+		<use_2D>false</use_2D>
+	</domain>
 	
-};
+	<overall>
+		<max_time units="min">720</max_time> <!-- 5 days * 24 h * 60 min -->
+		<time_units>min</time_units>
+		<space_units>micron</space_units>
+	
+		<dt_diffusion units="min">0.01</dt_diffusion>
+		<dt_mechanics units="min">0.1</dt_mechanics>
+		<dt_phenotype units="min">6</dt_phenotype>	
+	</overall>
+	
+	<parallel>
+		<omp_num_threads>48</omp_num_threads>
+	</parallel> 
+	
+	<save>
+		<folder>output</folder> <!-- use . for root --> 
 
-#endif 
+		<full_data>
+			<interval units="min">120</interval>
+			<enable>true</enable>
+		</full_data>
+		
+		<SVG>
+			<interval units="min">120</interval>
+			<enable>true</enable>
+		</SVG>
+		
+		<legacy_data>
+			<enable>false</enable>
+		</legacy_data>
+	</save>
+	
+	<microenvironment_setup>
+		<variable name="oxygen" units="mmHg" ID="0">
+			<physical_parameter_set>
+				<diffusion_coefficient units="micron^2/min">100000.00</diffusion_coefficient>
+				<decay_rate units="1/min">.1</decay_rate>  
+			</physical_parameter_set>
+			<initial_condition units="mmHg">38.0</initial_condition>
+			<Dirichlet_boundary_condition units="mmHg" enabled="true">38.0</Dirichlet_boundary_condition>
+		</variable>
+		
+		<options>
+			<calculate_gradients>false</calculate_gradients>
+			<track_internalized_substrates_in_each_agent>false</track_internalized_substrates_in_each_agent>
+			<!-- not yet supported --> 
+			<initial_condition type="matlab" enabled="false">
+				<filename>./config/initial.mat</filename>
+			</initial_condition>
+			<!-- not yet supported --> 
+			<dirichlet_nodes type="matlab" enabled="false">
+				<filename>./config/dirichlet.mat</filename>
+			</dirichlet_nodes>
+		</options>
+	</microenvironment_setup>		
+	
+	<user_parameters>
+		<tumor_radius type="double" units="micron">150.0</tumor_radius>
+		<oncoprotein_mean type="double" units="dimensionless">1.0</oncoprotein_mean>
+		<oncoprotein_sd type="double" units="dimensionless">0.25</oncoprotein_sd>
+		<oncoprotein_min type="double" units="dimensionless">0.0</oncoprotein_min>
+		<oncoprotein_max type="double" units="dimensionless">2</oncoprotein_max>
+		<random_seed type="int" units="dimensionless">0</random_seed>
+	</user_parameters>
+	
+</PhysiCell_settings>

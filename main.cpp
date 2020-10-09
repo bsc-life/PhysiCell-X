@@ -142,7 +142,7 @@ int main( int argc, char* argv[] )
 
 	// OpenMP setup ---> Commenting it for time being as compiling without -fopenmp flag
 	//Later can enable Or really not needed
-	//omp_set_num_threads(PhysiCell_settings.omp_num_threads);
+	  omp_set_num_threads(PhysiCell_settings.omp_num_threads);
 	
 	// PNRG setup 
 	//GS commenting this out to see if same random numbers are generated
@@ -203,11 +203,12 @@ int main( int argc, char* argv[] )
 	std::vector<std::string> (*cell_coloring_function)(Cell*) = heterogeneity_coloring_function;
 	
 	//GS commented out
-	//sprintf( filename , "%s/initial.svg" , PhysiCell_settings.folder.c_str() ); 
+	sprintf( filename , "%s/initial.svg" , PhysiCell_settings.folder.c_str() ); // <--- For serial OR MPI-IO
+  SVG_plot( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function, world, cart_topo );
 	
 	/* checking if different ranks can out their own SVG */
-	sprintf( filename , "%s/initial_r%d.svg" , PhysiCell_settings.folder.c_str(), world.rank );
-	SVG_plot( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function );
+	//sprintf( filename , "%s/initial_r%d.svg" , PhysiCell_settings.folder.c_str(), world.rank );
+	//SVG_plot( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function );
 	
 	display_citations(); 
 	
