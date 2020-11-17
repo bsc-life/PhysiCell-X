@@ -78,21 +78,9 @@ void tumor_cell_phenotype_with_oncoprotein( Cell* pCell, Phenotype& phenotype, d
 // to set up the tumor cells 
 void create_cell_types( void );
 
-void setup_tissue();
-
-/*======================================*/
-/* Parallel prototype of setup_tissue() */
-/*======================================*/
-
-void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &cart_topo);
+void setup_tissue(); 
 
 // set up the microenvironment to include the immunostimulatory factor 
-void setup_microenvironment( void );  // done
-
-/*================================================*/
-/* Parallel prototype of setup_microenvironment() */
-/*================================================*/
-
-void setup_microenvironment(mpi_Environment &world, mpi_Cartesian &cart_topo);
+void setup_microenvironment( void );  // done 
 
 std::vector<std::string> heterogeneity_coloring_function( Cell* );
