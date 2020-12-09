@@ -75,6 +75,8 @@
 #include "./PhysiCell_cell_container.h"
 #include "./PhysiCell_constants.h"
 
+#include "./PhysiCell_standard_models.h"
+
 #include <unordered_map>
 
 
@@ -316,6 +318,31 @@ bool is_neighbor_voxel(Cell* pCell, std::vector<double> myVoxelCenter, std::vect
 /*=============================================================================================================*/
 
 bool is_neighbor_voxel(Cell* pCell, std::vector<double> myVoxelCenter, std::vector<double> otherVoxelCenter, double maxVoxelInteracticeDistance, mpi_Environment &world, mpi_Cartesian & cart_topo);  
+
+/*===============================================================================*/
+/* Gaurav Saxena added these 9 new functions and 3 extern declarations from v1.7 */
+/*===============================================================================*/
+
+extern std::unordered_map<std::string,Cell_Definition*> cell_definitions_by_name; 
+extern std::unordered_map<int,Cell_Definition*> cell_definitions_by_type; 
+extern std::vector<Cell_Definition*> cell_definitions_by_index; // works
+
+void display_cell_definitions( std::ostream& os ); // done
+void build_cell_definitions_maps( void ); // done
+
+Cell_Definition* find_cell_definition( std::string search_string ); // done 
+Cell_Definition* find_cell_definition( int search_type );
+
+Cell_Definition& get_cell_definition( std::string search_string ); // done 
+Cell_Definition& get_cell_definition( int search_type );
+
+Cell_Definition* initialize_cell_definition_from_pugixml( pugi::xml_node cd_node ); 
+void initialize_cell_definitions_from_pugixml( pugi::xml_node root ); 
+void initialize_cell_definitions_from_pugixml( void );
+
+/*=========================================================*/
+/* 												TILL HERE 											 */
+/*=========================================================*/
 
 
 };

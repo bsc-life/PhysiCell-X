@@ -967,4 +967,17 @@ void update_cell_and_death_parameters_O2_based( Cell* pCell, Phenotype& phenotyp
 	return; 
 }
 
+void chemotaxis_function( Cell* pCell, Phenotype& phenotype , double dt )
+{
+	// bias direction is gradient for the indicated substrate 
+	phenotype.motility.migration_bias_direction = pCell->nearest_gradient(phenotype.motility.chemotaxis_index);
+	// move up or down gradient based on this direction 
+	phenotype.motility.migration_bias_direction *= phenotype.motility.chemotaxis_direction; 
+
+	// normalize 
+	normalize( &( phenotype.motility.migration_bias_direction ) );
+	
+	return;
+}
+
 };

@@ -808,6 +808,13 @@ Motility::Motility()
 	
 	motility_vector.resize( 3 , 0.0 ); 
 	
+	/*-----------------------------------------------------------*/
+	/* Gaurav Saxena added the following 2 lines because of v1.7 */
+	/*-----------------------------------------------------------*/
+	
+	chemotaxis_index = 0; 
+	chemotaxis_direction = 1;
+	
 	return; 
 }
 
@@ -829,7 +836,13 @@ void Secretion::sync_to_current_microenvironment( void )
 	{
 		secretion_rates.resize( 0 , 0.0 ); 
 		uptake_rates.resize( 0 , 0.0 ); 
-		saturation_densities.resize( 0 , 0.0 ); 
+		saturation_densities.resize( 0 , 0.0 );
+		
+		/*-----------------------------------------------------------------*/
+		/* Gaurav Saxena added the next statement as it is present in v1.7 */ 
+		/*-----------------------------------------------------------------*/
+		
+		net_export_rates.resize( 0, 0.0 );
 	}
 	return; 
 }
@@ -841,6 +854,13 @@ void Secretion::sync_to_microenvironment( Microenvironment* pNew_Microenvironmen
 	secretion_rates.resize( pMicroenvironment->number_of_densities() , 0.0 ); 
 	uptake_rates.resize( pMicroenvironment->number_of_densities() , 0.0 ); 
 	saturation_densities.resize( pMicroenvironment->number_of_densities() , 0.0 ); 
+	
+	/*----------------------------------------------------------------------*/
+	/* Gaurav Saxena added the following statement as it is present in v1.7 */
+	/*----------------------------------------------------------------------*/
+
+	net_export_rates.resize( pMicroenvironment->number_of_densities() , 0.0 );
+	
 	
 	return; 
 }
@@ -877,11 +897,23 @@ void Secretion::advance( Basic_Agent* pCell, Phenotype& phenotype , double dt )
 	{
 		delete pCell->secretion_rates; 
 		delete pCell->uptake_rates; 
-		delete pCell->saturation_densities; 
+		delete pCell->saturation_densities;
+		
+		/*----------------------------------------------------------------------*/
+		/* Gaurav Saxena added the following statement as it is present in v1.7 */
+		/*----------------------------------------------------------------------*/
+
+		delete pCell->net_export_rates; 
 		
 		pCell->secretion_rates = &secretion_rates; 
 		pCell->uptake_rates = &uptake_rates; 
-		pCell->saturation_densities = &saturation_densities; 
+		pCell->saturation_densities = &saturation_densities;
+		
+		/*----------------------------------------------------------------------*/
+		/* Gaurav Saxena added the following statement as it is present in v1.7 */
+		/*----------------------------------------------------------------------*/		
+		
+		pCell->net_export_rates = &net_export_rates; 
 		
 		pCell->set_total_volume( phenotype.volume.total ); 
 		pCell->set_internal_uptake_constants( dt );
@@ -897,7 +929,10 @@ void Secretion::advance( Basic_Agent* pCell, Phenotype& phenotype , double dt )
 void Secretion::set_all_secretion_to_zero( void )
 {
 	for( int i=0; i < secretion_rates.size(); i++ )
-	{ secretion_rates[i] = 0.0; }
+	{ 
+		secretion_rates[i] = 0.0; 
+		net_export_rates[i] = 0.0;
+	}
 	return; 
 }
 
@@ -911,7 +946,10 @@ void Secretion::set_all_uptake_to_zero( void )
 void Secretion::scale_all_secretion_by_factor( double factor )
 {
 	for( int i=0; i < secretion_rates.size(); i++ )
-	{ secretion_rates[i] *= factor; }
+	{ 
+		secretion_rates[i]  *= factor; 
+		net_export_rates[i] *= factor;
+	}
 	return; 
 }
 

@@ -409,6 +409,13 @@ class Motility
 		// if true, set random motility to 2D only. 
 		
 	std::vector<double> motility_vector; 
+	
+	/*=========================================================================*/
+	/* Gaurav Saxena added the 2 next data members as they are present in v1.7 */
+	/*=========================================================================*/
+	
+	int chemotaxis_index; 
+	int chemotaxis_direction;
 		
 	Motility(); // done 
 };
@@ -422,6 +429,12 @@ class Secretion
 	std::vector<double> secretion_rates; 
 	std::vector<double> uptake_rates; 
 	std::vector<double> saturation_densities;
+	
+	/*====================================================================*/
+	/* Gaurav Saxena added the next data member as it was present in v1.7 */
+	/*====================================================================*/
+	
+	std::vector<double> net_export_rates;
 	
 	// in the default constructor, we'll size to the default microenvironment, if 
 	// specified. (This ties to BioFVM.) 

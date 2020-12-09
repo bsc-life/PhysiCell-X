@@ -70,6 +70,8 @@
 #include <cstdio>
 #include <iostream>
 
+#include <cstring>
+
 namespace PhysiCell
 {
 	
@@ -211,6 +213,19 @@ int Custom_Cell_Data::find_vector_variable_index( std::string name )
 	return vector_name_to_index_map[ name ]; 
 }
 */
+
+int Custom_Cell_Data::find_vector_variable_index( std::string name )
+{
+	int n = 0; 
+	while( n < vector_variables.size() )
+	{
+		if( std::strcmp( vector_variables[n].name.c_str() , name.c_str() ) == 0 )
+		{ return n; } 
+		n++; 
+	}
+	
+	return -1; 
+}
 
 double& Custom_Cell_Data::operator[](int i)
 {

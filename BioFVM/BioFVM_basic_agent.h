@@ -73,6 +73,14 @@ class Basic_Agent
  protected:
 	std::vector<double> cell_source_sink_solver_temp1;
 	std::vector<double> cell_source_sink_solver_temp2;
+	
+	/*----------------------------------------------------------------------*/
+	/* Gaurav Saxena added the following 2 data members as they are in v1.7 */
+	/*----------------------------------------------------------------------*/
+	
+	std::vector<double> cell_source_sink_solver_temp_export1; 
+	std::vector<double> cell_source_sink_solver_temp_export2;
+	
 	std::vector<double> previous_velocity; 
 	bool is_active;
 	
@@ -81,7 +89,14 @@ class Basic_Agent
  public:
 	std::vector<double> * secretion_rates; 
 	std::vector<double> * saturation_densities; 
-	std::vector<double> * uptake_rates;  
+	std::vector<double> * uptake_rates;
+	
+	/*-----------------------------------------------------------*/
+	/* Gaurav Saxena added the next public data member from v1.7 */
+	/*-----------------------------------------------------------*/
+	
+	std::vector<double> * net_export_rates;
+	  
 	double get_total_volume();
 	
 /*--------------------------------------------------------------------------*/

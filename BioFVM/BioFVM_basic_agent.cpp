@@ -74,6 +74,13 @@ Basic_Agent::Basic_Agent()
 	secretion_rates= new std::vector<double>(0);
 	uptake_rates= new std::vector<double>(0);
 	saturation_densities= new std::vector<double>(0);
+	
+	/*---------------------------------------------------*/
+	/* Gaurav Saxena added the next statement due to v1.7*/
+	/*---------------------------------------------------*/
+	
+	net_export_rates = new std::vector<double>(0);
+	
 	// extern Microenvironment* default_microenvironment;
 	// register_microenvironment( default_microenvironment ); 
 
@@ -111,6 +118,12 @@ Basic_Agent::Basic_Agent(int p_ID)
 	secretion_rates			= new std::vector<double>(0);
 	uptake_rates				= new std::vector<double>(0);
 	saturation_densities= new std::vector<double>(0);
+	
+	/*---------------------------------------------------*/
+	/* Gaurav Saxena added the next statement due to v1.7*/
+	/*---------------------------------------------------*/
+	
+	net_export_rates = new std::vector<double>(0);
 	
 	internalized_substrates 						= new std::vector<double>(0); // 
 	fraction_released_at_death 					= new std::vector<double>(0); 
@@ -227,6 +240,21 @@ void Basic_Agent::set_internal_uptake_constants( double dt )
 	axpy( &(cell_source_sink_solver_temp2) , internal_constant_to_discretize_the_delta_approximation , *secretion_rates );
 	axpy( &(cell_source_sink_solver_temp2) , internal_constant_to_discretize_the_delta_approximation , *uptake_rates );	
 	
+	/*---------------------------------------------------------------------*/
+	/* Gaurav Saxena added the following block of code as v1.7 has changed */
+	/*---------------------------------------------------------------------*/
+
+
+	cell_source_sink_solver_temp_export1 = *net_export_rates; 
+	cell_source_sink_solver_temp_export1 *= dt; // amount exported in dt of time 
+		
+	cell_source_sink_solver_temp_export2 = cell_source_sink_solver_temp_export1;
+	cell_source_sink_solver_temp_export2 /= ( (microenvironment->voxels(current_voxel_index)).volume ) ;
+	
+	/*----------------------------------------------------------------------*/
+	/* 																	TILL HERE 													*/
+	/*----------------------------------------------------------------------*/	
+	
 	volume_is_changed = false; 
 	
 	return; 
@@ -237,11 +265,24 @@ void Basic_Agent::register_microenvironment( Microenvironment* microenvironment_
 	microenvironment = microenvironment_in; 	
 	secretion_rates->resize( microenvironment->density_vector(0).size() , 0.0 );
 	saturation_densities->resize( microenvironment->density_vector(0).size() , 0.0 );
-	uptake_rates->resize( microenvironment->density_vector(0).size() , 0.0 );	
+	uptake_rates->resize( microenvironment->density_vector(0).size() , 0.0 );
+	
+	/*-------------------------------------------------------------------*/
+	/* Gaurav Saxena added the following statement as it changed in v1.7 */
+	/*-------------------------------------------------------------------*/
+	
+	net_export_rates->resize( microenvironment->density_vector(0).size() , 0.0 );	
 
 	// some solver temporary variables 
 	cell_source_sink_solver_temp1.resize( microenvironment->density_vector(0).size() , 0.0 );
 	cell_source_sink_solver_temp2.resize( microenvironment->density_vector(0).size() , 1.0 );
+	
+	/*----------------------------------------------------------------------*/
+	/* Gaurav Saxena added the following 2 statements as it changed in v1.7 */
+	/*----------------------------------------------------------------------*/	
+	
+	cell_source_sink_solver_temp_export1.resize( microenvironment->density_vector(0).size() , 0.0 );
+	cell_source_sink_solver_temp_export2.resize( microenvironment->density_vector(0).size() , 0.0 );
 	
 	// new for internalized substrate tracking 
 	internalized_substrates->resize( microenvironment->density_vector(0).size() , 0.0 );
@@ -453,6 +494,17 @@ void Basic_Agent::simulate_secretion_and_uptake( Microenvironment* pS, double dt
 	
 	(*pS)(current_voxel_index) += cell_source_sink_solver_temp1; 
 	(*pS)(current_voxel_index) /= cell_source_sink_solver_temp2; 
+	
+	/*-------------------------------------------------------------------*/
+	/* Gaurav Saxena added the following 3 statements as present in v1.7 */
+	/*-------------------------------------------------------------------*/
+	
+	// now do net export 
+	(*pS)(current_voxel_index) += cell_source_sink_solver_temp_export2; 
+	if( default_microenvironment_options.track_internalized_substrates_in_each_agent == true ) 
+	{
+		*internalized_substrates -= cell_source_sink_solver_temp_export1; 
+	}
 
 	return; 
 }
