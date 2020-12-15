@@ -1,7 +1,7 @@
 VERSION := $(shell grep . VERSION.txt | cut -f1 -d:)
 PROGRAM_NAME := project
 
-CC := g++
+CC := mpic++
 # CC := g++-mp-7 # typical macports compiler name
 # CC := g++-7 # typical homebrew compiler name 
 
@@ -34,6 +34,8 @@ CFLAGS := -march=$(ARCH) -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -s
 
 COMPILE_COMMAND := $(CC) $(CFLAGS) 
 
+DistPhy_OBJECTS:= DistPhy_Environment.o DistPhy_Cartesian.o DistPhy_Utils.o DistPhy_Collective.o
+
 BioFVM_OBJECTS := BioFVM_vector.o BioFVM_mesh.o BioFVM_microenvironment.o BioFVM_solvers.o BioFVM_matlab.o \
 BioFVM_utilities.o BioFVM_basic_agent.o BioFVM_MultiCellDS.o BioFVM_agent_container.o 
 
@@ -49,7 +51,7 @@ PhysiCell_custom_module_OBJECTS := custom.o
 
 pugixml_OBJECTS := pugixml.o
 
-PhysiCell_OBJECTS := $(BioFVM_OBJECTS)  $(pugixml_OBJECTS) $(PhysiCell_core_OBJECTS) $(PhysiCell_module_OBJECTS)
+PhysiCell_OBJECTS := $(BioFVM_OBJECTS)  $(pugixml_OBJECTS) $(PhysiCell_core_OBJECTS) $(PhysiCell_module_OBJECTS) $(DistPhy_OBJECTS)
 ALL_OBJECTS := $(PhysiCell_OBJECTS) $(PhysiCell_custom_module_OBJECTS)
 
 # compile the project 
@@ -58,6 +60,17 @@ all: main.cpp $(ALL_OBJECTS)
 	$(COMPILE_COMMAND) -o $(PROGRAM_NAME) $(ALL_OBJECTS) main.cpp 
 
 # PhysiCell core components	
+DistPhy_Environment.o: ./DistPhy/DistPhy_Environment.cpp
+	$(COMPILE_COMMAND) -c ./DistPhy/DistPhy_Environment.cpp
+
+DistPhy_Cartesian.o: ./DistPhy/DistPhy_Cartesian.cpp
+	$(COMPILE_COMMAND) -c ./DistPhy/DistPhy_Cartesian.cpp
+	
+DistPhy_Utils.o: ./DistPhy/DistPhy_Utils.cpp
+	$(COMPILE_COMMAND) -c ./DistPhy/DistPhy_Utils.cpp
+	
+DistPhy_Collective.o: ./DistPhy/DistPhy_Collective.cpp
+	$(COMPILE_COMMAND) -c ./DistPhy/DistPhy_Collective.cpp
 
 PhysiCell_phenotype.o: ./core/PhysiCell_phenotype.cpp
 	$(COMPILE_COMMAND) -c ./core/PhysiCell_phenotype.cpp
