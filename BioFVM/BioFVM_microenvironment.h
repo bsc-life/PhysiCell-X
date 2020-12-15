@@ -294,7 +294,9 @@ class Microenvironment
 	void apply_dirichlet_conditions( void ); 
 
 	void set_substrate_dirichlet_activation( int substrate_index , bool new_value ); 
-	double get_substrate_dirichlet_activation( int substrate_index );
+	//double get_substrate_dirichlet_activation( int substrate_index ); ---> changed in v1.7 as below (Gaurav Saxena)
+	bool get_substrate_dirichlet_activation( int substrate_index );
+	
 	
 	/*=======================================================================*/
 	/* Gaurav Saxena added these function prototypes as they are new in v1.7 */

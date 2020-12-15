@@ -239,6 +239,15 @@ class Cell : public Basic_Agent
 	void set_total_volume(double);
 	
 	double& get_total_volume(void); // NEW
+
+/*===============================================================*/	
+/* Gaurav Saxena added the next 3 prototypes as they are in v1.7 */
+/*===============================================================*/	
+
+
+	void set_target_volume(double); 
+	void set_target_radius(double); 
+	void set_radius(double);
 	
 	// mechanics 
 	void update_position( double dt ); //

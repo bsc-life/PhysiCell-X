@@ -72,6 +72,8 @@
 #include "../BioFVM/BioFVM_vector.h" 
 #include<limits.h>
 
+#include <signal.h> //for segfault
+
 namespace PhysiCell
 {
 
@@ -144,6 +146,12 @@ Cell_Definition::Cell_Definition()
 	
 	functions.set_orientation = NULL;
 	
+	/*---------------------------------------------------------*/
+	/* Gaurav Saxena added this line as it was present in v1.7 */
+	/*---------------------------------------------------------*/
+	
+	cell_definitions_by_index.push_back( this );
+	
 	return; 
 }
 
@@ -165,6 +173,12 @@ Cell_Definition::Cell_Definition( Cell_Definition& cd )
 	
 	// this is the whole reason we need ot make a copy constructor 
 	parameters.pReference_live_phenotype = &phenotype; 
+	
+	/*---------------------------------------------------------*/
+	/* Gaurav Saxena added this line as it was present in v1.7 */
+	/*---------------------------------------------------------*/
+	
+	cell_definitions_by_index.push_back( this );
 	
 	return; 
 }
@@ -351,6 +365,7 @@ Cell::Cell()
 	assign_orientation();
 	container = NULL;
 	
+	set_total_volume( phenotype.volume.total ); 
 	
 	return; 
 }
@@ -396,6 +411,8 @@ Cell::Cell(int p_ID):Basic_Agent(p_ID) //----> Correct syntax for calling parame
 	assign_orientation();				//Just assigns a random unit vector to the cell. 
 	container = NULL;
 	
+	/* Gaurav Saxena added this line as this was in v1.7 */
+	set_total_volume( phenotype.volume.total );
 	
 	return; 
 }
@@ -787,6 +804,59 @@ void Cell::set_total_volume(double volume)
 	
 	return; 
 }
+
+
+void Cell::set_target_volume( double new_volume )
+{
+	
+	// this function will keep the prior ratios (from targets)
+	
+	// first compute the actual raw totals on all these things 
+	double old_target_solid = phenotype.volume.target_solid_nuclear + 
+		phenotype.volume.target_solid_cytoplasmic; 
+	double old_target_total = old_target_solid / ( 1.0 - phenotype.volume.target_fluid_fraction ); 
+	double old_target_fluid = phenotype.volume.target_fluid_fraction * old_target_total; 
+	
+	// next whats the relative new size? 
+	double ratio = new_volume / (1e-16 + old_target_total ); 
+	
+	// scale the target solid cyto and target solid nuclear by this ratio 
+	phenotype.volume.target_solid_cytoplasmic *= ratio; 
+	phenotype.volume.target_solid_nuclear *= ratio; 
+	
+	return; 
+}
+
+void Cell::set_target_radius(double new_radius )
+{
+	static double four_thirds_pi =  4.188790204786391;
+
+	// calculate the new target volume 
+	double new_volume = four_thirds_pi; 
+	new_volume *= new_radius; 
+	new_volume *= new_radius; 
+	new_volume *= new_radius; 
+	
+	// now call the set_target_volume funciton 
+	this->set_target_volume( new_volume ); 
+	return; 
+}
+
+void Cell::set_radius(double new_radius )
+{
+	static double four_thirds_pi =  4.188790204786391;
+
+	// calculate the new target volume 
+	double new_volume = four_thirds_pi; 
+	new_volume *= new_radius; 
+	new_volume *= new_radius; 
+	new_volume *= new_radius; 
+	
+	this->set_total_volume( new_volume ); 
+	return; 
+}
+
+
 
 double& Cell::get_total_volume(void)
 {
@@ -1319,6 +1389,10 @@ Cell* create_cell( Cell_Definition& cd )
 	
 	pNew->assign_orientation();
 	
+	/* Gaurav Saxena added this statement as was in v1.7 */
+	
+	pNew->set_total_volume( pNew->phenotype.volume.total );
+	
 	return pNew; 
 }
 
@@ -1363,7 +1437,10 @@ void Cell::convert_to_cell_definition( Cell_Definition& cd )
 	
 	// displacement.resize(3,0.0); // state? 
 	
-	assign_orientation();	
+	assign_orientation();
+	
+	/* Gaurav Saxena added this line as in v1.7 */
+	set_total_volume( phenotype.volume.total );	
 	
 	return; 
 }
