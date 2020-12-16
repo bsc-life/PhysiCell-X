@@ -141,13 +141,16 @@ bool load_PhysiCell_config_file( std::string filename, mpi_Environment &world )
 	
 	// now read the microenvironment (optional) 
 	
-	if(IOProcessor(world))
+	
         if( !setup_microenvironment_from_XML( physicell_config_root ) )
         {
+        	if(IOProcessor(world))
+        	{
             std::cout << std::endl 
 				  << "Warning: microenvironment_setup not found in " << filename << std::endl 
 				  << "         Either manually setup microenvironment in setup_microenvironment() (custom.cpp)" << std::endl
 				  << "         or consult documentation to add microenvironment_setup to your configuration file." << std::endl << std::endl; 
+				  }
         }
 	
 	// now read user parameters
