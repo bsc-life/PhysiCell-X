@@ -1008,7 +1008,10 @@ void Cell::update_position( double dt, mpi_Environment &world, mpi_Cartesian &ca
 	
 	crossed_to_left_subdomain  = get_container()->underlying_mesh.has_it_crossed_to_left_subdomain(position[0], world);
 	crossed_to_right_subdomain = get_container()->underlying_mesh.has_it_crossed_to_right_subdomain(position[0], world); 
-		
+	
+// 	static int index = pCell->custom_data.find_variable_index( "moving_left");
+// 	this->custom_data[index] = moving_left;
+	 	
 	bool crossed = crossed_to_left_subdomain || crossed_to_right_subdomain;
 	
 	if(crossed == true)
@@ -1396,6 +1399,41 @@ Cell* create_cell( Cell_Definition& cd )
 	return pNew; 
 }
 
+/*------------------------------------------------------------------------------------------*/
+/* New function for parallel environment: Cell* create_cell(Cell_Definition &cd, int p_ID)  */
+/* Very similar body to the serial Cell* create_cell( Cell_Definition &cd ) above 	 	 			*/
+/* Within it, it will call the new function Cell *create_cell(int pID) which in turn 			  */
+/* calls a new Constructor pNew = new Cell(p_ID);							 															*/
+/* This new Constructor will explicitly call a new Constructor of		 	 											*/
+/* the Basic_Agent class : Basic_Agent(int p_ID)											 											*/ 
+/*------------------------------------------------------------------------------------------*/
+
+Cell* create_cell( Cell_Definition& cd, int pID )
+{
+	Cell* pNew = create_cell(pID); 
+	
+	// use the cell defaults; 
+	pNew->type = cd.type; 
+	pNew->type_name = cd.name; 
+	
+	pNew->custom_data = cd.custom_data; 
+	pNew->parameters = cd.parameters; 
+	pNew->functions = cd.functions; 
+	
+	pNew->phenotype = cd.phenotype; 
+	pNew->is_movable = true;
+	pNew->is_out_of_domain = false;
+	pNew->displacement.resize(3,0.0); // state? 
+	
+	pNew->assign_orientation();
+	
+	/* Gaurav Saxena added this statement as was in v1.7 */
+	
+	pNew->set_total_volume( pNew->phenotype.volume.total );
+	
+	return pNew; 
+}
+
 /*---------------------------------------------------------------------*/
 /* New function for parallel environment: Cell* create_cell(int p_ID)  */
 /* Very similar body to the serial Cell* create_cell( void ) above 	 	 */
@@ -1751,7 +1789,7 @@ void Cell::lyse_cell( void )
 /* useful when comparing cell fields after 		 */
 /* pack_and_send() function. 									 */
 /*---------------------------------------------*/
-void Cell::print_cell(int id)
+void Cell::print_cell(mpi_Environment &world)
 {
 	/*-------------------------------------------------------------------------------------*/
 	/* Trying to print all the data fields of the Cell class 															 */
@@ -1762,331 +1800,328 @@ void Cell::print_cell(int id)
 	/* solver_temp1[i] is directly accessible. 																						 */
 	/*-------------------------------------------------------------------------------------*/
 	
-	static int prnt_counter = 0; 
-	if(prnt_counter % 1000 == 0)
-	{
+	/*----------------------------------------------------------------------------*/
+	/* REWRITING THE PRINT_CELL() FUNCTION TO *NOT* PRINT ON THE COMMAND LINE   	*/
+	/* Each process (1) will write its own file (2) File will contain cell data 	*/
+	/* of cells BEFORE packing and AFTER unpacking. (3) Text will mention if cell */
+	/* is moving to LEFT or RIGHT																									*/
+	/*----------------------------------------------------------------------------*/
 	
-	std::cout<<std::endl; 
-	std::cout<<"=================CELL DATA : "<<prnt_counter<<"======================"; 
-	std::cout<<std::endl; 
+	std::string filename="CELLS_RANK_"; 
+	filename = filename + std::to_string(world.rank);
 	
-	/*================CELL===================== */
+	std::ofstream ofile;
+	ofile.open(filename,std::ios::app);
+	 
+ 
+	ofile<<"=================CELL DATA FOR CELL ID: "<<this->ID<<"======================"<<std::endl;
+	
+	if(crossed_to_left_subdomain == true)
+		ofile<<"PACKED CELL MOVING TO LEFT"<<std::endl;
+	
+	if(crossed_to_right_subdomain == true)
+		ofile<<"PACKED CELL MOVING TO RIGHT"<<std::endl;
+	
+	if(crossed_to_left_subdomain == false && crossed_to_right_subdomain == false)
+		ofile<<"UNPACKED CELL"<<std::endl; 
+		
+	ofile << "NEW POSITION ="<<"("<<position[0]<<","<<position[1]<<","<<position[2]<<")"<<std::endl;
+		
+	ofile<<"=> class Cell {"<<std::endl; 
+	ofile<<"TYPE_NAME:"<<type_name<<std::endl;
+		
+		
+	ofile<<"=> class Cell { class Custom_Cell_Data {"<<std::endl;
+	for(auto it = (custom_data.get_name_to_index_map()).cbegin(); it != (custom_data.get_name_to_index_map()).cend(); it++)
+		ofile << "KEY="<<it->first<<" VALUE="<<it->second<<std::endl; 
 
-	std::cout<<"type_name:"<<type_name<<std::endl;
-	std::cout<<"is_out_of_domain:"<<is_out_of_domain<<std::endl; 
-	std::cout<<"is_movable:"<<is_movable<<std::endl;
-	std::cout<<"Disp[0]:"<<displacement[0]<<" Disp[1]:"<<displacement[1]<<" Disp[2]:"<<displacement[2]<<std::endl; 
-	
-	/*===============BASIC_AGENT================ */
-	
-	std::cout<<endl; 
-	std::cout<<"Volume:"<<get_total_volume()<<std::endl;
-	std::cout<<"volume_is_changed:"<<get_is_volume_changed()<<std::endl; 
-	
-	std::cout<<"cell_source_sink_solver_temp1"<<std::endl;
-	for(int i=0; i<cell_source_sink_solver_temp1.size();i++)
-	 	std::cout<<i<<":"<<cell_source_sink_solver_temp1[i]<<std::endl; 	
-	 
-	
-	std::cout<<"cell_source_sink_solver_temp2"<<std::endl;
-	for(int i=0; i<cell_source_sink_solver_temp2.size();i++)
-	 	std::cout<<i<<":"<<cell_source_sink_solver_temp2[i]<<std::endl; 	
-	
-	 
-	std::cout<<"Prev_Vel[0]:"<<previous_velocity[0]<<" Prev_Vel[1]:"<<previous_velocity[1]<<" Prev_Vel[2]:"<<previous_velocity[2]<<std::endl;
-	std::cout<<"is_active:"<<is_active<<std::endl; 
-	
-	std::cout<<"total_extracellular_substrate_change"<<std::endl;
-	for(int i=0; i<total_extracellular_substrate_change.size();i++)
-	 	std::cout<<i<<":"<<total_extracellular_substrate_change[i]<<std::endl; 	
-	
-	
-	std::cout<<"Secretion Rates"<<std::endl;
-	for(int i=0; i<secretion_rates->size();i++)
-	 	std::cout<<i<<":"<<secretion_rates[i]<<std::endl; 	
-	
-	
-	std::cout<<"Saturation Densities"<<std::endl;
-	for(int i=0; i<saturation_densities->size();i++)
-	 	std::cout<<i<<":"<<saturation_densities[i]<<std::endl; 	
-	
-	
-	std::cout<<"Uptake Rates"<<std::endl;
-	for(int i=0; i<uptake_rates->size();i++)
-	 	std::cout<<i<<":"<<uptake_rates[i]<<std::endl; 	
-	
-	
-	std::cout<<"Internalized Substrates"<<std::endl;
-	for(int i=0; i<internalized_substrates->size();i++)
-	 	std::cout<<i<<":"<<internalized_substrates[i]<<std::endl; 	
-	
-	
-	std::cout<<"Fraction Released At Death"<<std::endl;
-	for(int i=0; i<fraction_released_at_death->size();i++)
-	 	std::cout<<i<<":"<<fraction_released_at_death[i]<<std::endl; 	
-	
-	
-	std::cout<<"Fraction Transferred When Ingested;"<<std::endl;
-	for(int i=0; i<fraction_transferred_when_ingested->size();i++)
-	 	std::cout<<i<<":"<<fraction_transferred_when_ingested[i]<<std::endl; 	
-	
-	
-	std::cout<<"ID Number:"<<ID<<std::endl;
-	std::cout<<"Type:"<<type<<std::endl; 
-	
-	std::cout<<"Position[0]: "<<position[0]<<" Position[1]:"<<position[1]<<" Position[2]:"<<position[2]<<std::endl;
-	std::cout<<"Vel[0]:"<< velocity[0]<<" Vel[1]:"<<velocity[1]<<" Vel[2]:"<<velocity[2]<<std::endl;
-	
-	/*==============CUSTOM_CELL_DATA====================*/
-	
-	std::cout<<endl; 
-	std::cout<<"Custom Cell Data"<<std::endl; 
-	std::cout<<"Name to Index Map"<<std::endl;
-	for(auto it = (this->custom_data.get_name_to_index_map()).cbegin(); it != (this->custom_data.get_name_to_index_map()).cend(); it++)
-		std::cout<<"{"<<(*it).first<<":"<<(*it).second<<"}"<<std::endl; 
-	
-	/*===============CELL_PARAMETERS====================*/
-	
-	std::cout<<std::endl; 
-	std::cout<<"Cell Parameters"<<std::endl;
-	std::cout<<"o2_hypoxic_threshold:"<<this->parameters.o2_hypoxic_threshold<<std::endl;
-	std::cout<<"o2_hypoxic_response:"<<this->parameters.o2_hypoxic_response<<std::endl; 
-	std::cout<<"o2_hypoxic_saturation:"<<this->parameters.o2_hypoxic_saturation<<std::endl;
-	std::cout<<"o2_proliferation_saturation:"<<this->parameters.o2_proliferation_saturation<<std::endl;
-	std::cout<<"o2_proliferation_threshold"<<this->parameters.o2_proliferation_threshold<<std::endl;
-	std::cout<<"o2_reference"<<this->parameters.o2_reference<<std::endl;
-	std::cout<<"o2_necrosis_threshold"<<this->parameters.o2_necrosis_threshold<<std::endl;
-	std::cout<<"o2_necrosis_max"<<this->parameters.o2_necrosis_max<<std::endl;
-	std::cout<<"max_necrosis_rate"<<this->parameters.max_necrosis_rate<<std::endl;
-	std::cout<<"necrosis_type"<<this->parameters.necrosis_type<<std::endl;
-	if(this->parameters.pReference_live_phenotype != NULL)
-		std::cout<<"pReference_live_phenotype pointer in Cell_Parameters is NOT NULL"<<std::endl;
-	if(this->parameters.pReference_live_phenotype == &phenotype)
-		std::cout<<"pReference_live_phenotype pointer in Cell_Parameters is pointing to object phenotype of class Phenotype"<<std::endl; 
-	
-	/*=========CELL_STATE============*/
-	
-	std::cout<<std::endl; 
-	std::cout<<"Orientation"<<std::endl;
-	std::cout<<"Orient[0]:"<< (this->state).orientation[0] << " Orient[1]:" << (this->state).orientation[1] << " Orient[2]:" << (this->state).orientation[2] << std::endl; 
-	std::cout<<"Simple Pressure:"<<this->state.simple_pressure<<std::endl; 
-	
-	/*=========PHENOTYPE===============*/
-	
-	std::cout<<std::endl; 
-	std::cout<<"Phenotype Data"<<std::endl;
-	std::cout<<"flagged_for_division:"<<this->phenotype.flagged_for_division<<std::endl;
-	std::cout<<"flagged_for_removal:"<<this->phenotype.flagged_for_removal<<std::endl; 
-	
-	
-	/*===========VARIABLE==============*/
-	
-	std::cout<<std::endl; 
-	std::cout<<"Custom Cell Data variables"<<std::endl;
+
+	ofile<<"=> class Cell { class Custom_Cell_Data { class Variable { "<<std::endl;
 	for(int i=0; i<this->custom_data.variables.size(); i++)
-		std::cout<<"i:"<<i<<" name:"<<this->custom_data.variables[i].name<<" value:"<<this->custom_data.variables[i].value << " units:"<<this->custom_data.variables[i].units<<std::endl;  
-	
-	/*=========VECTOR_VARIABLE==========*/
-	
-	std::cout<<std::endl; 
-	std::cout<<"Custom Cell Data Variables Vectors"<<std::endl; 
+		ofile<<"i:"<<i<<" name:"<<this->custom_data.variables[i].name<<" value:"<<this->custom_data.variables[i].value << " units:"<<this->custom_data.variables[i].units<<std::endl;
+			
+			
+	ofile<<"=> class Cell { class Custom_Cell_Data { class Vector_Variable { "<<std::endl; 
 	for(int i=0; i<this->custom_data.vector_variables.size();i++)
 	{
-		std::cout<<"i:"<<i<<" name:"<<this->custom_data.vector_variables[i].name<<" units:"<<this->custom_data.variables[i].units<<std::endl;
+		ofile<<"i:"<<i<<" name:"<<this->custom_data.vector_variables[i].name<<" units:"<<this->custom_data.variables[i].units<<std::endl;
 		for(int j=0; j<this->custom_data.vector_variables[i].value.size();j++)
-			std::cout<<" value "<<j<<":"<<this->custom_data.vector_variables[i].value[j]<<std::endl;
+			ofile<<" value "<<j<<":"<<this->custom_data.vector_variables[i].value[j]<<std::endl;
 	}
 	
-	/*===========CYCLE_MODEL=============*/
+		
+	ofile<<"=> class Cell { class Cell_Parameters { "<<std::endl;
+	ofile<<"o2_hypoxic_threshold:"<<this->parameters.o2_hypoxic_threshold<<std::endl;
+	ofile<<"o2_hypoxic_response:"<<this->parameters.o2_hypoxic_response<<std::endl; 
+	ofile<<"o2_hypoxic_saturation:"<<this->parameters.o2_hypoxic_saturation<<std::endl;
+	ofile<<"o2_proliferation_saturation:"<<this->parameters.o2_proliferation_saturation<<std::endl;
+	ofile<<"o2_proliferation_threshold:"<<this->parameters.o2_proliferation_threshold<<std::endl;
+	ofile<<"o2_reference:"<<this->parameters.o2_reference<<std::endl;
+	ofile<<"o2_necrosis_threshold:"<<this->parameters.o2_necrosis_threshold<<std::endl;
+	ofile<<"o2_necrosis_max:"<<this->parameters.o2_necrosis_max<<std::endl;
+	ofile<<"max_necrosis_rate:"<<this->parameters.max_necrosis_rate<<std::endl;
+	ofile<<"necrosis_type:"<<this->parameters.necrosis_type<<std::endl;
+	if(this->parameters.pReference_live_phenotype != NULL)
+		ofile<<"pReference_live_phenotype pointer in Cell_Parameters is NOT NULL"<<std::endl;
+	if(this->parameters.pReference_live_phenotype == &phenotype)
+		ofile<<"pReference_live_phenotype pointer in Cell_Parameters is pointing to object phenotype of class Phenotype"<<std::endl;  
 	
-	std::cout<<std::endl; 
-	std::cout<<"Cycle Model data"<<std::endl;
-	std::cout<<"name:"<<this->functions.cycle_model.name<<" code:"<<this->functions.cycle_model.code<<std::endl; 
-	std::cout<<"default_phase_index:"<<this->functions.cycle_model.default_phase_index<<std::endl; 
+	
+	ofile<<"=> class Cell { class Functions { class Cycle_Model { "<<std::endl;
 	std::vector<std::unordered_map<int,int>> &inverse_index_maps_cycle_model = this->functions.cycle_model.get_inverse_index_maps();
-	std::cout<<"Vector of unordered maps"<<std::endl;  
+	ofile<<"Vector of unordered maps"<<std::endl;  
 	for(int i=0; i<inverse_index_maps_cycle_model.size(); i++)
 	{
 		for(auto it = inverse_index_maps_cycle_model[i].cbegin(); it != inverse_index_maps_cycle_model[i].cend(); it++)
-			std::cout<<"{"<<(*it).first<<":"<<(*it).second<<"}"<<std::endl;
-		std::cout<<endl; 
+			ofile<<"{"<<(*it).first<<":"<<(*it).second<<"}"<<std::endl;
 	}
+	ofile<<"name:"<<this->functions.cycle_model.name<<std::endl;
+	ofile<<"code:"<<this->functions.cycle_model.code<<std::endl;
 	
-	/*==============CYCLE=================*/
-	
-	std::cout<<std::endl; 
-	std::cout<<"Cycle data - only pointer checking"<<std::endl;
-	if(this->phenotype.cycle.pCycle_Model != NULL)
-		std::cout<<"Pointer pCycle_Model in Cycle class is NOT NULL"<<std::endl; 
-	
-	
-	/*===============DEATH=================*/
-	
-	std::cout<<std::endl; 
-	std::cout<<"Death Data"<<std::endl;
-	std::cout<<"dead:"<<this->phenotype.death.dead<<std::endl; 
-	std::cout<<"current_death_model_index:"<<this->phenotype.death.current_death_model_index<<std::endl; 
-	for(int i=0; i < this->phenotype.death.rates.size(); i++)
-		std::cout<<"rates "<<i<<":"<<this->phenotype.death.rates[i]<<std::endl;
-	std::cout<<"Checking if vector of Cycle_Model pointers contains NULL entries"<<std::endl;
-	for(int i=0; i< this->phenotype.death.models.size(); i++)
-		if(this->phenotype.death.models[i] != NULL)
-			cout<<"models["<<i<<"]"<<" is NOT NULL"<<std::endl; 
-		
-	/*===============VOLUME================*/
-	
-	std::cout<<std::endl; 
-	std::cout<<"Volume Data"<<std::endl;
-	std::cout<<"total:"<<this->phenotype.volume.total<<std::endl; 
-	std::cout<<"solid:"<<this->phenotype.volume.solid<<std::endl;
-	std::cout<<"fluid:"<<this->phenotype.volume.fluid<<std::endl;
-	std::cout<<"fluid_fraction:"<<this->phenotype.volume.fluid_fraction<<std::endl;
-	std::cout<<"nuclear:"<<this->phenotype.volume.nuclear<<std::endl;
-	std::cout<<"nuclear_fluid:"<<this->phenotype.volume.nuclear_fluid<<std::endl; 
-	std::cout<<"nuclear_solid:"<<this->phenotype.volume.nuclear_solid<<std::endl;
-	std::cout<<"cytoplasmic:"<<this->phenotype.volume.cytoplasmic<<std::endl;
-	std::cout<<"cytoplasmic_fluid:"<<this->phenotype.volume.cytoplasmic_fluid<<std::endl;
-	std::cout<<"cytoplasmic_solid:"<<this->phenotype.volume.cytoplasmic_solid<<std::endl;
-	std::cout<<"calcified_fraction:"<<this->phenotype.volume.calcified_fraction<<std::endl; 
-	std::cout<<"cytoplasmic_to_nuclear_ratio:"<<this->phenotype.volume.cytoplasmic_to_nuclear_ratio<<std::endl;
-	std::cout<<"rupture_volume:"<<this->phenotype.volume.rupture_volume<<std::endl;
-	std::cout<<"cytoplasmic_biomass_change_rate:"<<this->phenotype.volume.cytoplasmic_biomass_change_rate<<std::endl;
-	std::cout<<"nuclear_biomass_change_rate:"<<this->phenotype.volume.nuclear_biomass_change_rate<<std::endl;
-	std::cout<<"fluid_change_rate:"<<this->phenotype.volume.fluid_change_rate<<std::endl; 
-	std::cout<<"calcification_rate:"<<this->phenotype.volume.calcification_rate<<std::endl;
-	std::cout<<"target_solid_cytoplasmic:"<<this->phenotype.volume.target_solid_cytoplasmic<<std::endl;
-	std::cout<<"target_solid_nuclear:"<<this->phenotype.volume.target_solid_nuclear<<std::endl;
-	std::cout<<"target_fluid_fraction:"<<this->phenotype.volume.target_fluid_fraction<<std::endl;
-	std::cout<<"target_cytoplasmic_to_nuclear_ratio:"<<this->phenotype.volume.target_cytoplasmic_to_nuclear_ratio<<std::endl;
-	std::cout<<"relative_rupture_volume:"<<this->phenotype.volume.relative_rupture_volume<<std::endl;
-
-	/*===============GEOMETRY============*/
-	
-	std::cout<<std::endl; 
-	std::cout<<"Geometry Data"<<std::endl;
-	std::cout<<"radius:"<<this->phenotype.geometry.radius<<std::endl;
-	std::cout<<"nuclear_radius:"<<this->phenotype.geometry.nuclear_radius<<std::endl;
-	std::cout<<"surface_area:"<<this->phenotype.geometry.surface_area<<std::endl;
-	std::cout<<"polarity:"<<this->phenotype.geometry.polarity<<std::endl;
-	
-	/*===============MECHANICS============*/
-	
-	std::cout<<std::endl; 
-	std::cout<<"Mechanics Data"<<std::endl;
-	std::cout<<"cell_adhesion_strength:"<<this->phenotype.mechanics.cell_cell_adhesion_strength<<std::endl;
-	std::cout<<"cell_BM_adhesion_strength:"<<this->phenotype.mechanics.cell_BM_adhesion_strength<<std::endl;
-	std::cout<<"cell_cell_repulsion_strength:"<<this->phenotype.mechanics.cell_cell_repulsion_strength<<std::endl;
-	std::cout<<"cell_BM_repulsion_strength:"<<this->phenotype.mechanics.cell_BM_repulsion_strength<<std::endl;	 
-	std::cout<<"relative_maximum_adhesion_distance:"<<this->phenotype.mechanics.relative_maximum_adhesion_distance<<std::endl;
-	
-	/*=================MOTILITY===========*/
-	
-	std::cout<<std::endl; 
-	std::cout<<"Motility Data"<<std::endl;
-	std::cout<<"is_motile:"<<this->phenotype.motility.is_motile<<std::endl;
-	std::cout<<"persistence_time:"<<this->phenotype.motility.persistence_time<<std::endl;
-	std::cout<<"migration_speed:"<<this->phenotype.motility.migration_speed<<std::endl;
-	std::cout<<"migration_bias:"<<this->phenotype.motility.migration_bias<<std::endl;
-	std::cout<<"restrict_to_2D:"<<this->phenotype.motility.restrict_to_2D<<std::endl;
-	for(int i=0; i<this->phenotype.motility.migration_bias_direction.size(); i++)
-		std::cout<<"bias direction "<<i<<":"<<this->phenotype.motility.migration_bias_direction[i]<<std::endl;
-	for(int i=0; i<this->phenotype.motility.motility_vector.size(); i++)
-		std::cout<<"motility vector "<<i<<":"<<this->phenotype.motility.motility_vector[i]<<std::endl; 
-	
-	/*=================SECRETION============*/
-	
-	std::cout<<std::endl; 
-	std::cout<<"Secretion Data"<<std::endl;
-	for(int i=0; i<this->phenotype.secretion.secretion_rates.size();i++)
-			std::cout<<"secretion_rates "<<i<<":"<<this->phenotype.secretion.secretion_rates[i]<<std::endl; 
-	for(int i=0; i<this->phenotype.secretion.uptake_rates.size();i++)
-			std::cout<<"uptake_rates "<<i<<":"<<this->phenotype.secretion.uptake_rates[i]<<std::endl;
-	for(int i=0; i<this->phenotype.secretion.saturation_densities.size();i++)
-			std::cout<<"saturation densities "<<i<<":"<<this->phenotype.secretion.saturation_densities[i]<<std::endl;
-			
-	/*=================MOLECULAR============*/
-		
-	std::cout<<std::endl; 
-	std::cout<<"Molecular Data"<<std::endl;
-	for(int i=0; i<this->phenotype.molecular.internalized_total_substrates.size();i++)
-			std::cout<<"internalized_total_substrates "<<i<<":"<<this->phenotype.molecular.internalized_total_substrates[i]<<std::endl; 
-	for(int i=0; i<this->phenotype.molecular.fraction_released_at_death.size();i++)
-			std::cout<<"fraction_released_at_death "<<i<<":"<<this->phenotype.molecular.fraction_released_at_death[i]<<std::endl;
-	for(int i=0; i<this->phenotype.molecular.fraction_transferred_when_ingested.size();i++)
-			std::cout<<"fraction_transferred_when_ingested "<<i<<":"<<this->phenotype.molecular.fraction_transferred_when_ingested[i]<<std::endl;	
-		
-	/*===================PHASE===============*/
-	
-	std::cout<<std::endl; 
-	std::cout<<"Phase Data"<<std::endl;
+	ofile<<"=> class Cell { class Functions { class Cycle_Model { class Phase {"<<std::endl;
 	for(int i=0; i<this->functions.cycle_model.phases.size();i++)
 	{
-		std::cout<<i<<":"<<std::endl;
-		std::cout<<"index:"<<this->functions.cycle_model.phases[i].index<<std::endl;
-		std::cout<<"code:"<<this->functions.cycle_model.phases[i].code<<std::endl; 
-		std::cout<<"name"<<this->functions.cycle_model.phases[i].name<<std::endl;
-		std::cout<<"division_at_phase_exit"<<this->functions.cycle_model.phases[i].division_at_phase_exit<<std::endl;
-		std::cout<<"removal_at_phase_exit"<<this->functions.cycle_model.phases[i].removal_at_phase_exit<<std::endl; 
+		ofile<<"index:"	<<this->functions.cycle_model.phases[i].index<<std::endl;
+		ofile<<"code:"	<<this->functions.cycle_model.phases[i].code<<std::endl; 
+		ofile<<"name:"	<<this->functions.cycle_model.phases[i].name<<std::endl;
+		ofile<<"division_at_phase_exit:"	<<this->functions.cycle_model.phases[i].division_at_phase_exit<<std::endl;
+		ofile<<"removal_at_phase_exit:"		<<this->functions.cycle_model.phases[i].removal_at_phase_exit<<std::endl; 
 	}
 	
-	/*================PHASE_LINKS==============*/
-	
-	std::cout<<std::endl; 
-	std::cout<<"Phase Links Data"<<std::endl;
+	ofile<<"=> class Cell { class Functions { class Cycle_Model { class Phase_Links {"<<std::endl;
 	for(int i=0; i<this->functions.cycle_model.phase_links.size();i++)
 		{
-			std::cout<<"Vector:"<<i<<std::endl;
+			ofile<<"Vector:"<<i<<std::endl;
 			for(int j=0; j<this->functions.cycle_model.phase_links[i].size();j++)
 			{
-				std::cout<<"Vector:"<<j<<std::endl;
-				std::cout<<"start_phase_index"<<this->functions.cycle_model.phase_links[i][j].start_phase_index<<std::endl;
-				std::cout<<"end_phase_index"<<this->functions.cycle_model.phase_links[i][j].end_phase_index<<std::endl;
-				std::cout<<"fixed_duration"<<this->functions.cycle_model.phase_links[i][j].fixed_duration<<std::endl;
+				ofile<<"Vector:"<<j<<std::endl;
+				ofile<<"start_phase_index:"	<<this->functions.cycle_model.phase_links[i][j].start_phase_index	<<std::endl;
+				ofile<<"end_phase_index:"		<<this->functions.cycle_model.phase_links[i][j].end_phase_index		<<std::endl;
+				ofile<<"fixed_duration:"		<<this->functions.cycle_model.phase_links[i][j].fixed_duration		<<std::endl;
 			}
 		}
+		  
+	ofile<<"=> class Cell { class Functions { class Cycle_Model {"<<std::endl;
+	ofile<<"default phase index:"<<this->functions.cycle_model.default_phase_index<<std::endl;
 	
-	/*==================CYCLE_DATA==============*/
+	ofile<<"=> class Cell { class Functions { class Cycle_Model { class Cycle_Data { "<<std::endl;
 	
-	std::cout<<std::endl; 
-	std::cout<<"Cycle_Data"<<std::endl;
-	std::cout<<"time_units:"<<this->phenotype.cycle.data.time_units<<std::endl;
-	std::cout<<"current_phase_index:"<<this->phenotype.cycle.data.current_phase_index<<std::endl;
-	std::cout<<"elapsed_time_in_phase:"<<this->phenotype.cycle.data.elapsed_time_in_phase<<std::endl;
-	for(int i=0; i<this->phenotype.cycle.data.transition_rates.size();i++)
+	std::vector<std::unordered_map<int,int>> &inverse_index_maps_cycle_data_cmcd = this->functions.cycle_model.data.get_inverse_index_maps();
+	ofile<<"Vector of unordered maps"<<std::endl;  
+	for(int i=0; i<inverse_index_maps_cycle_data_cmcd.size(); i++)
+	{
+		for(auto it = inverse_index_maps_cycle_data_cmcd[i].cbegin(); it != inverse_index_maps_cycle_data_cmcd[i].cend(); it++)
+			ofile<<"{"<<(*it).first<<":"<<(*it).second<<"}"<<std::endl;
+		ofile<<std::endl; 
+	}
+	if(this->functions.cycle_model.data.pCycle_Model != NULL)
+		ofile<<"pCycle_Model is NOT NULL"<<std::endl;
+	ofile<<"time_units:"<<this->functions.cycle_model.data.time_units<<std::endl;
+	for(int i=0; i<this->functions.cycle_model.data.transition_rates.size();i++)
 		{
-			std::cout<<"Transition Rates Vector:"<<i<<std::endl;
-			for(int j=0; j<this->phenotype.cycle.data.transition_rates[i].size();j++)
-				std::cout<<"rate "<<j<<":"<<this->phenotype.cycle.data.transition_rates[i][j]<<std::endl; 
+			ofile<<"Transition Rates Vector:"<<i<<std::endl;
+			for(int j=0; j<this->functions.cycle_model.data.transition_rates[i].size();j++)
+				ofile<<"rate "<<j<<":"<<this->functions.cycle_model.data.transition_rates[i][j]<<std::endl; 
 		}
+	ofile<<"current_phase_index:"<<this->functions.cycle_model.data.current_phase_index<<std::endl;
+	ofile<<"elapsed_time_in_phase:"<<this->functions.cycle_model.data.elapsed_time_in_phase<<std::endl;
+	
+	ofile<<"=> class Cell { class  State {"<<std::endl; 
+	ofile<<"Orientation[0]:"<< (this->state).orientation[0] << " Orientation[1]:" << (this->state).orientation[1] << " Orientation[2]:" << (this->state).orientation[2] << std::endl; 
+	ofile<<"Simple Pressure:"<<this->state.simple_pressure<<std::endl;
+	
+	
+	ofile<<"=> class Cell { class Phenotype { "<<std::endl;
+	ofile<<"flagged_for_division:"<<this->phenotype.flagged_for_division<<std::endl;
+	ofile<<"flagged_for_removal:"<<this->phenotype.flagged_for_removal<<std::endl;
+	
+	ofile<<"=> class Cell { class Phenotype { class Cycle { class Cycle_Data {  "<<std::endl;
 	std::vector<std::unordered_map<int,int>> &inverse_index_maps_cycle_data = this->phenotype.cycle.data.get_inverse_index_maps();
-	std::cout<<"Vector of unordered maps";  
+	ofile<<"Vector of unordered maps"<<std::endl;  
 	for(int i=0; i<inverse_index_maps_cycle_data.size(); i++)
 	{
 		for(auto it = inverse_index_maps_cycle_data[i].cbegin(); it != inverse_index_maps_cycle_data[i].cend(); it++)
-			std::cout<<"{"<<(*it).first<<":"<<(*it).second<<"}"<<std::endl;
-		std::cout<<endl; 
+			ofile<<"{"<<(*it).first<<":"<<(*it).second<<"}"<<std::endl;
+		ofile<<std::endl; 
 	}
-	std::cout<<"Checking if pCycle_Model pointer is NULL"<<std::endl;
 	if(this->phenotype.cycle.data.pCycle_Model != NULL)
-		std::cout<<"pCycle_Model is NOT NULL"; 
-		
-	/*=============DEATH_PARAMETERS===============*/
-		
-	std::cout<<std::endl; 
-	std::cout<<"Death Parameters"<<std::endl;
+		ofile<<"pCycle_Model is NOT NULL"<<std::endl;
+	ofile<<"time_units:"<<this->phenotype.cycle.data.time_units<<std::endl;
+	for(int i=0; i<this->phenotype.cycle.data.transition_rates.size();i++)
+		{
+			ofile<<"Transition Rates Vector:"<<i<<std::endl;
+			for(int j=0; j<this->phenotype.cycle.data.transition_rates[i].size();j++)
+				std::cout<<"rate "<<j<<":"<<this->phenotype.cycle.data.transition_rates[i][j]<<std::endl; 
+		}
+	ofile<<"current_phase_index:"<<this->phenotype.cycle.data.current_phase_index<<std::endl;
+	ofile<<"elapsed_time_in_phase:"<<this->phenotype.cycle.data.elapsed_time_in_phase<<std::endl;
+	
+	ofile<<"=> class Cell { class Phenotype { class Death {"<<std::endl;
+	for(int i=0; i < this->phenotype.death.rates.size(); i++)
+		ofile<<"rates "<<i<<":"<<this->phenotype.death.rates[i]<<std::endl;
+	ofile<<"Checking if std::vector<Cycle_Model*> models contains NULL entries"<<std::endl;
+	for(int i=0; i< this->phenotype.death.models.size(); i++)
+		if(this->phenotype.death.models[i] == NULL)
+			ofile<<"models["<<i<<"]"<<" is NULL"<<std::endl;
+		else
+			ofile<<"models["<<i<<"]"<<" is NOT NULL"<<std::endl;
+	
+	ofile<<"=> class Cell { class Phenotype { class Death { class Death_Parameters { "<<std::endl; 
 	for(int i=0; i<this->phenotype.death.parameters.size(); i++)
 		{	
-			std::cout<<i<<":"<<std::endl;
-			std::cout<<"time_units:"<<this->phenotype.death.parameters[i].time_units<<std::endl;
-			std::cout<<"unlysed_fluid_change_rate:"<<this->phenotype.death.parameters[i].unlysed_fluid_change_rate<<std::endl;
-			std::cout<<"lysed_fluid_change_rate:"<<this->phenotype.death.parameters[i].lysed_fluid_change_rate<<std::endl;
-			std::cout<<"cytoplasmic_biomass_change_rate:"<<this->phenotype.death.parameters[i].cytoplasmic_biomass_change_rate<<std::endl;
-			std::cout<<"nuclear_biomass_change_rate:"<<this->phenotype.death.parameters[i].nuclear_biomass_change_rate<<std::endl;
-			std::cout<<"calcification rate:"<<this->phenotype.death.parameters[i].calcification_rate<<std::endl;
-			std::cout<<"relative_rupture_volume:"<<this->phenotype.death.parameters[i].relative_rupture_volume<<std::endl;
-		}	
-	}
-	prnt_counter++; 
+			ofile<<i<<":"<<std::endl;
+			ofile<<"time_units:"<<this->phenotype.death.parameters[i].time_units<<std::endl;
+			ofile<<"unlysed_fluid_change_rate:"<<this->phenotype.death.parameters[i].unlysed_fluid_change_rate<<std::endl;
+			ofile<<"lysed_fluid_change_rate:"<<this->phenotype.death.parameters[i].lysed_fluid_change_rate<<std::endl;
+			ofile<<"cytoplasmic_biomass_change_rate:"<<this->phenotype.death.parameters[i].cytoplasmic_biomass_change_rate<<std::endl;
+			ofile<<"nuclear_biomass_change_rate:"<<this->phenotype.death.parameters[i].nuclear_biomass_change_rate<<std::endl;
+			ofile<<"calcification rate:"<<this->phenotype.death.parameters[i].calcification_rate<<std::endl;
+			ofile<<"relative_rupture_volume:"<<this->phenotype.death.parameters[i].relative_rupture_volume<<std::endl;
+		}		
+	 
+	ofile<<"=> class Cell { class Phenotype { class Death {"<<std::endl; 
+	ofile<<"dead:"<<this->phenotype.death.dead<<std::endl; 
+	ofile<<"current_death_model_index:"<<this->phenotype.death.current_death_model_index<<std::endl; 
+	
+	ofile<<"=> class Cell { class Phenotype { class Volume { "<<std::endl;
+	ofile<<"Volume Data"<<std::endl;
+	ofile<<"total:"<<this->phenotype.volume.total<<std::endl; 
+	ofile<<"solid:"<<this->phenotype.volume.solid<<std::endl;
+	ofile<<"fluid:"<<this->phenotype.volume.fluid<<std::endl;
+	ofile<<"fluid_fraction:"<<this->phenotype.volume.fluid_fraction<<std::endl;
+	ofile<<"nuclear:"<<this->phenotype.volume.nuclear<<std::endl;
+	ofile<<"nuclear_fluid:"<<this->phenotype.volume.nuclear_fluid<<std::endl; 
+	ofile<<"nuclear_solid:"<<this->phenotype.volume.nuclear_solid<<std::endl;
+	ofile<<"cytoplasmic:"<<this->phenotype.volume.cytoplasmic<<std::endl;
+	ofile<<"cytoplasmic_fluid:"<<this->phenotype.volume.cytoplasmic_fluid<<std::endl;
+	ofile<<"cytoplasmic_solid:"<<this->phenotype.volume.cytoplasmic_solid<<std::endl;
+	ofile<<"calcified_fraction:"<<this->phenotype.volume.calcified_fraction<<std::endl; 
+	ofile<<"cytoplasmic_to_nuclear_ratio:"<<this->phenotype.volume.cytoplasmic_to_nuclear_ratio<<std::endl;
+	ofile<<"rupture_volume:"<<this->phenotype.volume.rupture_volume<<std::endl;
+	ofile<<"cytoplasmic_biomass_change_rate:"<<this->phenotype.volume.cytoplasmic_biomass_change_rate<<std::endl;
+	ofile<<"nuclear_biomass_change_rate:"<<this->phenotype.volume.nuclear_biomass_change_rate<<std::endl;
+	ofile<<"fluid_change_rate:"<<this->phenotype.volume.fluid_change_rate<<std::endl; 
+	ofile<<"calcification_rate:"<<this->phenotype.volume.calcification_rate<<std::endl;
+	ofile<<"target_solid_cytoplasmic:"<<this->phenotype.volume.target_solid_cytoplasmic<<std::endl;
+	ofile<<"target_solid_nuclear:"<<this->phenotype.volume.target_solid_nuclear<<std::endl;
+	ofile<<"target_fluid_fraction:"<<this->phenotype.volume.target_fluid_fraction<<std::endl;
+	ofile<<"target_cytoplasmic_to_nuclear_ratio:"<<this->phenotype.volume.target_cytoplasmic_to_nuclear_ratio<<std::endl;
+	ofile<<"relative_rupture_volume:"<<this->phenotype.volume.relative_rupture_volume<<std::endl;
+	 
+	ofile<<"=> class Cell { class Phenotype { class  Geometry "<<std::endl;
+	ofile<<"radius:"<<this->phenotype.geometry.radius<<std::endl;
+	ofile<<"nuclear_radius:"<<this->phenotype.geometry.nuclear_radius<<std::endl;
+	ofile<<"surface_area:"<<this->phenotype.geometry.surface_area<<std::endl;
+	ofile<<"polarity:"<<this->phenotype.geometry.polarity<<std::endl; 
+	
+	ofile<<"=> class Cell { class Phenotype { class  Mechanics "<<std::endl;
+	ofile<<"cell_adhesion_strength:"<<this->phenotype.mechanics.cell_cell_adhesion_strength<<std::endl;
+	ofile<<"cell_BM_adhesion_strength:"<<this->phenotype.mechanics.cell_BM_adhesion_strength<<std::endl;
+	ofile<<"cell_cell_repulsion_strength:"<<this->phenotype.mechanics.cell_cell_repulsion_strength<<std::endl;
+	ofile<<"cell_BM_repulsion_strength:"<<this->phenotype.mechanics.cell_BM_repulsion_strength<<std::endl;	 
+	ofile<<"relative_maximum_adhesion_distance:"<<this->phenotype.mechanics.relative_maximum_adhesion_distance<<std::endl;
+	
+	ofile<<"=> class Cell { class  Phenotype { class Motility { "<<std::endl;
+	ofile<<"is_motile:"<<this->phenotype.motility.is_motile<<std::endl;
+	ofile<<"persistence_time:"<<this->phenotype.motility.persistence_time<<std::endl;
+	ofile<<"migration_speed:"<<this->phenotype.motility.migration_speed<<std::endl;
+	for(int i=0; i<this->phenotype.motility.migration_bias_direction.size(); i++)
+		ofile<<"migration bias direction "<<i<<":"<<this->phenotype.motility.migration_bias_direction[i]<<std::endl;
+	ofile<<"migration_bias:"<<this->phenotype.motility.migration_bias<<std::endl;
+	ofile<<"restrict_to_2D:"<<this->phenotype.motility.restrict_to_2D<<std::endl;
+	for(int i=0; i<this->phenotype.motility.motility_vector.size(); i++)
+		ofile<<"motility vector "<<i<<":"<<this->phenotype.motility.motility_vector[i]<<std::endl;
+	ofile<<"chemotaxis_index:"<<this->phenotype.motility.chemotaxis_index<<std::endl; 
+	ofile<<"chemotaxis_direction:"<<this->phenotype.motility.chemotaxis_direction<<std::endl; 
+	
+	ofile<<"=> class Cell { class Phenotype { class Secretion { "<<std::endl;
+	for(int i=0; i<this->phenotype.secretion.secretion_rates.size();i++)
+			ofile<<"secretion_rates "<<i<<":"<<this->phenotype.secretion.secretion_rates[i]<<std::endl; 
+	for(int i=0; i<this->phenotype.secretion.uptake_rates.size();i++)
+			ofile<<"uptake_rates "<<i<<":"<<this->phenotype.secretion.uptake_rates[i]<<std::endl;
+	for(int i=0; i<this->phenotype.secretion.saturation_densities.size();i++)
+			ofile<<"saturation_densities "<<i<<":"<<this->phenotype.secretion.saturation_densities[i]<<std::endl;
+	for(int i=0; i<this->phenotype.secretion.net_export_rates.size();i++)
+			ofile<<"net_export_rates "<<i<<":"<<this->phenotype.secretion.net_export_rates[i]<<std::endl;
+	
+	ofile<<"=> class Cell { class Phenotype { class Molecular { "<<std::endl;
+	for(int i=0; i<this->phenotype.molecular.internalized_total_substrates.size();i++)
+			ofile<<"internalized_total_substrates "<<i<<":"<<this->phenotype.molecular.internalized_total_substrates[i]<<std::endl; 
+	for(int i=0; i<this->phenotype.molecular.fraction_released_at_death.size();i++)
+			ofile<<"fraction_released_at_death "<<i<<":"<<this->phenotype.molecular.fraction_released_at_death[i]<<std::endl;
+	for(int i=0; i<this->phenotype.molecular.fraction_transferred_when_ingested.size();i++)
+			ofile<<"fraction_transferred_when_ingested "<<i<<":"<<this->phenotype.molecular.fraction_transferred_when_ingested[i]<<std::endl;
+	
+	ofile<<"=> class Cell { "<<std::endl;
+	ofile<<"is_out_of_domain:"<<is_out_of_domain<<std::endl; 
+	ofile<<"is_movable:"<<is_movable<<std::endl;
+	for(int i=0; i<displacement.size(); i++)
+		ofile<<"Displacement["<<i<<"]:"<<displacement[i]<<std::endl;
+		
+	ofile<<"=> class Cell inherits from Basic_Agent - its members now"<<std::endl;
+	ofile<<"=> class Basic_Agent { "<<std::endl; 
+	ofile<<"Volume:"<<this->get_total_volume()<<std::endl;
+	ofile<<"volume_is_changed:"<<this->get_is_volume_changed()<<std::endl;
+	
+	ofile<<"cell_source_sink_solver_temp1:"<<std::endl;
+	for(int i=0; i<cell_source_sink_solver_temp1.size();i++)
+	 	ofile<<i<<":"<<cell_source_sink_solver_temp1[i]<<std::endl; 	
+	 
+	ofile<<"cell_source_sink_solver_temp2:"<<std::endl;
+	for(int i=0; i<cell_source_sink_solver_temp2.size();i++)
+	 	ofile<<i<<":"<<cell_source_sink_solver_temp2[i]<<std::endl;
+	 
+	ofile<<"cell_source_sink_solver_temp_export1:"<<std::endl;
+	for(int i=0; i<cell_source_sink_solver_temp_export1.size();i++)
+	 	ofile<<i<<":"<<cell_source_sink_solver_temp_export1[i]<<std::endl;
+	
+	ofile<<"cell_source_sink_solver_temp_export2:"<<std::endl;
+	for(int i=0; i<cell_source_sink_solver_temp_export2.size();i++)
+	 	ofile<<i<<":"<<cell_source_sink_solver_temp_export2[i]<<std::endl;
+	
+	ofile<<"Prev_Vel[0]:"<<previous_velocity[0]<<" Prev_Vel[1]:"<<previous_velocity[1]<<" Prev_Vel[2]:"<<previous_velocity[2]<<std::endl;
+	ofile<<"is_active:"<<is_active<<std::endl; 
+	
+	ofile<<"total_extracellular_substrate_change"<<std::endl;
+	for(int i=0; i<total_extracellular_substrate_change.size();i++)
+	 	ofile<<i<<":"<<total_extracellular_substrate_change[i]<<std::endl;
+	
+	ofile<<"Secretion Rates"<<std::endl;
+	for(int i=0; i<secretion_rates->size();i++)
+	 	ofile<<i<<":"<<secretion_rates->data()[i]<<std::endl; 	
+	
+	ofile<<"Saturation Densities"<<std::endl;
+	for(int i=0; i<saturation_densities->size();i++)
+	 	ofile<<i<<":"<<saturation_densities->data()[i]<<std::endl; 	
+	
+	
+	ofile<<"Uptake Rates"<<std::endl;
+	for(int i=0; i<uptake_rates->size();i++)
+	 	ofile<<i<<":"<<uptake_rates->data()[i]<<std::endl;
+	
+	ofile<<"Net Export Rates"<<std::endl;
+	for(int i=0; i<net_export_rates->size();i++)
+	 	ofile<<i<<":"<<net_export_rates->data()[i]<<std::endl;
+	
+	
+	ofile<<"Internalized Substrates"<<std::endl;
+	for(int i=0; i<internalized_substrates->size();i++)
+	 	ofile<<i<<":"<<internalized_substrates->data()[i]<<std::endl; 	
+	
+	
+	ofile<<"Fraction Released At Death"<<std::endl;
+	for(int i=0; i<fraction_released_at_death->size();i++)
+	 	ofile<<i<<":"<<fraction_released_at_death->data()[i]<<std::endl; 	
+	
+	
+	ofile<<"Fraction Transferred When Ingested;"<<std::endl;
+	for(int i=0; i<fraction_transferred_when_ingested->size();i++)
+	 	ofile<<i<<":"<<fraction_transferred_when_ingested->data()[i]<<std::endl;
+	
+	ofile<<"Vel[0]:"<< velocity[0]<<" Vel[1]:"<<velocity[1]<<" Vel[2]:"<<velocity[2]<<std::endl;
+	
+	ofile.close();
+ 
 }
 
 
@@ -2112,7 +2147,7 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 /* buffer. 
 /*-----------------------------------------------------------------------*/	
 
-	
+	 
 	
 	int len_snd_buf_left  	 = 0; 
 	int len_snd_buf_right 	 = 0; 
@@ -2195,7 +2230,7 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 			
 			/* Pack length of string (MPI_INT) and then string pCell->type_name (MPI_CHAR) */
 			
-			//std::cout<<"Type Name in Packing = "<<pCell->type_name<<std::endl; 
+			//std::cout<<"Type Name in Packing = "<<pCell->type_name<<std::endl;  
 			len_str = pCell->type_name.length(); 
 			len_snd_buf_left = position_left + sizeof(len_str) + len_str;
 			snd_buf_left.resize(len_snd_buf_left); 
@@ -2214,41 +2249,44 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 					
 			for(auto it = (pCell->custom_data.get_name_to_index_map()).cbegin(); it != (pCell->custom_data.get_name_to_index_map()).cend(); it++)
 			{
-				/* resize buffer to contain length of string, string and integer */
-				
+				/* resize buffer to contain length of string, string and integer */ 
 				temp_str = it->first; 
-				temp_int = it->second;
+				temp_int = it->second; 
 				len_str = temp_str.length();
 				len_snd_buf_left = position_left + sizeof(len_str) + len_str + sizeof(temp_int); 
 				snd_buf_left.resize(len_snd_buf_left);
 				 
-				MPI_Pack(&len_str, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+				MPI_Pack(&len_str, 1, 					MPI_INT, 	&snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
 				MPI_Pack(&temp_str[0], len_str, MPI_CHAR, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
-				MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD ); 			
+				MPI_Pack(&temp_int, 1, 					MPI_INT, 	&snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD ); 			
 			}	
 			
 			
 			
 		 /* Packing members of class 'Variable' (as we are going depth first i.e. Inorder traversal of data members) */
 		 	 
-		 	len_vector = pCell->custom_data.variables.size();
+		 	len_vector = pCell->custom_data.variables.size(); 
 		 	len_snd_buf_left = position_left + sizeof(len_vector);
 		 	snd_buf_left.resize(len_snd_buf_left); 
 		 	MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
 	 
 		 	for(int i=0; i<pCell->custom_data.variables.size(); i++)
-		 	{
+		 	{ 
 		    temp_str = pCell->custom_data.variables[i].name; 
 		    len_str = temp_str.length();
 		    len_snd_buf_left = position_left + len_str + sizeof(len_str); 
 		    snd_buf_left.resize(len_snd_buf_left);
-		    MPI_Pack(&len_str, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+		    MPI_Pack(&len_str, 1, 					MPI_INT,  &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
 		    MPI_Pack(&temp_str[0], len_str, MPI_CHAR, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
 		    
 		    /* There was a mistake in MPI_Pack here, instead of &snd_buf_left[0], I had &snd_buf_left */
-		    temp_double = pCell->custom_data.variables[i].value;
-		    len_snd_buf_left = position_left + sizeof(temp_double); 
+		    /* A second mistake is the 'missing buffer resize statement ! 														*/
+		    
+		    temp_double = pCell->custom_data.variables[i].value; 
+		    len_snd_buf_left = position_left + sizeof(temp_double);
+		    snd_buf_left.resize(len_snd_buf_left); 
 		    MPI_Pack(&temp_double, 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+		    
 		    
 		    temp_str = pCell->custom_data.variables[i].units; 
 		    len_str = temp_str.length();
@@ -2260,13 +2298,14 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 			
 			/* Packing members of class 'Vector_Variable' i.e. string name, a vector<double> value and string units */
 			
-			len_vector = pCell->custom_data.vector_variables.size();
+			len_vector = pCell->custom_data.vector_variables.size(); 
 		 	len_snd_buf_left = position_left + sizeof(len_vector);
 		 	snd_buf_left.resize(len_snd_buf_left); 
 		 	MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
 			
+			 
 			for(int i=0; i<pCell->custom_data.vector_variables.size(); i++)
-			{
+			{ 
 				temp_str = pCell->custom_data.vector_variables[i].name; 
 		    len_str = temp_str.length();
 		    len_snd_buf_left = position_left + len_str + sizeof(len_str); 
@@ -2745,6 +2784,15 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
 		MPI_Pack(&(pCell->phenotype.motility.motility_vector[0]), len_vector, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
 	
+		/*================================================================*/
+		/* Version 1.7 introduces 2 new 'int' variables in class Motility */
+		/* Now these will be packed 																			*/
+		/*================================================================*/
+		
+		len_snd_buf_left = position_left + 2 * sizeof(int); 
+		snd_buf_left.resize(len_snd_buf_left);
+		MPI_Pack(&(pCell->phenotype.motility.chemotaxis_index), 		1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.motility.chemotaxis_direction), 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
 		
 		/* Now packing data members of class Secretion as its object is a data member of class Phenotype */
 		
@@ -2766,6 +2814,16 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
 		MPI_Pack(&(pCell->phenotype.secretion.saturation_densities[0]), len_vector, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
 		
+		/*==================================================================================*/
+		/* Version 1.7 introduces 1 new double vector 'net_export_rates' in class Secretion */
+		/* Now these will be packed 																												*/
+		/*==================================================================================*/
+		
+		len_vector = pCell->phenotype.secretion.net_export_rates.size();
+		len_snd_buf_left = position_left + sizeof(len_vector) + len_vector * sizeof(double);
+		snd_buf_left.resize(len_snd_buf_left);
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.secretion.net_export_rates[0]), len_vector, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
 		
 		
 		/* Now packing data members of class Molcular as its object is a data member of class Phenotype */
@@ -2847,6 +2905,25 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
 		MPI_Pack(&temp_cell_source_sink_solver_temp2[0], len_vector, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
 
+		/*=============================================================================================*/
+		/* v1.7 introduces 2 more new protected vector of doubles - helper functions have been written */
+		/* Now they will be packed - similar to the way the other 3 protected vector doubles 					 */
+		/*=============================================================================================*/
+
+		std::vector<double> & temp_cell_source_sink_solver_temp_export1 = pCell->get_cell_source_sink_solver_temp_export1();
+		len_vector = temp_cell_source_sink_solver_temp_export1.size(); 
+		len_snd_buf_left = position_left + sizeof(len_vector) + len_vector * sizeof(double);
+		snd_buf_left.resize(len_snd_buf_left); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&temp_cell_source_sink_solver_temp_export1[0], len_vector, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);		
+
+		std::vector<double> & temp_cell_source_sink_solver_temp_export2 = pCell->get_cell_source_sink_solver_temp_export2();
+		len_vector = temp_cell_source_sink_solver_temp_export2.size(); 
+		len_snd_buf_left = position_left + sizeof(len_vector) + len_vector * sizeof(double);
+		snd_buf_left.resize(len_snd_buf_left); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(&temp_cell_source_sink_solver_temp_export2[0], len_vector, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);		
+		
 		std::vector<double> & temp_previous_velocity = pCell->get_previous_velocity();
 		len_vector = temp_previous_velocity.size(); 
 		len_snd_buf_left = position_left + sizeof(len_vector) + len_vector * sizeof(double);
@@ -2890,6 +2967,18 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 		snd_buf_left.resize(len_snd_buf_left); 
 		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
 		MPI_Pack(pCell->uptake_rates->data(), len_vector, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		
+		/*==============================================================================================*/
+		/* A new public data member of type pointer to a double vector named 'net_export_rates' in v1.7 */
+		/* Now this will be packed 																																			*/
+		/*==============================================================================================*/
+		
+		len_vector = pCell->net_export_rates->size(); 
+		len_snd_buf_left = position_left + sizeof(len_vector) + len_vector * sizeof(double); 
+		snd_buf_left.resize(len_snd_buf_left); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		MPI_Pack(pCell->net_export_rates->data(), len_vector, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+		
 
 		len_vector = pCell->internalized_substrates->size(); 
 		len_snd_buf_left = position_left + sizeof(len_vector) + len_vector * sizeof(double); 
@@ -2924,6 +3013,7 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
 		MPI_Pack(&(pCell->velocity[0]), len_vector, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
 		
+		pCell->print_cell(world); 
 	}
 	
 		/*----------------------------------------------------------------------*/
@@ -3001,8 +3091,11 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 		    MPI_Pack(&temp_str[0], len_str, MPI_CHAR, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
 		    
 		    /* There was a mistake in MPI_Pack here, instead of &snd_buf_right[0], I had &snd_buf_right */
+		    /* A second mistake is the 'missing buffer resize statement ! 															*/
+		    
 		    temp_double = pCell->custom_data.variables[i].value;
-		    len_snd_buf_right = position_right + sizeof(temp_double); 
+		    len_snd_buf_right = position_right + sizeof(temp_double);
+		    snd_buf_right.resize(len_snd_buf_right); 
 		    MPI_Pack(&temp_double, 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
 		    
 		    temp_str = pCell->custom_data.variables[i].units; 
@@ -3500,6 +3593,15 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
 		MPI_Pack(&(pCell->phenotype.motility.motility_vector[0]), len_vector, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
 	
+		/*================================================================*/
+		/* Version 1.7 introduces 2 new 'int' variables in class Motility */
+		/* Now these will be packed 																			*/
+		/*================================================================*/
+		
+		len_snd_buf_right = position_right + 2 * sizeof(int); 
+		snd_buf_right.resize(len_snd_buf_right);
+		MPI_Pack(&(pCell->phenotype.motility.chemotaxis_index), 		1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.motility.chemotaxis_direction), 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
 		
 		/* Now packing data members of class Secretion as its object is a data member of class Phenotype */
 		
@@ -3521,7 +3623,17 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
 		MPI_Pack(&(pCell->phenotype.secretion.saturation_densities[0]), len_vector, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
 		
+		/*==================================================================================*/
+		/* Version 1.7 introduces 1 new double vector 'net_export_rates' in class Secretion */
+		/* Now these will be packed 																												*/
+		/*==================================================================================*/
 		
+		len_vector = pCell->phenotype.secretion.net_export_rates.size();
+		len_snd_buf_right = position_right + sizeof(len_vector) + len_vector * sizeof(double);
+		snd_buf_right.resize(len_snd_buf_right);
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&(pCell->phenotype.secretion.net_export_rates[0]), len_vector, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);		
+				
 		
 		/* Now packing data members of class Molcular as its object is a data member of class Phenotype */
 		
@@ -3602,6 +3714,25 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
 		MPI_Pack(&temp_cell_source_sink_solver_temp2[0], len_vector, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
 
+		/*=============================================================================================*/
+		/* v1.7 introduces 2 more new protected vector of doubles - helper functions have been written */
+		/* Now they will be packed - similar to the way the other 3 protected vector doubles 					 */
+		/*=============================================================================================*/
+
+		std::vector<double> & temp_cell_source_sink_solver_temp_export1 = pCell->get_cell_source_sink_solver_temp_export1();
+		len_vector = temp_cell_source_sink_solver_temp_export1.size(); 
+		len_snd_buf_right = position_right + sizeof(len_vector) + len_vector * sizeof(double);
+		snd_buf_right.resize(len_snd_buf_right); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&temp_cell_source_sink_solver_temp_export1[0], len_vector, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);		
+
+		std::vector<double> & temp_cell_source_sink_solver_temp_export2 = pCell->get_cell_source_sink_solver_temp_export2();
+		len_vector = temp_cell_source_sink_solver_temp_export2.size(); 
+		len_snd_buf_right = position_right + sizeof(len_vector) + len_vector * sizeof(double);
+		snd_buf_right.resize(len_snd_buf_right); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(&temp_cell_source_sink_solver_temp_export2[0], len_vector, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+
 		std::vector<double> & temp_previous_velocity = pCell->get_previous_velocity();
 		len_vector = temp_previous_velocity.size(); 
 		len_snd_buf_right = position_right + sizeof(len_vector) + len_vector * sizeof(double);
@@ -3646,6 +3777,17 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
 		MPI_Pack(pCell->uptake_rates->data(), len_vector, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
 
+		/*==============================================================================================*/
+		/* A new public data member of type pointer to a double vector named 'net_export_rates' in v1.7 */
+		/* Now this will be packed 																																			*/
+		/*==============================================================================================*/
+		
+		len_vector = pCell->net_export_rates->size(); 
+		len_snd_buf_right = position_right + sizeof(len_vector) + len_vector * sizeof(double); 
+		snd_buf_right.resize(len_snd_buf_right); 
+		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		MPI_Pack(pCell->net_export_rates->data(), len_vector, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+
 		len_vector = pCell->internalized_substrates->size(); 
 		len_snd_buf_right = position_right + sizeof(len_vector) + len_vector * sizeof(double); 
 		snd_buf_right.resize(len_snd_buf_right); 
@@ -3675,7 +3817,8 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 		snd_buf_right.resize(len_snd_buf_right); 
 		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
 		MPI_Pack(&(pCell->velocity[0]), len_vector, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-					
+		
+		pCell->print_cell(world); 			
 	}
  }
 }
@@ -3732,27 +3875,32 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 				
 				for(int loop_ctr = 0; loop_ctr < no_of_cells_from_right; loop_ctr++)
 				{			
-				/* First unpack cell ID and cell position to create cell and assign position */
+				/* First unpack cell ID and cell position AND cell type to create cell (using type) and assign position */
 				
 				//std::cout<<"CELLS from RIGHT position_right ="<<position_right<<std::endl;
 				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &cell_ID, 1, MPI_INT, MPI_COMM_WORLD);
 				std::cout<<"Rank="<<world.rank<<" Cell ID="<<cell_ID<<" received"<<std::endl; 
 				
-				pCell = create_cell(cell_ID);  
+				  
 				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, cell_position, 3, MPI_DOUBLE, MPI_COMM_WORLD);
+				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &len_str, 1, MPI_INT, MPI_COMM_WORLD);
+				temp_str.resize(len_str); 
+				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &temp_str[0], len_str, MPI_CHAR, MPI_COMM_WORLD);
 			
 				/*==========================================================================================*/
 				/* If we don't call assign_position() immediately after create_cell(), the program crashes  */
 				/* as positions are assigned randomly, which lead to non-permissible voxel values etc. 			*/
 				/*==========================================================================================*/
-
+				
+				pCell = create_cell(get_cell_definition(temp_str),cell_ID);
+				
 				pCell->assign_position(cell_position[0], cell_position[1], cell_position[2], world, cart_topo);
 				std::cout<<"Cell ID="<<cell_ID<<" created in Rank="<<world.rank<<" at ("<<cell_position[0]<<","<<cell_position[1]<<","<<cell_position[2]<<")"<<std::endl; 			 			
-				
 				pCell->ID = cell_ID;
 				pCell->position[0] = cell_position[0];
 				pCell->position[1] = cell_position[1];
 				pCell->position[2] = cell_position[2];
+				pCell->type_name = temp_str; 
 				
 				/*===================================================================================*/
 				/* IMPORTANT: METHOD GENERALIZATION FOR UNPACKING STRING 														 */
@@ -3764,9 +3912,7 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 				/* unpack equivalent to "characters" and NOT 'c','h','a','r','a','c','t','e','r','s' */
 				/*===================================================================================*/
 				
-				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &len_str, 1, MPI_INT, MPI_COMM_WORLD);
-				pCell->type_name.resize(len_str); 
-				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &(pCell->type_name[0]), len_str, MPI_CHAR, MPI_COMM_WORLD);
+
  
 				/* Now unpacking unordered_map<std::string,int> - its length, then str1_length, str1, int1,*/
 				/* str2_length, str2, int2, ...so on																											 */
@@ -3795,7 +3941,7 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 				/* We want this to be exact replica of what is in packed buffer		 */
 				
 				name_to_index_map.clear(); 
-				
+				std::cout<<"Length of unordered_map="<<len_int<<std::endl; 
 				for(int i=0; i<len_int; i++)
 				{
 					MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &len_str, 1, MPI_INT, MPI_COMM_WORLD);
@@ -3811,6 +3957,7 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &len_vector, 1, MPI_INT, MPI_COMM_WORLD);
 				pCell->custom_data.variables.resize(len_vector); 
 				
+
 				for(int i=0; i<len_vector; i++)
 				{
 					/* Field str::string name : first extract length, str, then extract characters */
@@ -3822,7 +3969,8 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 					
 					/* double value : value */
 					
-					MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &(pCell->custom_data.variables[i].value), 1, MPI_DOUBLE, MPI_COMM_WORLD);
+					MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &temp_double, 1, MPI_DOUBLE, MPI_COMM_WORLD);  
+					pCell->custom_data.variables[i].value = temp_double; 
 					
 					/* string value : units */
 					
@@ -3867,6 +4015,14 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &(pCell->parameters.o2_necrosis_max), 							1, MPI_DOUBLE, MPI_COMM_WORLD);
 				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &(pCell->parameters.max_necrosis_rate), 						1, MPI_DOUBLE, MPI_COMM_WORLD);
 				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &(pCell->parameters.necrosis_type), 								1, MPI_INT, 	 MPI_COMM_WORLD);
+				
+				/*-----------------------------------------------------------------------------------------*/
+				/* Adding  new statement here to take care of the pointer field: pReference_live_phenotype */
+				/* NEW: According to Paul Macklin, this is automatically set when the cell is created 		 */
+				/* hence, commenting it out 																															 */
+				/*-----------------------------------------------------------------------------------------*/
+				
+				//pCell->parameters.pReference_live_phenotype = &(pCell->phenotype); 
 				
 				/* Unpacking members of Cell_Functions but it has only one member : class Cycle_Model */
 				
@@ -4212,6 +4368,15 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &len_vector,  1, MPI_INT, MPI_COMM_WORLD);
 			pCell->phenotype.motility.motility_vector.resize(len_vector);
 			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &(pCell->phenotype.motility.motility_vector[0]), len_vector, MPI_DOUBLE, MPI_COMM_WORLD);						
+
+			/*===============================================================================================*/
+			/* v1.7 adds 2 ints 'chemotaxis_index' and 'chemotaxis_direction' which need to be unpacked next */
+			/* These are in class Motility 																																	 */
+			/*===============================================================================================*/
+			
+			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &(pCell->phenotype.motility.chemotaxis_index), 		1, MPI_INT, MPI_COMM_WORLD);
+			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &(pCell->phenotype.motility.chemotaxis_direction), 1, MPI_INT, MPI_COMM_WORLD);
+			
 			
 			/* Now packing members of class Secretion as this is an object in Phenotype */
 			/* 3 vectors of type double are to be unpacked 															*/
@@ -4228,6 +4393,14 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 			pCell->phenotype.secretion.saturation_densities.resize(len_vector);
 			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &(pCell->phenotype.secretion.saturation_densities[0]), len_vector, MPI_DOUBLE, MPI_COMM_WORLD);
 			
+			/*=====================================================================================*/
+			/* v1.7 adds another vector of type double named 'net_export_rates' to class Secretion */	
+			/* Now this will be unpacked 																													 */		
+			/*=====================================================================================*/
+			
+			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &len_vector, 1, MPI_INT, MPI_COMM_WORLD);
+			pCell->phenotype.secretion.net_export_rates.resize(len_vector);
+			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &(pCell->phenotype.secretion.net_export_rates[0]), len_vector, MPI_DOUBLE, MPI_COMM_WORLD);			
 			
 			/* Unpacking data members of class Molecular as its object is in class Phenotype */
 			/* 3 double vectors to be unpacked																							 */
@@ -4280,10 +4453,24 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &temp_double_vector[0], len_vector, MPI_DOUBLE, MPI_COMM_WORLD);
 			pCell->set_cell_source_sink_solver_temp2(temp_double_vector);
 			
+			/*===================================================================================*/			
+			/* v1.7 adds two protected double vectors to Basic_Agent which will be unpacked next */
+			/* Helper functions to set the value of these protected members have been written 	 */
+			/*===================================================================================*/			
+
 			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &len_vector, 1, MPI_INT, MPI_COMM_WORLD);
 			temp_double_vector.resize(len_vector);
 			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &temp_double_vector[0], len_vector, MPI_DOUBLE, MPI_COMM_WORLD);
+			pCell->set_cell_source_sink_solver_temp_export1(temp_double_vector);
 			
+			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &len_vector, 1, MPI_INT, MPI_COMM_WORLD);
+			temp_double_vector.resize(len_vector);
+			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &temp_double_vector[0], len_vector, MPI_DOUBLE, MPI_COMM_WORLD);
+			pCell->set_cell_source_sink_solver_temp_export2(temp_double_vector);
+
+			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &len_vector, 1, MPI_INT, MPI_COMM_WORLD);
+			temp_double_vector.resize(len_vector);
+			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &temp_double_vector[0], len_vector, MPI_DOUBLE, MPI_COMM_WORLD);
 			/* set_previous_velocity() was already in class Cell - hence no need to write 1 for Basic_Agent */
 			pCell->set_previous_velocity(temp_double_vector[0], temp_double_vector[1], temp_double_vector[2]);
 			
@@ -4312,7 +4499,15 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 
 			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &len_vector, 1, MPI_INT, MPI_COMM_WORLD);
 			//pCell->uptake_rates = new vector<double>(len_vector);
-			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, pCell->uptake_rates->data(), len_vector, MPI_DOUBLE, MPI_COMM_WORLD);			
+			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, pCell->uptake_rates->data(), len_vector, MPI_DOUBLE, MPI_COMM_WORLD);
+	
+			/*=================================================================================================*/	
+			/* v1.7 adds a member net_export_rates as a pointer to a double vector which will be unpacked next */			
+			/*=================================================================================================*/	
+			
+			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &len_vector, 1, MPI_INT, MPI_COMM_WORLD);
+			//pCell->uptake_rates = new vector<double>(len_vector);
+			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, pCell->net_export_rates->data(), len_vector, MPI_DOUBLE, MPI_COMM_WORLD);						
 
 			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &len_vector, 1, MPI_INT, MPI_COMM_WORLD);
 			//pCell->internalized_substrates = new vector<double>(len_vector);
@@ -4334,7 +4529,9 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &len_vector, 1, MPI_INT, MPI_COMM_WORLD);
 			pCell->velocity.resize(len_vector);
 			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &(pCell->velocity[0]), len_vector, MPI_DOUBLE, MPI_COMM_WORLD);
-		 }									
+		 }
+		 
+		 pCell->print_cell(world); 									
 		}
 		
 		if(no_of_cells_from_left > 0)
@@ -4349,20 +4546,25 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 				
 				for(int loop_ctr = 0; loop_ctr < no_of_cells_from_left; loop_ctr++)
 				{			
-				/* First unpack cell ID and cell position to create cell and assign position */
+				/* First unpack cell ID and cell position AND cell type to create cell (according to type) and assign position */
 				
 				//std::cout<<"CELLS from LEFT position_left ="<<position_left<<std::endl;
 				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &cell_ID, 1, MPI_INT, MPI_COMM_WORLD);
 				std::cout<<"Rank= "<<world.rank<<" Cell ID="<<cell_ID<<" received"<<std::endl; 
 				
-				pCell = create_cell(cell_ID);  
+			 
 				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, cell_position, 3, MPI_DOUBLE, MPI_COMM_WORLD);
+				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &len_str, 1, MPI_INT, MPI_COMM_WORLD);
+				temp_str.resize(len_str); 
+				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &temp_str[0], len_str, MPI_CHAR, MPI_COMM_WORLD);
 			
 				/*==========================================================================================*/
 				/* If we don't call assign_position() immediately after create_cell(), the program crashes  */
 				/* as positions are assigned randomly, which lead to non-permissible voxel values etc. 			*/
 				/*==========================================================================================*/
 
+				pCell = create_cell(get_cell_definition(temp_str),cell_ID);
+				 
 				pCell->assign_position(cell_position[0], cell_position[1], cell_position[2], world, cart_topo);
 				std::cout<<"Cell ID="<<cell_ID<<" created in Rank="<<world.rank<<" at ("<<cell_position[0]<<","<<cell_position[1]<<","<<cell_position[2]<<")"<<std::endl; 			 			
 				
@@ -4370,6 +4572,7 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 				pCell->position[0] = cell_position[0];
 				pCell->position[1] = cell_position[1];
 				pCell->position[2] = cell_position[2];
+				pCell->type_name = temp_str; 
 				
 				/*===================================================================================*/
 				/* IMPORTANT: METHOD GENERALIZATION FOR UNPACKING STRING 														 */
@@ -4381,9 +4584,7 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 				/* unpack equivalent to "characters" and NOT 'c','h','a','r','a','c','t','e','r','s' */
 				/*===================================================================================*/
 				
-				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &len_str, 1, MPI_INT, MPI_COMM_WORLD);
-				pCell->type_name.resize(len_str); 
-				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &(pCell->type_name[0]), len_str, MPI_CHAR, MPI_COMM_WORLD);
+			
  
 				/* Now unpacking unordered_map<std::string,int> - its length, then str1_length, str1, int1,*/
 				/* str2_length, str2, int2, ...so on																											 */
@@ -4439,7 +4640,8 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 					
 					/* double value : value */
 					
-					MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &(pCell->custom_data.variables[i].value), 1, MPI_DOUBLE, MPI_COMM_WORLD);
+					MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &temp_double, 1, MPI_DOUBLE, MPI_COMM_WORLD);
+					pCell->custom_data.variables[i].value = temp_double; 
 					
 					/* string value : units */
 					
@@ -4485,6 +4687,14 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &(pCell->parameters.max_necrosis_rate), 						1, MPI_DOUBLE, MPI_COMM_WORLD);
 				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &(pCell->parameters.necrosis_type), 								1, MPI_INT, 	 MPI_COMM_WORLD);
 				
+				/*-----------------------------------------------------------------------------------------*/
+				/* Adding  new statement here to take care of the pointer field: pReference_live_phenotype */
+				/* NEW: According to Paul Macklin, this is automatically set when the cell is created 		 */
+				/* hence, commenting it out 																															 */
+				/*-----------------------------------------------------------------------------------------*/
+				
+				//pCell->parameters.pReference_live_phenotype = &(pCell->phenotype);
+
 				/* Unpacking members of Cell_Functions but it has only one member : class Cycle_Model */
 				
 				/* First, private : std::vector< std::unordered_map<int,int> > inverse_index_maps;, we need to 	*/
@@ -4829,7 +5039,16 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &len_vector,  1, MPI_INT, MPI_COMM_WORLD);
 			pCell->phenotype.motility.motility_vector.resize(len_vector);
 			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &(pCell->phenotype.motility.motility_vector[0]), len_vector, MPI_DOUBLE, MPI_COMM_WORLD);						
+
+			/*===============================================================================================*/
+			/* v1.7 adds 2 ints 'chemotaxis_index' and 'chemotaxis_direction' which need to be unpacked next */
+			/* These are in class Motility 																																	 */
+			/*===============================================================================================*/
+
+			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &(pCell->phenotype.motility.chemotaxis_index), 		 1, MPI_INT, MPI_COMM_WORLD);
+			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &(pCell->phenotype.motility.chemotaxis_direction), 1, MPI_INT, MPI_COMM_WORLD);
 			
+																																			
 			/* Now packing members of class Secretion as this is an object in Phenotype */
 			/* 3 vectors of type double are to be unpacked 															*/
 
@@ -4845,6 +5064,14 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 			pCell->phenotype.secretion.saturation_densities.resize(len_vector);
 			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &(pCell->phenotype.secretion.saturation_densities[0]), len_vector, MPI_DOUBLE, MPI_COMM_WORLD);
 			
+			/*=====================================================================================*/
+			/* v1.7 adds another vector of type double named 'net_export_rates' to class Secretion */	
+			/* Now this will be unpacked 																													 */		
+			/*=====================================================================================*/
+			
+			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &len_vector, 1, MPI_INT, MPI_COMM_WORLD);
+			pCell->phenotype.secretion.net_export_rates.resize(len_vector);
+			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &(pCell->phenotype.secretion.net_export_rates[0]), len_vector, MPI_DOUBLE, MPI_COMM_WORLD);
 			
 			/* Unpacking data members of class Molecular as its object is in class Phenotype */
 			/* 3 double vectors to be unpacked																							 */
@@ -4897,10 +5124,25 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &temp_double_vector[0], len_vector, MPI_DOUBLE, MPI_COMM_WORLD);
 			pCell->set_cell_source_sink_solver_temp2(temp_double_vector);
 			
+			/*===================================================================================*/			
+			/* v1.7 adds two protected double vectors to Basic_Agent which will be unpacked next */
+			/* Helper functions to set the value of these protected members have been written 	 */
+			/*===================================================================================*/	
+
 			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &len_vector, 1, MPI_INT, MPI_COMM_WORLD);
 			temp_double_vector.resize(len_vector);
 			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &temp_double_vector[0], len_vector, MPI_DOUBLE, MPI_COMM_WORLD);
+			pCell->set_cell_source_sink_solver_temp_export1(temp_double_vector);			
+
+			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &len_vector, 1, MPI_INT, MPI_COMM_WORLD);
+			temp_double_vector.resize(len_vector);
+			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &temp_double_vector[0], len_vector, MPI_DOUBLE, MPI_COMM_WORLD);
+			pCell->set_cell_source_sink_solver_temp_export2(temp_double_vector);
+
 			
+			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &len_vector, 1, MPI_INT, MPI_COMM_WORLD);
+			temp_double_vector.resize(len_vector);
+			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &temp_double_vector[0], len_vector, MPI_DOUBLE, MPI_COMM_WORLD);
 			/* set_previous_velocity() was already in class Cell - hence no need to write 1 for Basic_Agent */
 			pCell->set_previous_velocity(temp_double_vector[0], temp_double_vector[1], temp_double_vector[2]);
 			
@@ -4932,6 +5174,14 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 			//pCell->uptake_rates = new vector<double>(len_vector);
 			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, pCell->uptake_rates->data(), len_vector, MPI_DOUBLE, MPI_COMM_WORLD);			
 
+			/*=================================================================================================*/	
+			/* v1.7 adds a member net_export_rates as a pointer to a double vector which will be unpacked next */			
+			/*=================================================================================================*/
+			
+			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &len_vector, 1, MPI_INT, MPI_COMM_WORLD);
+			//pCell->uptake_rates = new vector<double>(len_vector);
+			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, pCell->net_export_rates->data(), len_vector, MPI_DOUBLE, MPI_COMM_WORLD);			
+
 			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &len_vector, 1, MPI_INT, MPI_COMM_WORLD);
 			//pCell->internalized_substrates = new vector<double>(len_vector);
 			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, pCell->internalized_substrates->data(), len_vector, MPI_DOUBLE, MPI_COMM_WORLD);			
@@ -4953,7 +5203,9 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 			pCell->velocity.resize(len_vector);
 			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &(pCell->velocity[0]), len_vector, MPI_DOUBLE, MPI_COMM_WORLD);
  
-		 }									
+		 }	
+		 
+		 pCell->print_cell(world); 								
 		}
 		
 		//rcv_buf_left.resize(0);
@@ -4961,7 +5213,7 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 }
 
 /*==================================================================================*/
-/* Gaurav Saxena added the following 6 functions from v1.7 to take care of cell */
+/* Gaurav Saxena added the following 6 functions from v1.7 to take care of cell 		*/
 /* initialization from the XML file 																								*/
 /*==================================================================================*/
 

@@ -108,6 +108,10 @@ class Basic_Agent
 	
 	std::vector<double> & get_cell_source_sink_solver_temp1();
 	std::vector<double> & get_cell_source_sink_solver_temp2();
+	
+	std::vector<double> & get_cell_source_sink_solver_temp_export1();
+	std::vector<double> & get_cell_source_sink_solver_temp_export2();
+	
 	std::vector<double> & get_previous_velocity();
 	
 	bool 									get_is_active();
@@ -116,6 +120,8 @@ class Basic_Agent
 	
 	void set_cell_source_sink_solver_temp1(std::vector<double> & ref_vec);
   void set_cell_source_sink_solver_temp2(std::vector<double> & ref_vec);
+  void set_cell_source_sink_solver_temp_export1(std::vector<double> & ref_vec);
+  void set_cell_source_sink_solver_temp_export2(std::vector<double> & ref_vec); 
 //  void set_previous_velocity(std::vector<double> & ref_vec);----> already in class Cell
   void set_is_active(int flag);
   void set_total_extracellular_substrate_change(std::vector<double> & ref_vec);

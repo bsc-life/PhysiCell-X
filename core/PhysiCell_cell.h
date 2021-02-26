@@ -294,11 +294,12 @@ class Cell : public Basic_Agent
 	/* Prints all data fields of a cell - will help in serializing */
 	/* to send data across processes 															 */
 	/*=============================================================*/
-	void print_cell(int id); 
+	void print_cell(mpi_Environment &world); 
 };
 
 Cell* create_cell( void );  
 Cell* create_cell( Cell_Definition& cd ); 
+
 
 /*=======================================================================*/
 /* Parallel prototype of creat_cell() ---> Cell *create_cell(int my_ID); */
@@ -306,6 +307,14 @@ Cell* create_cell( Cell_Definition& cd );
 /*=======================================================================*/
 
 Cell* create_cell(int cell_id); 
+
+/*===============================================================================================================*/
+/* Parallel prototype of creat_cell(Cell_Definition &cd) ---> Cell *create_cell(Cell_Definition &cd, int my_ID); */
+/* Analogous serial version does not exist for this parallel prototype 	 																				 */
+/*===============================================================================================================*/
+
+Cell* create_cell( Cell_Definition& cd, int pID); 
+
 
 
 void delete_cell( int ); 

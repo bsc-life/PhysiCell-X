@@ -1130,6 +1130,90 @@ void Microenvironment::write_to_matlab( std::string filename )
 	return;
 }
 
+/*-------------------------------------------*/
+/* Parallel equivalent of the function above */
+/*-------------------------------------------*/
+
+void Microenvironment::write_to_matlab( std::string filename, mpi_Environment &world, mpi_Cartesian &cart_topo )
+{
+	
+    MPI_File fh;
+    MPI_Offset file_size, offset; 
+    MPI_Datatype etype, filetype; 
+    double *buffer;                         //Will contain center[0],center[1],center[2],volume and densities in a contiguous buffer
+    char char_filename[filename.size()+1];
+    int elements_to_write; 
+    
+    /*----------------------------------------------------------------------------------------*/
+    /* Now total data entries is now the sum of all entries on all processes                  */
+    /* size of datum remains the same                                                         */
+    /*----------------------------------------------------------------------------------------*/
+    
+    
+    int number_of_data_entries = mesh.voxels.size();
+		int size_of_each_datum = 3 + 1 + (*p_density_vectors)[0].size(); 
+
+    //Possibly we do not need to return anything over here, we can write a separate file at Master
+    //All processes call this function - because William Groppe says MPI_File_open is collective operation
+    
+    write_matlab_header( size_of_each_datum, world.size * number_of_data_entries,  filename, "multiscale_microenvironment", world, cart_topo );
+    
+    MPI_Barrier(cart_topo.mpi_cart_comm); 
+    
+    
+    
+		// storing data as cols 
+    buffer = new double[number_of_data_entries * size_of_each_datum];
+    
+    //std::cout<<"CX	"<<"CY	"<<"CZ	"<<"Vol	"<<"Density	\n"; 
+    
+    int n = 0;
+		for( int i=0; i < number_of_data_entries ; i++ )
+		{
+        buffer[n++] = mesh.voxels[i].center[0];
+        //std::cout<<mesh.voxels[i].center[0]<<"	";
+        buffer[n++] = mesh.voxels[i].center[1];
+        //std::cout<<mesh.voxels[i].center[1]<<"	";
+        buffer[n++] = mesh.voxels[i].center[2];
+        //std::cout<<mesh.voxels[i].center[2]<<"	";
+        buffer[n++] = mesh.voxels[i].volume;
+        //std::cout<<mesh.voxels[i].volume<<"	";
+           
+    		//fwrite( (char*) &( mesh.voxels[i].center[0] ) , sizeof(double) , 1 , fp ); 
+				//fwrite( (char*) &( mesh.voxels[i].center[1] ) , sizeof(double) , 1 , fp );   
+				//fwrite( (char*) &( mesh.voxels[i].center[2] ) , sizeof(double) , 1 , fp ); 
+				//fwrite( (char*) &( mesh.voxels[i].volume ) , sizeof(double) , 1 , fp ); 
+
+				// densities  
+
+				for( int j=0 ; j < (*p_density_vectors)[i].size() ; j++)
+				{ 
+            buffer[n++] = ((*p_density_vectors)[i])[j];
+            //std::cout<<((*p_density_vectors)[i])[j]<<"	";
+            //fwrite( (char*) &( ((*p_density_vectors)[i])[j] ) , sizeof(double) , 1 , fp );       
+      	}
+		}
+	
+		strcpy(char_filename, filename.c_str());
+    
+		MPI_File_open(cart_topo.mpi_cart_comm, char_filename, MPI_MODE_WRONLY, MPI_INFO_NULL, &fh);      //This file is already created while writing Matlab header
+    MPI_File_get_size(fh,&file_size);
+    
+    offset = file_size + world.rank * sizeof(double) * number_of_data_entries * size_of_each_datum;
+    etype = MPI_DOUBLE;
+    filetype = MPI_DOUBLE; 
+    elements_to_write = number_of_data_entries * size_of_each_datum; 
+    
+    MPI_File_set_view(fh, offset, etype, filetype, "native", MPI_INFO_NULL); 
+    MPI_File_write(fh, buffer, elements_to_write, MPI_DOUBLE, MPI_STATUS_IGNORE);
+ 
+		MPI_File_close(&fh);
+    delete [] buffer;
+    
+		return;
+}
+
+
 
 
 void Microenvironment::simulate_bulk_sources_and_sinks( double dt )

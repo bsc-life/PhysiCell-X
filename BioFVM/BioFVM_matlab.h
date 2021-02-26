@@ -57,8 +57,13 @@
 #include <cstring>
 #include <cstdio>
 
+#include "../DistPhy/DistPhy_Environment.h"
+#include "../DistPhy/DistPhy_Cartesian.h"
+
 #ifndef __BioFVM_matlab_h__
 #define __BioFVM_matlab_h__
+
+using namespace DistPhy::mpi;
 
 namespace BioFVM{
 
@@ -85,6 +90,20 @@ bool write_matlab( std::vector< std::vector<double> >& input , std::string filen
 bool write_matlab( std::vector< std::vector<double> >& input , std::string filename , std::vector<std::string>& names );
 
 FILE* write_matlab_header( unsigned int rows, unsigned int cols, std::string filename, std::string variable_name );  
+
+/*=========================================================================*/
+/* Parallel prototype of the function above but it does not return a FILE* */
+/*=========================================================================*/
+
+void write_matlab_header( int rows, int cols, std::string filename, std::string variable_name, mpi_Environment &world, mpi_Cartesian &cart_topo );
+
+/*=========================================================================================*/
+/* Adding a new header here - although its equivalent is not present in the serial version */
+/* but its implementation is present 																											 */
+/*=========================================================================================*/
+
+void write_matlab4_header( int nrows, int ncols, std::string filename, std::string variable_name, mpi_Environment &world, mpi_Cartesian &cart_topo );
+
 
 // output: FILE pointer, and overwrites rows, cols so you know the size 
 FILE* read_matlab_header( unsigned int* rows, unsigned int* cols , std::string filename ); 

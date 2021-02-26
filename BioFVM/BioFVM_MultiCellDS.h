@@ -182,9 +182,32 @@ void set_save_biofvm_cell_data_as_custom_matlab( bool newvalue ); // default: tr
 /* writing parts of BioFVM to a MultiCellDS file */ 
 
 void add_BioFVM_substrates_to_open_xml_pugi( pugi::xml_document& xml_dom , std::string filename_base , Microenvironment& M ); 
+
+/*==========================================*/
+/* Parallel prototype of the function above */
+/*==========================================*/
+
+void add_BioFVM_substrates_to_open_xml_pugi( pugi::xml_document& xml_dom , std::string filename_base , Microenvironment& M, mpi_Environment &world, mpi_Cartesian &cart_topo ); 
+
+
 void add_BioFVM_basic_agent_to_open_xml_pugi(  pugi::xml_document& xml_dom, Basic_Agent& BA ); // not implemented -- future edition 
+
 void add_BioFVM_agents_to_open_xml_pugi( pugi::xml_document& xml_dom, std::string filename_base, Microenvironment& M  ); 
+
+/*==========================================*/
+/* Parallel prototype of the function above */
+/*==========================================*/
+
+void add_BioFVM_agents_to_open_xml_pugi( pugi::xml_document& xml_dom, std::string filename_base, Microenvironment& M, mpi_Environment &world, mpi_Cartesian &cart_topo  ); 
+
+
 void add_BioFVM_to_open_xml_pugi( pugi::xml_document& xml_dom , std::string filename_base, double current_simulation_time , Microenvironment& M );
+
+/*==========================================*/
+/* Parallel prototype of the function above */
+/*==========================================*/
+
+void add_BioFVM_to_open_xml_pugi( pugi::xml_document& xml_dom , std::string filename_base, double current_simulation_time , Microenvironment& M, mpi_Environment &world, mpi_Cartesian &cart_topo );
 
 void save_BioFVM_to_MultiCellDS_xml_pugi( std::string filename_base , Microenvironment& M , double current_simulation_time); 
 

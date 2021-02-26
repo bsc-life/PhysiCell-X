@@ -331,6 +331,14 @@ class Microenvironment
 	friend void diffusion_decay_explicit_uniform_rates( Microenvironment& M, double dt );
 	
 	void write_to_matlab( std::string filename );
+	
+	/*======================================*/
+	/* Parallel prototype of function above */
+	/*======================================*/
+	
+	void write_to_matlab( std::string filename, mpi_Environment &world, mpi_Cartesian &cart_topo ); 
+
+	
 	void write_mesh_to_matlab( std::string filename ); // not yet written 
 	void write_densities_to_matlab( std::string filename ); // not yet written 
 	

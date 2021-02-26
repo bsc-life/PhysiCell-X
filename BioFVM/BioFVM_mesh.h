@@ -208,6 +208,12 @@ class General_Mesh
 	void display_information( std::ostream& os); 
 	
 	void write_to_matlab( std::string filename ); 
+	
+	/*==========================================*/
+	/* Parallel prototype of the function above */	
+	/*==========================================*/
+	void write_to_matlab( std::string filename, mpi_Environment &world, mpi_Cartesian &cart_topo);
+
 	void read_from_matlab( std::string filename ); 
 };
 

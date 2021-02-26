@@ -559,6 +559,30 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
     		(*all_cells)[i]->remove_crossed_cell();
     		i = i - 1; 
     	}
+    
+    /*=======================DELETE LATER===============================================*/
+    //Checking for uniqueness of IDs - later delete
+    
+    for(int temp_rank = 0; temp_rank < world.size; temp_rank++)
+    {
+    	if(temp_rank == world.rank)
+    	{
+    		std::cout<<"IDs for Rank = "<<world.rank <<std::endl; 
+    		for(int i=0; i < (*all_cells).size(); i++)
+    		{
+    			for(int j=i+1; j < (*all_cells).size(); j++) 
+    			{
+    				if((*all_cells)[i]->ID == (*all_cells)[j]->ID)
+    					std::cout<<"Found a duplicate ID on Rank="<<world.rank<<std::endl;
+    			}
+    		}
+    		std::cout<<std::endl; 
+    	}
+    	MPI_Barrier(cart_topo.mpi_cart_comm);
+    }
+    /*=======================DELETE LATER===============================================*/
+   
+    //Checking for uniqueness ends
 		
 		cart_topo.Send_and_Receive_Cells(no_cells_cross_left,  position_left,  snd_buf_left, 
        															 no_cells_cross_right, position_right, snd_buf_right,

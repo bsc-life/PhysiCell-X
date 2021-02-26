@@ -632,6 +632,7 @@ void standard_update_cell_velocity( Cell* pCell, Phenotype& phenotype, double dt
 	{
 		pCell->add_potentials(*neighbor);
 	}
+	
 	std::vector<int>::iterator neighbor_voxel_index;
 	std::vector<int>::iterator neighbor_voxel_index_end = 
 		pCell->get_container()->underlying_mesh.moore_connected_voxel_indices[pCell->get_current_mechanics_voxel_index()].end();

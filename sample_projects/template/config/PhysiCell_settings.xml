@@ -74,16 +74,16 @@
 
 <PhysiCell_settings version="devel-version">
 	<domain>
-		<x_min>-500</x_min>
-		<x_max>500</x_max>
-		<y_min>-500</y_min>
-		<y_max>500</y_max>
-		<z_min>-10</z_min>
-		<z_max>10</z_max>
+		<x_min>-240</x_min>
+		<x_max>240</x_max>
+		<y_min>-240</y_min>
+		<y_max>240</y_max>
+		<z_min>-240</z_min>
+		<z_max>240</z_max>
 		<dx>20</dx>
 		<dy>20</dy>
 		<dz>20</dz>
-		<use_2D>true</use_2D>
+		<use_2D>false</use_2D>
 	</domain>
 	
 	<overall>
@@ -255,7 +255,7 @@
 					
 					<options>
 						<enabled>false</enabled>
-						<use_2D>true</use_2D>
+						<use_2D>false</use_2D>
 						<chemotaxis>
 							<enabled>false</enabled>
 							<substrate>prey signal</substrate>
@@ -294,7 +294,7 @@
 					<migration_bias>0.4</migration_bias>
 					<options>
 						<enabled>true</enabled>
-						<use_2D>true</use_2D>
+						<use_2D>false</use_2D>
 						<chemotaxis>
 							<enabled>true</enabled>
 							<substrate>predator signal</substrate>
@@ -331,7 +331,7 @@
 					<speed>2</speed>
 					<options>
 						<enabled>true</enabled>
-						<use_2D>true</use_2D>
+						<use_2D>false</use_2D>
 						<chemotaxis>
 							<enabled>true</enabled>
 							<substrate>prey signal</substrate>

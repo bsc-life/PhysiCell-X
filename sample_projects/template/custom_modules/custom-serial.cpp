@@ -66,10 +66,6 @@
 */
 
 #include "./custom.h"
-#include "../DistPhy/DistPhy_Utils.h"
-#include "../DistPhy/DistPhy_Collective.h"
-
-using namespace DistPhy::mpi;
 
 // declare cell definitions here 
 
@@ -89,14 +85,6 @@ void create_cell_types( void )
 	
 	cell_defaults.functions.volume_update_function = standard_volume_update_function;
 	cell_defaults.functions.update_velocity = standard_update_cell_velocity;
-	
-	/*-----------------------------------------------------------------------------------------------------------------------------*/
-	/* For parallel settings, set the update velocity in parallel function pointer - this will call the new function which has the */
-	/* same name but a different prototype and implementation (overloaded function)																								 */
-	/* There may be no need to set it at this stage but setting it here for correctness and completeness. 												 */
-	/*-----------------------------------------------------------------------------------------------------------------------------*/
-	
-	cell_defaults.functions.update_velocity_parallel = standard_update_cell_velocity;
 
 	cell_defaults.functions.update_migration_bias = NULL; 
 	cell_defaults.functions.update_phenotype = NULL; // update_cell_and_death_parameters_O2_based; 
@@ -150,24 +138,6 @@ void setup_microenvironment( void )
 	return; 
 }
 
-/*==============================================*/
-/* Parallel version of setup_microenvironment() */
-/*==============================================*/
-
-void setup_microenvironment( mpi_Environment &world, mpi_Cartesian &cart_topo )
-{
-	// set domain parameters 
-	
-	// put any custom code to set non-homogeneous initial conditions or 
-	// extra Dirichlet nodes here. 
-	
-	// initialize BioFVM 
-	
-	initialize_microenvironment(world, cart_topo); 	
-	
-	return; 
-}
-
 void setup_tissue( void )
 {
 	double Xmin = microenvironment.mesh.bounding_box[0]; 
@@ -217,133 +187,6 @@ void setup_tissue( void )
 		pC = create_cell( get_cell_definition("predator") ); 
 		pC->assign_position( position );
 	}	
-	
-	return; 
-}
-
-/*------------------------------------*/
-/* Parallel version of setup_tissue() */
-/*------------------------------------*/
-
-void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &cart_topo)
-{
-	double Xmin = m.mesh.bounding_box[0]; 
-	double Ymin = m.mesh.bounding_box[1]; 
-	double Zmin = m.mesh.bounding_box[2]; 
-
-	double Xmax = m.mesh.bounding_box[3]; 
-	double Ymax = m.mesh.bounding_box[4]; 
-	double Zmax = m.mesh.bounding_box[5]; 
-	
-	if( default_microenvironment_options.simulate_2D == true )
-	{
-		Zmin = 0.0; 
-		Zmax = 0.0; 
-	}
-	
-	double Xrange = Xmax - Xmin; 
-	double Yrange = Ymax - Ymin; 
-	double Zrange = Zmax - Zmin; 
-	
-	// create some of each type of cell 
-	
-	/* The following 3 temporary variables are common to both Prey and Predator sections */
-
-	Cell* pCell;
-	std::vector<std::vector<double>> generated_positions_at_root;
-	std::vector<double> position = {0,0,0};														//Temporary buffer
-	
-/*------------------*/
-/* Prey Section 		*/
-/*------------------*/	
-
-  mpi_CellPositions cp_prey;                		//To store cell positions, cell IDs, no. of cell IDs at root only (for all processes)
-  mpi_MyCells       mc_prey;                		//To store cell positions, cell IDs, no. of cells at each process.
-  
-
- /* First Generate Prey positions on rank 0 */
- 	
- if(world.rank == 0)
- {
-	for( int n = 0 ; n < parameters.ints("number_of_prey") ; n++ )
-	{
-		 
-		position[0] = Xmin + UniformRandom()*Xrange; 
-		position[1] = Ymin + UniformRandom()*Yrange; 
-		position[2] = Zmin + UniformRandom()*Zrange;
-		generated_positions_at_root.push_back(position); 
-	}
-	
-	/*---------------------------------------------------------------------------------------------------*/
-	/* (1) Obtain the current highest ID - rank 0 knows this as rank 0 generates all IDs 								 */
-	/* (2) Distribute the positions and IDs to respective processes 										 								 */
-	/* (3) Set the maximum ID as the current maximum ID would be needed if new cells are to be generated */
-	/*---------------------------------------------------------------------------------------------------*/
-	
-	int strt_cell_ID = Basic_Agent::get_max_ID_in_parallel();                               //IDs for new cells (positions) will start from the current highest ID      
-  cp_prey.positions_to_rank_list(generated_positions_at_root, 
-                            		 m.mesh.bounding_box[0], m.mesh.bounding_box[3], 
-                            		 m.mesh.bounding_box[1], m.mesh.bounding_box[4], 
-                            		 m.mesh.bounding_box[2], m.mesh.bounding_box[5], 
-                            		 m.mesh.dx, m.mesh.dy, m.mesh.dz, 
-                            		 world, cart_topo, strt_cell_ID);
-        
-  Basic_Agent::set_max_ID_in_parallel(strt_cell_ID + generated_positions_at_root.size()); //Highest ID now is the starting ID + no. of generated coordinates !
- }
- 
- distribute_cell_positions(cp_prey, mc_prey, world, cart_topo);                           //Distribute cell positions
- 
- /* Create preys at individual processes */
- 
- for( int i=0; i < mc_prey.my_no_of_cell_IDs; i++ )
-	{	
- 		pCell = create_cell( get_cell_definition("prey"), mc_prey.my_cell_IDs[i] ); 
-		pCell->assign_position(mc_prey.my_cell_coords[3*i],mc_prey.my_cell_coords[3*i+1],mc_prey.my_cell_coords[3*i+2],world, cart_topo); //pCell->assign_position( positions[i] );
-
-	}
-
-/*-------------------------------------------------------------------------------------------------------------------*/	
-/* Clear off the generated_positions_at_root vector of vectors as now we need it for storing positions of Predators. */
-/* Exactly the same procedure as above is repeated for Predators now 																								 */
-/*-------------------------------------------------------------------------------------------------------------------*/	
-
-	generated_positions_at_root.clear();
-
-/*------------------*/
-/* Predator Section */
-/*------------------*/	
-
-  mpi_CellPositions cp_pred;                		//To store cell positions, cell IDs, no. of cell IDs at root only (for all processes)
-  mpi_MyCells       mc_pred;                		//To store cell positions, cell IDs, no. of cells at each process. 
-	
-	if(world.rank == 0)
- 	{
-		for( int n = 0 ; n < parameters.ints("number_of_predators") ; n++ )
-		{ 
-			position[0] = Xmin + UniformRandom()*Xrange; 
-			position[1] = Ymin + UniformRandom()*Yrange; 
-			position[2] = Zmin + UniformRandom()*Zrange;
-			generated_positions_at_root.push_back(position); 
-		}
-	
-		int strt_cell_ID = Basic_Agent::get_max_ID_in_parallel();                               //IDs for new cells (positions) will start from the current highest ID      
-  	cp_pred.positions_to_rank_list(generated_positions_at_root, 
-                            			 m.mesh.bounding_box[0], m.mesh.bounding_box[3], 
-                            			 m.mesh.bounding_box[1], m.mesh.bounding_box[4], 
-                            			 m.mesh.bounding_box[2], m.mesh.bounding_box[5], 
-                            			 m.mesh.dx, m.mesh.dy, m.mesh.dz, 
-                            			 world, cart_topo, strt_cell_ID);
-        
-  	Basic_Agent::set_max_ID_in_parallel(strt_cell_ID + generated_positions_at_root.size()); //Highest ID now is the starting ID + no. of generated coordinates !
- 	}
- 
- distribute_cell_positions(cp_pred, mc_pred, world, cart_topo);                             //Distribute cell positions
- 
- for( int i=0; i < mc_pred.my_no_of_cell_IDs; i++ )
-	{	
- 		pCell = create_cell( get_cell_definition("predator"), mc_pred.my_cell_IDs[i] ); 
-		pCell->assign_position(mc_pred.my_cell_coords[3*i],mc_pred.my_cell_coords[3*i+1],mc_pred.my_cell_coords[3*i+2],world, cart_topo); //pCell->assign_position( positions[i] );
-	}
 	
 	return; 
 }

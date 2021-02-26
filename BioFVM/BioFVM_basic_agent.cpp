@@ -400,9 +400,11 @@ double Basic_Agent::get_total_volume()
 	return volume;
 }
 
-/*-------------------------------------------------------------------------------*/
-/*Gaurav Saxena wrote these 6 functions to assist printing and packing cell data */
-/*-------------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------------------*/
+/* Gaurav Saxena wrote these 6 functions to assist printing and packing cell data */
+/* 2 additional functions have been added because of v1.7 											 	*/
+/* i.e. get_cell_source_sink_solver_temp_export1() and _export2() 							 	*/
+/*--------------------------------------------------------------------------------*/
 
 /* get_ helper functions */
 
@@ -419,6 +421,16 @@ std::vector<double> & Basic_Agent::get_cell_source_sink_solver_temp1()
 std::vector<double> & Basic_Agent::get_cell_source_sink_solver_temp2()
 {
 	return cell_source_sink_solver_temp2;  
+}
+
+std::vector<double> & Basic_Agent::get_cell_source_sink_solver_temp_export1()
+{
+	return cell_source_sink_solver_temp_export1; 
+}
+
+std::vector<double> & Basic_Agent::get_cell_source_sink_solver_temp_export2()
+{
+	return cell_source_sink_solver_temp_export2; 
 }
 
 std::vector<double> & Basic_Agent::get_previous_velocity()
@@ -451,6 +463,16 @@ void Basic_Agent::set_cell_source_sink_solver_temp1(std::vector<double> & ref_ve
 void Basic_Agent::set_cell_source_sink_solver_temp2(std::vector<double> & ref_vec)
 {
 	cell_source_sink_solver_temp2 = ref_vec;	
+}
+
+void Basic_Agent::set_cell_source_sink_solver_temp_export1(std::vector<double> & ref_vec)
+{
+	cell_source_sink_solver_temp_export1 = ref_vec; 
+}
+
+void Basic_Agent::set_cell_source_sink_solver_temp_export2(std::vector<double> & ref_vec)
+{
+	cell_source_sink_solver_temp_export2 = ref_vec; 
 }
 
 // void Basic_Agent::set_previous_velocity(std::vector<double> & ref_vec)---> already in class Cell

@@ -85,8 +85,21 @@ void add_PhysiCell_cell_to_open_xml_pugi(  pugi::xml_document& xml_dom, Cell& C 
 void add_PhysiCell_cells_to_open_xml_pugi( pugi::xml_document& xml_dom, std::string filename_base, Microenvironment& M  ); 
 void add_PhysiCell_to_open_xml_pugi( pugi::xml_document& xml_dom , std::string filename_base, double current_simulation_time , Microenvironment& M );
 
+/*==========================================*/
+/* Parallel prototype of the function above */
+/*==========================================*/
+
+void add_PhysiCell_cells_to_open_xml_pugi( pugi::xml_document& xml_dom, std::string filename_base, Microenvironment& M, mpi_Environment &world, mpi_Cartesian &cart_topo  ); 
+
 	
 void save_PhysiCell_to_MultiCellDS_xml_pugi( std::string filename_base , Microenvironment& M , double current_simulation_time); 
+
+/*==========================================*/
+/* Parallel prototype of the function above */
+/*==========================================*/
+
+void save_PhysiCell_to_MultiCellDS_xml_pugi( std::string filename_base , Microenvironment& M , double current_simulation_time, mpi_Environment &world, mpi_Cartesian &cart_topo);
+
 	
 };
 

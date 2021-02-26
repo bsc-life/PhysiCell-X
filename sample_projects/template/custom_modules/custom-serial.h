@@ -76,20 +76,8 @@ using namespace PhysiCell;
 void create_cell_types( void );
 void setup_tissue( void ); 
 
-/*======================================*/
-/* Parallel prototype of setup_tissue() */
-/*======================================*/
-
-void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &cart_topo);
-
 // set up the BioFVM microenvironment 
-void setup_microenvironment( void );
-
-/*================================================*/
-/* Parallel prototype of setup_microenvironment() */
-/*================================================*/
-
-void setup_microenvironment(mpi_Environment &world, mpi_Cartesian &cart_topo); 
+void setup_microenvironment( void ); 
 
 // custom pathology coloring function 
 
