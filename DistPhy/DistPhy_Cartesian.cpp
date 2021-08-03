@@ -81,11 +81,11 @@ namespace DistPhy
 					snd_cells_and_size_to_right[0] = cells_to_right;
 					snd_cells_and_size_to_right[1] = size_right;
 					
-					if(cells_to_left > 0)
-						std::cout<<"RANK="<<world.rank<<" IS SENDING "<<cells_to_left<<" CELLS TO LEFT WITH TOTAL SIZE "<<size_left<<" BYTES"<<std::endl;
+					//if(cells_to_left > 0)
+					//	std::cout<<"RANK="<<world.rank<<" IS SENDING "<<cells_to_left<<" CELLS TO LEFT WITH TOTAL SIZE "<<size_left<<" BYTES"<<std::endl;
 					
-					if(cells_to_right > 0)
-						std::cout<<"RANK="<<world.rank<<" IS SENDING "<<cells_to_right<<" CELLS TO RIGHT WITH TOTAL SIZE "<<size_right<<" BYTES"<<std::endl;
+					//if(cells_to_right > 0)
+					//	std::cout<<"RANK="<<world.rank<<" IS SENDING "<<cells_to_right<<" CELLS TO RIGHT WITH TOTAL SIZE "<<size_right<<" BYTES"<<std::endl;
 					
 					
 					/*------------------------------------------------------------------------------------------*/

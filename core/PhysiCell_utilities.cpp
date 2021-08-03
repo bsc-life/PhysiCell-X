@@ -82,6 +82,7 @@ long SeedRandom( long input )
 {
 	gen.seed(input);
 	return input;
+	//return 0.25; 
 }
 
 
@@ -90,17 +91,20 @@ long SeedRandom( void )
 	unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
 	gen.seed(seed);
 	return seed;
+	//return 0.25;
 }
 
 double UniformRandom()
 {
 	return std::generate_canonical<double, 10>(gen);
+	//return 0.25;
 }
 
 double NormalRandom( double mean, double standard_deviation )
 {
 	std::normal_distribution<> d(mean,standard_deviation);
-	return d(gen); 
+	return d(gen);
+	//return 0.25; 
 }
 
 // Squared distance between two points
