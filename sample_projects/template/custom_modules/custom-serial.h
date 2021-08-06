@@ -65,80 +65,27 @@
 ###############################################################################
 */
 
-#include <vector>
-#include <string>
-#include <unordered_map>
-#include <iostream>
-#include <fstream>
+#include "../core/PhysiCell.h"
+#include "../modules/PhysiCell_standard_modules.h" 
 
-#ifndef __PhysiCell_custom__
-#define __PhysiCell_custom__
+using namespace BioFVM; 
+using namespace PhysiCell;
 
-namespace PhysiCell
-{
-	
-class Variable
-{
- private:
-	friend std::ostream& operator<<(std::ostream& os, const Variable& v); // done 
- public:
-	std::string name; 
-	double value; 
-	std::string units; 
-	
-	Variable(); 
-};
+// setup functions to help us along 
 
-class Vector_Variable
-{
- private:
-	friend std::ostream& operator<<(std::ostream& os, const Vector_Variable& v); // done 
-	
- public:
-	std::string name; 
-	std::vector<double> value; 
-	std::string units; 
-	
-	Vector_Variable(); 
-};
+void create_cell_types( void );
+void setup_tissue( void ); 
 
-class Custom_Cell_Data
-{
- private:
-	std::unordered_map<std::string,int> name_to_index_map; 
-//	std::unordered_map<std::string,int> vector_name_to_index_map; 
-	
-	friend std::ostream& operator<<(std::ostream& os, const Custom_Cell_Data& ccd); // done 
- public:
-	std::vector<Variable> variables; 
-	std::vector<Vector_Variable> vector_variables; 
-	
-	int add_variable( Variable& v ); // done 
-	int add_variable( std::string name , std::string units , double value ); // done 
-	int add_variable( std::string name , double value ); // done 
+// set up the BioFVM microenvironment 
+void setup_microenvironment( void ); 
 
-	int add_vector_variable( Vector_Variable& v ); // done 
-	int add_vector_variable( std::string name , std::string units , std::vector<double>& value ); // done 
-	int add_vector_variable( std::string name , std::vector<double>& value ); // done 
+// custom pathology coloring function 
 
-	int find_variable_index( std::string name ); // done 
-	int find_vector_variable_index( std::string name ); // done 
+std::vector<std::string> my_coloring_function( Cell* );
 
-	// these access the scalar variables 
-	double& operator[]( int i ); // done
-	double& operator[]( std::string name ); // done 
-	
-	
-	Custom_Cell_Data(); // done 
-	Custom_Cell_Data( const Custom_Cell_Data& ccd ); 
-	
-	/*======================================================================================*/
-	/* Gaurav Saxena wrote this to help with printing the {Key,Value} in this unordered map */
-	/*======================================================================================*/
-	
-	std::unordered_map<std::string,int> & get_name_to_index_map(); 
-};
+// custom functions can go here 
 
-}; 
+void predator_hunting_function( Cell* pCell, Phenotype& phenotype, double dt ); 
+void predator_cycling_function( Cell* pCell, Phenotype& phenotype, double dt ); 
 
-#endif 
+void prey_cycling_function( Cell* pCell , Phenotype& phenotype, double dt ); 

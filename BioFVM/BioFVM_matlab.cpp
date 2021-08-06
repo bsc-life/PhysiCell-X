@@ -579,9 +579,99 @@ FILE* write_matlab4_header( int nrows, int ncols, std::string filename, std::str
  return fp; 
 }
 
+/*--------------------------------------------------------------------*/
+/* Parallel version of the function above but does not return a FILE* */
+/*--------------------------------------------------------------------*/
+
+void write_matlab4_header( int nrows, int ncols, std::string filename, std::string variable_name, mpi_Environment &world, mpi_Cartesian &cart_topo )
+{
+ 
+ MPI_File fh;                                          //Equivalent FILE* fp; 
+ char char_filename[filename.size()+1];
+ 
+ /*--------------------------------------------------------------------------------------------------------------------*/
+ /*             C++ string doesn't work within MPI_File_open()                                                         */
+ /*             so it needs to be converted to a const char * like below                                               */
+ /*             One extra space is for the NULL character in C++                                                       */
+ /*--------------------------------------------------------------------------------------------------------------------*/
+ 
+ strcpy(char_filename, filename.c_str()); 
+ 
+ 
+ MPI_File_open(cart_topo.mpi_cart_comm, char_filename, MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &fh); //Equivalent fp = fopen( filename.c_str() , "wb" );
+ 
+ unsigned int temp;
+ unsigned int type_numeric_format = 0;                                                             // little-endian assumed for now!
+ unsigned int type_reserved = 0;
+ unsigned int type_data_format = 0;                                                                // doubles for all entries 
+ unsigned int type_matrix_type = 0;                                                                // full matrix, not sparse
+
+ temp = 1000*type_numeric_format + 100*type_reserved + 10*type_data_format + type_matrix_type;
+ 
+ if(world.rank == 0)
+    MPI_File_write(fh, &temp, 1, MPI_UNSIGNED, MPI_STATUS_IGNORE);                                    //fwrite( (char*) &temp , UINTs , 1 , fp );
+ 
+                                                                                                   // UINT rows = (UINT) number_of_data_entries; // storing data as rows
+ unsigned int rows = (unsigned int) nrows;                                                         // size_of_each_datum; // storing data as cols
+ 
+ if(world.rank == 0)
+    MPI_File_write(fh, &rows, 1, MPI_UNSIGNED, MPI_STATUS_IGNORE);                                    //fwrite( (char*) &rows , UINTs , 1, fp );
+ 
+ /*--------------------------------------------------------------------------------------------------------------------*/
+ /*             The number of columns is equal to number of voxels                                                     */
+ /*             Row0 = center[0], Row1=center[1]..., Row[5]=densities		                                               */
+ /* I am changing the logic here as compared to the original BioFVM, to get the total "cols", we will NOT 						 */
+ /* multiply by world.size . When we call the current function, the value of ncols will already CONTAIN 							 */
+ /* the total number of entities to be written. This change is being done because when BioFVM MATLAB file for 				 */
+ /* basic_agents is written, we CANNOT multiply the basic_agents.size() by world.size as we have a different 					 */
+ /* number of basic_agents on each process. Thus, saying cols = world.size * ncols would be incorrect 								 */
+ /* ncols should already contain the total entities to be written. 																										 */
+ /* Thus, when writing the header for Mesh & Microenvironment, we send world.size * data_elements											 */
+ /* When we write the header for Basic_Agents, we send MPI_Reduce(...,total_basic_agents_on_all_processes,..)					 */
+ /*--------------------------------------------------------------------------------------------------------------------*/                                                                                                 
+                                                                                                   
+                                                                       // UINT cols = (UINT) size_of_each_datum; // storing data as rows
+ //unsigned int cols = (unsigned int) (world.size * ncols);            // number_of_data_entries; // storing data as cols
+ unsigned int cols = (unsigned int) (ncols);													 // ncols should "ALREADY" contain total entities on ALL processes
+ 
+if(world.rank == 0)
+    MPI_File_write(fh, &cols, 1, MPI_UNSIGNED, MPI_STATUS_IGNORE);                                    //fwrite( (char*) &cols, UINTs , 1 , fp );
+ 
+ unsigned int imag = 0;                                                                            // no complex matrices!
+ 
+if(world.rank == 0)
+    MPI_File_write(fh, &imag, 1, MPI_UNSIGNED, MPI_STATUS_IGNORE);                                    //fwrite( (char*) &imag, UINTs, 1 , fp );
+ 
+ unsigned int name_length = variable_name.size();                                                  //strlen( variable_name );
+
+if(world.rank == 0)
+    MPI_File_write(fh, &name_length, 1, MPI_UNSIGNED, MPI_STATUS_IGNORE);                             //fwrite( (char*) &name_length, UINTs, 1 , fp );
+
+ // this is the end of the 20-byte header 
+
+ // write the name
+
+if(world.rank == 0)
+    MPI_File_write(fh, variable_name.c_str(), name_length, MPI_CHARACTER, MPI_STATUS_IGNORE);         //fwrite( variable_name.c_str() , name_length , 1 , fp );
+
+ MPI_File_close(&fh);
+ return; 
+}
+
 FILE* write_matlab_header( unsigned int rows, unsigned int cols, std::string filename, std::string variable_name )
 {
  return write_matlab4_header( rows, cols, filename, variable_name );  
+}
+
+/*----------------------------------------------------------------------------------------------*/
+/* Parallel version of the function above but a change in prototype/implementation in the sense */
+/* it does not return a FILE* 																																	*/
+/*----------------------------------------------------------------------------------------------*/
+
+void write_matlab_header( int rows, int cols, std::string filename, std::string variable_name, mpi_Environment &world, mpi_Cartesian &cart_topo )
+{
+  write_matlab4_header( rows, cols, filename, variable_name, world, cart_topo ); 
+  return; 
 }
 
 bool write_matlab4( std::vector< std::vector<double> > input, std::string filename , std::string variable_name )

@@ -421,7 +421,95 @@ void General_Mesh::write_to_matlab( std::string filename )
 	}
 
 	fclose( fp ); 
-} 
+}
+
+/*----------------------------------------------------------------------------------------------*/
+/* Parallel equivalent of the function above - remember now BioFVM has actually 3 MATLAB file 	*/
+/* writing functions/snippets: (1) Writing Mesh (2) Writing Microenvironment (3) Writing agents */
+/*----------------------------------------------------------------------------------------------*/
+
+void General_Mesh::write_to_matlab( std::string filename, mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	
+    MPI_File fh;
+    MPI_Offset file_size, offset; 
+    MPI_Datatype etype, filetype; 
+    double *buffer;                         //Will contain center[0/1/2] and volume in a contiguous buffer
+    char char_filename[filename.size()+1];
+    int elements_to_write; 
+    
+    /*----------------------------------------------------------------------------------------*/
+    /* Now total data entries is now the sum of all entries on all processes                  */
+    /* size of datum remains the same                                                         */
+    /*----------------------------------------------------------------------------------------*/
+
+    int number_of_data_entries = voxels.size();
+		int size_of_each_datum = 3 + 1 ;		//density values are NOT to be taken into account here (see function above) 
+
+    //Possibly we do not need to return anything over here, we can write a separate file at Master
+    //All processes call this function - because William Groppe says MPI_File_open is collective operation
+    
+    /*----------------------------------------------------------------------------------------------------*/
+    /* IMPORTANT: A problem will arise when writing the basic_agents header. Each process contains a 			*/
+    /* different number of basic_agents and hence multiplying world.size * number_of_data_entries 	 			*/
+    /* inside write_matlab4_header() would be INCORRECT. 																						 			*/
+    /* SOLUTION: Instead of SENDING number_of_data_entries to write_matlab_header(), send world.size 			*/
+    /* * number_of_data_entries to this function (for Mesh and Microenvironment MATLAB functions)		 			*/
+    /* When dealing with basic_agents, do an MPI_Reduce() at the root process into number_of_data_entries */
+    /* REMOVE the multiplication of world.size * number_of_data_entries from write_matlab4_header()				*/
+    /*----------------------------------------------------------------------------------------------------*/
+
+    write_matlab_header( size_of_each_datum, world.size * number_of_data_entries,  filename, "mesh", world, cart_topo );
+    
+    /*-----------------------------------------------------------*/
+    /* IMPORTANT: POSSIBLY TRY TO REMOVE FOR PERFORMANCE REASONS */
+    /*-----------------------------------------------------------*/
+    
+    MPI_Barrier(cart_topo.mpi_cart_comm); 
+       
+		// storing data as cols 
+    buffer = new double[number_of_data_entries * size_of_each_datum];
+    
+    //std::cout<<"CX	"<<"CY	"<<"CZ	"<<"Vol	"<<"Density	\n"; 
+    
+    int n = 0;
+		for( int i=0; i < number_of_data_entries ; i++ )
+		{
+      buffer[n++] = voxels[i].center[0];
+      //std::cout<<mesh.voxels[i].center[0]<<"	";
+      buffer[n++] = voxels[i].center[1];
+      //std::cout<<mesh.voxels[i].center[1]<<"	";
+      buffer[n++] = voxels[i].center[2];
+      //std::cout<<mesh.voxels[i].center[2]<<"	";
+      buffer[n++] = voxels[i].volume;
+      //std::cout<<mesh.voxels[i].volume<<"	";
+            
+    	//fwrite( (char*) &( mesh.voxels[i].center[0] ) , sizeof(double) , 1 , fp ); 
+			//fwrite( (char*) &( mesh.voxels[i].center[1] ) , sizeof(double) , 1 , fp );   
+			//fwrite( (char*) &( mesh.voxels[i].center[2] ) , sizeof(double) , 1 , fp ); 
+			//fwrite( (char*) &( mesh.voxels[i].volume ) , sizeof(double) , 1 , fp ); 
+		}
+	
+		strcpy(char_filename, filename.c_str());
+    
+		MPI_File_open(cart_topo.mpi_cart_comm, char_filename, MPI_MODE_WRONLY, MPI_INFO_NULL, &fh);      //This file is already created while writing Matlab header
+    MPI_File_get_size(fh,&file_size);
+    
+    offset = file_size + world.rank * sizeof(double) * number_of_data_entries * size_of_each_datum;
+    etype = MPI_DOUBLE;
+    filetype = MPI_DOUBLE; 
+    elements_to_write = number_of_data_entries * size_of_each_datum; 
+    
+    MPI_File_set_view(fh, offset, etype, filetype, "native", MPI_INFO_NULL); 
+    MPI_File_write(fh, buffer, elements_to_write, MPI_DOUBLE, MPI_STATUS_IGNORE);
+
+     
+		MPI_File_close(&fh);
+    delete [] buffer;
+    
+		return;
+}
+ 
 
 void General_Mesh::read_from_matlab( std::string filename )
 {

@@ -812,6 +812,442 @@ void add_BioFVM_substrates_to_open_xml_pugi( pugi::xml_document& xml_dom , std::
 	return; 
 }
 
+/*------------------------------------*/
+/* Parallel version of function above */
+/*------------------------------------*/
+
+void add_BioFVM_substrates_to_open_xml_pugi( pugi::xml_document& xml_dom , std::string filename_base, Microenvironment& M, mpi_Environment &world, mpi_Cartesian &cart_topo )
+{
+	
+	/* Executed only on a single rank */
+	
+		if(world.rank == 0)
+			add_MultiCellDS_main_structure_to_open_xml_pugi( xml_dom ); 
+	
+		/*------------------------------------------------------------------------------------------------------*/
+		/* Making this an all-process declaration because if I put these in braces, the compiler complains that */
+		/* node is not declared in the scope when it is used next at line 855 																	*/
+		/*------------------------------------------------------------------------------------------------------*/
+		
+		pugi::xml_node root = biofvm_doc.child( "MultiCellDS" );
+		pugi::xml_node node = root.child( "microenvironment" );
+	 
+	
+		/*---------------------------------------------------------------------------------*/
+		/* Let this be set in all the ranks so that no rank has the value 'true' initially */
+		/*---------------------------------------------------------------------------------*/
+		
+		static bool BioFVM_substrates_initialized_in_dom = false; 
+	
+	// if the TME has not yet been initialized in the DOM, create all the 
+	// right data elements, and populate the meshes.
+	 
+	if( !BioFVM_substrates_initialized_in_dom )
+	{
+		char* buffer; 
+		buffer = new char [1024]; 
+		
+		// add a domain
+		
+		/*-------------------------------------------------------------------------------------------------*/
+		/* Try to put world.rank == 0 ONLY around the XML statements because we are sure that we want ONLY */
+		/* rank = 0 to execute them. 																																			 */ 
+		/*-------------------------------------------------------------------------------------------------*/
+		
+		/* A scoping problem again if I put a brace around pugi::xml_attrib attrib  = node.append_attribute("name"); */
+		/* Hence removing if(world.rank == 0){} from the next 2 statements 																					 */
+		
+			node = node.append_child( "domain" ); 
+			pugi::xml_attribute attrib = node.append_attribute( "name" );
+			
+		if(world.rank == 0)
+		{ 
+			attrib.set_value( M.name.c_str() ); 
+		
+			// add the mesh
+		
+			node = node.append_child( "mesh" ); 
+			// information about the mesh 
+			attrib = node.append_attribute( "type" ); 
+			if( M.mesh.Cartesian_mesh == true )
+			{ 
+				attrib.set_value( "Cartesian" ); 
+			}
+			else
+			{ 
+				attrib.set_value( "general"); 
+			}
+			attrib = node.append_attribute( "uniform" ); 
+			attrib.set_value( M.mesh.uniform_mesh ); 
+			attrib = node.append_attribute( "regular" ); 
+			attrib.set_value( M.mesh.regular_mesh ); 		
+			attrib = node.append_attribute( "units" ); 
+			attrib.set_value( M.mesh.units.c_str() );
+			// add the bounding box 
+			node = node.append_child( "bounding_box" ); 
+			attrib = node.append_attribute( "type" ); 
+			attrib.set_value( "axis-aligned" ); 
+			attrib = node.append_attribute( "units" ); 
+			attrib.set_value( M.mesh.units.c_str() ); 
+			sprintf( buffer , "%f %f %f %f %f %f" , M.mesh.bounding_box[0] , M.mesh.bounding_box[1] , M.mesh.bounding_box[2] , 
+			M.mesh.bounding_box[3] , M.mesh.bounding_box[4] , M.mesh.bounding_box[5] ); 
+			node.append_child( pugi::node_pcdata ).set_value( buffer ); 
+			node = node.parent(); 		
+			// if Cartesian, add the x, y, and z coordinates 
+			if( M.mesh.Cartesian_mesh == true )
+			{
+				char temp [10240];
+				int position = 0; 
+				for( unsigned int k=0 ; k < world.size * M.mesh.x_coordinates.size()-1 ; k++ )
+				{ 
+					position += sprintf( temp+position, "%f " , M.mesh.x_coordinates[0] + k * M.mesh.dx ); 
+				}
+				
+				/*----------------------------------------------------------------------------------*/
+				/* x_coordinates vector contains the x-coordinate of the centers of the voxels 			*/
+				/* If there are n voxels => there are n centers i.e. each voxel has a center 	 			*/
+				/* M.mesh.x_coordinates[0] contains the center of the first voxel 						 			*/
+				/* To get the center of 2nd voxel => M.mesh.x_coordinates[0] + M.mesh.dx 			 			*/
+				/* To get the center of 3rd voxel => M.mesh.x_coordinates[0] + 2 * M.mesh.dx	 			*/
+				/* To get the center of 4th voxel => M.mesh.x_coordinates[0] + 3 * M.mesh.dx	 			*/
+				/* To get the center of last voxel => M.mesh.x_coordinates[0] + (n-1) * M.mesh.dx	 	*/
+				/* where n = world.size * M.mesh.x_coordinates.size() 															*/
+				/*----------------------------------------------------------------------------------*/
+				
+				sprintf( temp+position , "%f" , M.mesh.x_coordinates[0] + (world.size * M.mesh.x_coordinates.size() - 1) * M.mesh.dx ); 
+				node = node.append_child( "x_coordinates" ); 
+				node.append_child( pugi::node_pcdata ).set_value( temp ); 
+				attrib = node.append_attribute("delimiter");
+				attrib.set_value( " " ); 
+			
+				node = node.parent();
+				position = 0;
+				
+				/*-----------------------------------------------------------------------------------------------*/
+				/* Remember: There is no process division in the Y/Z-direction, hence no need to change Y/Z code */
+				/*-----------------------------------------------------------------------------------------------*/
+				 
+				for( unsigned int k=0 ; k < M.mesh.y_coordinates.size()-1 ; k++ )
+				{ 
+					position += sprintf( temp+position, "%f " , M.mesh.y_coordinates[k] ); 
+				}
+				sprintf( temp+position , "%f" , M.mesh.y_coordinates[ M.mesh.y_coordinates.size()-1] ); 
+				node = node.append_child( "y_coordinates" ); 
+				node.append_child( pugi::node_pcdata ).set_value( temp ); 
+				attrib = node.append_attribute("delimiter");
+				attrib.set_value( " " ); 
+			
+				node = node.parent();
+				position = 0; 
+				for( unsigned int k=0 ; k < M.mesh.z_coordinates.size()-1 ; k++ )
+				{ 
+					position += sprintf( temp+position, "%f " , M.mesh.z_coordinates[k] ); 
+				}
+				sprintf( temp+position , "%f" , M.mesh.z_coordinates[ M.mesh.z_coordinates.size()-1] ); 
+				node = node.append_child( "z_coordinates" ); 
+				node.append_child( pugi::node_pcdata ).set_value( temp ); 
+				attrib = node.append_attribute("delimiter");
+				attrib.set_value( " " ); 
+				node = node.parent();
+			} 
+		}
+		
+		/*-------------------------------------------------------------------------------------------*/
+		/* The part of the code starting with if (save_mesh_as_matlab) should NEVER be executed in a */
+		/* parallel simulation because the XML file is being written by a single process and if this */
+		/* code executes, rank 0 would need data from all the processes. 														 */
+		/*-------------------------------------------------------------------------------------------*/
+		
+		// write out the voxels -- minimal data, even if redundant for cartesian 
+		if( save_mesh_as_matlab == false )
+		{
+			node = node.append_child( "voxels" ); 
+			attrib = node.append_attribute("type");
+			attrib.set_value( "xml" ); 
+			char temp [1024]; 
+			for( unsigned int k=0; k < M.mesh.voxels.size() ; k++ )
+			{
+				node = node.append_child( "voxel" );
+				
+				attrib = node.append_attribute( "ID" ); 
+				attrib.set_value( M.mesh.voxels[k].mesh_index );		//Needs data from other processes 
+				attrib = node.append_attribute( "type" ); 
+				attrib.set_value( "cube" ); // allowed: cube or unknown 
+
+				node = node.append_child( "center" );
+				attrib = node.append_attribute( "delimiter" );
+				attrib.set_value( " " );														//Needs data from other processes
+				sprintf( temp , "%f %f %f" , M.mesh.voxels[k].center[0] , M.mesh.voxels[k].center[1], M.mesh.voxels[k].center[2] );
+				node.append_child( pugi::node_pcdata ).set_value( temp ); 
+				node = node.parent(); 
+				
+				node = node.append_child( "volume" );
+				sprintf( temp , "%f" , M.mesh.voxels[k].volume );			//Needs data from other processes
+				node.append_child( pugi::node_pcdata ).set_value( temp ); 
+				node = node.parent(); 
+
+				node = node.parent(); 
+			}
+			node = node.parent(); 
+		}
+		else
+		{
+			if(world.rank == 0)
+			{
+				node = node.append_child( "voxels" ); 
+				attrib = node.append_attribute("type");
+				attrib.set_value( "matlab"); 
+			}
+			
+			/*----------------------------------------------------------------------------------*/
+			/* This part of the code must be executed by all processes i.e. MATLAB file writing */
+			/*----------------------------------------------------------------------------------*/
+			
+			char filename [1024]; 
+			sprintf( filename , "%s_mesh%d.mat" , filename_base.c_str() , 0 ); 
+			M.mesh.write_to_matlab( filename, world, cart_topo ); 
+		
+			if(world.rank == 0)
+			{	
+				node = node.append_child( "filename" ); 
+			
+				/* store filename without the relative pathing (if any) */ 
+				char filename_without_pathing [1024];
+				char* filename_start = strrchr( filename , '/' ); 
+				if( filename_start == NULL )
+				{ 
+					filename_start = filename; 
+				}
+				else	
+				{ 
+					filename_start++; 
+				} 
+				strcpy( filename_without_pathing , filename_start ); 
+			
+				node.append_child( pugi::node_pcdata ).set_value( filename_without_pathing ); // filename ); 
+			
+				node = node.parent(); 
+			
+				node = node.parent(); 
+			}
+		}
+		
+		if(world.rank == 0)
+		{
+			node = node.parent(); // back to level of "microenvironment"  
+		
+			// define the variables 
+
+			node = node.append_child( "variables" ); 
+		
+			char temp [1024]; 
+			for( unsigned int j=0 ; j < M.number_of_densities() ; j++ )
+			{
+				node = node.append_child( "variable" ); 
+				attrib = node.append_attribute( "name" ); 
+				attrib.set_value( M.density_names[j].c_str() ); 
+				attrib = node.append_attribute( "units" ); 
+				attrib.set_value( M.density_units[j].c_str() ); 
+				attrib = node.append_attribute( "ID" ); 
+				attrib.set_value( j ); 
+			
+				node = node.append_child( "physical_parameter_set" ); 
+				node = node.append_child( "conditions" ); 
+				node = node.parent(); 
+			
+				node = node.append_child( "diffusion_coefficient" ); 
+				sprintf( temp , "%f" , M.diffusion_coefficients[j] ); 
+				node.append_child( pugi::node_pcdata ).set_value( temp );
+				attrib = node.append_attribute( "units" ); 
+				sprintf( temp , "%s^2/%s" , M.spatial_units.c_str() , M.time_units.c_str() ); 
+				attrib.set_value( temp ); 
+				node = node.parent(); 
+
+				node = node.append_child( "decay_rate" ); 
+				sprintf( temp , "%f" , M.decay_rates[j] ); 
+				node.append_child( pugi::node_pcdata ).set_value( temp );
+				attrib = node.append_attribute( "units" ); 
+				sprintf( temp , "1/%s" , M.time_units.c_str() ); 
+				attrib.set_value( temp ); 
+				node = node.parent(); 
+
+		   	node = node.parent(); 
+		   	node = node.parent();
+			}
+			
+			node = node.parent(); 
+		
+			// create space for the data 
+			// write out the voxels -- minimal data, even if redundant for cartesian 
+			node = node.append_child( "data" ); 
+			attrib = node.append_attribute("type");
+		}
+		
+		/*------------------------------------------------------------------------------------*/
+		/* The code starting with save_density_data_as_matlab == false should NEVER execute 	*/
+		/* because we are writing the XML file with rank 0 and if it executes, we would need 	*/
+		/* data from other processes ... which is not taken care of right now 								*/
+		/*------------------------------------------------------------------------------------*/
+
+		if( save_density_data_as_matlab == false )
+		{
+			attrib.set_value( "xml" ); 
+			
+			// create the DOM structure, make it big enough 
+			int datum_size = 16; // enough for sprintf default 6 decimal places + period + 5 leading figs (safety) + delimiter + 2 chars safety = 15
+			int data_size = datum_size * M.number_of_densities(); 
+			
+			char* buffer; 
+			buffer = new char [data_size]; 
+			for( unsigned int j=0 ; j < M.mesh.voxels.size() ; j++ )
+			{
+				vector_to_list( M.density_vector(j) , buffer , ' ' ); 
+				node = node.append_child( "data_vector"); 
+				attrib = node.append_attribute( "voxel_ID" ); 
+				attrib.set_value( M.mesh.voxels[j].mesh_index ); 
+				attrib = node.append_attribute( "delimiter" ); 
+				attrib.set_value( " " ); 
+				
+				node.append_child( pugi::node_pcdata ).set_value( buffer ); 
+				node = node.parent(); 
+			}
+			delete [] buffer; 			
+			
+		}
+		else
+		{
+			if(world.rank == 0)
+			{
+				attrib.set_value( "matlab"); 
+				node = node.append_child( "filename" ); 
+				// say where the data are stored, and store them;
+			}
+			
+			/*----------------------------------------------------------------------------*/
+			/* The write_to_matlab(filename) function should be executed by all processes */
+			/*----------------------------------------------------------------------------*/
+
+			char filename [1024]; 
+			sprintf( filename , "%s_microenvironment%d.mat" , filename_base.c_str() , 0 ); 
+			M.write_to_matlab( filename, world, cart_topo ); 
+			
+			if(world.rank == 0)
+			{
+				/* store filename without the relative pathing (if any) */ 
+				char filename_without_pathing [1024];
+				char* filename_start = strrchr( filename , '/' ); 
+				if( filename_start == NULL )
+				{ 
+					filename_start = filename; 
+				}
+				else	
+				{ 
+					filename_start++; 
+				} 
+				strcpy( filename_without_pathing , filename_start ); 
+			
+				node.append_child( pugi::node_pcdata ).set_value( filename_without_pathing ); // filename );				
+			
+				node = node.parent();
+			} 
+		}
+		
+		if(world.rank == 0)
+		{
+			node = node.parent(); 
+		}
+		
+		/*----------------------------------------------------------------------------------------*/
+		/* Above we had let this variable be initialized on all processes so its okay to have the */
+		/* following statements be executed by all the processes. 																*/
+		/*----------------------------------------------------------------------------------------*/
+		
+		BioFVM_substrates_initialized_in_dom = true; 
+		
+		delete [] buffer; 
+		
+		return; 
+	}
+	
+	if(world.rank == 0)
+	{
+		// populate the data values 
+	
+		node = node.child( "domain" ); 
+		node = node.child( "data" ); 
+	}
+	
+	/*-------------------------------------------------------------------------------------------------------*/
+	/* The code starting with save_density_data_as_matlab == false should NEVER be executed as only a single */
+	/* process writes the XML file and if it is executed, it would require data from all other processes .	 */
+	/*-------------------------------------------------------------------------------------------------------*/
+
+	if( save_density_data_as_matlab == false )
+	{
+		// create the DOM structure, make it big enough 
+		int datum_size = 16; // enough for sprintf default 6 decimal places + period + 5 leading figs (safety) + delimiter + 2 chars safety = 15
+		int data_size = datum_size * M.number_of_densities(); 
+		
+		char* buffer; 
+		buffer = new char [data_size]; 
+		node = node.child( "data_vector" );
+		for( unsigned int j=0 ; j < M.mesh.voxels.size() ; j++ )
+		{
+			vector_to_list( M.density_vector(j) , buffer , ' ' ); 
+			node = node.first_child(); 
+			
+			node.set_value( buffer ); 
+			node = node.parent(); 
+			
+			node = node.next_sibling(); 
+		}
+		node = node.parent(); 
+		delete [] buffer; 			
+		
+	}
+	else
+	{
+		
+		if(world.rank == 0)
+		{
+			// say where the data are stored, and store them;
+			node = node.child( "filename" );
+		}
+
+		/*-----------------------------------------------------------------------*/		
+		/* The following MATLAB writing code should be executed by all processes */
+		/*-----------------------------------------------------------------------*/
+		
+		char filename [1024]; 
+		sprintf( filename , "%s_microenvironment%d.mat" , filename_base.c_str() , 0 ); 
+		M.write_to_matlab( filename, world, cart_topo ); 
+		
+		if(world.rank == 0)
+		{
+			/* store filename without the relative pathing (if any) */ 
+			char filename_without_pathing [1024];
+			char* filename_start = strrchr( filename , '/' ); 
+			if( filename_start == NULL )
+			{ 
+				filename_start = filename; 
+			}
+			else	
+			{ 
+				filename_start++; 
+			} 
+			strcpy( filename_without_pathing , filename_start ); 
+		
+			node = node.first_child(); 
+			node.set_value( filename_without_pathing ); // filename ); 
+			node = node.parent(); 
+		}
+	}
+	
+	return; 
+}
+
+
+
 // not yet implemented 
 void add_BioFVM_basic_agent_to_open_xml_pugi( pugi::xml_document& xml_dom, Basic_Agent& BA  ); 
 
@@ -1040,12 +1476,383 @@ void add_BioFVM_agents_to_open_xml_pugi( pugi::xml_document& xml_dom, std::strin
 	return; 
 }
 
+/*----------------------------------------*/
+/* Parallel version of the function above */
+/*----------------------------------------*/
+
+void add_BioFVM_agents_to_open_xml_pugi( pugi::xml_document& xml_dom, std::string filename_base, Microenvironment& M, mpi_Environment &world, mpi_Cartesian &cart_topo )
+{
+	if( save_cell_data == false )
+	{ 
+		return; 
+	}
+	
+	/*-----------------------------------------------------------------------------------*/
+	/* A scoping problem arises if next 2 statements are placed in if(world.rank == 0){} */
+	/* Let them be executed on all processes 																						 */
+	/*-----------------------------------------------------------------------------------*/
+	
+		pugi::xml_node root = xml_dom.child("MultiCellDS") ; 
+		pugi::xml_node node = root.child( "cellular_information" ); 
+		root = node; 
+	
+	// Let's reduce memory allocations and sprintf calls. 
+	// This reduces execution time by around 30%. (e.g., write time for 1,000,000 cells decreases from 
+	// 45 to 30 seconds on an older machine. 
+	static char* temp; 
+	static bool initialized = false; 
+	
+	static char rate_chars [1024]; 
+	static char volume_chars [1024]; 
+	static char diffusion_chars [1024]; 
+	if( !initialized )
+	{ 
+		if(world.rank == 0)
+		{
+			temp = new char [1024]; 
+			initialized = true; 
+		
+			sprintf( rate_chars, "1/%s" , M.time_units.c_str() ); 
+			sprintf( volume_chars, "%s^3" , M.spatial_units.c_str() ); 
+			sprintf( diffusion_chars , "%s^2/%s", M.spatial_units.c_str() , M.time_units.c_str() ); 
+		}
+	}
+
+	if(world.rank == 0)
+	{
+		node = node.child( "cell_populations" ); 
+		if( !node )
+		{
+			node = root.append_child( "cell_populations" ); 
+		}
+		root = node; // root = cell_populations 
+	}
+	// if we are using the customized matlab data, do it here. 
+	if( save_cells_as_custom_matlab == true )
+	{
+		if(world.rank == 0)
+		{
+			node = node.child( "cell_population" ); 
+			if( !node )
+			{
+				node = root.append_child( "cell_population" ); 
+				pugi::xml_attribute attrib = node.append_attribute( "type" ); 
+				attrib.set_value( "individual" ); 
+			}
+		
+			if( !node.child( "custom" ) ) 
+			{
+				node.append_child( "custom" ); 		
+			}
+			node = node.child( "custom" ); 
+		
+			if( !node.child( "simplified_data" ) )
+			{
+				pugi::xml_node node1 = node.append_child( "simplified_data" ); 
+				pugi::xml_attribute attrib = node1.append_attribute( "type" ); 
+				attrib.set_value( "matlab" ) ; 
+			
+				attrib = node1.append_attribute( "source" ); 
+				attrib.set_value("BioFVM"); 
+			
+			}
+			node = node.child( "simplified_data" ); 
+		
+			if( !node.child( "filename" ) )
+			{
+				node.append_child( "filename" ); 
+			}
+			node = node.child( "filename" ); 
+		}
+		// next, filename
+		
+		/*----------------------------------------------------------------------*/
+		/* The declaration of the MATLAB file must be executed by all processes */ 
+		/*----------------------------------------------------------------------*/
+
+		char filename [1024]; 
+		sprintf( filename , "%s_cells.mat" , filename_base.c_str() ); 
+		
+		if(world.rank == 0)
+		{
+			/* store filename without the relative pathing (if any) */ 
+			char filename_without_pathing [1024];
+			char* filename_start = strrchr( filename , '/' ); 
+			if( filename_start == NULL )
+			{ 
+				filename_start = filename; 
+			}
+			else	
+			{ 
+				filename_start++; 
+			} 
+			strcpy( filename_without_pathing , filename_start ); 
+		
+			if( !node.first_child() )
+			{
+				node.append_child( pugi::node_pcdata ).set_value( filename_without_pathing ); // filename ); 
+			}
+			else
+			{
+				node.first_child().set_value( filename_without_pathing ); // filename ); 
+			}
+		}
+		
+		/*----------------------------------------------------------------------------------*/
+		/* First determine the global_total_agents so that the MATLAB header can be written */
+		/* We just need the global_agents at the root process because it is ultimately the 	*/
+		/* root process that writes the header in the MATLAB file.													*/
+		/*----------------------------------------------------------------------------------*/
+
+		int local_agents, global_agents;
+		local_agents = all_basic_agents.size();
+		MPI_Reduce(&local_agents, &global_agents, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm); 
+		
+		// next, create a matlab structure and save it!
+		// order: ID,x,y,z,volume,radius, 
+		//int number_of_data_entries = all_basic_agents.size();
+		int number_of_data_entries = global_agents;
+		int size_of_each_datum = 1 + 3 + 1 + 3*M.number_of_densities(); // ID, x,y,z, volume,  src,sink,saturation (multiple) 
+
+		write_matlab_header( size_of_each_datum, number_of_data_entries,  filename, "basic_agents", world, cart_topo );
+		
+		/*---------------------------------*/
+		/* MPI file writing pre-requisites */
+		/*---------------------------------*/
+
+		MPI_File fh;
+    MPI_Offset file_size, offset; 
+    MPI_Datatype etype, filetype; 
+    double *buffer;                         //Will contain center[0],center[1],center[2],volume and densities in a contiguous buffer
+    //char char_filename[filename.size()+1];
+    int elements_to_write;
+    
+    /*---------------------------------------------------------------------------------------*/   
+		/* Need to MPI_Allgather number of agents at all processes because offset of a process = */
+		/* agents of all processes before that process * size of data written + file_offset 		 */
+		/* Hence each process will calculate the cumulative agents of ranks before it 					 */
+		/*---------------------------------------------------------------------------------------*/
+		
+		int agent_count[world.size];
+		int cumulative_agents = 0;
+		int n = 0;   
+		
+		MPI_Allgather(&local_agents, 1, MPI_INT, agent_count, 1, MPI_INT, cart_topo.mpi_cart_comm);
+		
+		/*--------------------------------------------------------------------------------*/
+		/* This is how we will calculate the offset 														 					*/
+		/* for(int i=0; i < world.rank; i++) cumulative_agents += agent_count[i] 					*/
+		/* offset = file_size + cumulative_agents * (sizeof(double) * size_of_each_datum) */ 
+		/*--------------------------------------------------------------------------------*/
+		
+		buffer = new double[local_agents * size_of_each_datum]; 
+		
+		// storing data as cols, a MISTAKE here was that I was doing i < number_of_data_entries 
+
+		for( int i=0; i < local_agents ; i++ )
+		{
+			double ID_temp = (double) all_basic_agents[i]->ID;
+			//fwrite( (char*) &( ID_temp ) , sizeof(double) , 1 , fp );
+			buffer[n++] = ID_temp; 
+
+			//fwrite( (char*) &( all_basic_agents[i]->position[0] ) , sizeof(double) , 1 , fp ); 
+			buffer[n++] = all_basic_agents[i]->position[0];
+			 
+			//fwrite( (char*) &( all_basic_agents[i]->position[1] ) , sizeof(double) , 1 , fp ); 
+			buffer[n++] = all_basic_agents[i]->position[1];
+			
+			//fwrite( (char*) &( all_basic_agents[i]->position[2] ) , sizeof(double) , 1 , fp ); 
+			buffer[n++] = all_basic_agents[i]->position[2];
+			
+			double volTemp=all_basic_agents[i]->get_total_volume();
+			//fwrite( (char*) &( volTemp ) , sizeof(double) , 1 , fp );
+			buffer[n++] = volTemp;
+			 
+			
+			// add variables and their source/sink/saturation values (per-cell basis)
+			for( unsigned int j=0; j < M.number_of_densities() ; j++ ) 
+			{
+				double dTemp = all_basic_agents[i]->get_total_volume() * (*all_basic_agents[i]->secretion_rates)[j]; 
+				//fwrite( (char*) &( dTemp ) , sizeof(double) , 1 , fp );
+				buffer[n++] = dTemp;  
+				dTemp = all_basic_agents[i]->get_total_volume() * (*all_basic_agents[i]->uptake_rates)[j]; 
+				//fwrite( (char*) &( dTemp ) , sizeof(double) , 1 , fp ); 
+				buffer[n++] = dTemp;
+				dTemp = (*all_basic_agents[i]->saturation_densities)[j]; 
+				//fwrite( (char*) &( dTemp ) , sizeof(double) , 1 , fp ); 
+				buffer[n++] = dTemp;
+			}
+			
+		}
+
+		//strcpy(char_filename, filename.c_str());
+    
+    /*---------------------------------------------------------------------------*/
+    /* filename is a simple character array - simply put this in MPI_File_open() */
+    /*---------------------------------------------------------------------------*/
+    
+		MPI_File_open(cart_topo.mpi_cart_comm, filename, MPI_MODE_WRONLY, MPI_INFO_NULL, &fh);      //This file is already created while writing Matlab header
+    MPI_File_get_size(fh,&file_size);
+    
+    for(int i = 0; i < world.rank; i++)
+    	cumulative_agents = cumulative_agents + agent_count[i]; 
+    
+    offset = file_size + cumulative_agents * size_of_each_datum * sizeof(double); //Offset of each process in bytes
+    etype = MPI_DOUBLE;
+    filetype = MPI_DOUBLE; 
+    elements_to_write = local_agents * size_of_each_datum; 
+    
+    MPI_File_set_view(fh, offset, etype, filetype, "native", MPI_INFO_NULL); 
+    MPI_File_write(fh, buffer, elements_to_write, MPI_DOUBLE, MPI_STATUS_IGNORE);
+
+     
+	 MPI_File_close(&fh);
+   delete [] buffer;	
+	 
+	 return; 
+	}
+	
+	if(world.rank == 0)
+	{
+		// if there's a list, clear it out 
+		node = node.child( "cell_population" ); 
+		if( node )
+		{
+			node = node.parent(); 
+			node.remove_child( node.child( "cell_population" ) ); 
+		}
+		node = root.append_child( "cell_population" );
+	}
+	
+		/*-------------------------------------------------------------------------------------------*/
+		/* Moving the next statement out of if(world.rank == 0){} because there is a scoping problem */
+		/* at line 1738 																																						 */
+		/*-------------------------------------------------------------------------------------------*/
+
+	 
+		pugi::xml_attribute attrib = node.append_attribute( "type" ); 
+		
+		if(world.rank == 0)
+				attrib.set_value( "individual" ); 
+
+		// now go through all cells 
+
+		root = node; 
+	
+	
+	/*------------------------------------------------------------------------------------------------*/
+	/* This part of the code should NEVER be executed as the XML is being written by a single process */
+	/* and if this is executed by a single process then it will need data from all processes 					*/
+	/*------------------------------------------------------------------------------------------------*/
+	
+	for( unsigned int i=0; i < all_basic_agents.size(); i++ )
+	{
+		node = node.append_child( "cell" ); 
+		attrib = node.append_attribute( "ID" ); 
+		attrib.set_value(  all_basic_agents[i]->ID ); 
+		
+		node = node.append_child( "phenotype_dataset" ); 
+		node = node.append_child( "phenotype" ); // add a type? 
+		
+		// add all the transport information 
+		node = node.append_child( "transport_processes" ); 
+		
+		// add variables and their source/sink/saturation values (per-cell basis)
+		for( unsigned int j=0; j < M.number_of_densities() ; j++ ) 
+		{
+			node = node.append_child( "variable" ); 
+			attrib = node.append_attribute( "name" ); 
+			attrib.set_value( M.density_names[j].c_str() ); 
+			// ChEBI would go here later 
+			attrib = node.append_attribute( "ID" );
+			attrib.set_value( j ); 
+			
+			node = node.append_child( "export_rate" ); 
+			attrib = node.append_attribute( "units" ); 
+			attrib.set_value( rate_chars ); 
+			sprintf( temp , "%f" , all_basic_agents[i]->get_total_volume() * (*all_basic_agents[i]->secretion_rates)[j] ); 
+			node.append_child( pugi::node_pcdata ).set_value( temp ); 
+			node = node.parent( ); 
+			
+			node = node.append_child( "import_rate" ); 
+			attrib = node.append_attribute( "units" ); 
+			attrib.set_value( rate_chars ); 
+			sprintf( temp,  "%f" , all_basic_agents[i]->get_total_volume() * (*all_basic_agents[i]->uptake_rates)[j] ); 
+			node.append_child( pugi::node_pcdata ).set_value( temp ); 
+			node = node.parent(); 
+			
+			node = node.append_child( "saturation_density" ); 
+			attrib = node.append_attribute( "units" ); 
+			attrib.set_value( M.density_units[j].c_str() ); 
+			sprintf( temp, "%f" , (*all_basic_agents[i]->saturation_densities)[j] ); 
+			node.append_child( pugi::node_pcdata ).set_value( temp ); 
+			node = node.parent(); 
+			
+			node = node.parent(); // back up to transport processes 
+		}
+		
+		node = node.parent(); // back up to phenotype 
+
+		// add size information 
+		node = node.append_child( "geometrical_properties" ); 
+		node = node.append_child("volumes");
+		node = node.append_child("total_volume"); 
+		attrib = node.append_attribute("units"); 
+		attrib.set_value( volume_chars ); 
+		sprintf( temp,  "%f" , all_basic_agents[i]->get_total_volume()  ); 
+		node.append_child( pugi::node_pcdata ).set_value( temp ); 		
+		node = node.parent(); 
+		node = node.parent(); 
+		
+		node = node.parent(); // back up to geometrical_properties 
+		
+		node = node.parent(); // back up to phenotype 
+		
+		node = node.parent(); // back up to phenotype_dataset 
+		
+		// add position information 
+		node = node.append_child( "state"); 
+		node = node.append_child( "position" ); 
+		attrib = node.append_attribute( "units" ); 
+		attrib.set_value( M.spatial_units.c_str() ); 
+		
+		// vector3_to_list( all_basic_agents[i]->position , temp , ' ');
+		sprintf( temp , "%.7e %.7e %.7e" , all_basic_agents[i]->position[0], all_basic_agents[i]->position[1], all_basic_agents[i]->position[2] ); 
+		node.append_child( pugi::node_pcdata ).set_value( temp ); 		
+		
+		node = root; 
+	}
+	
+	return; 
+}
+
+
 void add_BioFVM_to_open_xml_pugi( pugi::xml_document& xml_dom , std::string filename_base, double current_simulation_time , Microenvironment& M )
 {
 	add_MultiCellDS_main_structure_to_open_xml_pugi( xml_dom ); 
 	BioFVM_metadata.add_to_open_xml_pugi( current_simulation_time , xml_dom ); 
 
 	add_BioFVM_substrates_to_open_xml_pugi( xml_dom , filename_base, M  ); 
+	// add vessels (if there) 
+	// add basic agents (if there)
+	add_BioFVM_agents_to_open_xml_pugi( xml_dom , filename_base, M); 
+	
+	return; 
+}
+
+/*========================================*/
+/* Parallel version of the function above */
+/*========================================*/
+
+void add_BioFVM_to_open_xml_pugi( pugi::xml_document& xml_dom , std::string filename_base, double current_simulation_time , Microenvironment& M, mpi_Environment &world, mpi_Cartesian &cart_topo )
+{
+	if(world.rank == 0)
+		add_MultiCellDS_main_structure_to_open_xml_pugi( xml_dom );		//No need for a separate parallel version 
+	
+	if(world.rank == 0)
+		BioFVM_metadata.add_to_open_xml_pugi( current_simulation_time , xml_dom );  //No need for a separate parallel version 
+
+	add_BioFVM_substrates_to_open_xml_pugi( xml_dom , filename_base, M, world, cart_topo  ); 
 	// add vessels (if there) 
 	// add basic agents (if there)
 	add_BioFVM_agents_to_open_xml_pugi( xml_dom , filename_base, M); 

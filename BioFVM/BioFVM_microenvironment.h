@@ -131,7 +131,23 @@ class Microenvironment
 	std::vector<bool> dirichlet_node_map; 
 	*/
 	std::vector< std::vector<double> > dirichlet_value_vectors; 
-	std::vector<bool> dirichlet_activation_vector; 	
+	std::vector<bool> dirichlet_activation_vector; 
+	
+	/*=====================================================================================*/
+	/* Gaurav Saxena added this for incorporating individual Dirichlet boundary conditions */
+	/*=====================================================================================*/
+	
+	/* new in Version 1.7.0 -- activation vectors can be specified 
+	   on a voxel-by-voxel basis */ 
+	   
+	std::vector< std::vector<bool> > dirichlet_activation_vectors;
+	
+	/*=====================================================================================*/
+	/* 											TILL HERE 																										 */
+	/*=====================================================================================*/
+
+
+		
  public:
 	
 	/*! The mesh for the diffusing quantities */ 
@@ -278,7 +294,24 @@ class Microenvironment
 	void apply_dirichlet_conditions( void ); 
 
 	void set_substrate_dirichlet_activation( int substrate_index , bool new_value ); 
-	double get_substrate_dirichlet_activation( int substrate_index ); 
+	//double get_substrate_dirichlet_activation( int substrate_index ); ---> changed in v1.7 as below (Gaurav Saxena)
+	bool get_substrate_dirichlet_activation( int substrate_index );
+	
+	
+	/*=======================================================================*/
+	/* Gaurav Saxena added these function prototypes as they are new in v1.7 */
+	/*=======================================================================*/
+	
+	// new functions for finer-grained control of Dirichlet conditions -- 1.7.0
+	void set_substrate_dirichlet_activation( int substrate_index , int index, bool new_value );  
+	void set_substrate_dirichlet_activation( int index, std::vector<bool>& new_value ); 
+	bool get_substrate_dirichlet_activation( int substrate_index, int index ); 
+	
+	/*=======================================================================*/
+	/* 															TILL HERE 															 */
+	/*=======================================================================*/
+
+	
 	
 	bool& is_dirichlet_node( int voxel_index ); 
 
@@ -298,6 +331,14 @@ class Microenvironment
 	friend void diffusion_decay_explicit_uniform_rates( Microenvironment& M, double dt );
 	
 	void write_to_matlab( std::string filename );
+	
+	/*======================================*/
+	/* Parallel prototype of function above */
+	/*======================================*/
+	
+	void write_to_matlab( std::string filename, mpi_Environment &world, mpi_Cartesian &cart_topo ); 
+
+	
 	void write_mesh_to_matlab( std::string filename ); // not yet written 
 	void write_densities_to_matlab( std::string filename ); // not yet written 
 	
@@ -352,7 +393,35 @@ class Microenvironment_Options
 	
 	bool outer_Dirichlet_conditions; 
 	std::vector<double> Dirichlet_condition_vector; 
-	std::vector<bool> Dirichlet_activation_vector; 
+	std::vector<bool> Dirichlet_activation_vector;
+	
+	/*=======================================================================================*/
+	/* Gaurav Saxena incorporated these from v1.7 for setting individual boundary conditions */ 
+	/*=======================================================================================*/
+	
+	/* new in PhysiCell 1.7.0 to enable setting Dirichlet conditions 
+	   on a boundary-by-boundary basis */
+	   
+	std::vector<bool> Dirichlet_all; 
+	
+	//std::vector<bool> Dirichlet_interior; 
+	std::vector<bool> Dirichlet_xmin; 
+	std::vector<bool> Dirichlet_xmax; 
+	std::vector<bool> Dirichlet_ymin; 
+	std::vector<bool> Dirichlet_ymax; 
+	std::vector<bool> Dirichlet_zmin; 
+	std::vector<bool> Dirichlet_zmax; 
+
+	std::vector<double> Dirichlet_xmin_values; 
+	std::vector<double> Dirichlet_xmax_values; 
+	std::vector<double> Dirichlet_ymin_values; 
+	std::vector<double> Dirichlet_ymax_values; 
+	std::vector<double> Dirichlet_zmin_values; 
+	std::vector<double> Dirichlet_zmax_values;
+	
+	/*========================================*/
+	/* 						Till here 									*/ 
+	/*========================================*/
 	
 	std::vector<double> initial_condition_vector; 
 	

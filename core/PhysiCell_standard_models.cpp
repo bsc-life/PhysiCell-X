@@ -632,6 +632,7 @@ void standard_update_cell_velocity( Cell* pCell, Phenotype& phenotype, double dt
 	{
 		pCell->add_potentials(*neighbor);
 	}
+	
 	std::vector<int>::iterator neighbor_voxel_index;
 	std::vector<int>::iterator neighbor_voxel_index_end = 
 		pCell->get_container()->underlying_mesh.moore_connected_voxel_indices[pCell->get_current_mechanics_voxel_index()].end();
@@ -964,7 +965,28 @@ void update_cell_and_death_parameters_O2_based( Cell* pCell, Phenotype& phenotyp
 	
 	pCell->phenotype.death.rates[necrosis_index] = multiplier * pCell->parameters.max_necrosis_rate; 
 	
+	/*-----------------------------------------------------*/
+	/* Gaurav Saxena added the following 2 lines as in v1.7*/
+	/*-----------------------------------------------------*/
+	// check for deterministic necrosis 
+	
+	if( pCell->parameters.necrosis_type == PhysiCell_constants::deterministic_necrosis && multiplier > 1e-16 )
+	{ pCell->phenotype.death.rates[necrosis_index] = 9e99; } 
+	
 	return; 
+}
+
+void chemotaxis_function( Cell* pCell, Phenotype& phenotype , double dt )
+{
+	// bias direction is gradient for the indicated substrate 
+	phenotype.motility.migration_bias_direction = pCell->nearest_gradient(phenotype.motility.chemotaxis_index);
+	// move up or down gradient based on this direction 
+	phenotype.motility.migration_bias_direction *= phenotype.motility.chemotaxis_direction; 
+
+	// normalize 
+	normalize( &( phenotype.motility.migration_bias_direction ) );
+	
+	return;
 }
 
 };
