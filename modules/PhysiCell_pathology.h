@@ -113,6 +113,8 @@ std::vector<std::string> false_cell_coloring_cytometry( Cell* pCell );
 std::vector<std::string> hematoxylin_and_eosin_cell_coloring( Cell* pCell ); // done 
 std::vector<std::string> hematoxylin_and_eosin_stroma_coloring( double& ECM_fraction , double& blood_vessel_fraction); // planned 
 
+std::vector<std::string> paint_by_number_cell_coloring( Cell* pCell ); // done 
+
 std::string formatted_minutes_to_DDHHMM( double minutes ); 
 
 void SVG_plot( std::string filename , Microenvironment& M, double z_slice , double time, std::vector<std::string> (*cell_coloring_function)(Cell*) ); // done
@@ -125,6 +127,8 @@ void SVG_plot( std::string filename , Microenvironment& M, double z_slice , doub
 
 void SVG_plot_with_stroma( std::string filename , Microenvironment& M, double z_slice , double time, std::vector<std::string> (*cell_coloring_function)(Cell*) , 
 	int ECM_index, std::vector<std::string> (*ECM_coloring_function)(double) ); // planned
+
+void create_plot_legend( std::string filename , std::vector<std::string> (*cell_coloring_function)(Cell*) ); 
 
 };
 

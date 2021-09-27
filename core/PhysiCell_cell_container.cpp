@@ -70,6 +70,8 @@
 #include "../BioFVM/BioFVM_vector.h"
 #include "PhysiCell_cell.h"
 
+#include <algorithm>
+#include <iterator> 
 
 using namespace BioFVM;
 
@@ -264,6 +266,11 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 			{
 				(*all_cells)[i]->functions.custom_cell_rule((*all_cells)[i], (*all_cells)[i]->phenotype, time_since_last_mechanics);
 			}
+			
+			if( (*all_cells)[i]->functions.contact_function )
+			{
+				evaluate_interactions( (*all_cells)[i], (*all_cells)[i]->phenotype , time_since_last_mechanics);
+			}
 		}
 		// Calculate new positions
 		#pragma omp parallel for
@@ -295,7 +302,10 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 	#pragma omp parallel for
 	for( int i=0; i < (*all_cells).size(); i++ )
 	{
-		(*all_cells)[i]->phenotype.secretion.advance( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
+		if( (*all_cells)[i]->is_out_of_domain == false )
+		{
+			(*all_cells)[i]->phenotype.secretion.advance( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
+		}
 	}
 
 	//if it is the time for running cell cycle, do it!
@@ -360,35 +370,45 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 		if( default_microenvironment_options.calculate_gradients )
 		{ microenvironment.compute_all_gradient_vectors();  }
 		// end of new in Feb 2018
+		
+		// std::cout << __FILE__ << " " << __FUNCTION__ << " " << __LINE__ << " " << "interactions" << std::endl;
+		// perform interactions -- new in June 2020 
+		#pragma omp parallel for 
+		for( int i=0; i < (*all_cells).size(); i++ )
+		{
+			Cell* pC = (*all_cells)[i]; 
+			if( pC->functions.contact_function && pC->is_out_of_domain == false )
+			{ evaluate_interactions( pC,pC->phenotype,time_since_last_mechanics ); }
+		}
+		
+		// perform custom computations 
 
+		#pragma omp parallel for 
+		for( int i=0; i < (*all_cells).size(); i++ )
+		{
+			Cell* pC = (*all_cells)[i]; 
+			if( pC->functions.custom_cell_rule && pC->is_out_of_domain == false )
+			{ pC->functions.custom_cell_rule( pC,pC->phenotype,time_since_last_mechanics ); }
+		}
 		// Compute velocities
-		#pragma omp parallel for
+		
+		#pragma omp parallel for 
 		for( int i=0; i < (*all_cells).size(); i++ )
 		{
-
-			if(!(*all_cells)[i]->is_out_of_domain && (*all_cells)[i]->is_movable && (*all_cells)[i]->functions.update_velocity )
-			{
-				// update_velocity already includes the motility update
-				//(*all_cells)[i]->phenotype.motility.update_motility_vector( (*all_cells)[i] ,(*all_cells)[i]->phenotype , time_since_last_mechanics );
-				(*all_cells)[i]->functions.update_velocity( (*all_cells)[i], (*all_cells)[i]->phenotype, time_since_last_mechanics);
-			}
-
-			if( (*all_cells)[i]->functions.custom_cell_rule )
-			{
-				(*all_cells)[i]->functions.custom_cell_rule((*all_cells)[i], (*all_cells)[i]->phenotype, time_since_last_mechanics);
-			}
+			Cell* pC = (*all_cells)[i]; 
+			if( pC->functions.update_velocity && pC->is_out_of_domain == false && pC->is_movable )
+			{ pC->functions.update_velocity( pC,pC->phenotype,time_since_last_mechanics ); }
 		}
+		
 		// Calculate new positions
-		#pragma omp parallel for
+
+		#pragma omp parallel for 
 		for( int i=0; i < (*all_cells).size(); i++ )
 		{
-			if(!(*all_cells)[i]->is_out_of_domain && (*all_cells)[i]->is_movable)
-			{
-				(*all_cells)[i]->update_position(time_since_last_mechanics);
-			}
-		}
-
-		// When somebody reviews this code, let's add proper braces for clarity!!!
+			Cell* pC = (*all_cells)[i]; 
+			if( pC->is_out_of_domain == false && pC->is_movable)
+			{ pC->update_position(time_since_last_mechanics); }
+		}		
 
 		// Update cell indices in the container
 		for( int i=0; i < (*all_cells).size(); i++ )
@@ -410,14 +430,16 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 	// secretions and uptakes. Syncing with BioFVM is automated.
 
 	/*===============================================================================*/
-	/* This is Section I to be parallelized, but I am parallelizing Section II first */
-	/*===============================================================================*/
-
 	/* Nothing to be parallelized in phenotype.secretion.advance(...) function below */
+	/*===============================================================================*/
+	
 	#pragma omp parallel for
 	for( int i=0; i < (*all_cells).size(); i++ )
 	{
-		(*all_cells)[i]->phenotype.secretion.advance( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
+		if( (*all_cells)[i]->is_out_of_domain == false )			//Added this if condition, was missing
+		{
+			(*all_cells)[i]->phenotype.secretion.advance( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
+		}
 	}
 
 	//if it is the time for running cell cycle, do it!
@@ -440,7 +462,10 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 		// new as of 1.2.1 -- bundles cell phenotype parameter update, volume update, geometry update,
 		// checking for death, and advancing the cell cycle. Not motility, though. (that's in mechanics)
 
+		/*========================================================================*/
 		/* Nothing to be parallelized in advance_bundled_phenotype_functions(...) */
+		/*========================================================================*/
+
 		#pragma omp parallel for
 		for( int i=0; i < (*all_cells).size(); i++ )
 		{
@@ -449,9 +474,11 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 				(*all_cells)[i]->advance_bundled_phenotype_functions( time_since_last_cycle );
 			}
 		}
-		/*=================================================================================================*/
-		/* Section II - division(), death(), compute_gradients(), update_veclocity() and update_position() */
-		/*=================================================================================================*/
+		/*=====================================================================================*/
+		/* (1) Division(), (2) Death(), (3) compute_gradients(), (4) evaluate_interactions(),  */ 
+		/* (5) custom_cell_rule (6) update_velocity() (7) and update_position() 							 */
+		/* (8) update_voxel_in_container 																											 */
+		/*=====================================================================================*/
 
 		// process divides / removes
 
@@ -474,8 +501,6 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 
 		for( int i=0; i < cells_ready_to_divide.size(); i++ )
 		{
-				//cells_ready_to_divide[i]->divide();											//GS commented this out
-
 				cells_ready_to_divide[i]->divide(p_ID, world, cart_topo); //Calls new parallel version of divide()
 				p_ID = p_ID + 1; 																					//ID of cell to be created passed into divide()
 		}
@@ -510,52 +535,85 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 		}
 		// end of new in Feb 2018
 
-		// Compute velocities
+		/*------------------------------------------------------------------------------------*/
+		/* v1.8 introduces computing interactions, it is better/correct to compute these first*/
+		/* than computing the velocity first 																									*/
+		/* evalute_interactions() is like a dummy function in PhysiCell_standard_models.cpp 	*/
+		/* and calls the contact_function() through the contact_function function pointer 		*/
+		/* All processing is between cells attached to this cell and hence parallelization 		*/
+		/* of evaluate_interactions() and contact_function() is NOT needed 										*/
+		/*------------------------------------------------------------------------------------*/
+		
+		#pragma omp parallel for 
+		for( int i=0; i < (*all_cells).size(); i++ )
+		{
+			Cell* pC = (*all_cells)[i]; 
+			if( pC->functions.contact_function && pC->is_out_of_domain == false )
+				{ 
+					evaluate_interactions( pC,pC->phenotype,time_since_last_mechanics ); 
+				}
+		}
+		
+		/*------------------------------------------------------------------------------------*/
+		/* Perform custom computations now (this was earlier done AFTER velocity update)			*/
+		/* in the parallel loop where velocity was updated, serial version is used 						*/
+		/*------------------------------------------------------------------------------------*/
+		
+		#pragma omp parallel for 
+		for( int i=0; i < (*all_cells).size(); i++ )
+		{
+			Cell* pC = (*all_cells)[i]; 
+			if( pC->functions.custom_cell_rule && pC->is_out_of_domain == false )
+				{ 
+					pC->functions.custom_cell_rule( pC,pC->phenotype,time_since_last_mechanics ); 
+				}
+		}
 
+		/*------------------------------------------------------------------------------------*/
+		/* Perform velocity computations now, first call pack_moore_info(), custom_cell_rule	*/
+		/* computations have been moved outside the parallel velocity compute loop. 					*/
+		/*------------------------------------------------------------------------------------*/
+	
 		pack_moore_info(world, cart_topo);
 		#pragma omp parallel for
 		for( int i=0; i < (*all_cells).size(); i++ )
 		{
-
+			/*-------------------------------------------------------------------------------*/
 			/* For parallel version, use update_velocity_parallel instead of update_velocity */
-
-			if(!(*all_cells)[i]->is_out_of_domain && (*all_cells)[i]->is_movable && (*all_cells)[i]->functions.update_velocity_parallel)
+			/*-------------------------------------------------------------------------------*/			
+			Cell* pC = (*all_cells)[i];
+			if(pC->functions.update_velocity_parallel && pC->is_out_of_domain == false && pC->is_movable)
 			{
-				// update_velocity already includes the motility update
-				//(*all_cells)[i]->phenotype.motility.update_motility_vector( (*all_cells)[i] ,(*all_cells)[i]->phenotype , time_since_last_mechanics );
-				(*all_cells)[i]->functions.update_velocity_parallel( (*all_cells)[i], (*all_cells)[i]->phenotype, time_since_last_mechanics, world, cart_topo);
-			}
-
-			if( (*all_cells)[i]->functions.custom_cell_rule )
-			{
-				(*all_cells)[i]->functions.custom_cell_rule((*all_cells)[i], (*all_cells)[i]->phenotype, time_since_last_mechanics);
+				pC->functions.update_velocity_parallel( pC, pC->phenotype, time_since_last_mechanics, world, cart_topo);
 			}
 		}
 
-		// Calculate new positions
+			/*-------------------------------------------------------------------------------*/
+			/* Compute new positions																												 */
+			/*-------------------------------------------------------------------------------*/
+
 		#pragma omp parallel for
 		for( int i=0; i < (*all_cells).size(); i++ )
 		{
-			if(!(*all_cells)[i]->is_out_of_domain && (*all_cells)[i]->is_movable)
+			Cell* pC = (*all_cells)[i];
+			if(pC->is_out_of_domain == false && pC->is_movable)
 			{
-				//For serial call just remove the argument 'world'
-				(*all_cells)[i]->update_position(time_since_last_mechanics, world, cart_topo);
+				pC->update_position(time_since_last_mechanics, world, cart_topo);
 			}
 		}
 
 		pack(all_cells, world, cart_topo);
 
-		for(int i=0; i< (*all_cells).size(); i++)
+		for(int i=0; i < (*all_cells).size(); i++)
     	if((*all_cells)[i]->crossed_to_left_subdomain || (*all_cells)[i]->crossed_to_right_subdomain)
     	{
-    		//std::cout<<"CELL ID="<<(*all_cells)[i]->ID<<" removed from Rank="<<world.rank<<std::endl;
-
+    		/*=====================================================================================*/
     		/* Since the current cell is exchanged with the last cell and the last cell is deleted */
     		/* a situation can arise where the current cell + last cell is to be deleted 					 */
     		/* In this case the last cell comes into the current position BUT since the loop 			 */
     		/* is incremented, the curent cell (i.e. the last cell) is NOT deleted 								 */
     		/* Thus, we need to decrement the counter IF we delete a cell 												 */
-
+    		/*=====================================================================================*/
     		(*all_cells)[i]->remove_crossed_cell();
     		i = i - 1;
     	}
@@ -593,17 +651,7 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 
     unpack(world, cart_topo);
 
-		/*------------------------------------------------------------------------*/
-		/* Here I need to (1) Check if crossed_to_left_subdomain or crossed_to 		*/
-		/* right_subdomain is true. If yes then call Cell packing function				*/
-		/* send cell across and then run a loop on all cells again to delete			*/
-		/* the cells whose crossed_to_left_subdomain or crossed_to_right_subdomain*/
-		/* is true.																																*/
-		/*------------------------------------------------------------------------*/
-
-		// When somebody reviews this code, let's add proper braces for clarity!!!
-
-		// Update cell indices in the container
+		// Update cell indices in the container because some cells 'could' have moved to new voxels
 		for( int i=0; i < (*all_cells).size(); i++ )
 			if(!(*all_cells)[i]->is_out_of_domain && (*all_cells)[i]->is_movable)
 				(*all_cells)[i]->update_voxel_in_container(world, cart_topo);					//Changed to parallel version
@@ -944,15 +992,23 @@ int find_escaping_face_index(Cell* agent)
 void Cell_Container::flag_cell_for_division( Cell* pCell )
 {
 	#pragma omp critical
-	{cells_ready_to_divide.push_back( pCell );}
-	return;
+	{
+		auto result = std::find(std::begin(cells_ready_to_divide), std::end(cells_ready_to_divide), pCell );
+		if( result == std::end(cells_ready_to_divide) )
+		{ cells_ready_to_divide.push_back( pCell ); }
+	} 
+	return; 
 }
 
 void Cell_Container::flag_cell_for_removal( Cell* pCell )
 {
 	#pragma omp critical
-	{cells_ready_to_die.push_back( pCell );}
-	return;
+	{
+		auto result = std::find(std::begin(cells_ready_to_die), std::end(cells_ready_to_die), pCell );
+		if( result == std::end(cells_ready_to_die) )
+		{ cells_ready_to_die.push_back( pCell ); }		
+	} 
+	return; 
 }
 
 

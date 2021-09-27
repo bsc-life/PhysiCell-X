@@ -124,8 +124,8 @@ class Cell_Container : public BioFVM::Agent_Container
  public:
 	BioFVM::Cartesian_Mesh underlying_mesh;
 	std::vector<double> max_cell_interactive_distance_in_voxel;
-	int num_divisions_in_current_step;
-	int num_deaths_in_current_step;
+	int num_divisions_in_current_step = 0;	//In-class initializer, c++11
+	int num_deaths_in_current_step = 0; //In-class initializer, c++11
 	
 	/*-----------------------------------------------------------*/
 	/* Added by Gaurav Saxena: left/right refer to the 'process' */

@@ -211,16 +211,7 @@ void PhysiCell_Settings::read_from_pugixml( void )
 	search_result = xml_find_node( node , "dt_phenotype" ); 
 	if( search_result )
 	{ phenotype_dt = xml_get_my_double_value( search_result ); }
-	
-/*
-	diffusion_dt
-	
-	
-		<dt_diffusion units="min">0.01</dt_diffusion>
-		<dt_mechanics units="min">0.1</dt_mechanics>
-		<dt_phenotype units="min">6</dt_phenotype>
-	<!--	phenotype_dt, mechanics_dt , diffusion_dt -->
-*/			
+		
 	
 
 	node = node.parent(); 
@@ -251,6 +242,28 @@ void PhysiCell_Settings::read_from_pugixml( void )
 	omp_num_threads = xml_get_int_value( node, "omp_num_threads" ); 
 	
 	node = node.parent(); 
+	
+	// legacy and other options 
+	
+	pugi::xml_node node_options; 
+	
+	node_options = xml_find_node( physicell_config_root , "options" ); 
+	if( node_options )
+	{
+		bool settings; 
+		
+		// look for legacy_random_points_on_sphere_in_divide 
+		settings = 
+			xml_get_bool_value( node_options, "legacy_random_points_on_sphere_in_divide" ); 
+		if( settings )
+		{
+			std::cout << "setting legacy unif" << std::endl; 
+			extern std::vector<double> (*cell_division_orientation)(void); 
+			cell_division_orientation = LegacyRandomOnUnitSphere; 
+		}
+	
+		// other options can go here, eventually 
+	}
 	
 	// domain options 
 	
@@ -926,7 +939,7 @@ bool setup_microenvironment_from_XML( pugi::xml_node root_node )
 					{ Dirichlet_zmax_values[i] = xml_get_my_double_value( node2 ); }
 				}
 				
-				node2 = node2.next_sibling("boundary"); 
+				node2 = node2.next_sibling("boundary_value"); 
 			}
 		}
 		

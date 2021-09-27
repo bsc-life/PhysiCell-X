@@ -1,8 +1,8 @@
 #!/bin/bash
-#SBATCH --nodes=10
+#SBATCH --nodes=1
 #SBATCH --ntasks-per-node=2
-#SBATCH --cpus-per-task=24
-#SBATCH -t 72:00:00
+#SBATCH --cpus-per-task=1
+#SBATCH -t 02:00:00
 #SBATCH -o output-%j
 #SBATCH -e error-%j
 #SBATCH --exclusive
@@ -26,7 +26,7 @@ export OMP_PLACES=threads
 # Simplest Execution, can be used for testing
 #--------------------------------------------
 
-#mpiexec ./project
+ mpiexec ./project
 
 #-------------------------------------------------------------
 # Better to use --map-by ppr syntax when measuring performance
@@ -35,14 +35,14 @@ export OMP_PLACES=threads
 # (This is because we have 2 sockets with 24 cores each)
 #-------------------------------------------------------------
 
-mpiexec --map-by ppr:1:socket:pe=24  --report-bindings ./project
+# mpiexec --map-by ppr:1:socket:pe=1  --report-bindings ./project
 
 #-------------------------------------
 # Uncomment if using DDT for debugging (1) if mpiexec doesn't connect then use (2) srun
 #-------------------------------------
 
 # ddt --connect mpiexec ./project
-#ddt --connect srun ./project
+# ddt --connect srun ./project
 
 
 #---------------------------------------------

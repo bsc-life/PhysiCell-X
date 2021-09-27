@@ -76,6 +76,7 @@ static std::string PhysiCell_Version = "1.6.1";
 static std::string PhysiCell_URL = "http://PhysiCell.MathCancer.org"; 
 static std::string PhysiCell_DOI = "10.1371/journal.pcbi.1005991"; 
 
+#include "PhysiCell_basic_signaling.h"
 #include "PhysiCell_phenotype.h"
 #include "PhysiCell_standard_models.h"
 #include "PhysiCell_cell.h"

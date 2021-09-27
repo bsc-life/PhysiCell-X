@@ -82,21 +82,16 @@ class Basic_Agent
 	std::vector<double> cell_source_sink_solver_temp_export2;
 	
 	std::vector<double> previous_velocity; 
-	bool is_active;
+//	bool is_active; ----> Commented in v1.8
 	
 	std::vector<double> total_extracellular_substrate_change; 
 	
  public:
+  bool is_active; //Now this is public and not protected
 	std::vector<double> * secretion_rates; 
 	std::vector<double> * saturation_densities; 
 	std::vector<double> * uptake_rates;
-	
-	/*-----------------------------------------------------------*/
-	/* Gaurav Saxena added the next public data member from v1.7 */
-	/*-----------------------------------------------------------*/
-	
-	std::vector<double> * net_export_rates;
-	  
+	std::vector<double> * net_export_rates; 
 	double get_total_volume();
 	
 /*--------------------------------------------------------------------------*/

@@ -327,6 +327,7 @@ class Microenvironment
 	friend void diffusion_decay_solver__constant_coefficients_LOD_3D( Microenvironment& S, double dt, mpi_Environment &, mpi_Cartesian & );	
 	 
 	friend void diffusion_decay_solver__constant_coefficients_LOD_2D( Microenvironment& S, double dt ); 
+	friend void diffusion_decay_solver__constant_coefficients_LOD_1D( Microenvironment& S, double dt ); 
 	
 	friend void diffusion_decay_explicit_uniform_rates( Microenvironment& M, double dt );
 	
@@ -356,6 +357,7 @@ extern void diffusion_decay_solver__variable_coefficients_explicit_uniform_mesh(
 
 extern void diffusion_decay_solver__constant_coefficients_LOD_3D( Microenvironment& S, double dt ); 
 extern void diffusion_decay_solver__constant_coefficients_LOD_2D( Microenvironment& S, double dt ); 
+extern void diffusion_decay_solver__constant_coefficients_LOD_1D( Microenvironment& S, double dt ); 
 
 extern void diffusion_decay_solver__variable_coefficients_LOD_3D( Microenvironment& S, double dt );
 

@@ -264,7 +264,7 @@ void General_Mesh::correct_position_within_subdomain(std::vector<double> &pos, m
 	/* Only for 1-dimensional pure x-decomposition 			 */
 	/*---------------------------------------------------*/
 	
-	double eps2 = 2 * 1e-16 ;
+	double eps2 = 2 * 1e-5; //1e-16 <--- this is the previous value, possibly causing errors like : x - eps2 = x
 	
 	/*----------------------------------------------------------------------------*/
 	/* None of this is needed if there exists only 1 process i.e. world.size == 1 */
@@ -2051,7 +2051,10 @@ int Cartesian_Mesh::nearest_voxel_local_index( std::vector<double>& position, mp
     
     int process_local_index_of_voxel_containing_basic_agent = diff_z_coord * local_num_x_voxels * local_num_y_voxels + \
                                                               diff_y_coord * local_num_x_voxels + \
-                                                              diff_x_coord; 
+                                                              diff_x_coord;
+                                                              
+    // std::cout<<"position[0]="<<position[0]<<" Local Voxel Index="<< \
+		// process_local_index_of_voxel_containing_basic_agent<<std::endl;  
     
     return (process_local_index_of_voxel_containing_basic_agent); 
 }

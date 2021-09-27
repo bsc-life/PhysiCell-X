@@ -75,6 +75,8 @@
 #include "./PhysiCell_cell_container.h"
 #include "./PhysiCell_constants.h"
 
+#include "../modules/PhysiCell_settings.h"
+
 #include "./PhysiCell_standard_models.h"
 
 #include <unordered_map>
@@ -139,11 +141,16 @@ extern Cell_Definition cell_defaults;
 
 class Cell_State
 {
+ private:
  public:
+	std::vector<Cell*> attached_cells; 
+
 	std::vector<Cell*> neighbors; // not currently tracked! 
 	std::vector<double> orientation;
 	
 	double simple_pressure; 
+	
+	int number_of_attached_cells( void ); 
 	
 	Cell_State(); 
 };
@@ -227,6 +234,7 @@ class Cell : public Basic_Agent
 /*=======================================================================*/
 
 	Cell(int p_ID); 
+	~Cell(); 
 	
 	bool assign_position(std::vector<double> new_position);
 	bool assign_position(double, double, double);
@@ -279,6 +287,10 @@ class Cell : public Basic_Agent
 	
 	void ingest_cell( Cell* pCell_to_eat ); // for use in predation, e.g., immune cells 
 
+	void attach_cell( Cell* pAddMe ); // done 
+	void detach_cell( Cell* pRemoveMe ); // done 
+	void remove_all_attached_cells( void ); // done 
+
 	// I want to eventually deprecate this, by ensuring that 
 	// critical BioFVM and PhysiCell data elements are synced when they are needed 
 	
@@ -287,6 +299,8 @@ class Cell : public Basic_Agent
 	Cell_Container * get_container();
 	
 	std::vector<Cell*>& cells_in_my_container( void ); 
+	std::vector<Cell*> nearby_cells( void ); // new in 1.8.0 
+	std::vector<Cell*> nearby_interacting_cells( void ); // new in 1.8.0 
 	
 	void convert_to_cell_definition( Cell_Definition& cd ); 
 	
@@ -337,10 +351,6 @@ bool is_neighbor_voxel(Cell* pCell, std::vector<double> myVoxelCenter, std::vect
 
 bool is_neighbor_voxel(Cell* pCell, std::vector<double> myVoxelCenter, std::vector<double> otherVoxelCenter, double maxVoxelInteracticeDistance, mpi_Environment &world, mpi_Cartesian & cart_topo);  
 
-/*===============================================================================*/
-/* Gaurav Saxena added these 9 new functions and 3 extern declarations from v1.7 */
-/*===============================================================================*/
-
 extern std::unordered_map<std::string,Cell_Definition*> cell_definitions_by_name; 
 extern std::unordered_map<int,Cell_Definition*> cell_definitions_by_type; 
 extern std::vector<Cell_Definition*> cell_definitions_by_index; // works
@@ -358,10 +368,14 @@ Cell_Definition* initialize_cell_definition_from_pugixml( pugi::xml_node cd_node
 void initialize_cell_definitions_from_pugixml( pugi::xml_node root ); 
 void initialize_cell_definitions_from_pugixml( void );
 
-/*=========================================================*/
-/* 												TILL HERE 											 */
-/*=========================================================*/
+extern std::vector<double> (*cell_division_orientation)(void);
 
+void attach_cells( Cell* pCell_1, Cell* pCell_2 );
+void detach_cells( Cell* pCell_1 , Cell* pCell_2 );
+
+
+std::vector<Cell*> find_nearby_cells( Cell* pCell ); // new in 1.8.0
+std::vector<Cell*> find_nearby_interacting_cells( Cell* pCell ); // new in 1.8.0
 
 };
 

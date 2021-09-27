@@ -184,6 +184,8 @@ void Basic_Agent::update_voxel_index()
 	current_voxel_index= microenvironment->nearest_voxel_index( position );
 }
 
+int mycount = 0; 
+
 /*-----------------------------------------------------*/
 /* Parallel version of update_voxel_index() function	 */
 /*-----------------------------------------------------*/
@@ -194,15 +196,20 @@ void Basic_Agent::update_voxel_index(mpi_Environment &world, mpi_Cartesian &cart
 	{	
 		current_voxel_index=-1;
 		is_active=false;
+		//std::cout<<"Cell ID="<<this->ID<<" is out of domain, current_voxel_index=-1 "<<std::endl; 
 		return;
 	}
 	
-	/*----------------------------------------------------------*/
-	/* Called in the same manner as is_position_valid() above 	*/
-	/* Can change position[0] if cells don't respect sub-domain */
-	/* boundaries. 																							*/
-	/*----------------------------------------------------------*/
-	get_microenvironment()->mesh.correct_position_within_subdomain(position, world, cart_topo); 
+	/*--------------------------------------------------------------------------*/
+	/* GS commenting out next function call because: 														*/
+	/* (1) Newly created cell sub-domain position does not need to be corrected */
+	/* (2) In Cell division, sub-domain position of child is corrected within 	*/
+	/* the division function by calling has_it_crossed_to_left/right_subdomain	*/
+	/* (3) Position of parent in divide(...) is corrected by explicitly calling */
+	/* correct_position_within_subdomain(...)																		*/
+	/*--------------------------------------------------------------------------*/
+	
+	//get_microenvironment()->mesh.correct_position_within_subdomain(position, world, cart_topo); 
 	
 	current_voxel_index= microenvironment->nearest_voxel_local_index( position, world, cart_topo );
 }

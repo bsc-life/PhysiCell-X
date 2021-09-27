@@ -105,6 +105,7 @@ bool standard_necrosis_arrest_function( Cell* pCell, Phenotype& phenotype, doubl
 // standard volume functions 
 
 void standard_volume_update_function( Cell* pCell, Phenotype& phenotype, double dt ); // done 
+void basic_volume_model( Cell* pCell, Phenotype& phenotype, double dt ); 
 
 // standard mechanics functions 
 
@@ -122,6 +123,12 @@ void standard_update_cell_velocity( Cell* pCell, Phenotype& phenotype, double dt
 
  
 void standard_add_basement_membrane_interactions( Cell* pCell, Phenotype phenotype, double dt );
+
+/*===============================================*/
+/* THESE 2 FUNCTIONS MAY NEED A PARALLEL VERSION */
+/*===============================================*/
+void standard_domain_edge_avoidance_interactions( Cell* pCell, Phenotype& phenotype, double dt ); 
+double distance_to_domain_edge(Cell* pCell, Phenotype& phenotype, double dt); 
 
 // other standard functions 
 
@@ -141,6 +148,9 @@ bool create_standard_cycle_and_death_models( void ); // done
 void initialize_default_cell_definition( void ); // done 
 
 void chemotaxis_function( Cell* pCell, Phenotype& phenotype , double dt );
+	
+void standard_elastic_contact_function( Cell* pC1, Phenotype& p1, Cell* pC2, Phenotype& p2 , double dt );
+void evaluate_interactions( Cell* pCell, Phenotype& phenotype, double dt );
 	
 };
 
