@@ -1111,9 +1111,49 @@ Phenotype::Phenotype()
 	flagged_for_division = false;
 	flagged_for_removal = false; 
 	
+	intracellular = NULL;
 	// sync the molecular stuff here automatically? 
 	
 	return; 
+}
+
+
+Phenotype::Phenotype(const Phenotype &p) 
+{
+	intracellular = NULL;
+	*this = p;
+}
+
+Phenotype::~Phenotype() 
+{
+	if (intracellular != NULL)
+		delete intracellular;
+}
+
+Phenotype& Phenotype::operator=(const Phenotype &p ) 
+{ 
+		
+	flagged_for_division = p.flagged_for_division;
+	flagged_for_removal = p.flagged_for_removal;
+	
+	cycle = p.cycle;
+	death = p.death;
+	volume = p.volume;
+	geometry = p.geometry;
+	mechanics = p.mechanics;
+	motility = p.motility;
+	secretion = p.secretion;
+	
+	molecular = p.molecular;
+	
+	delete intracellular;
+	
+	if (p.intracellular != NULL)
+		intracellular = p.intracellular->clone();
+	else
+		intracellular = NULL;
+	
+	return *this;
 }
 
 /*

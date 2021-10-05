@@ -70,10 +70,19 @@
 #include "PhysiCell_utilities.h"
 #include "PhysiCell_constants.h"
 #include "../BioFVM/BioFVM_vector.h"
+
+#ifdef ADDON_PHYSIBOSS
+#include "../addons/PhysiBoSS/src/maboss_intracellular.h"
+#endif
+#ifdef ADDON_ROADRUNNER
+#include "../addons/libRoadrunner/src/librr_intracellular.h"
+#endif
+#ifdef ADDON_PHYSIDFBA
+#include "../addons/dFBA/src/dfba_intracellular.h"
+#endif
+
 #include<limits.h>
-
 #include <signal.h> //for segfault
-
 #include <algorithm>
 #include <iterator>
 
@@ -609,6 +618,13 @@ Cell* Cell::divide( )
 
 	// child->set_phenotype( phenotype );
 	child->phenotype = phenotype;
+	
+	if (child->phenotype.intracellular)
+    child->phenotype.intracellular->start();
+	
+// #ifdef ADDON_PHYSIDFBA
+// 	child->fba_model = this->fba_model;
+// #endif
 
 	return child;
 }
@@ -767,6 +783,13 @@ Cell* Cell::divide(int p_ID, mpi_Environment &world, mpi_Cartesian &cart_topo)
 
 	// child->set_phenotype( phenotype );
 	child->phenotype = phenotype;
+	
+	if (child->phenotype.intracellular)
+    child->phenotype.intracellular->start();
+	
+// #ifdef ADDON_PHYSIDFBA
+// 	child->fba_model = this->fba_model;
+// #endif
 
 	return child;
 }
@@ -796,6 +819,17 @@ bool Cell::assign_position(double x, double y, double z)
 	update_voxel_index();
 	// update current_mechanics_voxel_index
 	current_mechanics_voxel_index= get_container()->underlying_mesh.nearest_voxel_index( position );
+	
+	// Since it is most likely our first position, we update the max_cell_interactive_distance_in_voxel
+	// which was not initialized at cell creation
+	if( get_container()->max_cell_interactive_distance_in_voxel[get_current_mechanics_voxel_index()] < 
+		phenotype.geometry.radius * phenotype.mechanics.relative_maximum_adhesion_distance )
+	{
+		// get_container()->max_cell_interactive_distance_in_voxel[get_current_mechanics_voxel_index()]= phenotype.geometry.radius*parameters.max_interaction_distance_factor;
+		get_container()->max_cell_interactive_distance_in_voxel[get_current_mechanics_voxel_index()] = phenotype.geometry.radius
+			* phenotype.mechanics.relative_maximum_adhesion_distance;
+	}
+	
 	get_container()->register_agent(this);
 
 	if( !get_container()->underlying_mesh.is_position_valid(x,y,z) )
@@ -839,6 +873,16 @@ bool Cell::assign_position(double x, double y, double z, mpi_Environment &world,
 	
 	//std::cout<<"("<<position[0]<<","<<position[1]<<","<<position[2]<<")"<<" current_mechanics_voxel_index="<<current_mechanics_voxel_index<<std::endl;
 
+	// Since it is most likely our first position, we update the max_cell_interactive_distance_in_voxel
+	// which was not initialized at cell creation
+	if( get_container()->max_cell_interactive_distance_in_voxel[get_current_mechanics_voxel_index()] < 
+		phenotype.geometry.radius * phenotype.mechanics.relative_maximum_adhesion_distance )
+	{
+		// get_container()->max_cell_interactive_distance_in_voxel[get_current_mechanics_voxel_index()]= phenotype.geometry.radius*parameters.max_interaction_distance_factor;
+		get_container()->max_cell_interactive_distance_in_voxel[get_current_mechanics_voxel_index()] = phenotype.geometry.radius
+			* phenotype.mechanics.relative_maximum_adhesion_distance;
+	}
+	
 	get_container()->register_agent(this);
 
 	/*--------------------------------------------------------------------------------------------*/
@@ -883,12 +927,16 @@ void Cell::set_total_volume(double volume)
 	// phenotype.update_radius();
 	//if( get_container()->max_cell_interactive_distance_in_voxel[get_current_mechanics_voxel_index()] <
 	//	phenotype.geometry.radius * parameters.max_interaction_distance_factor )
-	if( get_container()->max_cell_interactive_distance_in_voxel[get_current_mechanics_voxel_index()] <
-		phenotype.geometry.radius * phenotype.mechanics.relative_maximum_adhesion_distance )
-	{
-		// get_container()->max_cell_interactive_distance_in_voxel[get_current_mechanics_voxel_index()]= phenotype.geometry.radius*parameters.max_interaction_distance_factor;
-		get_container()->max_cell_interactive_distance_in_voxel[get_current_mechanics_voxel_index()] = phenotype.geometry.radius
+	// Here the current mechanics voxel index may not be initialized, when position is still unknown. 
+	if (get_current_mechanics_voxel_index() >= 0)
+  {
+		if( get_container()->max_cell_interactive_distance_in_voxel[get_current_mechanics_voxel_index()] <
+				phenotype.geometry.radius * phenotype.mechanics.relative_maximum_adhesion_distance )
+		{
+			// get_container()->max_cell_interactive_distance_in_voxel[get_current_mechanics_voxel_index()]= phenotype.geometry.radius*parameters.max_interaction_distance_factor;
+			get_container()->max_cell_interactive_distance_in_voxel[get_current_mechanics_voxel_index()] = phenotype.geometry.radius
 			* phenotype.mechanics.relative_maximum_adhesion_distance;
+		}
 	}
 
 	return;
@@ -2242,6 +2290,36 @@ void Cell::print_cell(mpi_Environment &world)
 	for(int i=0; i<this->phenotype.molecular.fraction_transferred_when_ingested.size();i++)
 			ofile<<"fraction_transferred_when_ingested "<<i<<":"<<this->phenotype.molecular.fraction_transferred_when_ingested[i]<<std::endl;
 
+if (this->phenotype.intracellular != NULL) {
+		ofile<<"=> class Cell { class Phenotype { class Intracellular { "<<std::endl;
+#ifdef ADDON_PHYSIBOSS
+		if (this->phenotype.intracellular->intracellular_type.compare("maboss") == 0) {
+			
+			MaBoSSIntracellular* t_intracellular = static_cast<MaBoSSIntracellular*>(this->phenotype.intracellular); 
+
+			ofile<<"bnd_file:"<<t_intracellular->get_bnd_filename()<<std::endl; 
+			ofile<<"cfg_file:"<<t_intracellular->get_cfg_filename()<<std::endl; 
+			ofile<<"time_step:"<<t_intracellular->time_step<<std::endl;
+			ofile<<"discrete_time:"<<t_intracellular->discrete_time<<std::endl;
+			ofile<<"time_tick:"<<t_intracellular->time_tick<<std::endl;
+			ofile<<"scaling:"<<t_intracellular->scaling<<std::endl;
+			
+			for (auto t_mutation: t_intracellular->mutations)
+				ofile<<"mutation:"<<t_mutation.first<<"="<<t_mutation.second<<std::endl;	
+			
+			for (auto t_initial_value: t_intracellular->initial_values)
+				ofile<<"initial_value:"<<t_initial_value.first<<"="<<t_initial_value.second<<std::endl;
+			
+			for (auto t_parameter: t_intracellular->parameters)
+				ofile<<"parameter:"<<t_parameter.first<<"="<<t_parameter.second<<std::endl;
+			
+			ofile<<"next_run:"<<t_intracellular->next_physiboss_run<<std::endl;
+			ofile<<"time_to_update:"<<t_intracellular->maboss.get_time_to_update()<<std::endl;
+			ofile<<"state:"<<t_intracellular->get_state()<<std::endl;
+		}
+#endif	
+	}
+
 	ofile<<"=> class Cell { "<<std::endl;
 	ofile<<"is_out_of_domain:"<<is_out_of_domain<<std::endl;
 	ofile<<"is_movable:"<<is_movable<<std::endl;
@@ -3044,7 +3122,33 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
 		MPI_Pack(&(pCell->phenotype.molecular.fraction_transferred_when_ingested[0]), len_vector, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
 
+		/* Now packing data members of class Intracellular as its object is a data member of class Phenotype 		  */
+		/* In PhysiCell v1.9.0, 'type' has changed to 'intracellular_type' => different from physiboss-dev branch */
+		
+		if (pCell->phenotype.intracellular != NULL) 
+			temp_str = pCell->phenotype.intracellular->intracellular_type;
+		else
+			temp_str = std::string("");
+			
+		len_str = temp_str.length();
+		len_snd_buf_left = position_left + sizeof(len_str) + len_str; 
+		snd_buf_left.resize(len_snd_buf_left);
+		MPI_Pack(&len_str, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD); 
+		MPI_Pack(&temp_str[0], len_str, MPI_CHAR, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+			
+			
+		
+#ifdef ADDON_PHYSIBOSS
 
+		if (pCell->phenotype.intracellular->intracellular_type.compare("maboss") == 0) {
+		
+			MaBoSSIntracellular* t_intracellular = static_cast<MaBoSSIntracellular*>(pCell->phenotype.intracellular); 
+			t_intracellular->pack(snd_buf_left, len_snd_buf_left, position_left);
+		
+		}
+				
+#endif
+		
 		/* Returning to class Cell to pack the remaining data members : 2 bools + 1 std::vector<double> */
 
 		len_snd_buf_left = position_left + 2 * sizeof(int);
@@ -3860,6 +3964,30 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
 		MPI_Pack(&(pCell->phenotype.molecular.fraction_transferred_when_ingested[0]), len_vector, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
 
+/* Now packing data members of class Intracellular as its object is a data member of class Phenotype */
+/* In PhysiCell v1.9.0, 'type' has changed to 'intracellular_type' => different from physiboss-dev   */
+
+		if (pCell->phenotype.intracellular != NULL) 
+			temp_str = pCell->phenotype.intracellular->intracellular_type;
+		else 
+			temp_str = std::string("");
+		
+		len_str = temp_str.length();
+		len_snd_buf_right = position_right + sizeof(len_str) + len_str; 
+		snd_buf_right.resize(len_snd_buf_right);
+		MPI_Pack(&len_str, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD); 
+		MPI_Pack(&temp_str[0], len_str, MPI_CHAR, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+						
+#ifdef ADDON_PHYSIBOSS
+
+		if (pCell->phenotype.intracellular->intracellular_type.compare("maboss") == 0) {
+			
+			MaBoSSIntracellular* t_intracellular = static_cast<MaBoSSIntracellular*>(pCell->phenotype.intracellular); 
+			t_intracellular->pack(snd_buf_right, len_snd_buf_right, position_right);
+
+		}
+					
+#endif
 
 		/* Returning to class Cell to pack the remaining data members : 2 bools + 1 std::vector<double> */
 
@@ -4633,6 +4761,23 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 			pCell->phenotype.molecular.fraction_transferred_when_ingested.resize(len_vector);
 			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &(pCell->phenotype.molecular.fraction_transferred_when_ingested[0]), len_vector, MPI_DOUBLE, MPI_COMM_WORLD);
 
+		/* Now unpacking data members of class Intracellular as its object is a data member of class Phenotype */
+			
+			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &len_str, 1, MPI_INT, MPI_COMM_WORLD);
+			temp_str.resize(len_str);
+			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &temp_str[0], len_str, MPI_CHAR, MPI_COMM_WORLD);
+
+#ifdef ADDON_PHYSIBOSS
+
+			if (temp_str.compare("maboss") == 0) {
+				
+				MaBoSSIntracellular* t_intracellular = new MaBoSSIntracellular(rcv_buf_right, size_right, position_right);
+				pCell->phenotype.intracellular = t_intracellular->getIntracellularModel();
+				
+			}
+					
+#endif
+
 
 			/* Returning to class Cell to unpack remaining members : 2 bools + 1 std::vector<double> */
 
@@ -5317,6 +5462,22 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &(pCell->phenotype.molecular.fraction_transferred_when_ingested[0]), len_vector, MPI_DOUBLE, MPI_COMM_WORLD);
 
 
+			/* Now unpacking data members of class Intracellular as its object is a data member of class Phenotype */
+			
+			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &len_str, 1, MPI_INT, MPI_COMM_WORLD);
+			temp_str.resize(len_str);
+			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &temp_str[0], len_str, MPI_CHAR, MPI_COMM_WORLD);
+
+#ifdef ADDON_PHYSIBOSS
+
+			if (temp_str.compare("maboss") == 0) {
+				
+				MaBoSSIntracellular* t_intracellular = new MaBoSSIntracellular(rcv_buf_left, size_left, position_left);
+				pCell->phenotype.intracellular = t_intracellular->getIntracellularModel();
+				
+			}
+#endif
+
 			/* Returning to class Cell to unpack remaining members : 2 bools + 1 std::vector<double> */
 
 			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &temp_int, 1, MPI_INT, MPI_COMM_WORLD);
@@ -5782,41 +5943,47 @@ Cell_Definition* initialize_cell_definition_from_pugixml( pugi::xml_node cd_node
 		if( strlen( node.attribute("code").value() ) > 0 )
 		{
 			// set the model 
-			switch( model )
-			{
-				case PhysiCell_constants::advanced_Ki67_cycle_model: 
-					pCD->functions.cycle_model = Ki67_advanced; 
-					break; 
-				case PhysiCell_constants::basic_Ki67_cycle_model: 
-					pCD->functions.cycle_model = Ki67_basic; 
-					break; 
-				case PhysiCell_constants::flow_cytometry_cycle_model: 
-					pCD->functions.cycle_model = flow_cytometry_cycle_model;  
-					break; 
-				case PhysiCell_constants::live_apoptotic_cycle_model: // ?
-					pCD->functions.cycle_model = live;  // ?
-					std::cout << "Warning: live_apoptotic_cycle_model not directly supported." << std::endl		
-							  << "         Substituting live cells model. Set death rates=0." << std::endl; 
-					break; 
-				case PhysiCell_constants::total_cells_cycle_model: 
-					pCD->functions.cycle_model = live; 
-					std::cout << "Warning: total_cells_cycle_model not directly supported." << std::endl		
-							  << "         Substituting live cells model. Set death rates=0." << std::endl; 
-					break; 
-				case PhysiCell_constants::live_cells_cycle_model: 
-					pCD->functions.cycle_model = live; 
-					break; 
-				case PhysiCell_constants::flow_cytometry_separated_cycle_model: 
-					pCD->functions.cycle_model = flow_cytometry_separated_cycle_model; 
-					break; 
-				case PhysiCell_constants::cycling_quiescent_model: 
-					pCD->functions.cycle_model = cycling_quiescent; 
-					break; 
-				default:
-					std::cout << "Warning: Unknown cycle model " << std::endl;
-					exit(-1); 
-					break; 
-			}
+			if (model == PhysiCell_constants::advanced_Ki67_cycle_model)
+            {
+                pCD->functions.cycle_model = Ki67_advanced; 
+            }
+			else if (model == PhysiCell_constants::basic_Ki67_cycle_model)
+            {
+                pCD->functions.cycle_model = Ki67_basic; 
+            }
+            else if (model == PhysiCell_constants::flow_cytometry_cycle_model) 
+            {
+                pCD->functions.cycle_model = flow_cytometry_cycle_model;  
+            }
+            else if (model == PhysiCell_constants::live_apoptotic_cycle_model) // ?
+            {
+                pCD->functions.cycle_model = live;  // ?
+                std::cout << "Warning: live_apoptotic_cycle_model not directly supported." << std::endl		
+                            << "         Substituting live cells model. Set death rates=0." << std::endl; 
+            }
+            else if (model == PhysiCell_constants::total_cells_cycle_model) 
+            {
+                pCD->functions.cycle_model = live; 
+                std::cout << "Warning: total_cells_cycle_model not directly supported." << std::endl		
+                            << "         Substituting live cells model. Set death rates=0." << std::endl; 
+            }
+            else if (model == PhysiCell_constants::live_cells_cycle_model) 
+            {
+                pCD->functions.cycle_model = live; 
+            }
+            else if (model == PhysiCell_constants::flow_cytometry_separated_cycle_model) 
+            {
+                pCD->functions.cycle_model = flow_cytometry_separated_cycle_model; 
+            }
+            else if (model == PhysiCell_constants::cycling_quiescent_model) 
+            {
+                pCD->functions.cycle_model = cycling_quiescent; 
+            }
+            else
+            {
+                std::cout << "Warning: Unknown cycle model " << std::endl;
+                exit(-1); 
+            }
 			pCD->phenotype.cycle.sync_to_cycle_model( pCD->functions.cycle_model ); 
 		}
 		
@@ -6007,44 +6174,45 @@ Cell_Definition* initialize_cell_definition_from_pugixml( pugi::xml_node cd_node
 					
 			// set the model 
 			// if the model already exists, just overwrite the parameters 
-			switch( model )
-			{
-				case PhysiCell_constants::apoptosis_death_model: 
+			 if (model == PhysiCell_constants::apoptosis_death_model) 
+            {
 //					pCD->phenotype.death.add_death_model( rate , &apoptosis , apoptosis_parameters );
-					if( death_model_already_exists == false )
-					{
-						pCD->phenotype.death.add_death_model( rate , &apoptosis , death_params ); 
-						death_index = pD->find_death_model_index( model );
-					}
-					else
-					{
-						pCD->phenotype.death.parameters[death_index] = death_params; 
-						pCD->phenotype.death.rates[death_index] = rate; 
-					}
-					break; 
-				case PhysiCell_constants::necrosis_death_model: 
-					// set necrosis parameters 
+                if( death_model_already_exists == false )
+                {
+                    pCD->phenotype.death.add_death_model( rate , &apoptosis , death_params ); 
+                    death_index = pD->find_death_model_index( model );
+                }
+                else
+                {
+                    pCD->phenotype.death.parameters[death_index] = death_params; 
+                    pCD->phenotype.death.rates[death_index] = rate; 
+                }
+            }
+            else if (model == PhysiCell_constants::necrosis_death_model) 
+            {
+                // set necrosis parameters 
 //					pCD->phenotype.death.add_death_model( rate , &necrosis , necrosis_parameters );
-					if( death_model_already_exists == false )
-					{
-						pCD->phenotype.death.add_death_model( rate , &necrosis , death_params ); 
-						death_index = pD->find_death_model_index( model );
-					}
-					else
-					{
-						pCD->phenotype.death.parameters[death_index] = death_params; 
-						pCD->phenotype.death.rates[death_index] = rate; 						
-					}
-					break; 
-				case PhysiCell_constants::autophagy_death_model: 
-					std::cout << "Warning: autophagy_death_model not yet supported." << std::endl		
-							  << "         Skipping this model." << std::endl; 
-					break; 
-				default:
-					std::cout << "Warning: Unknown death model " << std::endl;
-					exit(-1); 
-					break; 
-			}
+                if( death_model_already_exists == false )
+                {
+                    pCD->phenotype.death.add_death_model( rate , &necrosis , death_params ); 
+                    death_index = pD->find_death_model_index( model );
+                }
+                else
+                {
+                    pCD->phenotype.death.parameters[death_index] = death_params; 
+                    pCD->phenotype.death.rates[death_index] = rate; 						
+                }
+            }
+            else if (model == PhysiCell_constants::autophagy_death_model) 
+            {
+                std::cout << "Warning: autophagy_death_model not yet supported." << std::endl		
+                            << "         Skipping this model." << std::endl; 
+            }
+            else 
+            {
+                std::cout << "Warning: Unknown death model " << std::endl;
+                exit(-1); 
+            }
 			
 			// now get transition rates within the death model 
 			// set the rates 
@@ -6217,6 +6385,10 @@ Cell_Definition* initialize_cell_definition_from_pugixml( pugi::xml_node cd_node
 		pV->target_cytoplasmic_to_nuclear_ratio = pV->cytoplasmic_to_nuclear_ratio; 
 		
 		pV->rupture_volume = pV->relative_rupture_volume * pV->total; // in volume units 
+		
+		// update the geometry (radius, etc.) for consistency 
+
+    pCD->phenotype.geometry.update( NULL, pCD->phenotype, 0.0 ); 
 	}
 	
 	// mechanics 
@@ -6393,6 +6565,64 @@ Cell_Definition* initialize_cell_definition_from_pugixml( pugi::xml_node cd_node
 			node_sec = node_sec.next_sibling( "substrate" ); 
 		}
 	}	
+	
+	    	// intracellular
+	
+	node = cd_node.child( "phenotype" );
+	node = node.child( "intracellular" ); 
+	if( node )
+	{
+		std::string model_type = node.attribute( "type" ).value(); 
+		
+#ifdef ADDON_PHYSIBOSS
+		if (model_type == "maboss") {
+			// If it has already be copied
+			if (pParent != NULL && pParent->phenotype.intracellular != NULL) {
+				pCD->phenotype.intracellular->initialize_intracellular_from_pugixml(node);
+				
+			// Otherwise we need to create a new one
+			} else {
+				MaBoSSIntracellular* pIntra = new MaBoSSIntracellular(node);
+				pCD->phenotype.intracellular = pIntra->getIntracellularModel();
+			}
+		}
+#endif
+
+#ifdef ADDON_ROADRUNNER
+		if (model_type == "roadrunner") 
+        {
+			// If it has already be copied
+			if (pParent != NULL && pParent->phenotype.intracellular != NULL) 
+            {
+                // std::cout << "------ " << __FUNCTION__ << ": copying another\n";
+				pCD->phenotype.intracellular->initialize_intracellular_from_pugixml(node);
+            }	
+			// Otherwise we need to create a new one
+			else 
+            {
+                std::cout << "\n------ " << __FUNCTION__ << ": creating new RoadRunnerIntracellular\n";
+				RoadRunnerIntracellular* pIntra = new RoadRunnerIntracellular(node);
+				pCD->phenotype.intracellular = pIntra->getIntracellularModel();
+                pCD->phenotype.intracellular->validate_PhysiCell_tokens(pCD->phenotype);
+                pCD->phenotype.intracellular->validate_SBML_species();
+			}
+		}
+#endif
+
+#ifdef ADDON_PHYSIDFBA
+		if (model_type == "dfba") {
+			// If it has already be copied
+			if (pParent != NULL && pParent->phenotype.intracellular != NULL) {
+				pCD->phenotype.intracellular->initialize_intracellular_from_pugixml(node);
+			// Otherwise we need to create a new one
+			} else {
+				dFBAIntracellular* pIntra = new dFBAIntracellular(node);
+				pCD->phenotype.intracellular = pIntra->getIntracellularModel();
+			}
+		}
+#endif
+
+	}
 	
 	// set up custom data 
 	node = cd_node.child( "custom_data" );

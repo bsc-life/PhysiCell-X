@@ -100,6 +100,12 @@ double UniformRandom()
 	//return 0.25;
 }
 
+int UniformInt()
+{
+	std::uniform_int_distribution<int> int_dis;
+	return int_dis(gen);
+}
+
 double NormalRandom( double mean, double standard_deviation )
 {
 	std::normal_distribution<> d(mean,standard_deviation);
