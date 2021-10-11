@@ -472,6 +472,10 @@ class Cell_Functions
 	void (*custom_cell_rule)( Cell* pCell, Phenotype& phenotype, double dt ); 
 	void (*update_phenotype)( Cell* pCell, Phenotype& phenotype, double dt ); // used in celll
 	
+	//The following function pointer was added by Vincent
+	void (*update_phenotype_parallel)( Cell* pCell, Phenotype& phenotype, double dt, mpi_Environment &world, mpi_Cartesian &cart_topo); // used in celll
+
+	
 	void (*update_velocity)( Cell* pCell, Phenotype& phenotype, double dt ); 
 	
 	/*=======================================================================================*/

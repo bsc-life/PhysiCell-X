@@ -26,7 +26,7 @@ class MaBoSSNetwork
 		RunConfig* config;
 
 		StochasticSimulationEngine* engine;
-		NetworkState state;
+		//NetworkState state; <--- Gaurav Saxena is making this public again so that we cast test code
 		NetworkState output_mask;
 		
 		/** \brief Time step between each MaBoSS simulation */
@@ -50,6 +50,7 @@ class MaBoSSNetwork
 
 	
 	public:
+		NetworkState state;
 	
 		/** Constructor */
 		MaBoSSNetwork() {
