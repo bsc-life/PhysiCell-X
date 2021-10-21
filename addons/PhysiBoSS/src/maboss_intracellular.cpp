@@ -126,9 +126,6 @@ MaBoSSIntracellular::MaBoSSIntracellular(std::vector<char>& buffer, int& len_buf
 		this->maboss.state.setNodeState(t_nodes[i], t_node == 1?true:false);
 	}
 	
-	/* The following is an extra change that Vincent has done */
-	/* From here 																							*/
-	
 	MPI_Unpack(&buffer[0], len_buffer, &position, &temp_int, 1, MPI_INT, MPI_COMM_WORLD);
 
 	SymbolTable* symbol_table = this->maboss.getNetwork()->getSymbolTable();
@@ -138,8 +135,6 @@ MaBoSSIntracellular::MaBoSSIntracellular(std::vector<char>& buffer, int& len_buf
 		MPI_Unpack(&buffer[0], len_buffer, &position, &t_parameter, 1, MPI_DOUBLE, MPI_COMM_WORLD);
 		symbol_table->setSymbolValue(symbol_table->getSymbol(symbol_table->getSymbolsNames()[i]), t_parameter);
 	}
-	
-	/* To here 																								*/
 	
 }
 
@@ -260,6 +255,9 @@ void MaBoSSIntracellular::pack(std::vector<char>& buffer, int& len_buffer, int& 
 	MPI_Pack(&(temp_double), 1, MPI_DOUBLE, &buffer[0], len_buffer, &position, MPI_COMM_WORLD);
 	// this->maboss.set_time_to_update(time_to_update);
 	
+	// This is the part which might only need to be sent : 
+	// The present state of the model
+	// This will be improved by sending vectors of unsigned long long
 	std::vector<Node*> t_nodes = this->maboss.getNetwork()->getNodes();
 	len_buffer = position + sizeof(int);		
 	buffer.resize(len_buffer);
@@ -289,8 +287,7 @@ void MaBoSSIntracellular::pack(std::vector<char>& buffer, int& len_buffer, int& 
 		temp_double = symbol_table->getSymbolValue(symbol_table->getSymbol(symbol_table->getSymbolsNames()[i]));
 		MPI_Pack(&(temp_double), 1, MPI_DOUBLE, &buffer[0], len_buffer, &position, MPI_COMM_WORLD);
 	}
-
-
+	
 }
 
 void MaBoSSIntracellular::initialize_intracellular_from_pugixml(pugi::xml_node& node)
