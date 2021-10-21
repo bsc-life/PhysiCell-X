@@ -45,6 +45,8 @@ MaBoSSIntracellular::MaBoSSIntracellular(MaBoSSIntracellular* copy)
 MaBoSSIntracellular::MaBoSSIntracellular(std::vector<char>& buffer, int& len_buffer, int& position)  
 {
 	
+	intracellular_type = "maboss";
+
 	// double len_str = 0;
 	int temp_int;
 	double temp_double;
