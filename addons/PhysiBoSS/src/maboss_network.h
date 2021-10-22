@@ -34,7 +34,7 @@ class MaBoSSNetwork
 		
 		/** \brief Real time to update, after applying noise */
 		double time_to_update;
-
+		double time_stochasticity = 0;
 		double scaling = 1.0;
 		
 		/** \brief Initial value probabilities, by node */
@@ -46,7 +46,7 @@ class MaBoSSNetwork
 		std::map< std::string, Node*> nodesByName;
 		std::map< std::string, const Symbol*> parametersByName;
 	
-		inline void set_time_to_update(){this->time_to_update = this->get_update_time_step();}
+		inline void set_time_to_update(){this->time_to_update = ( 1 + (PhysiCell::UniformRandom()*2-1)*time_stochasticity ) * this->get_update_time_step();}
 
 	
 	public:
@@ -128,7 +128,7 @@ class MaBoSSNetwork
 		
 		/** \brief Get time to update*/
 		inline double get_time_to_update() {return this->time_to_update;}
-		inline void set_time_to_update(double time) { this->time_to_update = time; }
+		inline void set_time_to_update(double time) { this->time_to_update = ( 1 + (PhysiCell::UniformRandom()*2-1)*time_stochasticity ) *  time; }
 		
 		/** \brief Change simulation mode */
 		inline void set_discrete_time(bool discrete_time, double time_tick) { 
@@ -136,7 +136,7 @@ class MaBoSSNetwork
 		}
 
 		inline void set_scaling(double scaling) { this->scaling = scaling; }
-		
+		inline void set_time_stochasticity(double t_stochasticity) { this->time_stochasticity = t_stochasticity; }
 		/** 
 		 * \brief Print current state of all the nodes of the network 
 		 * \param node_values Boolean vector mapping a boolean network

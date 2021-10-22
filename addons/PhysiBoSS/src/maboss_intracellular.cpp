@@ -24,6 +24,7 @@ MaBoSSIntracellular::MaBoSSIntracellular(MaBoSSIntracellular* copy)
 	discrete_time = copy->discrete_time;
 	time_tick = copy->time_tick;
 	scaling = copy->scaling;
+	time_stochasticity = copy->time_stochasticity;
 	initial_values = copy->initial_values;
 	mutations = copy->mutations;
 	parameters = copy->parameters;
@@ -36,6 +37,7 @@ MaBoSSIntracellular::MaBoSSIntracellular(MaBoSSIntracellular* copy)
 		maboss.set_update_time_step(copy->time_step);
 		maboss.set_discrete_time(copy->discrete_time, copy->time_tick);
 		maboss.set_scaling(copy->scaling);
+		maboss.set_time_stochasticity(copy->time_stochasticity);
 		maboss.restart_node_values();
 		//maboss.set_state(copy->maboss.get_maboss_state());
 		//std::cout << get_state();
@@ -72,6 +74,7 @@ MaBoSSIntracellular::MaBoSSIntracellular(std::vector<char>& buffer, int& len_buf
 
 	MPI_Unpack(&buffer[0], len_buffer, &position, &(this->time_tick), 1, MPI_DOUBLE, MPI_COMM_WORLD);
 	MPI_Unpack(&buffer[0], len_buffer, &position, &(this->scaling),  1, MPI_DOUBLE, MPI_COMM_WORLD);
+	MPI_Unpack(&buffer[0], len_buffer, &position, &(this->time_stochasticity),  1, MPI_DOUBLE, MPI_COMM_WORLD);
 
 
 	this->maboss.init_maboss(this->bnd_filename, this->cfg_filename);
@@ -179,6 +182,10 @@ void MaBoSSIntracellular::pack(std::vector<char>& buffer, int& len_buffer, int& 
 	len_buffer = position + sizeof(double);		
 	buffer.resize(len_buffer);
 	MPI_Pack(&(this->scaling), 1, MPI_DOUBLE, &buffer[0], len_buffer, &position, MPI_COMM_WORLD);
+
+	len_buffer = position + sizeof(double);		
+	buffer.resize(len_buffer);
+	MPI_Pack(&(this->time_stochasticity), 1, MPI_DOUBLE, &buffer[0], len_buffer, &position, MPI_COMM_WORLD);
 
 	// Mutations
 	len_buffer = position + sizeof(int);		
@@ -372,6 +379,13 @@ void MaBoSSIntracellular::initialize_intracellular_from_pugixml(pugi::xml_node& 
 	{ 
 		scaling = PhysiCell::xml_get_my_double_value( node_scaling );
 		maboss.set_scaling(scaling);
+	}
+	
+	pugi::xml_node node_time_stochasticity = node.child( "time_stochasticity" ); 
+	if( node_time_stochasticity )
+	{ 
+		time_stochasticity = PhysiCell::xml_get_my_double_value( node_time_stochasticity );
+		maboss.set_time_stochasticity(time_stochasticity);
 	}
 }
 
