@@ -42,13 +42,16 @@ MaBoSSIntracellular::MaBoSSIntracellular(MaBoSSIntracellular* copy)
 	}	
 }
 
-MaBoSSIntracellular::MaBoSSIntracellular(std::vector<char>& buffer, int& len_buffer, int& position) {
+MaBoSSIntracellular::MaBoSSIntracellular(std::vector<char>& buffer, int& len_buffer, int& position)  
+{
 	
 	// double len_str = 0;
 	int temp_int;
 	double temp_double;
 	std::string temp_str;
 	int len_str = 0;
+		
+// intracellular_type = "maboss"; //<---- Vincent ALSO suggested this, but am doing it in unpacking (Physicell_cell.cpp) 
 	
 	MPI_Unpack(&buffer[0], len_buffer, &position, &len_str, 1, MPI_INT, MPI_COMM_WORLD);
 	temp_str.resize(len_str);
@@ -120,6 +123,21 @@ MaBoSSIntracellular::MaBoSSIntracellular(std::vector<char>& buffer, int& len_buf
 		
 		this->maboss.state.setNodeState(t_nodes[i], t_node == 1?true:false);
 	}
+	
+	/* The following is an extra change that Vincent has done */
+	/* From here 																							*/
+	
+	MPI_Unpack(&buffer[0], len_buffer, &position, &temp_int, 1, MPI_INT, MPI_COMM_WORLD);
+
+	SymbolTable* symbol_table = this->maboss.getNetwork()->getSymbolTable();
+	
+	for (unsigned int i=0; i < temp_int; i++) {
+		double t_parameter = 0;
+		MPI_Unpack(&buffer[0], len_buffer, &position, &t_parameter, 1, MPI_DOUBLE, MPI_COMM_WORLD);
+		symbol_table->setSymbolValue(symbol_table->getSymbol(symbol_table->getSymbolsNames()[i]), t_parameter);
+	}
+	
+	/* To here 																								*/
 	
 }
 
@@ -252,6 +270,24 @@ void MaBoSSIntracellular::pack(std::vector<char>& buffer, int& len_buffer, int& 
 		temp_int = this->maboss.state.getNodeState(t_nodes[i]) == true ? 1 : 0;
 		MPI_Pack(&(temp_int), 1, MPI_INT, &buffer[0], len_buffer, &position, MPI_COMM_WORLD);
 	}
+	
+	/* Now this is an additional Data Structure which is being packed */
+	/* corresponding unpacking code is also added 										*/
+	
+	// The present parameter table
+	SymbolTable* symbol_table = this->maboss.getNetwork()->getSymbolTable();
+	len_buffer = position + sizeof(int);
+	buffer.resize(len_buffer);
+	temp_int = symbol_table->getSymbolCount();
+	MPI_Pack(&(temp_int), 1, MPI_INT, &buffer[0], len_buffer, &position, MPI_COMM_WORLD);
+
+	for (unsigned int i=0; i < symbol_table->getSymbolCount(); i++) {
+		len_buffer = position + sizeof(double);		
+		buffer.resize(len_buffer);
+		temp_double = symbol_table->getSymbolValue(symbol_table->getSymbol(symbol_table->getSymbolsNames()[i]));
+		MPI_Pack(&(temp_double), 1, MPI_DOUBLE, &buffer[0], len_buffer, &position, MPI_COMM_WORLD);
+	}
+
 
 }
 

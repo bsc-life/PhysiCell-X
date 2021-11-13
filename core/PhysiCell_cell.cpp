@@ -71,6 +71,8 @@
 #include "PhysiCell_constants.h"
 #include "../BioFVM/BioFVM_vector.h"
 
+#include "../custom_modules/custom.h" //<---- Delete Later
+
 #ifdef ADDON_PHYSIBOSS
 #include "../addons/PhysiBoSS/src/maboss_intracellular.h"
 #endif
@@ -599,6 +601,9 @@ Cell* Cell::divide( )
 						   position[2] + rand_vec[2]);
 	//change my position to keep the center of mass intact 
 	//and then see if I need to update my voxel index
+	
+	
+
 	static double negative_one_half = -0.5;
 	axpy( &position, negative_one_half , rand_vec );// position = position - 0.5*rand_vec;
 
@@ -642,7 +647,13 @@ Cell* Cell::divide(int p_ID, mpi_Environment &world, mpi_Cartesian &cart_topo)
 	// make sure ot remove adhesions 
 	remove_all_attached_cells();
 	
-	Cell* child = create_cell(p_ID);					//Calls new version of create_cell function.
+	/* EXPERIMENTING HERE BY MAKING SYNTAX EXACTLY SAME AS IN SETUP_TISSUE() */
+	/* AND IN UNPACKING FUNCTION 																						 */
+	/* IF DOES NOT WORK THEN CHANGE BACK TO Cell* child = create_cell(p_ID); */	
+	
+	Cell* child = create_cell(get_cell_definition("default"),p_ID);					//Calls new version of create_cell function.
+	//Cell* child = create_cell(p_ID);
+	
 	child->copy_data( this );
 	child->copy_function_pointers(this);
 	child->parameters = parameters;
@@ -732,6 +743,9 @@ Cell* Cell::divide(int p_ID, mpi_Environment &world, mpi_Cartesian &cart_topo)
 
 	child->assign_position(child_position[0], child_position[1], child_position[2], world, cart_topo);
 
+	//Just trying if this changes anything, other wise DELETE next line
+	//IT DOES REPAIR THE CYCLE_RATE PROBLEM BUT CELLS STILL BLOW UP
+	//update_monitor_variables(child);
 	//change my position to keep the center of mass intact and then see if I need to update my voxel index
 
 
@@ -2064,7 +2078,7 @@ void Cell::print_cell(mpi_Environment &world)
 		ofile<<"UNPACKED CELL"<<std::endl;
 
 	ofile << "NEW POSITION ="<<"("<<position[0]<<","<<position[1]<<","<<position[2]<<")"<<std::endl;
-
+/*
 	ofile<<"=> class Cell {"<<std::endl;
 	ofile<<"TYPE_NAME:"<<type_name<<std::endl;
 
@@ -2189,7 +2203,7 @@ void Cell::print_cell(mpi_Environment &world)
 		{
 			ofile<<"Transition Rates Vector:"<<i<<std::endl;
 			for(int j=0; j<this->phenotype.cycle.data.transition_rates[i].size();j++)
-				std::cout<<"rate "<<j<<":"<<this->phenotype.cycle.data.transition_rates[i][j]<<std::endl;
+				ofile<<"rate "<<j<<":"<<this->phenotype.cycle.data.transition_rates[i][j]<<std::endl;
 		}
 	ofile<<"current_phase_index:"<<this->phenotype.cycle.data.current_phase_index<<std::endl;
 	ofile<<"elapsed_time_in_phase:"<<this->phenotype.cycle.data.elapsed_time_in_phase<<std::endl;
@@ -2290,35 +2304,35 @@ void Cell::print_cell(mpi_Environment &world)
 	for(int i=0; i<this->phenotype.molecular.fraction_transferred_when_ingested.size();i++)
 			ofile<<"fraction_transferred_when_ingested "<<i<<":"<<this->phenotype.molecular.fraction_transferred_when_ingested[i]<<std::endl;
 
-if (this->phenotype.intracellular != NULL) {
-		ofile<<"=> class Cell { class Phenotype { class Intracellular { "<<std::endl;
-#ifdef ADDON_PHYSIBOSS
-		if (this->phenotype.intracellular->intracellular_type.compare("maboss") == 0) {
-			
-			MaBoSSIntracellular* t_intracellular = static_cast<MaBoSSIntracellular*>(this->phenotype.intracellular); 
-
-			ofile<<"bnd_file:"<<t_intracellular->get_bnd_filename()<<std::endl; 
-			ofile<<"cfg_file:"<<t_intracellular->get_cfg_filename()<<std::endl; 
-			ofile<<"time_step:"<<t_intracellular->time_step<<std::endl;
-			ofile<<"discrete_time:"<<t_intracellular->discrete_time<<std::endl;
-			ofile<<"time_tick:"<<t_intracellular->time_tick<<std::endl;
-			ofile<<"scaling:"<<t_intracellular->scaling<<std::endl;
-			
-			for (auto t_mutation: t_intracellular->mutations)
-				ofile<<"mutation:"<<t_mutation.first<<"="<<t_mutation.second<<std::endl;	
-			
-			for (auto t_initial_value: t_intracellular->initial_values)
-				ofile<<"initial_value:"<<t_initial_value.first<<"="<<t_initial_value.second<<std::endl;
-			
-			for (auto t_parameter: t_intracellular->parameters)
-				ofile<<"parameter:"<<t_parameter.first<<"="<<t_parameter.second<<std::endl;
-			
-			ofile<<"next_run:"<<t_intracellular->next_physiboss_run<<std::endl;
-			ofile<<"time_to_update:"<<t_intracellular->maboss.get_time_to_update()<<std::endl;
-			ofile<<"state:"<<t_intracellular->get_state()<<std::endl;
-		}
-#endif	
-	}
+// if (this->phenotype.intracellular != NULL) {
+// 		ofile<<"=> class Cell { class Phenotype { class Intracellular { "<<std::endl;
+// #ifdef ADDON_PHYSIBOSS
+// 		if (this->phenotype.intracellular->intracellular_type.compare("maboss") == 0) {
+// 			
+// 			MaBoSSIntracellular* t_intracellular = static_cast<MaBoSSIntracellular*>(this->phenotype.intracellular); 
+// 
+// 			ofile<<"bnd_file:"<<t_intracellular->get_bnd_filename()<<std::endl; 
+// 			ofile<<"cfg_file:"<<t_intracellular->get_cfg_filename()<<std::endl; 
+// 			ofile<<"time_step:"<<t_intracellular->time_step<<std::endl;
+// 			ofile<<"discrete_time:"<<t_intracellular->discrete_time<<std::endl;
+// 			ofile<<"time_tick:"<<t_intracellular->time_tick<<std::endl;
+// 			ofile<<"scaling:"<<t_intracellular->scaling<<std::endl;
+// 			
+// 			for (auto t_mutation: t_intracellular->mutations)
+// 				ofile<<"mutation:"<<t_mutation.first<<"="<<t_mutation.second<<std::endl;	
+// 			
+// 			for (auto t_initial_value: t_intracellular->initial_values)
+// 				ofile<<"initial_value:"<<t_initial_value.first<<"="<<t_initial_value.second<<std::endl;
+// 			
+// 			for (auto t_parameter: t_intracellular->parameters)
+// 				ofile<<"parameter:"<<t_parameter.first<<"="<<t_parameter.second<<std::endl;
+// 			
+// 			ofile<<"next_run:"<<t_intracellular->next_physiboss_run<<std::endl;
+// 			ofile<<"time_to_update:"<<t_intracellular->maboss.get_time_to_update()<<std::endl;
+// 			ofile<<"state:"<<t_intracellular->get_state()<<std::endl;
+// 		}
+// #endif	
+// 	}
 
 	ofile<<"=> class Cell { "<<std::endl;
 	ofile<<"is_out_of_domain:"<<is_out_of_domain<<std::endl;
@@ -2387,7 +2401,7 @@ if (this->phenotype.intracellular != NULL) {
 	 	ofile<<i<<":"<<fraction_transferred_when_ingested->data()[i]<<std::endl;
 
 	ofile<<"Vel[0]:"<< velocity[0]<<" Vel[1]:"<<velocity[1]<<" Vel[2]:"<<velocity[2]<<std::endl;
-
+*/
 	ofile.close();
 
 }
@@ -2473,7 +2487,7 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
   //std::cout<<"Total cells crossing to left in Rank "<<world.rank<<":"<<no_cells_cross_left<<std::endl;
 	//std::cout<<"Total cells crossing to right in Rank "<<world.rank<<":"<<no_cells_cross_right<<std::endl;
 
-
+	std::vector<int> list_cell_IDs ; 
 	/* IMPORTANT: CANNOT USE #pragma omp for HERE AS ALL THREADS WILL WRITE TO THE SAME SHARED BUFFER */
 	for(int i=0; i<(*all_cells).size();i++)
 	{
@@ -2483,6 +2497,8 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 		{
 			//pCell->crossed_to_left_subdomain = false; //RESET IT BUT LATER REMOVE THIS LINE
 			/* Cell ID first - needed to create a cell */
+			
+			list_cell_IDs.push_back(pCell->ID); 
 
 			len_snd_buf_left = position_left + sizeof(pCell->ID);
 			snd_buf_left.resize(len_snd_buf_left);
@@ -3125,11 +3141,21 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 		/* Now packing data members of class Intracellular as its object is a data member of class Phenotype 		  */
 		/* In PhysiCell v1.9.0, 'type' has changed to 'intracellular_type' => different from physiboss-dev branch */
 		
-		if (pCell->phenotype.intracellular != NULL) 
-			temp_str = pCell->phenotype.intracellular->intracellular_type;
+		/* Gaurav Saxena is removing the following code because there might be some problems in 			*/
+		/* comparing the string type to NULL (maybe nullptr should be used). The intracellular_type 	*/
+		/* need NOT be packed because in the constructor for MaBossIntracellular we can set the 			*/
+		/* intracellular_type="maboss" (it is set in all constructors except the one where unpacking) */
+		/* is taking place. Thus, I am shifting setting this value while unpacking when constructor		*/
+		/* of this class is called 																																		*/
+
+		
+		if (pCell->phenotype.intracellular != NULL) 											//this is NULL and NOT nullptr
+		{
+			temp_str = pCell->phenotype.intracellular->intracellular_type; 				//This was the original code
+		}
 		else
-			temp_str = std::string("");
-			
+			temp_str = "not-maboss";
+						
 		len_str = temp_str.length();
 		len_snd_buf_left = position_left + sizeof(len_str) + len_str; 
 		snd_buf_left.resize(len_snd_buf_left);
@@ -3140,12 +3166,12 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 		
 #ifdef ADDON_PHYSIBOSS
 
-		if (pCell->phenotype.intracellular->intracellular_type.compare("maboss") == 0) {
-		
-			MaBoSSIntracellular* t_intracellular = static_cast<MaBoSSIntracellular*>(pCell->phenotype.intracellular); 
-			t_intracellular->pack(snd_buf_left, len_snd_buf_left, position_left);
-		
-		}
+		if(pCell->phenotype.intracellular != NULL)			//Added by Gaurav Saxena
+			if (pCell->phenotype.intracellular->intracellular_type.compare("maboss") == 0) 
+			{
+				MaBoSSIntracellular* t_intracellular = static_cast<MaBoSSIntracellular*>(pCell->phenotype.intracellular); 
+				t_intracellular->pack(snd_buf_left, len_snd_buf_left, position_left);	
+			}
 				
 #endif
 		
@@ -3315,8 +3341,9 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
 		MPI_Pack(&(pCell->velocity[0]), len_vector, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
 
-		//pCell->print_cell(world);
+		pCell->print_cell(world);
 	}
+
 
 		/*----------------------------------------------------------------------*/
 		/* PACKING OF BUFFER TO BE SENT TO LEFT PROCESS ENDS 										*/
@@ -3327,6 +3354,8 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 		{
 						//pCell->crossed_to_right_subdomain = false; //RESET IT BUT LATER REMOVE THIS LINE
 			/* Cell ID first - needed to create a cell */
+
+			list_cell_IDs.push_back(pCell->ID); 
 
 			len_snd_buf_right = position_right + sizeof(pCell->ID);
 			snd_buf_right.resize(len_snd_buf_right);
@@ -3967,10 +3996,22 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 /* Now packing data members of class Intracellular as its object is a data member of class Phenotype */
 /* In PhysiCell v1.9.0, 'type' has changed to 'intracellular_type' => different from physiboss-dev   */
 
-		if (pCell->phenotype.intracellular != NULL) 
-			temp_str = pCell->phenotype.intracellular->intracellular_type;
+		/* Now packing data members of class Intracellular as its object is a data member of class Phenotype 		  */
+		/* In PhysiCell v1.9.0, 'type' has changed to 'intracellular_type' => different from physiboss-dev branch */
+		
+		/* Gaurav Saxena is removing the following code because there might be some problems in 			*/
+		/* comparing the string type to NULL (maybe nullptr should be used). The intracellular_type 	*/
+		/* need NOT be packed because in the constructor for MaBossIntracellular we can set the 			*/
+		/* intracellular_type="maboss" (it is set in all constructors except the one where unpacking) */
+		/* is taking place. Thus, I am shifting setting this value while unpacking when constructor		*/
+		/* of this class is called 																																		*/
+
+		if (pCell->phenotype.intracellular != NULL) 											//this is NULL and NOT nullptr
+		{
+			temp_str = pCell->phenotype.intracellular->intracellular_type ; 				
+		}
 		else 
-			temp_str = std::string("");
+			temp_str = "not-maboss";
 		
 		len_str = temp_str.length();
 		len_snd_buf_right = position_right + sizeof(len_str) + len_str; 
@@ -3980,12 +4021,12 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 						
 #ifdef ADDON_PHYSIBOSS
 
-		if (pCell->phenotype.intracellular->intracellular_type.compare("maboss") == 0) {
-			
-			MaBoSSIntracellular* t_intracellular = static_cast<MaBoSSIntracellular*>(pCell->phenotype.intracellular); 
-			t_intracellular->pack(snd_buf_right, len_snd_buf_right, position_right);
-
-		}
+		if(pCell->phenotype.intracellular != NULL)			//Added by Gaurav Saxena
+			if (pCell->phenotype.intracellular->intracellular_type.compare("maboss") == 0) 
+			{
+				MaBoSSIntracellular* t_intracellular = static_cast<MaBoSSIntracellular*>(pCell->phenotype.intracellular); 
+				t_intracellular->pack(snd_buf_right, len_snd_buf_right, position_right);
+			}
 					
 #endif
 
@@ -4151,9 +4192,34 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
 		MPI_Pack(&(pCell->velocity[0]), len_vector, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
 
-		//pCell->print_cell(world);
+		pCell->print_cell(world);
 	}
  }
+ 
+ 		
+		if(no_cells_cross_left > 0)
+		{
+			std::cout<<"+++PACKING+++"<<std::endl; 
+ 			std::cout<<"Rank = " << world.rank << std::endl;
+			std::cout<<"Cells going to left = "								<< no_cells_cross_left 	<< std::endl;
+			std::cout<<"Buffer size for cells going to left: "	<< snd_buf_left.size() 	<< std::endl; 
+		}
+		
+		if(no_cells_cross_right > 0)
+		{
+			std::cout<<"+++PACKING+++"<<std::endl; 
+ 			std::cout<<"Rank = " << world.rank << std::endl;
+			std::cout<<"Cells going to right = "							<< no_cells_cross_right << std::endl;
+			std::cout<<"Buffer size for cells going to right: "	<< snd_buf_right.size() << std::endl;
+		}
+		
+		sort(list_cell_IDs.begin(), list_cell_IDs.end()); 
+		
+		for(auto x : list_cell_IDs)
+			std::cout<< x << "-->";
+			
+		list_cell_IDs.clear();
+		
 }
 
 void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
@@ -4193,6 +4259,24 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 		int len_str 		 		= 0;
 		int len_vector	 		= 0;
 		int len_vector_nest = 0;
+		
+		std::vector<int> list_cell_IDs; 	//Will contain IDs of Cells received. 
+		
+		if(no_of_cells_from_right > 0)
+		{
+			std::cout<<"---UNPACKING---"<<std::endl;
+			std::cout<<"Rank = " << world.rank << std::endl;
+			std::cout<<"Cells from right = "<< no_of_cells_from_right << std::endl;
+			std::cout<<"Buffer size for cells from right: "<< rcv_buf_right.size() <<std::endl; 
+		}
+		
+		if(no_of_cells_from_left > 0)
+		{
+			std::cout<<"---UNPACKING---"<<std::endl;
+			std::cout<<"Rank = " << world.rank << std::endl;
+			std::cout<<"Cells from left = "<< no_of_cells_from_left << std::endl;
+			std::cout<<"Buffer size for cells from left: "<< rcv_buf_left.size() <<std::endl; 
+		}
 
 		/* Unpack all cells coming from right */
 
@@ -4213,6 +4297,7 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 				//std::cout<<"CELLS from RIGHT position_right ="<<position_right<<std::endl;
 				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &cell_ID, 1, MPI_INT, MPI_COMM_WORLD);
 				//std::cout<<"Rank="<<world.rank<<" Cell ID="<<cell_ID<<" received"<<std::endl;
+				list_cell_IDs.push_back(cell_ID); 
 
 
 				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, cell_position, 3, MPI_DOUBLE, MPI_COMM_WORLD);
@@ -4762,19 +4847,40 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &(pCell->phenotype.molecular.fraction_transferred_when_ingested[0]), len_vector, MPI_DOUBLE, MPI_COMM_WORLD);
 
 		/* Now unpacking data members of class Intracellular as its object is a data member of class Phenotype */
+		
+		
+		/* Gaurav Saxena is removing the following code because there might be some problems in 			*/
+		/* comparing the string type to NULL (maybe nullptr should be used). The intracellular_type 	*/
+		/* need NOT be packed because in the constructor for MaBossIntracellular we can set the 			*/
+		/* intracellular_type="maboss" (it is set in all constructors except the one where unpacking) */
+		/* is taking place. Thus, I am shifting setting this value while unpacking when constructor		*/
+		/* of this class is called 																																		*/
+		/* SEE CORRESPONDING PACKING SECTION TO UNDERSTAND WHY I REMOVED THIS 												*/
+
 			
 			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &len_str, 1, MPI_INT, MPI_COMM_WORLD);
 			temp_str.resize(len_str);
 			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &temp_str[0], len_str, MPI_CHAR, MPI_COMM_WORLD);
+			
+			 
 
 #ifdef ADDON_PHYSIBOSS
 
-			if (temp_str.compare("maboss") == 0) {
+		if (temp_str.compare("maboss") == 0) 
+		{ 
 				
 				MaBoSSIntracellular* t_intracellular = new MaBoSSIntracellular(rcv_buf_right, size_right, position_right);
 				pCell->phenotype.intracellular = t_intracellular->getIntracellularModel();
+				// We need to set "intracellular_type" AFTER the statement above because the statement above 
+				// assigns some value (address) to "intracellular" pointer (which is initially NULL)				 
+				// Hence once "intracellular becomes non NULL, i.e. is valid address, we set its						 
+				// "intracellular_type" string field to "temp_str" (see above)															 
+				pCell->phenotype.intracellular->intracellular_type = temp_str; //Added by Gaurav Saxena
+
 				
-			}
+		}
+		else		//Added by Gaurav Saxena
+			pCell->phenotype.intracellular->intracellular_type = temp_str; //Added by Gaurav Saxena
 					
 #endif
 
@@ -4890,9 +4996,10 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &len_vector, 1, MPI_INT, MPI_COMM_WORLD);
 			pCell->velocity.resize(len_vector);
 			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &(pCell->velocity[0]), len_vector, MPI_DOUBLE, MPI_COMM_WORLD);
-		 }
-
-		 //pCell->print_cell(world);
+		 
+		 	/* The following print should be INSIDE the for loop, earlier it was OUTSIDE the for loop */
+		 	pCell->print_cell(world);
+		 }	 
 		}
 
 		if(no_of_cells_from_left > 0)
@@ -4912,7 +5019,7 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 				//std::cout<<"CELLS from LEFT position_left ="<<position_left<<std::endl;
 				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &cell_ID, 1, MPI_INT, MPI_COMM_WORLD);
 				//std::cout<<"Rank= "<<world.rank<<" Cell ID="<<cell_ID<<" received"<<std::endl;
-
+				list_cell_IDs.push_back(cell_ID);
 
 				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, cell_position, 3, MPI_DOUBLE, MPI_COMM_WORLD);
 				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &len_str, 1, MPI_INT, MPI_COMM_WORLD);
@@ -5463,19 +5570,37 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 
 
 			/* Now unpacking data members of class Intracellular as its object is a data member of class Phenotype */
+		
+		/* Gaurav Saxena is removing the following code because there might be some problems in 			*/
+		/* comparing the string type to NULL (maybe nullptr should be used). The intracellular_type 	*/
+		/* need NOT be packed because in the constructor for MaBossIntracellular we can set the 			*/
+		/* intracellular_type="maboss" (it is set in all constructors except the one where unpacking) */
+		/* is taking place. Thus, I am shifting setting this value while unpacking when constructor		*/
+		/* of this class is called 																																		*/
+		/* SEE THE PACKING SECTION OF THIS TO UNDERSTAND THIS COMMENT 																*/
 			
 			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &len_str, 1, MPI_INT, MPI_COMM_WORLD);
 			temp_str.resize(len_str);
 			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &temp_str[0], len_str, MPI_CHAR, MPI_COMM_WORLD);
+			
 
 #ifdef ADDON_PHYSIBOSS
 
-			if (temp_str.compare("maboss") == 0) {
+			if (temp_str.compare("maboss") == 0) 
+			{ 
 				
 				MaBoSSIntracellular* t_intracellular = new MaBoSSIntracellular(rcv_buf_left, size_left, position_left);
 				pCell->phenotype.intracellular = t_intracellular->getIntracellularModel();
-				
+				// We need to set "intracellular_type" AFTER the statement above because the statement above 
+				// assigns some value (address) to "intracellular" pointer (which is initially NULL)				 
+				// Hence once "intracellular becomes non NULL, i.e. is valid address, we set its						 
+				// "intracellular_type" string field to "temp_str" (see above)															 
+				pCell->phenotype.intracellular->intracellular_type = temp_str; //Added by Gaurav Saxena
+	
 			}
+			else //Added by Gaurav Saxena
+				pCell->phenotype.intracellular->intracellular_type = temp_str; //Added by Gaurav Saxena
+
 #endif
 
 			/* Returning to class Cell to unpack remaining members : 2 bools + 1 std::vector<double> */
@@ -5591,14 +5716,22 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &len_vector, 1, MPI_INT, MPI_COMM_WORLD);
 			pCell->velocity.resize(len_vector);
 			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &(pCell->velocity[0]), len_vector, MPI_DOUBLE, MPI_COMM_WORLD);
-
-		 }
-
-		 //pCell->print_cell(world);
+			
+			/* The following print should be INSIDE the for loop, earlier it was OUTSIDE the loop */
+			pCell->print_cell(world);
+		 } 
 		}
 
 		//rcv_buf_left.resize(0);
 		//rcv_buf_right.resize(0);
+		
+		sort(list_cell_IDs.begin(), list_cell_IDs.end());
+		
+		for(auto x : list_cell_IDs)
+			std::cout<< x << "-->";
+			
+		list_cell_IDs.clear(); 
+		std::cout << std::endl; 
 }
 
 bool cell_definitions_by_name_constructed = false;
