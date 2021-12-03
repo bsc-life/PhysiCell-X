@@ -1,0 +1,144 @@
+./sample_projects_intracellular/boolean/spheroid_tnf_model_mpi/custom_modules/custom.h:void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &cart_topo); 
+./sample_projects_intracellular/boolean/spheroid_tnf_model_mpi/custom_modules/custom.h:void setup_microenvironment(mpi_Environment &world, mpi_Cartesian &cart_topo);
+./sample_projects_intracellular/boolean/spheroid_tnf_model_mpi/custom_modules/custom.h:double total_live_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
+./sample_projects_intracellular/boolean/spheroid_tnf_model_mpi/custom_modules/custom.h:double total_dead_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
+./sample_projects_intracellular/boolean/spheroid_tnf_model_mpi/custom_modules/custom.h:double total_necrosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
+./sample_projects_intracellular/boolean/spheroid_tnf_model_mpi/custom_modules/custom.cpp:void setup_microenvironment( mpi_Environment &world, mpi_Cartesian &cart_topo )
+./sample_projects_intracellular/boolean/spheroid_tnf_model_mpi/custom_modules/custom.cpp:void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &cart_topo)
+./sample_projects_intracellular/boolean/spheroid_tnf_model_mpi/custom_modules/custom.cpp:double total_live_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+./sample_projects_intracellular/boolean/spheroid_tnf_model_mpi/custom_modules/custom.cpp:double total_dead_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+./sample_projects_intracellular/boolean/spheroid_tnf_model_mpi/custom_modules/custom.cpp:double total_necrosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+./sample_projects_intracellular/boolean/physiboss_cell_lines_mpi/custom_modules/custom.h:void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &cart_topo);
+./sample_projects_intracellular/boolean/physiboss_cell_lines_mpi/custom_modules/custom.h:void setup_microenvironment(mpi_Environment &world, mpi_Cartesian &cart_topo);
+./sample_projects_intracellular/boolean/physiboss_cell_lines_mpi/custom_modules/custom.h:void tumor_cell_phenotype_with_signaling( Cell* pCell, Phenotype& phenotype, double dt , mpi_Environment &world, mpi_Cartesian &cart_topo);
+./sample_projects_intracellular/boolean/physiboss_cell_lines_mpi/custom_modules/custom.cpp:void setup_microenvironment(mpi_Environment &world, mpi_Cartesian &cart_topo)
+./sample_projects_intracellular/boolean/physiboss_cell_lines_mpi/custom_modules/custom.cpp:void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &cart_topo)
+./sample_projects_intracellular/boolean/physiboss_cell_lines_mpi/custom_modules/custom.cpp:void tumor_cell_phenotype_with_signaling( Cell* pCell, Phenotype& phenotype, double dt, mpi_Environment &world, mpi_Cartesian &cart_topo )
+./core/PhysiCell_cell_container.cpp:void Cell_Container::initialize(double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double voxel_size, mpi_Environment &world, mpi_Cartesian &cart_topo)
+./core/PhysiCell_cell_container.cpp:void Cell_Container::initialize(double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double dx, double dy, double dz, mpi_Environment &world, mpi_Cartesian &cart_topo)
+./core/PhysiCell_cell_container.cpp:void Cell_Container::update_all_cells(double t, mpi_Environment &world, mpi_Cartesian &cart_topo)
+./core/PhysiCell_cell_container.cpp:void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double mechanics_dt_ , double diffusion_dt_ , mpi_Environment &world, mpi_Cartesian &cart_topo )
+./core/PhysiCell_cell_container.cpp:void Cell_Container::pack_moore_info(mpi_Environment &world, mpi_Cartesian &cart_topo)
+./core/PhysiCell_cell_container.cpp:Cell_Container* create_cell_container_for_microenvironment( BioFVM::Microenvironment& m , double mechanics_voxel_size, mpi_Environment &world, mpi_Cartesian &cart_topo )
+./core/PhysiCell_standard_models.h:void standard_update_cell_velocity( Cell* pCell, Phenotype& phenotype, double dt, mpi_Environment &world, mpi_Cartesian &cart_topo);
+./core/PhysiCell_phenotype.h:	void (*update_phenotype_parallel)( Cell* pCell, Phenotype& phenotype, double dt, mpi_Environment &world, mpi_Cartesian &cart_topo); // used in celll
+./core/PhysiCell_phenotype.h:	void (*update_velocity_parallel)(Cell *pCell, Phenotype &phenotype, double dt, mpi_Environment &world, mpi_Cartesian &cart_topo);
+./core/PhysiCell_cell.h:	void add_potentials(Moore_Cell_Info &other_agent, mpi_Environment &world, mpi_Cartesian &cart_topo);
+./core/PhysiCell_cell.h:	Cell* divide(int p_ID, mpi_Environment &world, mpi_Cartesian &cart_topo); 
+./core/PhysiCell_cell.h:	bool assign_position(double x, double y, double z, mpi_Environment &world, mpi_Cartesian &cart_topo);	
+./core/PhysiCell_cell.h:	void update_position( double dt, mpi_Environment &world, mpi_Cartesian &cart_topo );
+./core/PhysiCell_cell.h:	void update_voxel_in_container(mpi_Environment &world, mpi_Cartesian &cart_topo); 
+./core/PhysiCell_cell.h:	void print_cell(mpi_Environment &world); 
+./core/PhysiCell_cell.h:bool is_neighbor_voxel(Cell* pCell, std::vector<double> myVoxelCenter, std::vector<double> otherVoxelCenter, double maxVoxelInteracticeDistance, mpi_Environment &world, mpi_Cartesian & cart_topo);  
+./core/PhysiCell_cell_container.h:  void initialize(double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double voxel_size, mpi_Environment &world, mpi_Cartesian &cart_topo);
+./core/PhysiCell_cell_container.h:    void initialize(double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double dx, double dy, double dz, mpi_Environment &world, mpi_Cartesian &cart_topo);
+./core/PhysiCell_cell_container.h:  void update_all_cells(double t, mpi_Environment &world, mpi_Cartesian &cart_topo); 
+./core/PhysiCell_cell_container.h:  void update_all_cells(double t, double phenotype_dt, double mechanics_dt, double diffusion_dt, mpi_Environment &world, mpi_Cartesian &cart_topo );
+./core/PhysiCell_cell_container.h:	void pack(std::vector<Cell*> *all_cells, mpi_Environment &world, mpi_Cartesian &cart_topo);
+./core/PhysiCell_cell_container.h:	void unpack(mpi_Environment &world, mpi_Cartesian &cart_topo); //As of now this is a dummy function
+./core/PhysiCell_cell_container.h:	void pack_moore_info(mpi_Environment &world, mpi_Cartesian &cart_topo);
+./core/PhysiCell_cell_container.h:Cell_Container* create_cell_container_for_microenvironment( BioFVM::Microenvironment& m , double mechanics_voxel_size, mpi_Environment &world, mpi_Cartesian &cart_topo ); 
+./core/PhysiCell_standard_models.cpp:void standard_update_cell_velocity( Cell* pCell, Phenotype& phenotype, double dt, mpi_Environment &world, mpi_Cartesian &cart_topo)
+./core/PhysiCell_cell.cpp:Cell* Cell::divide(int p_ID, mpi_Environment &world, mpi_Cartesian &cart_topo)
+./core/PhysiCell_cell.cpp:bool Cell::assign_position(double x, double y, double z, mpi_Environment &world, mpi_Cartesian &cart_topo)
+./core/PhysiCell_cell.cpp:void Cell::update_position( double dt, mpi_Environment &world, mpi_Cartesian &cart_topo )
+./core/PhysiCell_cell.cpp:void Cell::update_voxel_in_container(mpi_Environment &world, mpi_Cartesian &cart_topo)
+./core/PhysiCell_cell.cpp:void Cell::add_potentials(Moore_Cell_Info &other_agent, mpi_Environment &world, mpi_Cartesian &cart_topo)
+./core/PhysiCell_cell.cpp:bool is_neighbor_voxel(Cell* pCell, std::vector<double> my_voxel_center, std::vector<double> other_voxel_center, double max_cell_interactive_distance_in_voxel, mpi_Environment &world, mpi_Cartesian &cart_topo)
+./core/PhysiCell_cell.cpp:void Cell::print_cell(mpi_Environment &world)
+./core/PhysiCell_cell.cpp:void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world, mpi_Cartesian &cart_topo)
+./core/PhysiCell_cell.cpp:void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
+./sample_projects/heterogeneity/custom_modules/heterogeneity.cpp:void setup_microenvironment(mpi_Environment &world, mpi_Cartesian &cart_topo)
+./sample_projects/heterogeneity/custom_modules/heterogeneity.cpp:void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &cart_topo)
+./sample_projects/heterogeneity/custom_modules/heterogeneity.h:void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &cart_topo);
+./sample_projects/heterogeneity/custom_modules/heterogeneity.h:void setup_microenvironment(mpi_Environment &world, mpi_Cartesian &cart_topo);
+./sample_projects/template/custom_modules/custom.h:void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &cart_topo);
+./sample_projects/template/custom_modules/custom.h:void setup_microenvironment(mpi_Environment &world, mpi_Cartesian &cart_topo); 
+./sample_projects/template/custom_modules/custom.cpp:void setup_microenvironment( mpi_Environment &world, mpi_Cartesian &cart_topo )
+./sample_projects/template/custom_modules/custom.cpp:void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &cart_topo)
+./DistPhy/DistPhy_Cartesian.cpp:        void mpi_Cartesian::Build_Cartesian_Topology(mpi_Environment &world)
+./DistPhy/DistPhy_Cartesian.cpp:        void mpi_Cartesian::Find_Cartesian_Coordinates(mpi_Environment &world)
+./DistPhy/DistPhy_Cartesian.cpp:        void mpi_Cartesian::Find_Left_Right_Neighbours(mpi_Environment &world)
+./DistPhy/DistPhy_Cartesian.cpp:       														 mpi_Environment &world
+./DistPhy/DistPhy_Utils.cpp:        void mpi_CellPositions::positions_to_rank_list(std::vector<std::vector<double>> &generated_list, int xmin, int xmax, int ymin, int ymax, int zmin, int zmax, int dx, int dy, int dz, mpi_Environment &world, mpi_Cartesian &cart_topo, int strt_cell_ID )
+./DistPhy/DistPhy_Utils.cpp:        void distribute_cell_positions(mpi_CellPositions &cp, mpi_MyCells &mc, mpi_Environment &world, mpi_Cartesian &cart_topo)
+./DistPhy/DistPhy_Utils.cpp:        int request_IDs_from_root(int requested_IDs, int *range_ID, int strt_cell_ID, mpi_Environment &world, mpi_Cartesian &cart_topo)
+./DistPhy/DistPhy_Environment.cpp:        int IOProcessor(mpi_Environment &world)
+./DistPhy/DistPhy_Cartesian.h:                void Build_Cartesian_Topology(mpi_Environment &world);          //Pass by reference to prevent creation of new object
+./DistPhy/DistPhy_Cartesian.h:                void Find_Cartesian_Coordinates(mpi_Environment &world);        //If new object created then possibly need to write copy constructor !
+./DistPhy/DistPhy_Cartesian.h:            		void Find_Left_Right_Neighbours(mpi_Environment &world);				//Finds left/right neighbour processes 
+./DistPhy/DistPhy_Cartesian.h:       								mpi_Environment &world
+./DistPhy/DistPhy_Utils.h:                                        mpi_Environment &world, mpi_Cartesian &cart_topo, int strt_cell_ID ); 
+./DistPhy/DistPhy_Utils.h:        void distribute_cell_positions(mpi_CellPositions &cp, mpi_MyCells &mc, mpi_Environment &world, mpi_Cartesian &cart_topo); 
+./DistPhy/DistPhy_Utils.h:        int request_IDs_from_root(int no_of_requested_IDs, int *range_ID, int strt_cell_ID, mpi_Environment &world, mpi_Cartesian &cart_topo); 
+./DistPhy/DistPhy_Environment.h:        int IOProcessor(mpi_Environment &world);
+./BioFVM/BioFVM_mesh.h:	bool has_it_crossed_to_left_subdomain (double x, mpi_Environment &world);
+./BioFVM/BioFVM_mesh.h:	bool has_it_crossed_to_right_subdomain(double x, mpi_Environment &world);
+./BioFVM/BioFVM_mesh.h:  void correct_position_within_subdomain(std::vector<double> &pos, mpi_Environment &world, mpi_Cartesian &cart_topo);
+./BioFVM/BioFVM_mesh.h:	void write_to_matlab( std::string filename, mpi_Environment &world, mpi_Cartesian &cart_topo);
+./BioFVM/BioFVM_mesh.h:	void create_moore_neighborhood(mpi_Environment &world, mpi_Cartesian &cart_topo);
+./BioFVM/BioFVM_mesh.h:    void resize( double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double dx_new, double dy_new , double dz_new, mpi_Environment &world, mpi_Cartesian &cart_topo);
+./BioFVM/BioFVM_mesh.h:	int nearest_voxel_local_index( std::vector<double>& position, mpi_Environment &world, mpi_Cartesian &cart_topo );
+./BioFVM/BioFVM_solvers.h:void diffusion_decay_solver__constant_coefficients_LOD_3D( Microenvironment& M, double dt, mpi_Environment &world, mpi_Cartesian &cart_topo);
+./BioFVM/BioFVM_microenvironment.cpp:// void Microenvironment::resize_space_v1.6( double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double dx_new , double dy_new , double dz_new, mpi_Environment &world, mpi_Cartesian &cart_topo)
+./BioFVM/BioFVM_microenvironment.cpp:void Microenvironment::resize_space( double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double dx_new , double dy_new , double dz_new, mpi_Environment &world, mpi_Cartesian &cart_topo )
+./BioFVM/BioFVM_microenvironment.cpp:int Microenvironment::nearest_voxel_local_index( std::vector<double>& position, mpi_Environment &world, mpi_Cartesian &cart_topo )
+./BioFVM/BioFVM_microenvironment.cpp:void Microenvironment::simulate_diffusion_decay( double dt, mpi_Environment &world, mpi_Cartesian &cart_topo )
+./BioFVM/BioFVM_microenvironment.cpp:void Microenvironment::write_to_matlab( std::string filename, mpi_Environment &world, mpi_Cartesian &cart_topo )
+./BioFVM/BioFVM_microenvironment.cpp:// void initialize_microenvironment_v1.6( mpi_Environment &world, mpi_Cartesian &cart_topo )
+./BioFVM/BioFVM_microenvironment.cpp:void initialize_microenvironment( mpi_Environment &world, mpi_Cartesian &cart_topo )
+./BioFVM/BioFVM_solvers.cpp:void diffusion_decay_solver__constant_coefficients_LOD_3D( Microenvironment& M, double dt, mpi_Environment &world, mpi_Cartesian &cart_topo)
+./BioFVM/BioFVM_matlab.cpp:void write_matlab4_header( int nrows, int ncols, std::string filename, std::string variable_name, mpi_Environment &world, mpi_Cartesian &cart_topo )
+./BioFVM/BioFVM_matlab.cpp:void write_matlab_header( int rows, int cols, std::string filename, std::string variable_name, mpi_Environment &world, mpi_Cartesian &cart_topo )
+./BioFVM/BioFVM_mesh.cpp:bool General_Mesh::has_it_crossed_to_left_subdomain (double x, mpi_Environment &world)
+./BioFVM/BioFVM_mesh.cpp:bool General_Mesh::has_it_crossed_to_right_subdomain (double x, mpi_Environment &world)
+./BioFVM/BioFVM_mesh.cpp:void General_Mesh::correct_position_within_subdomain(std::vector<double> &pos, mpi_Environment &world, mpi_Cartesian &cart_topo)
+./BioFVM/BioFVM_mesh.cpp:void General_Mesh::write_to_matlab( std::string filename, mpi_Environment &world, mpi_Cartesian &cart_topo)
+./BioFVM/BioFVM_mesh.cpp:void Cartesian_Mesh::create_moore_neighborhood(mpi_Environment &world, mpi_Cartesian &cart_topo)
+./BioFVM/BioFVM_mesh.cpp:void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double dx_new, double dy_new , double dz_new, mpi_Environment &world, mpi_Cartesian &cart_topo)
+./BioFVM/BioFVM_mesh.cpp:int Cartesian_Mesh::nearest_voxel_local_index( std::vector<double>& position, mpi_Environment &world, mpi_Cartesian &cart_topo )
+./BioFVM/BioFVM_basic_agent.h:	void update_voxel_index(mpi_Environment &world, mpi_Cartesian &cart_topo);
+./BioFVM/BioFVM_MultiCellDS.cpp:void add_BioFVM_substrates_to_open_xml_pugi( pugi::xml_document& xml_dom , std::string filename_base, Microenvironment& M, mpi_Environment &world, mpi_Cartesian &cart_topo )
+./BioFVM/BioFVM_MultiCellDS.cpp:void add_BioFVM_agents_to_open_xml_pugi( pugi::xml_document& xml_dom, std::string filename_base, Microenvironment& M, mpi_Environment &world, mpi_Cartesian &cart_topo )
+./BioFVM/BioFVM_MultiCellDS.cpp:void add_BioFVM_to_open_xml_pugi( pugi::xml_document& xml_dom , std::string filename_base, double current_simulation_time , Microenvironment& M, mpi_Environment &world, mpi_Cartesian &cart_topo )
+./BioFVM/BioFVM_MultiCellDS.h:void add_BioFVM_substrates_to_open_xml_pugi( pugi::xml_document& xml_dom , std::string filename_base , Microenvironment& M, mpi_Environment &world, mpi_Cartesian &cart_topo ); 
+./BioFVM/BioFVM_MultiCellDS.h:void add_BioFVM_agents_to_open_xml_pugi( pugi::xml_document& xml_dom, std::string filename_base, Microenvironment& M, mpi_Environment &world, mpi_Cartesian &cart_topo  ); 
+./BioFVM/BioFVM_MultiCellDS.h:void add_BioFVM_to_open_xml_pugi( pugi::xml_document& xml_dom , std::string filename_base, double current_simulation_time , Microenvironment& M, mpi_Environment &world, mpi_Cartesian &cart_topo );
+./BioFVM/BioFVM_microenvironment.h:    void resize_space( double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double dx_new , double dy_new , double dz_new, mpi_Environment &world, mpi_Cartesian &cart_topo);
+./BioFVM/BioFVM_microenvironment.h:  int nearest_voxel_local_index( std::vector<double>& position, mpi_Environment &world, mpi_Cartesian &cart_topo ); 
+./BioFVM/BioFVM_microenvironment.h:	void simulate_diffusion_decay( double dt, mpi_Environment &world, mpi_Cartesian &cart_topo ); 
+./BioFVM/BioFVM_microenvironment.h:	void write_to_matlab( std::string filename, mpi_Environment &world, mpi_Cartesian &cart_topo ); 
+./BioFVM/BioFVM_microenvironment.h:void initialize_microenvironment( mpi_Environment &world, mpi_Cartesian &cart_topo );
+./BioFVM/BioFVM_basic_agent.cpp:void Basic_Agent::update_voxel_index(mpi_Environment &world, mpi_Cartesian &cart_topo)
+./BioFVM/BioFVM_matlab.h:void write_matlab_header( int rows, int cols, std::string filename, std::string variable_name, mpi_Environment &world, mpi_Cartesian &cart_topo );
+./BioFVM/BioFVM_matlab.h:void write_matlab4_header( int nrows, int ncols, std::string filename, std::string variable_name, mpi_Environment &world, mpi_Cartesian &cart_topo );
+./custom_modules/custom.h:void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &cart_topo); 
+./custom_modules/custom.h:void setup_microenvironment(mpi_Environment &world, mpi_Cartesian &cart_topo);
+./custom_modules/custom.h:double total_live_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
+./custom_modules/custom.h:double total_dead_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
+./custom_modules/custom.h:double total_necrosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
+./custom_modules/custom.cpp:void setup_microenvironment( mpi_Environment &world, mpi_Cartesian &cart_topo )
+./custom_modules/custom.cpp:void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &cart_topo)
+./custom_modules/custom.cpp:double total_live_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+./custom_modules/custom.cpp:double total_dead_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+./custom_modules/custom.cpp:double total_necrosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+./modules/PhysiCell_pathology.h:void SVG_plot( std::string filename , Microenvironment& M, double z_slice , double time, std::vector<std::string> (*cell_coloring_function)(Cell*), mpi_Environment &world, mpi_Cartesian &cart_topo ); // done
+./modules/PhysiCell_MultiCellDS.cpp:void add_PhysiCell_cells_to_open_xml_pugi( pugi::xml_document& xml_dom, std::string filename_base, Microenvironment& M, mpi_Environment &world, mpi_Cartesian &cart_topo  )
+./modules/PhysiCell_MultiCellDS.cpp:void save_PhysiCell_to_MultiCellDS_xml_pugi( std::string filename_base , Microenvironment& M , double current_simulation_time, mpi_Environment &world, mpi_Cartesian &cart_topo)
+./modules/PhysiCell_MultiCellDS.h:void add_PhysiCell_cells_to_open_xml_pugi( pugi::xml_document& xml_dom, std::string filename_base, Microenvironment& M, mpi_Environment &world, mpi_Cartesian &cart_topo  ); 
+./modules/PhysiCell_MultiCellDS.h:void save_PhysiCell_to_MultiCellDS_xml_pugi( std::string filename_base , Microenvironment& M , double current_simulation_time, mpi_Environment &world, mpi_Cartesian &cart_topo);
+./modules/PhysiCell_SVG.cpp:bool Write_SVG_start( std::string & file_str, double width, double height, mpi_Environment &world, mpi_Cartesian &cart_topo )
+./modules/PhysiCell_SVG.cpp:bool Write_SVG_end( std::string &file_str, mpi_Environment &world, mpi_Cartesian &cart_topo )
+./modules/PhysiCell_SVG.cpp:bool Write_SVG_text( std::string &file_str, const char* str , double position_x, double position_y, double font_size , const char* color , const char* font, mpi_Environment &world, mpi_Cartesian &cart_topo)
+./modules/PhysiCell_SVG.cpp:bool Write_SVG_circle( std::string& file_str, double center_x, double center_y, double radius, double stroke_size, std::string stroke_color , std::string fill_color, mpi_Environment &world, mpi_Cartesian &cart_topo )
+./modules/PhysiCell_SVG.cpp:                     double stroke_size, std::string stroke_color , std::string fill_color, mpi_Environment &world, mpi_Cartesian &cart_topo  )
+./modules/PhysiCell_settings.cpp:bool load_PhysiCell_config_file( std::string filename, mpi_Environment &world )
+./modules/PhysiCell_pathology.cpp:void SVG_plot( std::string filename , Microenvironment& M, double z_slice , double time, std::vector<std::string> (*cell_coloring_function)(Cell*), mpi_Environment &world, mpi_Cartesian &cart_topo )
+./modules/PhysiCell_SVG.h:bool Write_SVG_start( std::string &file_str, double width, double height, mpi_Environment &world, mpi_Cartesian &cart_topo );
+./modules/PhysiCell_SVG.h:bool Write_SVG_end( std::string &file_str, mpi_Environment &world, mpi_Cartesian &cart_topo );
+./modules/PhysiCell_SVG.h:bool Write_SVG_text( std::string & file_str, const char* str , double position_x, double position_y, double font_size , const char* color , const char* font, mpi_Environment &world, mpi_Cartesian &cart_topo);
+./modules/PhysiCell_SVG.h:bool Write_SVG_circle( std::string& file_str, double center_x, double center_y, double radius, double stroke_size, std::string stroke_color , std::string fill_color, mpi_Environment &world, mpi_Cartesian &cart_topo );
+./modules/PhysiCell_SVG.h:                     double stroke_size, std::string stroke_color , std::string fill_color, mpi_Environment &world, mpi_Cartesian &cart_topo  );
+./modules/PhysiCell_settings.h:bool load_PhysiCell_config_file( std::string filename, mpi_Environment &world ); 
+./.git/logs/refs/heads/master:275b174477c2e80fcfaa778532f7478fadbef3a5 2834916d259a59e733822ed69c59679f891ef9c6 gsaxena <gaurav.saxena@bsc.es> 1608123985 +0100	commit: In function bool load_PhysiCell_config_file( std::string filename, mpi_Environment &world ), only the root process was calling the setup_microenvironment_from_XML() function. This is wrong. All processes must call this function but only the root process should print the statements. This has been corrected on the development branch as well.
+./.git/logs/HEAD:275b174477c2e80fcfaa778532f7478fadbef3a5 2834916d259a59e733822ed69c59679f891ef9c6 gsaxena <gaurav.saxena@bsc.es> 1608123985 +0100	commit: In function bool load_PhysiCell_config_file( std::string filename, mpi_Environment &world ), only the root process was calling the setup_microenvironment_from_XML() function. This is wrong. All processes must call this function but only the root process should print the statements. This has been corrected on the development branch as well.

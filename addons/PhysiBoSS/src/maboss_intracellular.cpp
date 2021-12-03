@@ -66,7 +66,7 @@ MaBoSSIntracellular::MaBoSSIntracellular(std::vector<char>& buffer, int& len_buf
 	MPI_Unpack(&buffer[0], len_buffer, &position, &(this->time_step), 1, MPI_DOUBLE, MPI_COMM_WORLD);
 	
 	MPI_Unpack(&buffer[0], len_buffer, &position, &temp_int, 1, MPI_INT, MPI_COMM_WORLD);
-	this->discrete_time = temp_int == 1 ? true : false; 
+	this->discrete_time = (temp_int == 1 ? true : false);  //Gaurav Saxena added parenthesis for clarity
 
 	MPI_Unpack(&buffer[0], len_buffer, &position, &(this->time_tick), 1, MPI_DOUBLE, MPI_COMM_WORLD);
 	MPI_Unpack(&buffer[0], len_buffer, &position, &(this->scaling),  1, MPI_DOUBLE, MPI_COMM_WORLD);
@@ -147,7 +147,7 @@ void MaBoSSIntracellular::pack(std::vector<char>& buffer, int& len_buffer, int& 
 	int	temp_int;
 	double temp_double;
 	std::string temp_str;
-	unsigned int len_str = 0;
+	int len_str = 0;   		//This was unsigned int, Gaurav Saxena changed it to simple int. 
 	
 	temp_str = this->bnd_filename;
 	len_str = temp_str.length();

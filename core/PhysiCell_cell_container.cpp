@@ -309,7 +309,8 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 	{
 		if( (*all_cells)[i]->is_out_of_domain == false )			//Added this if condition, was missing
 		{
-			(*all_cells)[i]->phenotype.secretion.advance( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
+			Cell* pC = (*all_cells)[i];
+			pC->phenotype.secretion.advance( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
 		}
 	}
 
@@ -475,17 +476,17 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 		
 		/* As per David's suggestion, writing "sort of time-step" into the CELLS_RANK_* file for each process */
 		
-		static int send_recv_counter = 0;
-		if(no_cells_cross_left > 0 || no_cells_cross_right > 0 || no_of_cells_from_left > 0 || no_of_cells_from_right > 0)
-		{ 
-			std::string filename="CELLS_RANK_";
-			filename = filename + std::to_string(world.rank);
-			std::ofstream ofile;
-			ofile.open(filename,std::ios::app);
-			ofile<<"--->SENDING RECEIVING CYCLE NO.:"<<send_recv_counter<<std::endl<<std::endl; 
-			send_recv_counter += 1;
-			ofile.close();
-		}
+// 		static int send_recv_counter = 0;
+// 		if(no_cells_cross_left > 0 || no_cells_cross_right > 0 || no_of_cells_from_left > 0 || no_of_cells_from_right > 0)
+// 		{ 
+// 			std::string filename="CELLS_RANK_";
+// 			filename = filename + std::to_string(world.rank);
+// 			std::ofstream ofile;
+// 			ofile.open(filename,std::ios::app);
+// 			ofile<<"--->SENDING RECEIVING CYCLE NO.:"<<send_recv_counter<<std::endl<<std::endl; 
+// 			send_recv_counter += 1;
+// 			ofile.close();
+// 		}
 		
 		pack(all_cells, world, cart_topo);
 
@@ -521,26 +522,26 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 		//As per David's suggestion moving this "checking" code to AFTER pack/send/receive/unpack
 		//to make sure there is no duplicate cell 
 		
-    for(int temp_rank = 0; temp_rank < world.size; temp_rank++)
-    {
-    	if(temp_rank == world.rank)
-    	{
-    		//std::cout<<"IDs for Rank = "<<world.rank <<std::endl;
-    		for(int i=0; i < (*all_cells).size(); i++)
-    		{
-    			for(int j=i+1; j < (*all_cells).size(); j++)
-    			{
-    				if((*all_cells)[i]->ID == (*all_cells)[j]->ID)
-    					std::cout<<"Found a duplicate ID on Rank="<<world.rank<<std::endl;
-    			}
-    		}
-    		std::cout<<std::endl;
-    	}
-    	MPI_Barrier(cart_topo.mpi_cart_comm);
-    }
+//     for(int temp_rank = 0; temp_rank < world.size; temp_rank++)
+//     {
+//     	if(temp_rank == world.rank)
+//     	{
+//     		//std::cout<<"IDs for Rank = "<<world.rank <<std::endl;
+//     		for(int i=0; i < (*all_cells).size(); i++)
+//     		{
+//     			for(int j=i+1; j < (*all_cells).size(); j++)
+//     			{
+//     				if((*all_cells)[i]->ID == (*all_cells)[j]->ID)
+//     					std::cout<<"Found a duplicate ID on Rank="<<world.rank<<std::endl;
+//     			}
+//     		}
+//     		std::cout<<std::endl;
+//     	}
+//     	MPI_Barrier(cart_topo.mpi_cart_comm);
+//     }
     /*=======================DELETE LATER===============================================*/
     
-    MPI_Barrier(cart_topo.mpi_cart_comm); 
+//    MPI_Barrier(cart_topo.mpi_cart_comm); 
 
 		// Update cell indices in the container because some cells 'could' have moved to new voxels
 		for( int i=0; i < (*all_cells).size(); i++ )

@@ -318,6 +318,10 @@ int main( int argc, char* argv[] )
 			{
 				if( PhysiCell_settings.enable_SVG_saves == true )
 				{	
+					//Gaurav Saxena is debugging SVG individually	
+					//sprintf( filename , "%s/snapshot%08u_RANK%u.svg" , PhysiCell_settings.folder.c_str() , PhysiCell_globals.SVG_output_index, world.rank ); 
+					//SVG_plot( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function);
+					
 					sprintf( filename , "%s/snapshot%08u.svg" , PhysiCell_settings.folder.c_str() , PhysiCell_globals.SVG_output_index ); 
 					SVG_plot( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function, world, cart_topo );
 					

@@ -88,7 +88,10 @@ void tnf_receptor_model( Cell* pCell, Phenotype& phenotype, double dt )
 		static double to_density = 1.0 / microenvironment.mesh.dV; 
 		// this needs omp critical because 2 cells writing to 1 voxel is not thread safe 
 		#pragma omp critical 
-		{ pCell->nearest_density_vector()[nTNF_external] += excess_binding * to_density; }
+		{ 
+			if(pCell->is_out_of_domain == false)
+				pCell->nearest_density_vector()[nTNF_external] += excess_binding * to_density; 
+		}
 	}
 
 	// Remove all the internalized TNF from cell

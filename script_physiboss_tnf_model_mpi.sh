@@ -1,7 +1,8 @@
 #!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=2
-#SBATCH --cpus-per-task=1
+#SBATCH --cpus-per-task=24
+#SBATCH --constraint=hyperthreading
 #SBATCH -t 08:00:00
 #SBATCH -o output-%j
 #SBATCH -e error-%j
@@ -26,9 +27,9 @@ export OMP_PLACES=threads
 # Simplest Execution, can be used for testing
 #--------------------------------------------
 
-  mpiexec ./spheroid_TNF_model_mpi
+# mpiexec ./spheroid_TNF_model_mpi
 # ddt --connect mpiexec ./spheroid_TNF_model_mpi
-#  ddt --connect srun ./spheroid_TNF_model_mpi
+# ddt --connect srun ./spheroid_TNF_model_mpi
 #-------------------------------------------------------------
 # Better to use --map-by ppr syntax when measuring performance
 # MN4, best configuration is 1 MPI process per socket and
@@ -36,7 +37,7 @@ export OMP_PLACES=threads
 # (This is because we have 2 sockets with 24 cores each)
 #-------------------------------------------------------------
 
-# mpiexec --map-by ppr:1:socket:pe=24  --report-bindings ./spheroid_TNF_model_mpi
+ mpiexec --map-by ppr:1:socket:pe=24  --report-bindings ./spheroid_TNF_model_mpi
 
 #-------------------------------------
 # Uncomment if using DDT for debugging (1) if mpiexec doesn't connect then use (2) srun

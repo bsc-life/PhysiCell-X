@@ -644,6 +644,8 @@ void SVG_plot( std::string filename , Microenvironment& M, double z_slice , doub
 	strcpy(char_filename, filename.c_str()); 
 	mpi_error = MPI_File_open(cart_topo.mpi_cart_comm, char_filename, MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &fh);
 	
+	MPI_Barrier(cart_topo.mpi_cart_comm);  // Gaurav Saxena is adding this to synchronize 
+	
 	if( mpi_error)
 	{ 
 		if(world.rank == 0)
@@ -915,6 +917,8 @@ void SVG_plot( std::string filename , Microenvironment& M, double z_slice , doub
     
   MPI_File_set_view(fh, offset, etype, filetype, "native", MPI_INFO_NULL); 
   MPI_File_write(fh, data, elements_to_write, MPI_CHAR, MPI_STATUS_IGNORE);
+  
+  MPI_Barrier(cart_topo.mpi_cart_comm);  // Gaurav Saxena is adding this to synchronize 
     
 	MPI_File_close(&fh);
   

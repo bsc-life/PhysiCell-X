@@ -378,7 +378,7 @@ int Basic_Agent::get_current_voxel_index( void )
 }
 
 std::vector<double>& Basic_Agent::nearest_density_vector( void ) 
-{  
+{  	
 	return microenvironment->nearest_density_vector( current_voxel_index ); 
 }
 

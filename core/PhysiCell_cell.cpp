@@ -778,7 +778,7 @@ Cell* Cell::divide(int p_ID, mpi_Environment &world, mpi_Cartesian &cart_topo)
 		is_out_of_domain = true;
 		is_active = false;
 		is_movable = false;
-		std::cout<<"Cell ID"<<this->ID<<" is out of domain"<<std::endl; 
+		//std::cout<<"Cell ID"<<this->ID<<" is out of domain"<<std::endl; 
 	}
 
 	/*-----------------------------------------------------------------------------------*/
@@ -797,10 +797,10 @@ Cell* Cell::divide(int p_ID, mpi_Environment &world, mpi_Cartesian &cart_topo)
 
 	// child->set_phenotype( phenotype );
 	child->phenotype = phenotype;
-	
+		
 	if (child->phenotype.intracellular)
     child->phenotype.intracellular->start();
-	
+  	
 // #ifdef ADDON_PHYSIDFBA
 // 	child->fba_model = this->fba_model;
 // #endif
@@ -1177,6 +1177,22 @@ void Cell::update_position( double dt, mpi_Environment &world, mpi_Cartesian &ca
 		//std::cout<<"Rank="<<world.rank<<" Cell ID="<<ID<<" Old Position:("<<old_position[0]<<","<<old_position[1]<<","<<old_position[2]<<")"<<std::endl;
 		//std::cout<<"Rank="<<world.rank<<" Cell ID="<<ID<<" New Position:("<<position[0]<<","<<position[1]<<","<<position[2]<<")"<<std::endl;
 		//std::cout<<"Crossed to left ="<<crossed_to_left_subdomain<<" Crossed to right ="<<crossed_to_right_subdomain<<std::endl;
+		
+		/* There is a possibility that (1) Cell might cross to left/right sub-domain 		 */
+		/* AND (2) because of the new Y/Z coordinate, it goes out of the domain			 		 */
+		/* In this case, we need to set: crossed_to_left/right_subdomain as false 	 		 */
+		/* We do NOT want such a cell to be packed/unpacked as it has gone out of domain */
+		
+		if(get_container()->underlying_mesh.is_position_valid(position[0],position[1],position[2]) == false)
+		{
+			updated_current_mechanics_voxel_index=-1;
+			is_out_of_domain = true;
+			is_active = false;
+			is_movable = false;
+			
+			crossed_to_left_subdomain = false;
+			crossed_to_right_subdomain = false; 
+		}	
 	}
 
 
@@ -2199,12 +2215,14 @@ void Cell::print_cell(mpi_Environment &world)
 	if(this->phenotype.cycle.data.pCycle_Model != NULL)
 		ofile<<"pCycle_Model is NOT NULL"<<std::endl;
 	ofile<<"time_units:"<<this->phenotype.cycle.data.time_units<<std::endl;
+ */
 	for(int i=0; i<this->phenotype.cycle.data.transition_rates.size();i++)
 		{
 			ofile<<"Transition Rates Vector:"<<i<<std::endl;
 			for(int j=0; j<this->phenotype.cycle.data.transition_rates[i].size();j++)
 				ofile<<"rate "<<j<<":"<<this->phenotype.cycle.data.transition_rates[i][j]<<std::endl;
 		}
+	/*
 	ofile<<"current_phase_index:"<<this->phenotype.cycle.data.current_phase_index<<std::endl;
 	ofile<<"elapsed_time_in_phase:"<<this->phenotype.cycle.data.elapsed_time_in_phase<<std::endl;
 
@@ -2304,39 +2322,43 @@ void Cell::print_cell(mpi_Environment &world)
 	for(int i=0; i<this->phenotype.molecular.fraction_transferred_when_ingested.size();i++)
 			ofile<<"fraction_transferred_when_ingested "<<i<<":"<<this->phenotype.molecular.fraction_transferred_when_ingested[i]<<std::endl;
 
-// if (this->phenotype.intracellular != NULL) {
-// 		ofile<<"=> class Cell { class Phenotype { class Intracellular { "<<std::endl;
-// #ifdef ADDON_PHYSIBOSS
-// 		if (this->phenotype.intracellular->intracellular_type.compare("maboss") == 0) {
-// 			
-// 			MaBoSSIntracellular* t_intracellular = static_cast<MaBoSSIntracellular*>(this->phenotype.intracellular); 
-// 
-// 			ofile<<"bnd_file:"<<t_intracellular->get_bnd_filename()<<std::endl; 
-// 			ofile<<"cfg_file:"<<t_intracellular->get_cfg_filename()<<std::endl; 
-// 			ofile<<"time_step:"<<t_intracellular->time_step<<std::endl;
-// 			ofile<<"discrete_time:"<<t_intracellular->discrete_time<<std::endl;
-// 			ofile<<"time_tick:"<<t_intracellular->time_tick<<std::endl;
-// 			ofile<<"scaling:"<<t_intracellular->scaling<<std::endl;
-// 			
-// 			for (auto t_mutation: t_intracellular->mutations)
-// 				ofile<<"mutation:"<<t_mutation.first<<"="<<t_mutation.second<<std::endl;	
-// 			
-// 			for (auto t_initial_value: t_intracellular->initial_values)
-// 				ofile<<"initial_value:"<<t_initial_value.first<<"="<<t_initial_value.second<<std::endl;
-// 			
-// 			for (auto t_parameter: t_intracellular->parameters)
-// 				ofile<<"parameter:"<<t_parameter.first<<"="<<t_parameter.second<<std::endl;
-// 			
-// 			ofile<<"next_run:"<<t_intracellular->next_physiboss_run<<std::endl;
-// 			ofile<<"time_to_update:"<<t_intracellular->maboss.get_time_to_update()<<std::endl;
-// 			ofile<<"state:"<<t_intracellular->get_state()<<std::endl;
-// 		}
-// #endif	
-// 	}
+*/
+if (this->phenotype.intracellular != NULL) {
+		ofile<<"=> class Cell { class Phenotype { class Intracellular { "<<std::endl;
+#ifdef ADDON_PHYSIBOSS
+		if (this->phenotype.intracellular->intracellular_type.compare("maboss") == 0) {
+			
+			MaBoSSIntracellular* t_intracellular = static_cast<MaBoSSIntracellular*>(this->phenotype.intracellular); 
+
+			ofile<<"bnd_file:"<<t_intracellular->get_bnd_filename()<<std::endl; 
+			ofile<<"cfg_file:"<<t_intracellular->get_cfg_filename()<<std::endl; 
+			ofile<<"time_step:"<<t_intracellular->time_step<<std::endl;
+			ofile<<"discrete_time:"<<t_intracellular->discrete_time<<std::endl;
+			ofile<<"time_tick:"<<t_intracellular->time_tick<<std::endl;
+			ofile<<"scaling:"<<t_intracellular->scaling<<std::endl;
+			
+			for (auto t_mutation: t_intracellular->mutations)
+				ofile<<"mutation:"<<t_mutation.first<<"="<<t_mutation.second<<std::endl;	
+			
+			for (auto t_initial_value: t_intracellular->initial_values)
+				ofile<<"initial_value:"<<t_initial_value.first<<"="<<t_initial_value.second<<std::endl;
+			
+			for (auto t_parameter: t_intracellular->parameters)
+				ofile<<"parameter:"<<t_parameter.first<<"="<<t_parameter.second<<std::endl;
+			
+			ofile<<"next_run:"<<t_intracellular->next_physiboss_run<<std::endl;
+			ofile<<"time_to_update:"<<t_intracellular->maboss.get_time_to_update()<<std::endl;
+			ofile<<"state:"<<t_intracellular->get_state()<<std::endl;
+		}
+#endif	
+	}
+
 
 	ofile<<"=> class Cell { "<<std::endl;
 	ofile<<"is_out_of_domain:"<<is_out_of_domain<<std::endl;
 	ofile<<"is_movable:"<<is_movable<<std::endl;
+	
+/*	
 	for(int i=0; i<displacement.size(); i++)
 		ofile<<"Displacement["<<i<<"]:"<<displacement[i]<<std::endl;
 
@@ -2487,7 +2509,6 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
   //std::cout<<"Total cells crossing to left in Rank "<<world.rank<<":"<<no_cells_cross_left<<std::endl;
 	//std::cout<<"Total cells crossing to right in Rank "<<world.rank<<":"<<no_cells_cross_right<<std::endl;
 
-	std::vector<int> list_cell_IDs ; 
 	/* IMPORTANT: CANNOT USE #pragma omp for HERE AS ALL THREADS WILL WRITE TO THE SAME SHARED BUFFER */
 	for(int i=0; i<(*all_cells).size();i++)
 	{
@@ -2498,8 +2519,6 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 			//pCell->crossed_to_left_subdomain = false; //RESET IT BUT LATER REMOVE THIS LINE
 			/* Cell ID first - needed to create a cell */
 			
-			list_cell_IDs.push_back(pCell->ID); 
-
 			len_snd_buf_left = position_left + sizeof(pCell->ID);
 			snd_buf_left.resize(len_snd_buf_left);
 			MPI_Pack(&(pCell->ID), 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
@@ -3341,7 +3360,7 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
 		MPI_Pack(&(pCell->velocity[0]), len_vector, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
 
-		pCell->print_cell(world);
+		//pCell->print_cell(world);
 	}
 
 
@@ -3355,7 +3374,6 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 						//pCell->crossed_to_right_subdomain = false; //RESET IT BUT LATER REMOVE THIS LINE
 			/* Cell ID first - needed to create a cell */
 
-			list_cell_IDs.push_back(pCell->ID); 
 
 			len_snd_buf_right = position_right + sizeof(pCell->ID);
 			snd_buf_right.resize(len_snd_buf_right);
@@ -4192,33 +4210,26 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
 		MPI_Pack(&(pCell->velocity[0]), len_vector, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
 
-		pCell->print_cell(world);
+		//pCell->print_cell(world);
 	}
  }
  
  		
-		if(no_cells_cross_left > 0)
-		{
-			std::cout<<"+++PACKING+++"<<std::endl; 
- 			std::cout<<"Rank = " << world.rank << std::endl;
-			std::cout<<"Cells going to left = "								<< no_cells_cross_left 	<< std::endl;
-			std::cout<<"Buffer size for cells going to left: "	<< snd_buf_left.size() 	<< std::endl; 
-		}
-		
-		if(no_cells_cross_right > 0)
-		{
-			std::cout<<"+++PACKING+++"<<std::endl; 
- 			std::cout<<"Rank = " << world.rank << std::endl;
-			std::cout<<"Cells going to right = "							<< no_cells_cross_right << std::endl;
-			std::cout<<"Buffer size for cells going to right: "	<< snd_buf_right.size() << std::endl;
-		}
-		
-		sort(list_cell_IDs.begin(), list_cell_IDs.end()); 
-		
-		for(auto x : list_cell_IDs)
-			std::cout<< x << "-->";
-			
-		list_cell_IDs.clear();
+// 		if(no_cells_cross_left > 0)
+// 		{
+// 			std::cout<<"+++PACKING+++"<<std::endl; 
+//  			std::cout<<"Rank = " << world.rank << std::endl;
+// 			std::cout<<"Cells going to left = "								<< no_cells_cross_left 	<< std::endl;
+// 			std::cout<<"Buffer size for cells going to left: "	<< snd_buf_left.size() 	<< std::endl; 
+// 		}
+// 		
+// 		if(no_cells_cross_right > 0)
+// 		{
+// 			std::cout<<"+++PACKING+++"<<std::endl; 
+//  			std::cout<<"Rank = " << world.rank << std::endl;
+// 			std::cout<<"Cells going to right = "							<< no_cells_cross_right << std::endl;
+// 			std::cout<<"Buffer size for cells going to right: "	<< snd_buf_right.size() << std::endl;
+// 		}
 		
 }
 
@@ -4260,23 +4271,22 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 		int len_vector	 		= 0;
 		int len_vector_nest = 0;
 		
-		std::vector<int> list_cell_IDs; 	//Will contain IDs of Cells received. 
 		
-		if(no_of_cells_from_right > 0)
-		{
-			std::cout<<"---UNPACKING---"<<std::endl;
-			std::cout<<"Rank = " << world.rank << std::endl;
-			std::cout<<"Cells from right = "<< no_of_cells_from_right << std::endl;
-			std::cout<<"Buffer size for cells from right: "<< rcv_buf_right.size() <<std::endl; 
-		}
-		
-		if(no_of_cells_from_left > 0)
-		{
-			std::cout<<"---UNPACKING---"<<std::endl;
-			std::cout<<"Rank = " << world.rank << std::endl;
-			std::cout<<"Cells from left = "<< no_of_cells_from_left << std::endl;
-			std::cout<<"Buffer size for cells from left: "<< rcv_buf_left.size() <<std::endl; 
-		}
+// 		if(no_of_cells_from_right > 0)
+// 		{
+// 			std::cout<<"---UNPACKING---"<<std::endl;
+// 			std::cout<<"Rank = " << world.rank << std::endl;
+// 			std::cout<<"Cells from right = "<< no_of_cells_from_right << std::endl;
+// 			std::cout<<"Buffer size for cells from right: "<< rcv_buf_right.size() <<std::endl; 
+// 		}
+// 		
+// 		if(no_of_cells_from_left > 0)
+// 		{
+// 			std::cout<<"---UNPACKING---"<<std::endl;
+// 			std::cout<<"Rank = " << world.rank << std::endl;
+// 			std::cout<<"Cells from left = "<< no_of_cells_from_left << std::endl;
+// 			std::cout<<"Buffer size for cells from left: "<< rcv_buf_left.size() <<std::endl; 
+// 		}
 
 		/* Unpack all cells coming from right */
 
@@ -4297,7 +4307,6 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 				//std::cout<<"CELLS from RIGHT position_right ="<<position_right<<std::endl;
 				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &cell_ID, 1, MPI_INT, MPI_COMM_WORLD);
 				//std::cout<<"Rank="<<world.rank<<" Cell ID="<<cell_ID<<" received"<<std::endl;
-				list_cell_IDs.push_back(cell_ID); 
 
 
 				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, cell_position, 3, MPI_DOUBLE, MPI_COMM_WORLD);
@@ -4998,7 +5007,7 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &(pCell->velocity[0]), len_vector, MPI_DOUBLE, MPI_COMM_WORLD);
 		 
 		 	/* The following print should be INSIDE the for loop, earlier it was OUTSIDE the for loop */
-		 	pCell->print_cell(world);
+		 	//pCell->print_cell(world);
 		 }	 
 		}
 
@@ -5019,7 +5028,6 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 				//std::cout<<"CELLS from LEFT position_left ="<<position_left<<std::endl;
 				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &cell_ID, 1, MPI_INT, MPI_COMM_WORLD);
 				//std::cout<<"Rank= "<<world.rank<<" Cell ID="<<cell_ID<<" received"<<std::endl;
-				list_cell_IDs.push_back(cell_ID);
 
 				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, cell_position, 3, MPI_DOUBLE, MPI_COMM_WORLD);
 				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &len_str, 1, MPI_INT, MPI_COMM_WORLD);
@@ -5718,20 +5726,13 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &(pCell->velocity[0]), len_vector, MPI_DOUBLE, MPI_COMM_WORLD);
 			
 			/* The following print should be INSIDE the for loop, earlier it was OUTSIDE the loop */
-			pCell->print_cell(world);
+			//pCell->print_cell(world);
 		 } 
 		}
 
 		//rcv_buf_left.resize(0);
 		//rcv_buf_right.resize(0);
 		
-		sort(list_cell_IDs.begin(), list_cell_IDs.end());
-		
-		for(auto x : list_cell_IDs)
-			std::cout<< x << "-->";
-			
-		list_cell_IDs.clear(); 
-		std::cout << std::endl; 
 }
 
 bool cell_definitions_by_name_constructed = false;
