@@ -2,11 +2,12 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=2
 #SBATCH --cpus-per-task=24
-#SBATCH --constraint=hyperthreading
-#SBATCH -t 08:00:00
+##SBATCH --constraint=highmem
+#SBATCH -t 48:00:00
 #SBATCH -o output-%j
 #SBATCH -e error-%j
 #SBATCH --exclusive
+##SBATCH --constraint=hyperthreading 
 
 #-----------------------------------------------------------------------------------
 # Except for OMP_SCHEDULE=STATIC/DYNAMIC, the rest are the same as that for BioFVM_X
@@ -19,6 +20,7 @@ export OMP_SCHEDULE=STATIC
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 export OMP_PROC_BIND=spread
 export OMP_PLACES=threads
+#export OMP_PLACES=cores
 
 #export OMP_PLACES="{0:1}:48:1"
 #export OMP_PLACES='cores(48)'
@@ -39,12 +41,29 @@ export OMP_PLACES=threads
 
  mpiexec --map-by ppr:1:socket:pe=24  --report-bindings ./spheroid_TNF_model_mpi
 
+ # Trying to give a single process the entire memory of the node, as a large TNF simulation
+ # with PhysiBoss inside it runs out of memory really fast ~ 2.5 million cells
+ 
+# ddt --connect mpiexec --map-by ppr:1:node:pe=48  --report-bindings ./spheroid_TNF_model_mpi
+
 #-------------------------------------
 # Uncomment if using DDT for debugging (1) if mpiexec doesn't connect then use (2) srun
 #-------------------------------------
 
 # ddt --connect mpiexec ./spheroid_TNF_model_mpi
 # ddt --connect srun ./spheroid_TNF_model_mpi
+
+#---------------------------------------
+# Checking with Valgrind
+#---------------------------------------
+# mpiexec valgrind --leak-check=full \
+#          				 --show-leak-kinds=all \
+#          				 --track-origins=yes \
+#                  --verbose \
+#                  --log-file=valgrind-out.txt \
+#                  --exit-on-first-error=no \
+#                  ./spheroid_TNF_model_mpi
+         
 
 
 #---------------------------------------------

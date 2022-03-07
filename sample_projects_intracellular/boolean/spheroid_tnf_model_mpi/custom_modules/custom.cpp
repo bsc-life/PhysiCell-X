@@ -300,8 +300,8 @@ std::vector<std::string> my_coloring_function(Cell *pCell)
 	// dead cells
 	if (pCell->phenotype.death.dead == false)
 	{
-		static int nR_EB = pCell->custom_data.find_variable_index("bound external TNFR");
-		float activation_threshold = pCell->custom_data.find_variable_index("TNFR activation threshold");
+		static int nR_EB = pCell->custom_data.find_variable_index("bound_external_TNFR");
+		float activation_threshold = pCell->custom_data.find_variable_index("TNFR_activation_threshold");
 
 		int bounded_tnf = (int)round((pCell->custom_data[nR_EB] / activation_threshold) * 255.0);
 		if (bounded_tnf > 0)

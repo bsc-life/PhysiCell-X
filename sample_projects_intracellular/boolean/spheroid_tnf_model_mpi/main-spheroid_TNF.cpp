@@ -189,7 +189,7 @@ int main( int argc, char* argv[] )
  	
 	// set mechanics voxel size, and match the data structure to BioFVM
 	//GS changed it to 25 otherwise it was 30 because 500 - (-500) / 25 = 40 
-	double mechanics_voxel_size = 25; 
+	double mechanics_voxel_size = 20; 
 	
 /*---------------------------------------------------------*/
 /* Calling the parallel version of Cell Container creation */

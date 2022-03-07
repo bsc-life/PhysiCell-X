@@ -74,12 +74,12 @@
 
 <PhysiCell_settings version="devel-version">
 	<domain>
-		<x_min>-200</x_min>
-		<x_max>200</x_max>
-		<y_min>-200</y_min>
-		<y_max>200</y_max>
-		<z_min>-200</z_min>
-		<z_max>200</z_max>
+		<x_min>-300</x_min>
+		<x_max>300</x_max>
+		<y_min>-300</y_min>
+		<y_max>300</y_max>
+		<z_min>-300</z_min>
+		<z_max>300</z_max>
 		<dx>20</dx>
 		<dy>20</dy>
 		<dz>20</dz>
@@ -87,7 +87,7 @@
 	</domain>
 	
 	<overall>
-		<max_time units="min">800</max_time> <!-- 1400 -->
+		<max_time units="min">1600</max_time>
 		<time_units>min</time_units>
 		<space_units>micron</space_units>
 
@@ -97,14 +97,14 @@
 	</overall>
 	
 	<parallel>
-		<omp_num_threads>1</omp_num_threads>
+		<omp_num_threads>48</omp_num_threads>
 	</parallel> 
 	
 	<save>
 		<folder>output</folder> <!-- use . for root --> 
 
 		<full_data>
-			<interval units="min">100</interval>
+			<interval units="min">30</interval>
 			<enable>true</enable>
 		</full_data>
 		
@@ -164,7 +164,7 @@
 				
 				<death>  
 					<model code="100" name="apoptosis"> 
-						<death_rate units="1/min">5.31667e-05</death_rate>
+						<death_rate units="1/min">5.31667e-05</death_rate> <!-- Original value 5.31667e-05 -->
 						<phase_durations units="min">
 							<duration index="0" fixed_duration="true">516</duration>
 						</phase_durations>
@@ -182,8 +182,8 @@
 						</parameters>
 					</model> 
 
-					<model code="101" name="necrosis">
-						<rate units="1/min">0.0</rate>
+					<model code="101" name="necrosis"> 
+						<rate units="1/min">0.0</rate> <!-- Original value 0.0 -->
 						<phase_durations units="min">
 							<duration index="0" fixed_duration="true">0</duration>
 							<duration index="1" fixed_duration="true">86400</duration>
@@ -254,7 +254,7 @@
 		<!-- example parameters from the template --> 
 
 		<!-- init file --> 
-		<init_cells_filename type="string" units="">./config/init_5k.txt</init_cells_filename>
+		<init_cells_filename type="string" units="">./config/init_1k.txt</init_cells_filename>
 
 		<!-- <bnd_file type="string" units="">./config/boolean_network/TNF_nodes.bnd</bnd_file>
 		<cfg_file type="string" units="">./config/boolean_network/TNF_conf.cfg</cfg_file>
@@ -262,11 +262,11 @@
 
 		<time_add_tnf type="int" units="min">50</time_add_tnf> <!-- 150 -->
 		<duration_add_tnf type="int" units="min">10</duration_add_tnf> <!-- 10 -->
-		<concentration_tnf type="double" units="TNF/um^3"> 0.05 </concentration_tnf> <!-- 0.5 ng/mL -->
+		<concentration_tnf type="double" units="TNF/um^3"> 1.0 </concentration_tnf> <!-- 0.5 ng/mL -->
 		<time_remove_tnf type="int" units="min">100000</time_remove_tnf> <!-- 8000 -->
-		<membrane_length type="int" units=""> 170 </membrane_length> <!-- 470 -->
+		<membrane_length type="int" units=""> 250 </membrane_length>
 
-		<update_pc_parameters_O2_based type="bool" units="">false</update_pc_parameters_O2_based>
+		<update_pc_parameters_O2_based type="bool" units="">true</update_pc_parameters_O2_based>
 </user_parameters>
 	
 	

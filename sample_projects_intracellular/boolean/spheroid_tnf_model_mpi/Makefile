@@ -52,8 +52,17 @@ ARCH := native # best auto-tuning
 # ARCH := skylake-avx512
 # ARCH := nocona #64-bit pentium 4 or later 
 
+# Without debug symbol
 # CFLAGS := -march=$(ARCH) -Ofast -s -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11
+
+# Normal compilation with debug symbols
 CFLAGS := -march=$(ARCH) -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g
+
+# -O1 or -O0 optimization level + debug symbols for Valgrind (DOESN'T WORK)
+# CFLAGS := -march=$(ARCH) -O1 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g
+
+# -O1 or -O0 optimization level + WITHOUT OpenMP + debug symbols for Valgrind + WITHOUT -march=native (WORKS)
+# CFLAGS := -O1 -fomit-frame-pointer -mfpmath=both -m64 -std=c++11 -g
 
 COMPILE_COMMAND := $(CC) $(CFLAGS) 
 

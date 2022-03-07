@@ -1498,6 +1498,21 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
 	/*--------------------------------------------*/
     
     int local_x_nodes = x_nodes/dims[1];
+    
+   /*----------------------------------------------------------------*/ 
+   /* Here I need to insert a perfect divisibility check and message */
+   /*----------------------------------------------------------------*/ 
+   
+   if(x_nodes % dims[1] != 0)
+   {
+   	if(world.rank == 0)
+   		{
+   			std::cout<<"Error: Total voxels in X-Direction are NOT perfectly divisible by the total MPI processes"<<std::endl;
+   			std::cout<<"Aborting the program"<<std::endl;
+   		}
+   	MPI_Abort(cart_topo.mpi_cart_comm, -1); 	
+   }
+    
     int local_y_nodes = y_nodes/dims[0];
     int local_z_nodes = z_nodes/dims[2];
 

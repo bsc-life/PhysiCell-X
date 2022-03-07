@@ -615,6 +615,11 @@ class Intracellular
 	virtual std::string get_state() = 0;  
 	
 	virtual Intracellular* clone() = 0;
+	
+	/* Due to the memory leak problem, Vincent suggests to add the next destructor so */
+	/* that destructor of Intracellular class is properly called.											*/
+	
+	virtual ~Intracellular(){};
     
 	
 
