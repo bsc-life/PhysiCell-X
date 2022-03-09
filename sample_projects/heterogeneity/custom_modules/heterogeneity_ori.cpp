@@ -67,6 +67,10 @@
 
 #include "./heterogeneity.h"
 #include "../modules/PhysiCell_settings.h"
+#include "../DistPhy/DistPhy_Utils.h"
+#include "../DistPhy/DistPhy_Collective.h"
+
+using namespace DistPhy::mpi;
 
 void create_cell_types( void )
 {
@@ -75,7 +79,9 @@ void create_cell_types( void )
 	// that future division and other events are still not identical 
 	// for all runs 
 	
-	SeedRandom( parameters.ints( "random_seed" ) ); 
+	//Gaurav Saxena commented this out in an attempt to remove randomness. 
+	
+	//SeedRandom( parameters.ints( "random_seed" ) ); 
 	
 	// housekeeping 
 	
@@ -166,7 +172,27 @@ void setup_microenvironment( void )
 	initialize_microenvironment(); 	
 
 	return; 
+}
+
+/*==============================================*/
+/* Parallel version of setup_microenvironment() */
+/*==============================================*/
+
+void setup_microenvironment(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	
+	if( default_microenvironment_options.simulate_2D == true )
+	{
+		if(IOProcessor(world))
+            std::cout << "Warning: overriding XML config option and setting to 2D!" << std::endl; 
+		default_microenvironment_options.simulate_2D = false; 
+	}
+			
+	initialize_microenvironment(world, cart_topo); 	
+
+	return; 
 }	
+
 
 void setup_tissue( void )
 {
@@ -276,6 +302,195 @@ void setup_tissue( void )
 	std::cout << "mean: " << mean << std::endl; 
 	std::cout << "standard deviation: " << standard_deviation << std::endl; 
 	std::cout << "[min max]: [" << min << " " << max << "]" << std::endl << std::endl; 
+	
+	return; 
+}
+
+/*-----------------------------------------------------*/
+/* Miguel's function for generating positions of cells */
+/*-----------------------------------------------------*/
+
+std::vector<std::vector<double>> create_cell_sphere_positions(double cell_radius, double sphere_radius)
+{
+	std::vector<std::vector<double>> cells;
+	int xc=0,yc=0,zc=0;
+	double x_spacing= cell_radius*sqrt(3);
+  double y_spacing= cell_radius*2;
+  double z_spacing= cell_radius*sqrt(3);
+	
+	//Attempt to generate very small number of cells
+	 //double x_spacing= 10;
+	 //double y_spacing= 10;
+	 //double z_spacing= 10;
+
+	std::vector<double> tempPoint(3,0.0);
+	// std::vector<double> cylinder_center(3,0.0);
+
+	for(double z=-sphere_radius;z<sphere_radius;z+=z_spacing, zc++)
+	{
+		for(double x=-sphere_radius;x<sphere_radius;x+=x_spacing, xc++)
+		{
+			for(double y=-sphere_radius;y<sphere_radius;y+=y_spacing, yc++)
+			{
+				tempPoint[0]=x + (zc%2) * 0.5 * cell_radius;
+				tempPoint[1]=y + (xc%2) * cell_radius;
+				tempPoint[2]=z;
+
+				if(sqrt(norm_squared(tempPoint))< sphere_radius)
+				{ cells.push_back(tempPoint); }
+			}
+
+		}
+	}
+	return cells;
+
+}
+
+
+/*------------------------------------------------------------------------*/
+/* Parallel version of setup_tissue(), replacing this function completely */
+/* by Miguel's version of setup_tissue and then parallelizing             */
+/*------------------------------------------------------------------------*/
+
+void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+    // place a cluster of tumor cells at the center 
+	double cell_radius = cell_defaults.phenotype.geometry.radius; 
+	double cell_spacing = 0.95 * 2.0 * cell_radius; 
+	
+	double tumor_radius = parameters.doubles( "tumor_radius" ); // 250.0; now changed to 150 in PhysiCell_settings.xml file
+	
+	// Parameter<double> temp; 
+	
+	int i = parameters.doubles.find_index( "tumor_radius" ); 
+	
+	Cell* pCell = NULL; 
+    
+    std::vector<std::vector<double>> positions;		//What is this variable for ?  
+    std::vector<std::vector<double>> generated_positions_at_root;
+    
+    /*----------------------------------------------------------------------------------------------------*/
+    /* Object of mpi_CellPositions must be declared for all processes because distribute_cell_positions() */
+    /* function will pass 2 objects of the kind mpi_CellPositions and mpi_MyCells                         */
+    /*----------------------------------------------------------------------------------------------------*/
+    
+    mpi_CellPositions cp;                //To store cell positions, cell IDs, no. of cell IDs at root only (for all processes)
+    mpi_MyCells       mc;                //To store cell positions, cell IDs, no. of cells at each process.
+	
+    if(world.rank == 0) //Only the MPI Rank 0 process will generate positions
+    {
+        generated_positions_at_root = create_cell_sphere_positions(cell_radius,tumor_radius);   //Generate the cell positions
+        
+        int strt_cell_ID = Basic_Agent::get_max_ID_in_parallel();                               //IDs for new cells (positions) will start from the current highest ID
+        
+        
+        cp.positions_to_rank_list(generated_positions_at_root, 
+                                  m.mesh.bounding_box[0], m.mesh.bounding_box[3], m.mesh.bounding_box[1], m.mesh.bounding_box[4], m.mesh.bounding_box[2], m.mesh.bounding_box[5], 
+                                  m.mesh.dx, m.mesh.dy, m.mesh.dz, 
+                                  world, cart_topo, strt_cell_ID);
+        
+        Basic_Agent::set_max_ID_in_parallel(strt_cell_ID + generated_positions_at_root.size()); //Highest ID now is the starting ID + no. of generated coordinates ! 
+    }
+    
+    distribute_cell_positions(cp, mc, world, cart_topo);                                        //Distribute cell positions to individual processes
+	
+    if(IOProcessor(world))
+        std::cout << "creating " << generated_positions_at_root.size() << " closely-packed tumor cells ... " << std::endl;
+
+	double x = 0.0; 
+	double x_outer = tumor_radius; 
+	double y = 0.0; 
+	
+	double p_mean = parameters.doubles( "oncoprotein_mean" ); 
+	double p_sd 	= parameters.doubles( "oncoprotein_sd" ); 
+	double p_min 	= parameters.doubles( "oncoprotein_min" ); 
+	double p_max 	= parameters.doubles( "oncoprotein_max" ); 
+	
+
+		for( int i=0; i < mc.my_no_of_cell_IDs; i++ )
+		{
+		  
+			pCell = create_cell(mc.my_cell_IDs[i]); // tumor cell --> This has to be replaced by create_cell(mc.my_cell_IDs[i])
+	  	  		
+			pCell->assign_position(mc.my_cell_coords[3*i],mc.my_cell_coords[3*i+1],mc.my_cell_coords[3*i+2],world, cart_topo); //pCell->assign_position( positions[i] );
+		
+			//std::cout<<"CELL ID="<<mc.my_cell_IDs[i]<<"Position="<<"("<<mc.my_cell_coords[3*i]<<","<<mc.my_cell_coords[3*i+1]<<","<<mc.my_cell_coords[3*i+2]<<")"<<std::endl; 
+		 	
+		 	pCell->custom_data[0] = NormalRandom( p_mean, p_sd );
+		
+			//Gaurav Saxena attempt to generate same random numbers
+			//pCell->custom_data[0] = i*1.0/(positions.size());
+			//std::cout<<pCell->custom_data[0]<<std::endl;
+			//pCell->custom_data[0] must be kept in range [p_min, p_max]
+		
+			if( pCell->custom_data[0] < p_min )
+			{ 
+				pCell->custom_data[0] = p_min; 
+			}
+			if( pCell->custom_data[0] > p_max )
+			{ 
+				pCell->custom_data[0] = p_max; 
+			}
+		} 
+ 
+	
+	
+	double local_sum = 0.0, global_sum = 0.0; 
+	double local_min = 9e9, global_min = 0.0; 
+	double local_max = -9e9, global_max = 0.0; 
+	int local_cells, global_cells; 
+
+/*---------------------------------------------------*/
+/* The global_min/max are only for display purposes	 */
+/* We can just calculate local_min then do MPI_Reduce*/
+/* at the root process to display it. Since the mean */
+/* is needed by all processes to calculate squared 	 */
+/* sum of differences, I should do MPI_Allreduce()	 */
+/* Right now everything is globally distributed			 */
+/* later we can decide to use MPI_Reduce selectively */
+/*---------------------------------------------------*/	
+	
+	for( int i=0; i < all_cells->size() ; i++ )
+	{
+		double r = (*all_cells)[i]->custom_data[0]; 
+		local_sum += r;
+		if( r < local_min )
+		{ 
+			local_min = r; 
+		} 
+		if( r > local_max )
+		{ 
+			local_max = r; 
+		}
+	}
+	
+	local_cells 	= mc.my_no_of_cell_IDs; 											//or all_cells->size()
+	
+	global_sum 		= distribute_global_sum(local_sum, cart_topo);
+	global_cells 	= distribute_global_sum(local_cells, cart_topo); 
+	global_max		= distribute_global_max(local_max, cart_topo); 
+	global_min	  = distribute_global_min(local_min, cart_topo); 
+	 
+	double mean = global_sum / ( global_cells + 1e-15 ); 
+	
+	// compute standard deviation 
+	local_sum = 0.0;
+	 
+	for( int i=0; i < all_cells->size(); i++ )
+	{
+		local_sum +=  ( (*all_cells)[i]->custom_data[0] - mean )*( (*all_cells)[i]->custom_data[0] - mean ); 
+	}
+	global_sum = distribute_global_sum(local_sum, cart_topo);
+		
+	double standard_deviation = sqrt( global_sum / ( global_cells - 1.0 + 1e-15 ) ); 
+	
+	if(IOProcessor(world))
+	{
+		std::cout << std::endl << "Oncoprotein summary: " << std::endl<< "===================" << std::endl; 
+		std::cout << "mean: " << mean << std::endl; 
+		std::cout << "standard deviation: " << standard_deviation << std::endl; 
+		std::cout << "[min max]: [" << global_min << " " << global_max << "]" << std::endl << std::endl;
+	} 
 	
 	return; 
 }

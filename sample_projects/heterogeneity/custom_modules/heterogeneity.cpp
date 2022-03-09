@@ -109,11 +109,12 @@ void create_cell_types( void )
 	
 	cell_defaults.parameters.o2_proliferation_saturation = 38.0;  
 	cell_defaults.parameters.o2_reference = 38.0; 
-	
+
+	initialize_cell_definitions_from_pugixml(); 
 	// set default uptake and secretion 
 	
 	static int oxygen_ID = microenvironment.find_density_index( "oxygen" ); // 0
-	
+
 	// oxygen 
 	cell_defaults.phenotype.secretion.secretion_rates[oxygen_ID] = 0; 
 	cell_defaults.phenotype.secretion.uptake_rates[oxygen_ID] = 10; 
@@ -126,10 +127,13 @@ void create_cell_types( void )
 	cell_defaults.name = "cancer cell"; 
 	cell_defaults.type = 0; 
 	
-	// add custom data 
+// add custom data 
 	
 	cell_defaults.custom_data.add_variable( "oncoprotein" , "dimensionless", 1.0 ); 
 	
+	// build_cell_definitions_maps(); 
+	display_cell_definitions( std::cout ); 
+
 	return; 
 }
 
@@ -145,7 +149,7 @@ void setup_microenvironment( void )
 	// make sure ot override and go back to 2D 
 	if( default_microenvironment_options.simulate_2D == true )
 	{
-		std::cout << "Warning: overriding XML config option and setting to 2D!" << std::endl; 
+		std::cout << "Warning: overriding XML config option and setting to 3D!" << std::endl; 
 		default_microenvironment_options.simulate_2D = false; 
 	}
 	
@@ -184,7 +188,7 @@ void setup_microenvironment(mpi_Environment &world, mpi_Cartesian &cart_topo)
 	if( default_microenvironment_options.simulate_2D == true )
 	{
 		if(IOProcessor(world))
-            std::cout << "Warning: overriding XML config option and setting to 2D!" << std::endl; 
+            std::cout << "Warning: overriding XML config option and setting to 3D!" << std::endl; 
 		default_microenvironment_options.simulate_2D = false; 
 	}
 			
