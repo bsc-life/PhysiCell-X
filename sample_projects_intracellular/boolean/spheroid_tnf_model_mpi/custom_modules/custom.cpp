@@ -65,6 +65,18 @@
 ###############################################################################
 */
 
+/*================================================================================
++ If you use PhysiCell-X in your project, we would really appreciate if you can  +
++																																							   +
++ [1] Cite the PhysiCell-X repository by giving its URL												   +
++																																							   +
++ [2] Cite BioFVM-X: 																													   +
++		Saxena, Gaurav, Miguel Ponce-de-Leon, Arnau Montagud, David Vicente Dorca,   +
++		and Alfonso Valencia. "BioFVM-X: An MPI+ OpenMP 3-D Simulator for Biological + 
++		Systems." In International Conference on Computational Methods in Systems    +
++		Biology, pp. 266-279. Springer, Cham, 2021. 																 +
+=================================================================================*/
+
 #include "./custom.h"
 #include "../DistPhy/DistPhy_Utils.h"
 #include "../DistPhy/DistPhy_Collective.h"
@@ -82,7 +94,7 @@ void create_cell_types(void)
 	SeedRandom(parameters.ints("random_seed")); // or specify a seed here
 
 	// housekeeping
-	std::cout << cell_defaults.name << std::endl;
+	// std::cout << cell_defaults.name << std::endl; <---- will print using all processes
 
 	cell_defaults.functions.volume_update_function = standard_volume_update_function;
 	cell_defaults.functions.update_velocity = standard_update_cell_velocity;
@@ -100,7 +112,7 @@ void create_cell_types(void)
 	// No custom rule needed
 	cell_defaults.functions.custom_cell_rule = NULL;
 
-	/*
+	/*--------------------------------------------------------------------------------------
 		update_pc_parameters_O2_based flag controls how is the update_phenotypes
 	 	if update_pc_parameters_O2_based is set to true	the model will call
 		tumor_cell_phenotype_with_signaling which just call two functions 
@@ -108,31 +120,30 @@ void create_cell_types(void)
 		2) tnf_bm_interface_main; the former updates growth and death rates 
 		based on oxygen while the second is the	function that update the boolean model. 
 		If the flag is false then only the tnf_bm_interface_main is invoked
-	*/
+	 ---------------------------------------------------------------------------------------*/
 	if (parameters.bools("update_pc_parameters_O2_based"))
 	{
-		cell_defaults.functions.update_phenotype = tumor_cell_phenotype_with_signaling; //No parallelization needed
+		cell_defaults.functions.update_phenotype = tumor_cell_phenotype_with_signaling; 
 	}
 	else
 	{
-		cell_defaults.functions.update_phenotype = tnf_bm_interface_main;	//No parallelization needed
+		cell_defaults.functions.update_phenotype = tnf_bm_interface_main;	
 	}
 
 	cell_defaults.functions.add_cell_basement_membrane_interactions = NULL;
 	cell_defaults.functions.calculate_distance_to_membrane = NULL;
 	cell_defaults.functions.set_orientation = NULL;
 
-	/*
-	   This parses the cell definitions in the XML config file. 
-	*/
+	/* This parses the cell definitions in the XML config file. */
+	
 	initialize_cell_definitions_from_pugixml();			//Only serial version exists and is sufficient.
 
 	// initialize tnf
-	// the following should be changed
-	//commented today
-	tnf_receptor_model_setup();											//I think no need to parallelize
-	tnf_boolean_model_interface_setup();						//I think no need to parallelize
-	submodel_registry.display(std::cout);
+
+	tnf_receptor_model_setup();											
+	tnf_boolean_model_interface_setup();						
+	
+	//submodel_registry.display(std::cout); <------ will print using all processes
 
 	// Needs to initialize one of the receptor state to the total receptor value
 	cell_defaults.custom_data["unbound_external_TNFR"] = cell_defaults.custom_data["TNFR_receptors_per_cell"];
@@ -140,7 +151,15 @@ void create_cell_types(void)
 	cell_defaults.custom_data["bound_internal_TNFR"] = 0;
 
 	build_cell_definitions_maps();
-	display_cell_definitions(std::cout);
+	
+	//display_cell_definitions(std::cout); <------ will print using all processes
+	
+	/*------------------------------------------------------------------------------------*/
+	/* Multiple print statements have been disabled above as the printing will be done by */
+	/* ALL processes. If you want to print (for checking, testing etc.) then create a new */
+	/* version of void create_cell_types(mpi_Environment &world, mpi_Cartesian &cart_topo)*/
+	/* and then use the IOProcessor(world) function to print using ONLY the root process  */
+	/*------------------------------------------------------------------------------------*/
 
 	return;
 }
@@ -290,8 +309,8 @@ void tumor_cell_phenotype_with_signaling(Cell *pCell, Phenotype &phenotype, doub
 	tnf_bm_interface_main(pCell, phenotype, dt);
 
 }
-//different in physiboss_cell_lines
-// cell coloring function for ploting the svg files
+
+
 std::vector<std::string> my_coloring_function(Cell *pCell)
 {
 	// start with live coloring
@@ -318,8 +337,8 @@ std::vector<std::string> my_coloring_function(Cell *pCell)
 	return output;
 }
 
-// Funtion to read init files created with PhysiBoSSv2
-//unneaded
+// Function to read init files created with PhysiBoSSv2
+
 std::vector<init_record> read_init_file(std::string filename, char delimiter, bool header)
 {
 	// File pointer
@@ -372,16 +391,20 @@ std::vector<init_record> read_init_file(std::string filename, char delimiter, bo
 	return result;
 }
 
-// aded from example 
+
 void set_input_nodes(Cell* pCell) {}
 
 void from_nodes_to_cell(Cell* pCell, Phenotype& phenotype, double dt) {}
-void color_node(Cell* pCell){
+
+void color_node(Cell* pCell)
+{
 	std::string node_name = parameters.strings("node_to_visualize");
 	pCell->custom_data[node_name] = pCell->phenotype.intracellular->get_boolean_variable_value(node_name);
 }
+
 void inject_density_sphere(int density_index, double concentration, double membrane_lenght)
 {
+
 // Inject given concentration on the extremities only
 #pragma omp parallel for
 	for (int n = 0; n < microenvironment.number_of_voxels(); n++)
@@ -401,39 +424,6 @@ void remove_density(int density_index)
 	std::cout << "Removal done" << std::endl;
 }
 
-// std::string cells_message_builder(std::vector<Cell*> all_cells, double timepoint){
-// 	// implement count different situation of cells
-// 	int alive_no,apoptotic_no,necrotic_no=0;
-// 	// int p_id = all_cells[i]->ID
-// 	static int TUMOR_TYPE=0;
-// 	std::string message;
-// 	for(int i=0;i<all_cells.size();i++)
-// 		{
-// 			if( all_cells[i]->phenotype.cycle.pCycle_Model )
-// 			{
-// 				int code= all_cells[i]->phenotype.cycle.current_phase().code;
-// 				if (code ==PhysiCell_constants::Ki67_positive_premitotic || code==PhysiCell_constants::Ki67_positive_postmitotic || code==PhysiCell_constants::Ki67_positive || code==PhysiCell_constants::Ki67_negative || code==PhysiCell_constants::live)
-// 					// _nameCore="LIVE";
-// 					alive_no +=1;
-// 				else if (code==PhysiCell_constants::apoptotic)
-// 					// _nameCore="APOP";
-// 					apoptotic_no +=1;
-// 				else if (code==PhysiCell_constants::necrotic_swelling || code==PhysiCell_constants::necrotic_lysed || code==PhysiCell_constants::necrotic)
-// 					// _nameCore="NEC";
-// 					necrotic_no += 1;
-// 				// else if (code==PhysiCell_constants::debris)
-// 				// 	_nameCore="DEBR";
-// 				// else
-// 				// 	_nameCore="MISC";
-// 			}
-// 			else if(all_cells[i]->type==TUMOR_TYPE)
-// 				// _nameCore="LIVE";
-// 				alive_no+=1;
-// 		}
-// 	// message = std::to_string(p_id) + ';' + std::to_string(timepoint) + ';' + std::to_string(alive_no) + ';' + std::to_string(apoptotic_no) + ';' + std::to_string(necrotic_no) + ';';
-// 	message = std::to_string(timepoint) + ';' + std::to_string(alive_no) + ';' + std::to_string(apoptotic_no) + ';' + std::to_string(necrotic_no) + ';';
-// 	return message;
-// }
 
 double total_live_cell_count()
 {

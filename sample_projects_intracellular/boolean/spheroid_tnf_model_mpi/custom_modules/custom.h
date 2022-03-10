@@ -65,12 +65,24 @@
 ###############################################################################
 */
 
+/*================================================================================
++ If you use PhysiCell-X in your project, we would really appreciate if you can  +
++																																							   +
++ [1] Cite the PhysiCell-X repository by giving its URL												   +
++																																							   +
++ [2] Cite BioFVM-X: 																													   +
++		Saxena, Gaurav, Miguel Ponce-de-Leon, Arnau Montagud, David Vicente Dorca,   +
++		and Alfonso Valencia. "BioFVM-X: An MPI+ OpenMP 3-D Simulator for Biological + 
++		Systems." In International Conference on Computational Methods in Systems    +
++		Biology, pp. 266-279. Springer, Cham, 2021. 																 +
+=================================================================================*/
+
 #include "../core/PhysiCell.h"
 #include "../modules/PhysiCell_standard_modules.h" 
 #include "./tnf_receptor_dynamics.h"
 #include "./tnf_boolean_model_interface.h"
 
-//change
+
 #include "../addons/PhysiBoSS/src/maboss_network.h"
 
 using namespace BioFVM; 
@@ -127,7 +139,7 @@ void inject_density_sphere(int density_index, double concentration, double membr
 // helper function to remove a density
 void remove_density( int density_index );
 
-//function to create a message
+// function to create a message
 // std::string cells_message_builder(std::vector<Cell*> all_cells, double timepoint);
 
 double total_live_cell_count();

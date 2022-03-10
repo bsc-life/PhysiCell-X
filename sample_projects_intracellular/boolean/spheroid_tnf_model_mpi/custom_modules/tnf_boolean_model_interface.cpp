@@ -85,16 +85,16 @@ void update_cell_from_boolean_model(Cell* pCell, Phenotype& phenotype, double dt
 
 	if ( nonACD ) 
     {
-		pCell->start_death(necrosis_model_index);				//In PhysiCell_cell.cpp - no parallelization needed I think
+		pCell->start_death(necrosis_model_index);				
 		return;
 	}
 
 	if ( survival && pCell->phenotype.cycle.current_phase_index() == PhysiCell_constants::Ki67_negative ) 
     { 
-        pCell->phenotype.cycle.advance_cycle(pCell, phenotype, dt); 		//In PhysiCell_phenotype.cpp - don't need parallelization I think
+        pCell->phenotype.cycle.advance_cycle(pCell, phenotype, dt); 		
     }
 
-    // // If NFkB node is active produce some TNF
+    // If NFkB node is active produce some TNF
 	if ( NFkB )	
     { 
         phenotype.secretion.net_export_rates[nTNF_external] = pCell->custom_data[nTNF_export_rate]; 
@@ -129,19 +129,19 @@ void tnf_bm_interface_main(Cell* pCell, Phenotype& phenotype, double dt)
 		return;
 	}
 
-    if ( pCell->phenotype.intracellular->need_update() )			//No parallelization needed I think
+    if ( pCell->phenotype.intracellular->need_update() )			
     {
         // First we update the Boolean Model inputs
-        update_boolean_model_inputs(pCell, phenotype, dt );		//No parallelization needed I think
+        update_boolean_model_inputs(pCell, phenotype, dt );		
     
         // Run maboss to update the boolean state of the cell
-        pCell->phenotype.intracellular->update();							//No parallelization needed I think
+        pCell->phenotype.intracellular->update();							
 
         // update the cell fate based on the boolean outputs
-        update_cell_from_boolean_model(pCell, phenotype, dt);	//No parallelization needed I think
+        update_cell_from_boolean_model(pCell, phenotype, dt);	
 
         // Get track of some boolean node values for debugging
-        update_monitor_variables(pCell);											//No parallelization needed I think										
+        update_monitor_variables(pCell);																					
     }
 
     return;
