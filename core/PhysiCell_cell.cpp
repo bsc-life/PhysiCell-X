@@ -6830,7 +6830,7 @@ void initialize_cell_definitions_from_pugixml( pugi::xml_node root )
 	
 	while( node )
 	{
-		std::cout << "Processing " << node.attribute( "name" ).value() << " ... " << std::endl; 
+		//std::cout << "Processing " << node.attribute( "name" ).value() << " ... " << std::endl; 
 		
 		initialize_cell_definition_from_pugixml( node );	
 		build_cell_definitions_maps(); 

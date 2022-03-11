@@ -75,7 +75,7 @@ namespace DistPhy
            int root = 0; 
            
            MPI_Scatter(&cp.no_of_IDs_all_procs[0], send_count, MPI_INT, &mc.my_no_of_cell_IDs, recv_count, MPI_INT, root, cart_topo.mpi_cart_comm);
-           std::cout<<"Rank="<<world.rank<<"No of cells="<<mc.my_no_of_cell_IDs<<std::endl; 
+           std::cout<<"MPI Rank = "<<world.rank<<" No of cells = "<<mc.my_no_of_cell_IDs<<std::endl; 
            
            /*--------------------------------------------------------------------------------------------------------------*/
            /* Now resize the vectors inside mpi_MyCells on each process according to the no. of IDs that they will receive */

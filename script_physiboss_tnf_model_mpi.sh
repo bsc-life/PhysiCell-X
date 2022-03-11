@@ -3,7 +3,7 @@
 #SBATCH --ntasks-per-node=2
 #SBATCH --cpus-per-task=24
 ##SBATCH --constraint=highmem
-#SBATCH -t 48:00:00
+#SBATCH -t 02:00:00
 #SBATCH -o output-%j
 #SBATCH -e error-%j
 #SBATCH --exclusive

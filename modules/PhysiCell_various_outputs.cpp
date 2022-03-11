@@ -169,6 +169,43 @@ void display_simulation_status( std::ostream& os )
 	return;
 }
 
+/*----------------------------------------*/
+/* Parallel version of the function above */
+/*----------------------------------------*/
+
+void display_simulation_status( std::ostream& os, mpi_Environment &world, mpi_Cartesian &cart_topo )
+{
+	if(IOProcessor(world))
+	{
+		os << "current simulated time: " << PhysiCell_globals.current_time << " " << 
+			PhysiCell_settings.time_units << " (max: " << 
+			PhysiCell_settings.max_time << " " << 
+			PhysiCell_settings.time_units << ")" << std::endl; 
+	}
+	
+	int local_cells  = all_cells->size(); 
+	int global_cells; 
+	MPI_Reduce(&local_cells, &global_cells, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm); 
+	
+	if(IOProcessor(world))
+	{	
+		os << "total agents: " << global_cells << std::endl; 
+	
+		os << "interval wall time: ";
+		BioFVM::TOC();
+		BioFVM::display_stopwatch_value( os , BioFVM::stopwatch_value() ); 
+		os << std::endl; 
+		BioFVM::TIC(); 
+	
+		os << "total wall time: "; 
+		BioFVM::RUNTIME_TOC();
+		BioFVM::display_stopwatch_value( os , BioFVM::runtime_stopwatch_value() ); 
+		os << std::endl << std::endl;
+	} 
+	
+	return;
+}
+
 void log_output(double t, int output_index, Microenvironment microenvironment, std::ofstream& report_file)
 {
 	double scale=1000;

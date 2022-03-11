@@ -241,7 +241,8 @@ int main( int argc, char* argv[] )
 				if(IOProcessor(world))
 					std::cout << "Time to save" << std::endl;
 					
-				display_simulation_status( std::cout );
+				//Use the parallel version of the function	
+				display_simulation_status( std::cout, world, cart_topo );
 				 
 				if( PhysiCell_settings.enable_legacy_saves == true )
 				{				

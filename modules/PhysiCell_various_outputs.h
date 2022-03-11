@@ -78,6 +78,7 @@
 
 #include "../core/PhysiCell.h"
 #include "../BioFVM/BioFVM_MultiCellDS.h"
+#include "../DistPhy/DistPhy.h"
 
 namespace PhysiCell{
 
@@ -85,6 +86,13 @@ int writePov(std::vector<Cell*> all_cells, double timepoint, double scale);
 int writeCellReport(std::vector<Cell*> all_cells, double timepoint);
 
 void display_simulation_status( std::ostream& os ); 
+
+/*========================================*/
+/* Parallel version of the function above */
+/*========================================*/
+
+void display_simulation_status( std::ostream& os, mpi_Environment &world, mpi_Cartesian &cart_topo ); 
+
 void log_output(double t, int output_index, Microenvironment microenvironment, std::ofstream& report_file);
 	
 };

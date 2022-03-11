@@ -131,6 +131,14 @@ class PhysiCell_Settings
 	PhysiCell_Settings();
 	
 	void read_from_pugixml( void ); 
+
+/*=========================================*/	
+/* Parallel prototype of the function above*/
+/*=========================================*/	
+
+	void read_from_pugixml( mpi_Environment &world );
+
+	
 };
 
 class PhysiCell_Globals
@@ -213,6 +221,12 @@ class User_Parameters
 	Parameters<std::string> strings; 
 	
 	void read_from_pugixml( pugi::xml_node parent_node );
+	
+/*=========================================*/	
+/* Parallel prototype of the function above*/
+/*=========================================*/
+
+	void read_from_pugixml( pugi::xml_node parent_node, mpi_Environment &world );
 }; 
 
 extern PhysiCell_Globals PhysiCell_globals; 
@@ -222,6 +236,13 @@ extern PhysiCell_Settings PhysiCell_settings;
 extern User_Parameters parameters; 
 
 bool setup_microenvironment_from_XML( pugi::xml_node root_node );
+
+/*=========================================*/	
+/* Parallel prototype of the function above*/
+/*=========================================*/
+
+bool setup_microenvironment_from_XML( pugi::xml_node root_node, mpi_Environment &world );
+
 bool setup_microenvironment_from_XML( void );
 
 }
