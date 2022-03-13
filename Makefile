@@ -62,8 +62,8 @@ all:
 
 # sample projects 	
 list-projects:
-	@echo "Sample projects: template2D template3D biorobots-sample cancer-biorobots-sample heterogeneity-sample"
-	@echo "                 cancer-immune-sample virus-macrophage-sample template pred-prey-farmer"
+	@echo "Sample projects: template2D template3D biorobots-sample cancer-biorobots-sample heterogeneity-sample-mpi"
+	@echo "                 cancer-immune-sample virus-macrophage-sample pred-prey-mpi pred-prey-farmer"
 	@echo ""
 	@echo "Sample intracellular projects: ode-energy-sample physiboss-cell-lines-sample cancer-metabolism-sample"
 	@echo "physiboss-cell-lines-mpi physiboss-tnf-model physiboss-tnf-model-mpi"
@@ -88,14 +88,14 @@ template3D:
 	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
 	cp ./sample_projects/template3D/config/* ./config/
 	
-template:
-	cp ./sample_projects/template/custom_modules/* ./custom_modules/
+pred-prey-mpi:
+	cp ./sample_projects/pred_prey_mpi/custom_modules/* ./custom_modules/
 	touch main.cpp && cp main.cpp main-backup.cpp
-	cp ./sample_projects/template/main.cpp ./main.cpp 
+	cp ./sample_projects/pred_prey_mpi/main.cpp ./main.cpp 
 	cp Makefile Makefile-backup
-	cp ./sample_projects/template/Makefile .
+	cp ./sample_projects/pred_prey_mpi/Makefile .
 	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
-	cp ./sample_projects/template/config/* ./config/
+	cp ./sample_projects/pred_prey_mpi/config/* ./config/
 	
 # sample projects 
 
@@ -117,14 +117,14 @@ cancer-biorobots-sample:
 	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
 	cp ./sample_projects/cancer_biorobots/config/* ./config/
 	
-heterogeneity-sample:
-	cp ./sample_projects/heterogeneity/custom_modules/* ./custom_modules/
+heterogeneity-sample-mpi:
+	cp ./sample_projects/heterogeneity_mpi/custom_modules/* ./custom_modules/
 	touch main.cpp && cp main.cpp main-backup.cpp
-	cp ./sample_projects/heterogeneity/main-heterogeneity.cpp ./main.cpp 
+	cp ./sample_projects/heterogeneity_mpi/main-heterogeneity.cpp ./main.cpp 
 	cp Makefile Makefile-backup
-	cp ./sample_projects/heterogeneity/Makefile .
+	cp ./sample_projects/heterogeneity_mpi/Makefile .
 	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
-	cp ./sample_projects/heterogeneity/config/* ./config/
+	cp ./sample_projects/heterogeneity_mpi/config/* ./config/
 	
 cancer-immune-sample:
 	cp ./sample_projects/cancer_immune/custom_modules/* ./custom_modules/
