@@ -71,7 +71,6 @@
 #include "PhysiCell_constants.h"
 #include "../BioFVM/BioFVM_vector.h"
 
-#include "../custom_modules/custom.h" //<---- Delete Later
 
 #ifdef ADDON_PHYSIBOSS
 #include "../addons/PhysiBoSS/src/maboss_intracellular.h"
