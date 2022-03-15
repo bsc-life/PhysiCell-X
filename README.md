@@ -7,9 +7,10 @@
 **Reference:**
 
 	(a) The PhysiCell-X repository
+	
 	(b) Saxena, Gaurav, Miguel Ponce-de-Leon, Arnau Montagud, David Vicente Dorca, and Alfonso Valencia. 
-			"BioFVM-X: An MPI+ OpenMP 3-D Simulator for Biological Systems." 
-			In International Conference on Computational Methods in Systems Biology, pp. 266-279. Springer, Cham, 2021.
+	"BioFVM-X: An MPI+ OpenMP 3-D Simulator for Biological Systems."
+	In International Conference on Computational Methods in Systems Biology, pp. 266-279. Springer, Cham, 2021.
 
 **User Guide:** PhysiCell-X_UserGuide.pdf in the documentation folder (use in conjunction with the PhysiCell documentation). 
 
@@ -35,6 +36,7 @@ PhysiCell-X is v0.1 and it is actively being developed. PhysiCell-X as of now su
 Pre-requisites
 ==============
 There are two pre-requisites to running/modelling projects with PhysiCell-X:
+
 	(a) A C++ compiler for e.g. GNU compiler (preferred), Intel compiler etc. that supports OpenMP
 	(b) An MPI implementation such as OpenMPI (preferred), Intel MPI, MPICH.  
 
