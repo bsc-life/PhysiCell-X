@@ -65,27 +65,39 @@
 ###############################################################################
 */
 
+/*================================================================================
++ If you use PhysiCell-X in your project, we would really appreciate if you can  +
++																																							   +
++ [1] Cite the PhysiCell-X repository by giving its URL												   +
++																																							   +
++ [2] Cite BioFVM-X: 																													   +
++		Saxena, Gaurav, Miguel Ponce-de-Leon, Arnau Montagud, David Vicente Dorca,   +
++		and Alfonso Valencia. "BioFVM-X: An MPI+ OpenMP 3-D Simulator for Biological + 
++		Systems." In International Conference on Computational Methods in Systems    +
++		Biology, pp. 266-279. Springer, Cham, 2021. 																 +
+=================================================================================*/
+
 #include "./custom.h"
 #include "../DistPhy/DistPhy_Utils.h"
 #include "../DistPhy/DistPhy_Collective.h"
 
 using namespace DistPhy::mpi;
 
-// declare cell definitions here 
+// Declare cell definitions here 
 
 Cell_Definition motile_cell; 
 
 void create_cell_types( void )
 {
-	// set the random seed 
+	// Set the random seed 
+	
 	SeedRandom( parameters.ints("random_seed") );  
 	
-	/* 
-	   Put any modifications to default cell definition here if you 
-	   want to have "inherited" by other cell types. 
-	   
-	   This is a good place to set default functions. 
-	*/ 
+	/*----------------------------------------------------------------*/ 
+	/*   Put any modifications to default cell definition here if you */
+	/*   want to have "inherited" by other cell types. 								*/
+	/*   This is a good place to set default functions. 							*/
+	/*----------------------------------------------------------------*/ 
 	
 	cell_defaults.functions.volume_update_function = standard_volume_update_function;
 	cell_defaults.functions.update_velocity = standard_update_cell_velocity;
@@ -99,51 +111,55 @@ void create_cell_types( void )
 	cell_defaults.functions.update_velocity_parallel = standard_update_cell_velocity;
 
 	cell_defaults.functions.update_migration_bias = NULL; 
-	cell_defaults.functions.update_phenotype = NULL; // update_cell_and_death_parameters_O2_based; 
+	cell_defaults.functions.update_phenotype = NULL; 			// update_cell_and_death_parameters_O2_based; 
 	cell_defaults.functions.custom_cell_rule = NULL; 
-	
 	cell_defaults.functions.add_cell_basement_membrane_interactions = NULL; 
 	cell_defaults.functions.calculate_distance_to_membrane = NULL; 
 	
-	/*
-	   This parses the cell definitions in the XML config file. 
-	*/
+	// The following parses the cell definitions in the XML config file
 	
 	initialize_cell_definitions_from_pugixml(); 
 	
-	/* 
-	   Put any modifications to individual cell definitions here. 
-	   
-	   This is a good place to set custom functions. 
-	*/ 
+	/*-----------------------------------------------------------*/ 
+	/* Put any modifications to individual cell definitions here.*/ 
+	/*  This is a good place to set custom functions. 					 */
+	/*-----------------------------------------------------------*/ 
 	
 	if( parameters.bools("predators_eat_prey") == true )
-	{ get_cell_definition("predator").functions.custom_cell_rule = predator_hunting_function; }
+	{ 
+		get_cell_definition("predator").functions.custom_cell_rule = predator_hunting_function; 
+	}
 
 	if( parameters.bools("predators_cycle_if_big") == true )
-	{ get_cell_definition("predator").functions.update_phenotype = predator_cycling_function; }
+	{ 
+		get_cell_definition("predator").functions.update_phenotype = predator_cycling_function; 
+	}
 
 	if( parameters.bools("prey_quorom_effect") == true )
-	{ get_cell_definition("prey").functions.update_phenotype = prey_cycling_function; }
+	{ 
+		get_cell_definition("prey").functions.update_phenotype = prey_cycling_function; 
+	}
 		
-	/*
-	   This builds the map of cell definitions and summarizes the setup. 
-	*/
+	// This builds the map of cell definitions and summarizes the setup. 
 		
 	build_cell_definitions_maps(); 
-	display_cell_definitions( std::cout ); 
+	
+	//display_cell_definitions( std::cout ); <---- Will be printed out by all processes 
+	
+	/*---------------------------------------------------------------------------------------*/
+	/* display_cell_definitions(...) has been disabled above as the printing will be done by */
+	/* ALL processes. If you want to print (for checking, testing etc.) then create a new 	 */
+	/* version of void create_cell_types(mpi_Environment &world, mpi_Cartesian &cart_topo)	 */
+	/* and then use the IOProcessor(world) function to print using ONLY the root process  	 */
+	/*---------------------------------------------------------------------------------------*/
 	
 	return; 
 }
 
 void setup_microenvironment( void )
 {
-	// set domain parameters 
-	
-	// put any custom code to set non-homogeneous initial conditions or 
-	// extra Dirichlet nodes here. 
-	
-	// initialize BioFVM 
+	// Set domain parameters, put any custom code to set non-homogeneous initial conditions or 
+	// extra Dirichlet nodes here, initialize BioFVM 
 	
 	initialize_microenvironment(); 	
 	
@@ -155,16 +171,8 @@ void setup_microenvironment( void )
 /*==============================================*/
 
 void setup_microenvironment( mpi_Environment &world, mpi_Cartesian &cart_topo )
-{
-	// set domain parameters 
-	
-	// put any custom code to set non-homogeneous initial conditions or 
-	// extra Dirichlet nodes here. 
-	
-	// initialize BioFVM 
-	
+{	
 	initialize_microenvironment(world, cart_topo); 	
-	
 	return; 
 }
 
@@ -188,11 +196,11 @@ void setup_tissue( void )
 	double Yrange = Ymax - Ymin; 
 	double Zrange = Zmax - Zmin; 
 	
-	// create some of each type of cell 
+	// Create some of each type of cells 
 	
 	Cell* pC;
 	
-	// place prey 
+	// Place the preys 
 	
 	for( int n = 0 ; n < parameters.ints("number_of_prey") ; n++ )
 	{
@@ -205,7 +213,7 @@ void setup_tissue( void )
 		pC->assign_position( position );
 	}
 	
-	// place predators 
+	// Place the predators 
 	
 	for( int n = 0 ; n < parameters.ints("number_of_predators") ; n++ )
 	{
@@ -245,23 +253,23 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 	double Yrange = Ymax - Ymin; 
 	double Zrange = Zmax - Zmin; 
 	
-	// create some of each type of cell 
+	// Create some of each type of cell 
 	
-	/* The following 3 temporary variables are common to both Prey and Predator sections */
+	// The following 3 temporary variables are common to both Prey and Predator sections 
 
 	Cell* pCell;
 	std::vector<std::vector<double>> generated_positions_at_root;
 	std::vector<double> position = {0,0,0};														//Temporary buffer
 	
-/*------------------*/
-/* Prey Section 		*/
-/*------------------*/	
+	/*------------------*/
+	/* Prey Section 		*/
+	/*------------------*/	
 
   mpi_CellPositions cp_prey;                		//To store cell positions, cell IDs, no. of cell IDs at root only (for all processes)
   mpi_MyCells       mc_prey;                		//To store cell positions, cell IDs, no. of cells at each process.
   
 
- /* First Generate Prey positions on rank 0 */
+ // First Generate Prey positions on rank 0 
  	
  if(world.rank == 0)
  {
@@ -293,7 +301,7 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
  
  distribute_cell_positions(cp_prey, mc_prey, world, cart_topo);                           //Distribute cell positions
  
- /* Create preys at individual processes */
+ // Create preys at individual processes 
  
  for( int i=0; i < mc_prey.my_no_of_cell_IDs; i++ )
 	{	
@@ -309,9 +317,9 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 
 	generated_positions_at_root.clear();
 
-/*------------------*/
-/* Predator Section */
-/*------------------*/	
+	/*------------------*/
+	/* Predator Section */
+	/*------------------*/	
 
   mpi_CellPositions cp_pred;                		//To store cell positions, cell IDs, no. of cell IDs at root only (for all processes)
   mpi_MyCells       mc_pred;                		//To store cell positions, cell IDs, no. of cells at each process. 
@@ -345,6 +353,16 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 		pCell->assign_position(mc_pred.my_cell_coords[3*i],mc_pred.my_cell_coords[3*i+1],mc_pred.my_cell_coords[3*i+2],world, cart_topo); //pCell->assign_position( positions[i] );
 	}
 	
+	/*---------------------------------------------------------------------------------*/	
+	/* Please note that the Predator cells and Prey cells will be displayed separately */
+	/* in the output. For example if the initial number of preys is 20 and the no. of  */
+	/* predators is 5, then you see an output like: 																	 */
+	//	 	MPI Rank = 1 No of cells = 13 <---- Preys on MPI Rank 1
+	//		MPI Rank = 0 No of cells = 7  <---- Preys on MPI Rank 0
+	//		MPI Rank = 0 No of cells = 2  <---- Predators on Rank 0
+	//		MPI Rank = 1 No of cells = 3  <---- Predators on Rank 1
+	/*---------------------------------------------------------------------------------*/
+	
 	return; 
 }
 
@@ -353,11 +371,11 @@ std::vector<std::string> my_coloring_function( Cell* pCell )
 	static int prey_type = get_cell_definition( "prey" ).type; 
 	static int predator_type = get_cell_definition( "predator" ).type; 
 	
-	// start with flow cytometry coloring 
+	// Start with flow cytometry coloring 
 	
 	std::vector<std::string> output = false_cell_coloring_cytometry(pCell); 
 	
-	// color live prey 
+	// Color live prey 
 		
 	if( pCell->phenotype.death.dead == false && pCell->type == prey_type )
 	{
@@ -365,7 +383,7 @@ std::vector<std::string> my_coloring_function( Cell* pCell )
 		 output[2] = parameters.strings("prey_color");  
 	}
 	
-	// color live predators 
+	// Color live predators 
 
 	if( pCell->phenotype.death.dead == false && pCell->type == predator_type )
 	{
@@ -387,11 +405,13 @@ void predator_hunting_function( Cell* pCell, Phenotype& phenotype, double dt )
 	for( int n=0; n < pCell->cells_in_my_container().size() ; n++ )
 	{
 		pTestCell = pCell->cells_in_my_container()[n]; 
-		// if it's not me, not dead, and not my type, eat it 
+		
+		// If it is not me, not dead, and not my type, eat it 
 		
 		if( pTestCell != pCell && pTestCell->type != pCell->type && pTestCell->phenotype.death.dead == false )
 		{
-			// only eat if I'm not full 
+			// Only eat if I am not full 
+			
 			if( phenotype.volume.total < sated_volume )
 			{
 				pCell->ingest_cell(pTestCell); 
@@ -410,9 +430,13 @@ void predator_cycling_function( Cell* pCell, Phenotype& phenotype, double dt )
 		parameters.doubles("relative_sated_volume" ); 
 	
 	if( phenotype.volume.total > sated_volume )
-	{ phenotype.cycle.data.transition_rate(0,1) = get_cell_definition("prey").phenotype.cycle.data.transition_rate(0,1) * 0.01; }
+	{ 
+		phenotype.cycle.data.transition_rate(0,1) = get_cell_definition("prey").phenotype.cycle.data.transition_rate(0,1) * 0.01; 
+	}
 	else
-	{ phenotype.cycle.data.transition_rate(0,1) = 0; }
+	{ 
+		phenotype.cycle.data.transition_rate(0,1) = 0; 
+	}
 	return; 
 }
 
@@ -423,7 +447,9 @@ void prey_cycling_function( Cell* pCell , Phenotype& phenotype, double dt )
 	double threshold = parameters.doubles("prey_quorom_threshold" ) + 1e-16 ; 
 	double factor = (threshold - pCell->nearest_density_vector()[signal_index] )/threshold; 
 	if( factor < 0 )
-	{ factor = 0.0; } 
+	{ 
+		factor = 0.0; 
+	} 
 	
 	phenotype.cycle.data.transition_rate(0,1) = get_cell_definition("prey").phenotype.cycle.data.transition_rate(0,1); 
 	phenotype.cycle.data.transition_rate(0,1) *= factor; 

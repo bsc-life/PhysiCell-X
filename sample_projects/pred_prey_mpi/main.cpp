@@ -65,6 +65,18 @@
 ###############################################################################
 */
 
+/*================================================================================
++ If you use PhysiCell-X in your project, we would really appreciate if you can  +
++																																							   +
++ [1] Cite the PhysiCell-X repository by giving its URL												   +
++																																							   +
++ [2] Cite BioFVM-X: 																													   +
++		Saxena, Gaurav, Miguel Ponce-de-Leon, Arnau Montagud, David Vicente Dorca,   +
++		and Alfonso Valencia. "BioFVM-X: An MPI+ OpenMP 3-D Simulator for Biological + 
++		Systems." In International Conference on Computational Methods in Systems    +
++		Biology, pp. 266-279. Springer, Cham, 2021. 																 +
+=================================================================================*/
+
 /*=======================================*/
 /* Include mpi.h in the parallel version */
 /*=======================================*/
@@ -81,8 +93,6 @@
 #include "./core/PhysiCell.h"
 #include "./modules/PhysiCell_standard_modules.h" 
 
-// put custom code modules here! 
-
 #include "./custom_modules/custom.h" 
 	
 using namespace BioFVM;
@@ -96,14 +106,13 @@ using namespace DistPhy::mpi;
 
 int main( int argc, char* argv[] )
 {
-	// load and parse settings file(s)
 	
 /*=======================================================================================*/
 /* Create mpi_Environment object, initialize it, then create Cartesian Topology          */
 /*=======================================================================================*/
 	
 		mpi_Environment world;                         //object contains size of communicator, rank of process
-    world.Initialize();                            //Initialize using MPI_THREAD_MULTIPLE, find comm. size and comm. rank
+    world.Initialize();                            //Initialize using MPI_THREAD_FUNNELED, find comm. size and comm. rank
     mpi_Cartesian cart_topo;                       //Contains dims[3], ccoords[3] array and MPI_Comm mpi_cart_comm
     cart_topo.Build_Cartesian_Topology(world);     //Create 1-D X decomposition by setting dims[1]=size. 
     cart_topo.Find_Cartesian_Coordinates(world);   //Find Cartesian Topology coordinates of each process
@@ -124,12 +133,14 @@ int main( int argc, char* argv[] )
 		XML_status = load_PhysiCell_config_file( "./config/PhysiCell_settings.xml", world ); 
 	}
 	if( !XML_status )
-	{ exit(-1); }
+	{ 
+		exit(-1); 
+	}
 	
-	// OpenMP setup
+	// OpenMP setup <--- remember this will override OMP_NUM_THREADS
 	omp_set_num_threads(PhysiCell_settings.omp_num_threads);
 	
-	// time setup 
+	// Time setup 
 	std::string time_units = "min"; 
 
 	/* Microenvironment setup */ 
@@ -143,7 +154,7 @@ int main( int argc, char* argv[] )
 	
 	/* PhysiCell setup */ 
  	
-	// set mechanics voxel size, and match the data structure to BioFVM
+	// set mechanics voxel size, mechanical voxel size >= diffusion voxel size
 	double mechanics_voxel_size = 30;
 	
 /*---------------------------------------------------------*/
@@ -156,74 +167,52 @@ int main( int argc, char* argv[] )
 	
 	create_cell_types();
 	
-	setup_tissue(microenvironment, world, cart_topo);		//Send all three like create_cell_container_for_microenvironment above
+	setup_tissue(microenvironment, world, cart_topo);		
 
 	/* Users typically stop modifying here. END USERMODS */ 
 	
-	// set MultiCellDS save options 
-
+	// Set MultiCellDS save options, these MUST all be "true" as of now
 	set_save_biofvm_mesh_as_matlab( true ); 
 	set_save_biofvm_data_as_matlab( true ); 
 	set_save_biofvm_cell_data( true ); 
 	set_save_biofvm_cell_data_as_custom_matlab( true );
 	
-	// save a simulation snapshot 
-	
+	// Save a simulation snapshot 
 	char filename[1024];
 	sprintf( filename , "%s/initial" , PhysiCell_settings.folder.c_str() ); 
 	
-	/* Use the parallel version of the function now */
+	// Use the parallel version of the function to write XML file 
 	save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo ); 
 	
-	// save a quick SVG cross section through z = 0, after setting its 
-	// length bar to 200 microns 
-
+	// Save a SVG cross section through z = 0, after setting its length bar to 200 microns 
 	PhysiCell_SVG_options.length_bar = 200; 
 
-	// for simplicity, set a pathology coloring function 
-	
+	// Set a pathology coloring function 
 	std::vector<std::string> (*cell_coloring_function)(Cell*) = my_coloring_function; 
 	
 	sprintf( filename , "%s/initial.svg" , PhysiCell_settings.folder.c_str() ); 
 	SVG_plot( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function, world, cart_topo );
-	
-	display_citations(); 
-	
-	// set the performance timers 
-
+		
+	// Set the performance timers 
 	BioFVM::RUNTIME_TIC();
 	BioFVM::TIC();
 	
-	std::ofstream report_file;
-	if( PhysiCell_settings.enable_legacy_saves == true )
-	{	
-		sprintf( filename , "%s/simulation_report.txt" , PhysiCell_settings.folder.c_str() ); 
-		
-		report_file.open(filename); 	// create the data log file 
-		report_file<<"simulated time\tnum cells\tnum division\tnum death\twall time"<<std::endl;
-	}
-	
-	// main loop 
-	
+	// Main loop of the program
 	try 
 	{		
 		while( PhysiCell_globals.current_time < PhysiCell_settings.max_time + 0.1*diffusion_dt )
 		{
-			// save data if it's time. 
+			// Save data if it is time  
 			if( fabs( PhysiCell_globals.current_time - PhysiCell_globals.next_full_save_time ) < 0.01 * diffusion_dt )
 			{
-				display_simulation_status( std::cout ); 
-				if( PhysiCell_settings.enable_legacy_saves == true )
-				{	
-					//GS commented it out
-					//log_output( PhysiCell_globals.current_time , PhysiCell_globals.full_output_index, microenvironment, report_file);
-				}
-				
+				// Use the parallel version of the function now 
+				display_simulation_status( std::cout, world, cart_topo );
+				 	
 				if( PhysiCell_settings.enable_full_saves == true )
 				{	
 					sprintf( filename , "%s/output%08u" , PhysiCell_settings.folder.c_str(),  PhysiCell_globals.full_output_index ); 
 					
-					/* Now use parallel version of the function */
+					// Now use parallel version of the function to write XML file 
 					save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo ); 
 				}
 				
@@ -231,7 +220,7 @@ int main( int argc, char* argv[] )
 				PhysiCell_globals.next_full_save_time += PhysiCell_settings.full_save_interval;
 			}
 			
-			// save SVG plot if it's time
+			// Save SVG plot if it is time
 			if( fabs( PhysiCell_globals.current_time - PhysiCell_globals.next_SVG_save_time  ) < 0.01 * diffusion_dt )
 			{
 				if( PhysiCell_settings.enable_SVG_saves == true )
@@ -244,45 +233,42 @@ int main( int argc, char* argv[] )
 				}
 			}
 
-			// update the microenvironment
+			// Update the microenvironment i.e. solve diffusion equations
 			microenvironment.simulate_diffusion_decay( diffusion_dt, world, cart_topo );
 			
-			// run PhysiCell 
+			// Run PhysiCell/PhysiCell-X to update all cells
 			((Cell_Container *)microenvironment.agent_container)->update_all_cells( PhysiCell_globals.current_time, world, cart_topo );
 			
 			/*
-			  Custom add-ons could potentially go here. 
+			  ............
+			  Custom add-ons could potentially go here.
+			  ............ 
 			*/
 			
 			PhysiCell_globals.current_time += diffusion_dt;
-		}
-		
-		if( PhysiCell_settings.enable_legacy_saves == true )
-		{			
-			//GS commented out
-			//log_output(PhysiCell_globals.current_time, PhysiCell_globals.full_output_index, microenvironment, report_file);
-			report_file.close();
-		}
+		}		
 	}
 	catch( const std::exception& e )
-	{ // reference to the base of a polymorphic object
-		std::cout << e.what(); // information from length_error printed
+	{ 
+		// Reference to the base of a polymorphic object, information from length_error printed
+		std::cout << e.what();  
 	}
 	
-	// save a final simulation snapshot 
-	
-	//GS commented
+	// Save a final simulation snapshot 
 	sprintf( filename , "%s/final" , PhysiCell_settings.folder.c_str() ); 
 	save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo ); 
 	
 	sprintf( filename , "%s/final.svg" , PhysiCell_settings.folder.c_str() ); 
 	SVG_plot( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function, world, cart_topo );
 	
-	// timer 
+	// Timer 
+	if(IOProcessor(world))
+	{
+		std::cout << std::endl << "Total simulation runtime: " << std::endl; 
+		BioFVM::display_stopwatch_value( std::cout , BioFVM::runtime_stopwatch_value() );
+	}
 	
-	std::cout << std::endl << "Total simulation runtime: " << std::endl; 
-	BioFVM::display_stopwatch_value( std::cout , BioFVM::runtime_stopwatch_value() );
-	
+	// Gracefully shut-down MPI
 	world.Finalize();  
 
 	return 0; 

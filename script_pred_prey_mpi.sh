@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=2
-#SBATCH --cpus-per-task=1
+#SBATCH --cpus-per-task=24
 #SBATCH -t 02:00:00
 #SBATCH -o output-%j
 #SBATCH -e error-%j
@@ -19,14 +19,12 @@ export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 export OMP_PROC_BIND=spread
 export OMP_PLACES=threads
 
-#export OMP_PLACES="{0:1}:48:1"
-#export OMP_PLACES='cores(48)'
 
 #--------------------------------------------
 # Simplest Execution, can be used for testing
 #--------------------------------------------
 
- mpiexec ./project
+# mpiexec ./project
 
 #-------------------------------------------------------------
 # Better to use --map-by ppr syntax when measuring performance
@@ -35,7 +33,7 @@ export OMP_PLACES=threads
 # (This is because we have 2 sockets with 24 cores each)
 #-------------------------------------------------------------
 
-# mpiexec --map-by ppr:1:socket:pe=1  --report-bindings ./project
+ mpiexec --map-by ppr:1:socket:pe=24  --report-bindings ./project
 
 #-------------------------------------
 # Uncomment if using DDT for debugging (1) if mpiexec doesn't connect then use (2) srun
