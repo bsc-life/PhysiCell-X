@@ -1,0 +1,752 @@
+\documentclass[12pt]{article}
+\newcommand{\Version}{0.1} 
+\newcommand{\PhysiCellBaseVersion}{1.9.0}
+\newcommand{\ReleaseDate}{\today} 
+
+\usepackage[letterpaper,margin=0.5in,bottom=0.75in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{dsfont}
+\usepackage{bbm}
+\usepackage{stmaryrd}
+\usepackage{graphicx}
+\usepackage{pbox}
+\usepackage{hyperref}
+ \usepackage{breakurl}
+\usepackage{changepage}
+\usepackage[dvipsnames,usenames]{color}
+\usepackage[most]{tcolorbox}
+
+\setcounter{tocdepth}{4}
+\setcounter{secnumdepth}{4}
+
+\usepackage{caption}
+\captionsetup{justification=raggedright,singlelinecheck=false}
+
+\usepackage{tikz}
+\usetikzlibrary{arrows,automata,arrows.meta}
+
+\usepackage{mdframed}
+
+\mdfdefinestyle{mystyle}{
+    backgroundcolor=lightgray!10, 
+    innertopmargin=5mm, 
+    innerbottommargin=5mm, 
+    innerleftmargin=5mm, 
+    innerrightmargin=5mm 
+}
+
+
+\usepackage{bold-extra}
+  
+\hypersetup{
+pdftitle={PhysiCell-X User Guide \Version}, 
+pdfauthor={Gaurav Saxena, Miguel Ponce-de-Leon, Arnau Montagud, David Vicente Dorca and Alfonso Valencia}, 
+pdfsubject={PhysiCell-X},
+pdfproducer={}, 
+pdfkeywords={PhysiCell-X,distributed-shared, MPI, OpenMP, agent-based model,simulation}, 
+colorlinks=true,
+linkcolor=blue, 
+citecolor=red, 
+filecolor=magenta,
+urlcolor=blue
+}
+
+ 
+\usepackage[square,comma,numbers,sort&compress]{natbib}
+\usepackage[nottoc]{tocbibind}
+
+\newcommand{\braces}[1]{\left\{#1\right\}}
+\newcommand{\abs}[1]{\left|#1\right|}
+\renewcommand{\vec}[1]{\mathbf{#1}}
+\newcommand{\mean}[1]{\langle #1 \rangle}
+\newcommand{\norm}[1]{\left|\left|{#1}\right|\right|}
+
+\newcommand{\beq}{\begin{equation}}
+\newcommand{\eeq}{\end{equation}}
+\newcommand{\beqa}{\begin{eqnarray}}
+\newcommand{\eeqa}{\end{eqnarray}}
+\newcommand{\beqaN}{\begin{eqnarray*}}
+\newcommand{\eeqaN}{\end{eqnarray*}}
+
+\newcommand{\micron}{\mu\textrm{m}}
+\newcommand{\specialcell}[2][c]{%
+  \begin{tabular}[#1]{@{}c@{}}#2\end{tabular}}
+
+\newcommand{\boldrho}{\rho\hspace{-5.1pt}\rho}
+% \newcommand{\grvec}[1]{#1\hspace{-6pt}#1\hspace{-6pt}#1\hspace{1pt}}
+\newcommand{\grvec}[1]{\boldsymbol{#1}}
+\newcommand{\one}{\mathds{1}}
+
+\newcommand{\hp}{\circ}%{\odot}%{\circ}
+\newcommand{\hd}{\hspace{-1.6mm}\fatslash}%{\oslash}'
+
+\setlength{\parskip}{1em}
+\setlength{\parindent}{0in}
+
+\newcommand{\code}[1]{\verb|#1|}
+\renewcommand{\v}{\verb}
+\renewcommand{\t}[1]{\left[\mathrm{#1}\right]}
+\renewcommand{\tt}[1]{{\small \left[\texttt{#1}\right] }}
+
+\newcommand{\smallcode}[1]{\textbf{\texttt{#1}}} 
+%\newcommand{\smallcode}[1]{\textbf{\v|#1|}} 
+
+\newcommand{\red}[1]{\textcolor{red}{#1}}
+\newcommand{\blue}[1]{\textcolor{blue}{#1}}
+\newcommand{\magenta}[1]{\textcolor{magenta}{#1}}
+\newcommand{\FIX}{}%{\textbf{\red{[FIX ME]}}}
+\newcommand{\DONE}{}%{\textbf{\blue{[DONE]}}}
+\newcommand{\FINISH}{}%{\magenta{[FINISH ME]}}
+
+\newcommand{\TOClink}{\begin{center}\hrule\vskip-5pt\phantom{.}\hfill[Return to \hyperlink{TOC}{Table of Contents}.]\hfill\phantom{.}\vskip3pt\hrule\end{center}}
+\begin{document}
+
+
+\author{
+\textbf{PhysiCell-X Project}\\
+\texttt{Gaurav Saxena, Miguel Ponce-de-Leon, Arnau Montagud,} \\ 
+\texttt{David Vicente Dorca} \textit{and} \texttt{Alfonso Valencia}}
+\title{
+\includegraphics[width=0.5\textwidth]{/Users/sepultrite7432/Downloads/documentation/images/PhysiCell-X-Logo.png}~
+\\[0.1cm]
+User Guide (Version \Version)}
+\date{\textit{Revision:} \ReleaseDate}%\today}
+
+\maketitle
+
+\setlength{\parskip}{0in}
+\hypertarget{TOC}{}
+\tableofcontents
+\setlength{\parskip}{8pt}
+
+\section{Introduction \DONE}
+PhysiCell-X is the distributed version of PhysiCell \cite{ref:PhysiCell}. PhysiCell is a open-source, multi-physics, multi-scale, agent-based simulator for biological systems. It provides both the stage (micro-environment) and actors (cells or agents) for simulation. Though PhysiCell is light-weight, flexible and shared-memory parallelized using OpenMP (Open Multiprocessing), it \textit{cannot} run on distributed systems i.e. it cannot be executed on multiple nodes of an HPC (High Performance Computing) cluster. Thus, the problem size that PhysiCell can handle is limited by the maximum memory of a single node. This is a limitation that needs to be removed and this is where PhysiCell-X comes in. PhysiCell-X enables the distributed parallelization of PhysiCell by making use of MPI (Message-Passing Interface). In simple words, you can now use multiple nodes of an HPC system to solve a single, coherent problem. Thus, the aim of PhysiCell-X is to remove the memory limitation, reduce the time to solution by distributing the computation onto multiple compute nodes and solve very large sized (real-world scale) problems. 
+
+\subsection{The Current Version}
+The current version of PhysiCell-X is {\Version} and it is based on PhysiCell version \PhysiCellBaseVersion. Please note the following very carefully.
+\begin{itemize}
+    \item The User Guide for PhysiCell-X is to be used in conjunction with the User Guide for PhysiCell (till version {\PhysiCellBaseVersion}). The User Guide for PhysiCell contains many details which are \textit{not} reproduced here to avoid unnecessary duplication.
+    \item PhysiCell-X \textit{only} focuses on 3-D problems and hence distributed parallelism is available \textit{only} for 3-D problems. 
+    \item PhysiCell-X uses MPI for distributed parallelization and OpenMP shared-memory parallelization was already available in PhysiCell. Thus, PhysiCell actually uses hybrid parallelization i.e. MPI + OpenMP.
+    \item A (very) small set of features available in PhysiCell version {\PhysiCellBaseVersion} are \textit{not} available in PhysiCell-X. We will list out all such functionalities in a \textit{separate section}. As the future versions of PhysiCell-X are released, we will try our best to incorporate these features.  
+\end{itemize}
+
+\begin{tcolorbox}[enhanced,attach boxed title to top center={yshift=-3mm,yshifttext=-1mm},
+  colback=blue!5!white,colframe=blue!75!black,colbacktitle=red!80!black,
+  title=IMPORTANT,fonttitle=\bfseries,
+  boxed title style={size=small,colframe=red!50!black} ]
+  Please use \textit{this} User Guide in \textit{conjunction} with the User Guide for PhysiCell (till version {\PhysiCellBaseVersion}). The User Guide for PhysiCell contains several details which are \textit{not} reproduced here.
+\end{tcolorbox}
+
+\subsection{Layers in PhysiCell-X}
+PhysiCell-X can be visualized as being made up of two layers. The first layer BioFVM-X \cite{saxena2021biofvm} solves the diffusion equations of substrates in the micro-environment. The second layer is PhysiCell-X itself and takes care of the movement, growth, decay, division, chemical and mechanical interaction and death of cells (agents) etc. BioFVM-X has been released separately and is available at:
+\begin{enumerate}
+    \item \href{https://zenodo.org/record/5044998#.YfjVwi8RppQ}{Zenodo} 
+    and
+    \item \href{https://gitlab.bsc.es/gsaxena/biofvm_x}{GitLab} (a detailed tutorial\footnote{We encourage you to read this tutorial as it will \textit{also} help you understand how to run examples in PhysiCell-X} to run examples can be found here)
+\end{enumerate}
+The latest version of BioFVM-X also forms part of PhysiCell-X. It can kindly be noted that the stand-alone version of BioFVM-X available at the links above is \textit{different} from the version of BioFVM-X that comes bundled with PhysiCell-X. This is because the design of BioFVM-X has evolved as PhysiCell-X evolved. 
+\subsection{Parallel Macroscopic Design}
+\subsubsection{An Analogy}
+We describe the high level parallel design with the help of a non-technical analogy of a "Partitioned Aquarium". Imagine a large aquarium in the shape of a cuboid. It is filled with fish, water, nutrients that we use to feed the fish and everything that you can imagine in an aquarium. The aquarium is equivalent to our \textit{3-D domain}. The fish which can grow, move, die, ingest/secrete nutrients, interact with other fish and so on are equivalent to the \textit{cells} or \textit{agents}. The water and the dissolved/undissolved nutrients and other things present are like the \textit{micro-environment}. Now, further imagine that we place fictitious partitions in the aquarium which do not let the water/nutrients from one sub-part move to another sub-part but the fish can move from one sub-part to another \textit{adjacent} sub-part through these partitions. These sub-partitions of the aquarium are equivalent to our sub-domains. Thus, the micro-environment in a sub-domain cannot move to the adjacent sub-domain \textit{but} the cells or agents \textit{can} move to \textit{adjacent} sub-domains. Further, instead of keeping a single person to manage the aquarium, we hire one person each to manage each of the sub-partitions. Each of these persons \textit{independently} manages one sub-partition. A person here is equivalent to an \textit{Operating System process} (more specifically an \textit{MPI process}) and the sub-partition is equivalent to a sub-domain. To take things further, each of these persons can hire additional people under them to manage the sub-partition. These \textit{additional} people are like \textit{OpenMP threads} which run within an MPI process.     
+\subsubsection{Domain Partitioning}
+Figure \ref{fig:domain_partitioning} formally illustrates the aforementioned analogy. It shows a 3-D domain and the directions of the axes. The domain is divided in the X-direction \textit{only} among the MPI processes i.e. the 3-D domain is partitioned in a single dimension only (1-D domain partitioning - imagine slices of a bread). It is important to note that the direction of the axes of BioFVM-X/PhysiCell-X is different from the directions of the axes of MPI Cartesian Topology\footnote{An MPI Cartesian Topology is a \textit{virtual} arrangement of processes.}. In this specific case, the whole 3-D domain is partitioned among 4 MPI processes (shown in gray, green, blue and red). This Cartesian Topology is $1 \times 4 \times 1$, indicating that we have 1 MPI process in the X-direction, 4 in the Y-direction and 1 in the Z-direction. Please note we have 4 processes in the Y-direction of the MPI Cartesian Topology because \textit{the X-axis of BioFVM-X/PhysiCell-X is equivalent to the Y-axis of the MPI Topology}. Each of these sub-partitions (formally called sub-domains) can be located with the help of MPI Cartesian coordinates. Process 0 (formally called Rank 0) has coordinates $(0,0,0)$, process 1 (Rank 1) has $(0,1,0)$, process 2 (Rank 2) has $(0,2,0)$ and process 4 (Rank 3) has coordinates $(0,3,0)$. Within each sub-domain managed by a single MPI process, the wavy, dark, solid lines indicate OpenMP threads.  
+
+\subsubsection{Mapping to Hardware}
+Each sub-domain has a different and independent micro-environment which is managed by a single MPI process. Multiple OpenMP threads can exist within each MPI process. \textit{Typically}, to obtain a good performance from PhysiCell-X, one would run a single MPI process per socket and one OpenMP thread per core. For example, if a node of an HPC cluster consists of 2 sockets and each socket has 24 cores then we \textit{typically} would run 2 MPI processes per node i.e. one MPI process per socket and then run 24 OpenMP threads per socket i.e. one OpenMP thread per hardware core. Please note that this is \textit{not} a rule and sometimes we also run 1 MPI process per node and 48 OpenMP threads per MPI process. 
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\textwidth]{/Users/sepultrite7432/Downloads/documentation/images/Domain_Partitioning.png}
+    \caption{1-D domain partitioning in the X-direction for a 3-D domain}
+    \label{fig:domain_partitioning}
+\end{figure}
+
+\TOClink
+
+\subsection{Prerequisites}
+PhysiCell-X is completely written in C++ and uses MPI + OpenMP for distributed-shared memory parallelization. There is no need for a package manager and can be installed using Makefiles. Thus there are two prerequisites:
+\begin{enumerate}
+    \item A C++ compiler with a support for OpenMP for e.g., the GCC g++ compiler, the Intel C++, or Apple clang compiler etc.
+    \item An MPI implementation for e.g., OpenMPI, MPICH, Mvapich2, Intel MPI, IBM Spectrum MPI or others. 
+\end{enumerate}
+Please see the original User documentation of PhysiCell for instructions on how to install on OSX (MacOS) and Virtual Machine (like VirtualBox). Some MATLAB scripts for plotting are bundled with PhysiCell/PhysiCell-X which can be executed in MATLAB or \textit{possibly}  \href{https://www.gnu.org/software/octave/}{Octave}. We also recommend installing \href{http://imagemagick.org}{ImageMagick} which is useful for converting SVG images to PNG, JPEG or creating a movie from SVG files.  
+
+\begin{tcolorbox}[enhanced,attach boxed title to top center={yshift=-3mm,yshifttext=-1mm},
+  colback=blue!5!white,colframe=blue!75!black,colbacktitle=red!80!black,
+  title=IMPORTANT,fonttitle=\bfseries,
+  boxed title style={size=small,colframe=red!50!black} ]
+  We have tested the parallelized examples extensively using GCC 8.1.0 compiler and OpenMPI 3.1.1.
+\end{tcolorbox}
+ 
+\section{MPI processes, Voxels and Divisibility}
+The 3-D simulation domain in PhysiCell-X is divided into Voxels (Volumetric Pixels). Voxels generally are cubic (but they can be a cuboid as well). Thus, for example if the domain length in the X, Y and Z direction is [-500,+500], [-500,+500] and [-500,+500], respectively and the Voxel (cubic) dimension is 20, then we have $\frac{500 - (-500)}{25} = \frac{1000}{20}=50$ voxels \textit{each} in the X, Y and Z-directions. As described in the previous section, PhysiCell-X implements 1-D domain partitioning in the X-direction and due to a limitation in our implementation (will be removed in future versions), the total number of Voxels in the X-direction should be perfectly divisible by the total number of MPI processes. Thus, in the case above, we cannot have 3 MPI processes as 3 does not perfectly divide 50. However, we can have 2, 10, or even 25 MPI processes as these divide 50 voxels perfectly. It can be noted that this limitation exists \textit{only} in the X-direction and \textit{not} in the Y or Z directions. There is no restriction on the number of OpenMP threads within a single MPI process. Further, there are two types of meshes in PhysiCell (or PhysiCell-X) i.e. a \textit{diffusion mesh} and a \textit{mechanical mesh}. The size of the voxels for \textit{each} of these meshes is defined separately. It is important that the perfect divisibility condition should hold for \textit{both} the types of meshes.    
+We will return to this concept when we show how to run examples and specify parameters in PhysiCell-X.    
+
+\begin{tcolorbox}[enhanced,attach boxed title to top center={yshift=-3mm,yshifttext=-1mm},
+  colback=blue!5!white,colframe=blue!75!black,colbacktitle=red!80!black,
+  title=IMPORTANT,fonttitle=\bfseries,
+  boxed title style={size=small,colframe=red!50!black} ]
+  \begin{enumerate}
+  \item The total number of voxels in the X-direction must be perfectly divisible by the total number of MPI processes. 
+  \item Condition 1 above applies to both Diffusion and Mechanical voxels. 
+  \item Size of Diffusion voxel must be $\leq$ size of Mechanical voxel.
+  \end{enumerate}
+\end{tcolorbox}
+
+\section{Code-base organization \DONE}
+Inside the parent directory of PhysiCell-X, there are multiple directories. Some directories which users would frequently need to deal with are:
+\begin{itemize}
+    \item \texttt{config:} This directory is used for providing the inputs to the application. We use a file named \texttt{PhysiCell\_settings.xml} to provide \textit{most} of the input parameters. We say \textit{most} because there are some parameters that \textit{can} be provided in the file that contains the \texttt{main()} function of C++ (whatever that file is named).
+
+\item 
+\texttt{custom\_modules:} This directory is where the custom code created by the user is put that is specific to an example that the user is working with. \textit{Typically}, the file is named \texttt{PhysiCell\_custom.cpp} and \texttt{PhysiCell\_custom.h}. 
+
+\item 
+\texttt{sample\_projects} \textit{and} \texttt{sample\_projects\_intracellular:} These directories includes sample projects that can be used as a starting point to create your own example. Users can \textit{check-out} a project from these directories into the \textit{working} directories and work with the copy of the checked-out code. The strategy of working with a \textit{copy} of the code prevents any accidental/unwanted changes into the original code. Once the user is satisfied with the \textit{working copy}, this can be checked back into the \texttt{sample\_projects} or \texttt{sample\_projects\_intracellular} master code. 
+\end{itemize}
+
+There are multiple other directories which \textit{typically} a user will not need to interact with. Some directories are: 
+
+\begin{enumerate}
+\item 
+\texttt{BioFVM:} This includes a working copy of the BioFVM/BioFVM-X multi-substrate diffusion code \cite{ref:BioFVM, saxena2021biofvm}. BioFVM distributions also include 
+pugixml (an efficient cross-platform XML parser) \cite{ref:pugixml}. 
+
+\item 
+\texttt{core:} contains the core library files for PhysiCell/PhysiCell-X. The \texttt{modules} directory also contains some core files. In the future the developers plan to remove the \texttt{modules} directory. 
+
+\item 
+\texttt{matlab} This includes basic Matlab files for handling PhysiCell outputs. These can be used to visualize the output data. 
+ 
+\end{enumerate}
+
+\begin{tcolorbox}[enhanced,attach boxed title to top center={yshift=-3mm,yshifttext=-1mm},
+  colback=blue!5!white,colframe=blue!75!black,colbacktitle=red!80!black,
+  title=Parallel Code,fonttitle=\bfseries,
+  boxed title style={size=small,colframe=red!50!black} ]
+  Whenever the parallel equivalent of a serial function is available, it is written immediately below the corresponding serial function in the same source file.
+\end{tcolorbox}
+
+\TOClink 
+
+\section{Running an Example}
+\label{sec:running_an_example}
+After downloading PhysiCell-X, go to the parent/top-level directory/folder. As of now, there are three examples that are hybrid parallelized (MPI+OpenMP). These are:
+\begin{enumerate}
+    \item \texttt{sample\_projects/pred\_prey\_mpi}: This is a classic Predator-Prey project in 3-D. 
+    \item \texttt{sample\_projects/heterogeneity\_mpi}: simulates a 3-D tumor with heterogeneous ``genetics" that drive differential proliferation \cite{ref:PhysiCell} (text reproduced from the original PhysiCell User Guide but instead of a 2-D tumor, we now have a 3-D tumor).
+    \item \texttt{sample\_projects\_intracellular/boolean/spheroid\_tnf\_model\_mpi}: This is a paralleized example in 3-D which makes use of PhysiBoss (bundled with PhysiCell v1.9.0/PhysiCell-X v0.1) to simulate the Tumor Necrosis Factor (TNF) simulation. 
+\end{enumerate}
+
+The first step is to \textit{check-out/populate} a project. Checking out/populating means \textit{copying} a project and working files from the project directory into the working directory. Thus, as mentioned before, working with a copy of the projects prevents the original copy from being modified. This also has the \textit{disadvantage} that modified files need to be copied to the original project directories if you are satisfied with the experiment and changes. To populate a project:
+\begin{verbatim}
+    make [project_name]
+\end{verbatim}
+where the \texttt{project\_name} is one of the following three:
+\begin{enumerate}
+    \item \texttt{pred-prey-mpi}
+    \item \texttt{heterogeneity-sample-mpi}
+    \item \texttt{physiboss-tnf-model-mpi}
+\end{enumerate}
+
+\begin{tcolorbox}[enhanced,attach boxed title to top center={yshift=-3mm,yshifttext=-1mm},
+  colback=blue!5!white,colframe=blue!75!black,colbacktitle=red!80!black,
+  title=\texttt{make} Help,fonttitle=\bfseries,
+  boxed title style={size=small,colframe=red!50!black} ]
+  \begin{enumerate}
+     \item To see all sample projects type \texttt{make list-projects}. The name of the project can be different from the name of the directory under which it is stored. Name of the project \textit{typically} contains \textit{hyphens} whereas the project directory name contains \textit{underscores}. 
+     \item To clear object files, executable files of a project type \texttt{make clean}.
+     \item To reset the PhysiCell-X to the original (or clean) state type \texttt{make reset} (remember to copy any modified file \textit{into} the appropriate project before you execute this command and also remove any unwanted remaining files in the \texttt{config} directory !)
+  \end{enumerate}
+\end{tcolorbox}
+
+Checking-out a project will first:
+\begin{enumerate}
+    \item Replace the \texttt{Makefile} in the parent directory with the \textit{project-specific} \texttt{Makfile}
+    \item Copy the \texttt{main.cpp} (file name may vary with project but this file would contain the C++ \texttt{main()} function) of the project to the working parent directory.
+    \item Copy the \textit{project-specific} files in the \texttt{custom\_modules} directory in the \texttt{custom\_modules} directory under the parent directory. 
+    \item Copy the project specific files in the \texttt{config} directory to \texttt{config} under the parent directory. 
+\end{enumerate}
+
+\TOClink
+
+\begin{tcolorbox}[enhanced,attach boxed title to top center={yshift=-3mm,yshifttext=-1mm},
+  colback=blue!5!white,colframe=blue!75!black,colbacktitle=red!80!black,
+  title=PhysiCell\_settings.xml,fonttitle=\bfseries,
+  boxed title style={size=small,colframe=red!50!black} ]
+  There can be multiple \texttt{PhysiCell\_settings\_*.xml} file inside the \texttt{config} directory. \textit{Typically} it is the plain, simple file named \texttt{PhysiCell\_settings.xml} that the user can start with. 
+\end{tcolorbox}
+
+As an example, assume that the parent directory of PhysiCell-X is \texttt{PhysiCell-X} and we need to check-out the \texttt{pred-prey-mpi} project inside the \texttt{sample\_projects} directory. On executing 
+\begin{verbatim}
+    make pred-prey-mpi
+\end{verbatim}
+the following happens:
+\begin{enumerate}
+    \item Copy file \texttt{PhysiCell-X/sample\_projects/pred\_prey\_mpi/Makefile} to \texttt{PhysiCell-X/Makefile}.
+    \item Copy file \texttt{PhysiCell-X/sample\_projects/pred\_prey\_mpi/main.cpp} to \texttt{Physicell-X/main.cpp}
+    \item Copy directory\\ \texttt{Physicell-X/sample\_projects/pred\_prey\_mpi/custom\_modules} to \texttt{PhysiCell-X/custom\_modules}
+    \item Copy directory \texttt{Physicell-X/sample\_projects/pred\_prey\_mpi/config} to \texttt{PhysiCell-X/config}. 
+\end{enumerate}
+
+Now, the user can modify \texttt{PhysiCell-X/main.cpp}, \texttt{PhysiCell-X/Makefile} and the source code files in \texttt{PhysiCell-X/custom\_modules}. 
+
+Once the user has modified the files (or just wants to run an unmodified example) the project is \textit{built} by typing:
+
+\begin{verbatim}
+ make   
+\end{verbatim}
+
+As an example, when we run \texttt{make} \textit{after} checking out the project named \texttt{spheroid\_tnf\_model\_mpi}, it produces an executable named \texttt{physiboss-tnf-model-mpi}. The name of the executable can be changed by changing the variable named \texttt{PROGRAM\_NAME} in the \texttt{Makefile}. 
+
+The following is a sample output that is produced \textit{after} checking out the \texttt{physiboss-tnf-model-mpi} project (\texttt{make physiboss-tnf-model-mpi}) and \textit{after} executing \texttt{make}. 
+
+\begin{tiny}
+\begin{verbatim}
+python3 beta/setup_libmaboss.py
+operating system =  Linux
+libMaBoSS will now be installed into the addon PhysiBoSS addon folder:
+addons/PhysiBoSS
+
+Beginning download of libMaBoSS into addons/PhysiBoSS ...
+http://maboss.curie.fr/pub/libMaBoSS-linux64.tar.gz
+my_file =  addons/PhysiBoSS/libMaBoSS-linux64.tar.gz
+100.1% 2113536 / 2112151
+installing (uncompressing) the file...
+Done.
+
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./BioFVM/BioFVM_vector.cpp 
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./BioFVM/BioFVM_mesh.cpp 
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./BioFVM/BioFVM_microenvironment.cpp 
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./BioFVM/BioFVM_solvers.cpp 
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./BioFVM/BioFVM_matlab.cpp
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./BioFVM/BioFVM_utilities.cpp 
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./BioFVM/BioFVM_basic_agent.cpp 
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./BioFVM/BioFVM_MultiCellDS.cpp
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./BioFVM/BioFVM_agent_container.cpp 
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./BioFVM/pugixml.cpp
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./core/PhysiCell_phenotype.cpp
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./core/PhysiCell_cell_container.cpp 
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./core/PhysiCell_standard_models.cpp 
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  
+-DADDON_PHYSIBOSS -I/gpfs/home/bsc99/bsc99102/GS_PhysiCell_X/addons/PhysiBoSS/MaBoSS-env-2.0/engine/include -DMAXNODES=64 -c ./core/PhysiCell_cell.cpp
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./core/PhysiCell_custom.cpp 
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./core/PhysiCell_utilities.cpp 
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./core/PhysiCell_constants.cpp
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./modules/PhysiCell_SVG.cpp
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./modules/PhysiCell_pathology.cpp
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./modules/PhysiCell_MultiCellDS.cpp
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./modules/PhysiCell_various_outputs.cpp
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./modules/PhysiCell_pugixml.cpp
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g   -c ./modules/PhysiCell_settings.cpp	
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./DistPhy/DistPhy_Environment.cpp
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./DistPhy/DistPhy_Cartesian.cpp
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./DistPhy/DistPhy_Utils.cpp
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  -c ./DistPhy/DistPhy_Collective.cpp
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  
+-DADDON_PHYSIBOSS -I/gpfs/home/bsc99/bsc99102/GS_PhysiCell_X/addons/PhysiBoSS/MaBoSS-env-2.0/engine/include -DMAXNODES=64  -c ./custom_modules/custom.cpp
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  
+-DADDON_PHYSIBOSS -I/gpfs/home/bsc99/bsc99102/GS_PhysiCell_X/addons/PhysiBoSS/MaBoSS-env-2.0/engine/include -DMAXNODES=64 -c ./custom_modules/submodel_data_structures.cpp
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  
+-DADDON_PHYSIBOSS -I/gpfs/home/bsc99/bsc99102/GS_PhysiCell_X/addons/PhysiBoSS/MaBoSS-env-2.0/engine/include -DMAXNODES=64 -c ./custom_modules/tnf_receptor_dynamics.cpp
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  
+-DADDON_PHYSIBOSS -I/gpfs/home/bsc99/bsc99102/GS_PhysiCell_X/addons/PhysiBoSS/MaBoSS-env-2.0/engine/include -DMAXNODES=64 -c ./custom_modules/tnf_boolean_model_interface.cpp
+compiling
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  
+-DADDON_PHYSIBOSS -I/gpfs/home/bsc99/bsc99102/GS_PhysiCell_X/addons/PhysiBoSS/MaBoSS-env-2.0/engine/include -DMAXNODES=64 -c ./addons/PhysiBoSS/src/maboss_network.cpp
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  
+-DADDON_PHYSIBOSS -I/gpfs/home/bsc99/bsc99102/GS_PhysiCell_X/addons/PhysiBoSS/MaBoSS-env-2.0/engine/include -DMAXNODES=64 -c ./addons/PhysiBoSS/src/maboss_intracellular.cpp
+
+mpic++ -march=native  -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g  
+-DADDON_PHYSIBOSS -I/gpfs/home/bsc99/bsc99102/GS_PhysiCell_X/addons/PhysiBoSS/MaBoSS-env-2.0/engine/include -DMAXNODES=64  
+-o spheroid_TNF_model_mpi BioFVM_vector.o BioFVM_mesh.o BioFVM_microenvironment.o BioFVM_solvers.o BioFVM_matlab.o 
+BioFVM_utilities.o BioFVM_basic_agent.o BioFVM_MultiCellDS.o BioFVM_agent_container.o   pugixml.o PhysiCell_phenotype.o 
+PhysiCell_cell_container.o PhysiCell_standard_models.o PhysiCell_cell.o PhysiCell_custom.o PhysiCell_utilities.o 
+PhysiCell_constants.o PhysiCell_SVG.o PhysiCell_pathology.o PhysiCell_MultiCellDS.o PhysiCell_various_outputs.o 
+PhysiCell_pugixml.o PhysiCell_settings.o DistPhy_Environment.o DistPhy_Cartesian.o DistPhy_Utils.o DistPhy_Collective.o 
+custom.o submodel_data_structures.o tnf_receptor_dynamics.o tnf_boolean_model_interface.o maboss_network.o 
+maboss_intracellular.o   main.cpp -L/gpfs/home/bsc99/bsc99102/GS_PhysiCell_X/addons/PhysiBoSS/MaBoSS-env-2.0/engine/lib -lMaBoSS-static -ldl
+
+check for spheroid_TNF_model_mpi
+\end{verbatim}
+\end{tiny}
+
+\TOClink
+
+An important point to note from the compilation output above is that \texttt{libMaBoss} is \textit{downloaded} and installed from the command line. Thus, the machine that this compilation is done on will need \textit{access to the Internet}. This is \textit{not} the case for examples that \textit{do not} need PhysiBoss. By default, everytime when a \texttt{make clean} is performed, it \textit{also} deletes the \texttt{libMaBoss} library. To prevent this from happening, we need to modify the \texttt{Makefile} by \textit{not} calling the \texttt{MaBoSS-clean} action when a \texttt{make clean} is performed. To be precise, we need to delete the \texttt{MaBoSS-clean} from the \texttt{clean} rule (see the following code snippet from the \texttt{Makefile}).
+
+
+
+\begin{verbatim}
+    clean: MaBoSS-clean #<---Delete this MaBoss-clean
+	    rm -f *.o
+	    rm -f $(PROGRAM_NAME)*
+\end{verbatim}
+
+\begin{tcolorbox}[enhanced,attach boxed title to top center={yshift=-3mm,yshifttext=-1mm},
+  colback=blue!5!white,colframe=blue!75!black,colbacktitle=red!80!black,
+  title=libMaBoss library,fonttitle=\bfseries,
+  boxed title style={size=small,colframe=red!50!black} ]
+  It is only downloaded the very first time but subsequently its deletion \& download can be prevented by modifying the \texttt{clean} rule in the \texttt{Makefile} as shown above. 
+\end{tcolorbox}
+
+To run the executable produced above i.e. \texttt{spheroid\_TNF\_model\_mpi} above in parallel (MPI + OpenMP) on an HPC system/cluster, we \textit{typically} use a submission script written in the Unix shell script language. This does \textit{not} mean that the program cannot run on a Laptop, Desktop etc. but the syntax for execution varies (and most certainly the performance gains are smaller). We show below a submission script for the SLURM workload manager for HPC systems and explain every line of the script. 
+
+\begin{verbatim}
+#!/bin/bash
+
+#SBATCH --job-name="TNF_Simulation"
+#SBATCH --nodes=150
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=48
+#SBATCH -t 72:00:00
+#SBATCH -o output-%j
+#SBATCH -e error-%j
+#SBATCH --exclusive
+
+export OMP_DISPLAY_ENV=true
+export OMP_SCHEDULE=STATIC
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+export OMP_PROC_BIND=spread
+export OMP_PLACES=threads
+
+mpiexec ./spheroid_TNF_model_mpi    
+\end{verbatim}
+
+We assume that the script above is saved as \texttt{script\_tnf\_mpi.sh}. The following describes (almost) every line:
+\begin{enumerate}
+    \item Line 1 means that this script is to be executed using the Linux \texttt{bash} shell.
+    \item Line 2 gives a name to this job - in this case ``TNF\_simulation". 
+    \item Line 3 means assign 150 HPC nodes to this job. (In our experiments we use HPC nodes which have 48 cores. These 48 cores are distributed as 2 sockets of 24 cores each.)
+    \item Line 4 states that we only need 1 MPI process per node. This means we will only have 150 MPI processes (= the number of HPC nodes requested). 
+    \item Line 5 says that 48 OpenMP threads should be spawned per MPI process. Each of these threads will ``cling" (or technically bind) to a core (remember we have 48 cores and 48 threads). Thus, the total number of cores being used in this job are: $150 \times 48 = 7200$ i.e. 150 MPI processes times 48 OpenMP threads. 
+    \item Line 6 means that this job can execute for a maximum of 72 hours. 
+    \item Line 7 says that the output of the job should be written to a file named \texttt{output-[jobid]}, where \texttt{jobid} is a unique number that is provided by SLURM. 
+    \item Line 8 says exactly the same thing as Line 7 but about the error file. 
+    \item Line 9 requests ``exclusive" nodes for our job i.e. no other user's job can be run in the nodes allocated to our job while our job is running. This is very important for performance. 
+    \item Line 10 directs the OpenMP thread binding details and environment variable values to be printed in the error file.
+    \item Line 11 fixes the ``static" schedule for the OpenMP parallel \texttt{for} loops (when they are executed).
+    \item Line 12 says that the number of OpenMP threads which are spawned should be equal to the value of the SLURM variable \texttt{SLURM\_CPUS\_PER\_TASK}, which in this case is 48. 
+    \item Line 13 tells the OpenMP environment that threads should be placed as far apart from each other as possible. In this case it does not matter as we have 48 threads and 48 cores i.e. the whole node is \textit{completely} filled with one thread per core. 
+    \item Line 14 tells the OpenMP threads to bind to ``threads". Our HPC node runs only one thread per core (no hyper-threading) and hence the option ``threads" in this case translates to ``cores".
+    \item Line 15 finally executes the program. through \texttt{mpiexec} - the MPI launch command. 
+\end{enumerate}
+
+\TOClink
+
+The script above \textit{may} not fetch us the best performance. In HPC, the software \textit{must} map to the underlying hardware in order to extract maximal performance. Thus, to continue this discussion, we present another script next that gives better performance on our systems. The reader may recollect that our experiments are performed on HPC nodes having 48 cores each and organized as 2 sockets of 24 cores each. Our aim is to spawn 1 MPI process per socket and 24 threads per MPI process to bind to the 24 cores in each socket. This reduces \textit{false sharing} between OpenMP threads - a topic which is beyond the scope of the document but can be found easily by consulting any book on OpenMP. The script is very similar to the script presented previously and is shown below:
+
+\begin{verbatim}
+#!/bin/bash
+
+#SBATCH --job-name="TNF_Simulation"
+#SBATCH --nodes=150
+#SBATCH --ntasks-per-node=2
+#SBATCH --cpus-per-task=24
+#SBATCH -t 72:00:00
+#SBATCH -o output-%j
+#SBATCH -e error-%j
+#SBATCH --exclusive
+
+export OMP_DISPLAY_ENV=true
+export OMP_SCHEDULE=STATIC
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+export OMP_PROC_BIND=spread
+export OMP_PLACES=threads 
+
+mpiexec --map-by ppr:1:socket:pe=24 ./spheroid_TNF_model_mpi  
+
+\end{verbatim}
+
+The difference in this script from the previous script is that we are creating 2 MPI processes per node (or 1 MPI process per socket and we have 2 sockets in one node). Further, we are now spawning 24 OpenMP threads per MPI process. The \textit{total} number of threads in this script and the previous script are exactly the same i.e. 7200 threads (with one thread per core). Thus, the total number of cores that we use in both the scripts are 7200. The second script maps the MPI processes more properly to the internal architecture of the node as the node consist of 2 sockets. The other difference is the \texttt{--map-by ppr} syntax. \texttt{ppr} stands for processes per resource and here we have 1 MPI process per socket (indicated by the \texttt{:socket} in the \texttt{mpiexec} statement). Further, the number of \textit{processing elements} (given by \texttt{pe} in the \texttt{mpiexec} statement) are 24 in each \textit{resource}. The processing elements are equivalent to our cores. Thus, in a nutshell the \texttt{mpiexec} statement indicates the hardware resources i.e. sockets and cores and the overall script maps the MPI processes to sockets and the OpenMP threads to cores. The user is encouraged to experiment with both the scripts (or modify the values of the variables in the script to cater to his/her machine's architecture) and to observe the difference in performance.
+
+\subsection{Running the TNF MPI example}
+We now detail out how to run the TNF MPI example. We assume that the project is in a clean state i.e. PhysiCell-X is just downloaded/cloned. The first step is to see the projects which are available using 
+\begin{verbatim}
+    make list-projects
+\end{verbatim}
+. We must now choose to check-out the TNF MPI project using
+\begin{verbatim}
+    make physiboss-tnf-model-mpi
+\end{verbatim}
+. This performs the following actions (as explained above):
+\begin{verbatim}
+cp ./sample_projects_intracellular/boolean/spheroid_tnf_model_mpi/custom_modules/* 
+./custom_modules/
+touch main.cpp && cp main.cpp main-backup.cpp
+cp ./sample_projects_intracellular/boolean/spheroid_tnf_model_mpi/main-spheroid_TNF.cpp 
+./main.cpp 
+cp Makefile Makefile-backup
+cp ./sample_projects_intracellular/boolean/spheroid_tnf_model_mpi/Makefile .
+cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
+cp ./sample_projects_intracellular/boolean/spheroid_tnf_model_mpi/config/* ./config/
+\end{verbatim}
+
+\TOClink
+
+At this point please make sure that you have a C++ compiler  (like GCC) and MPI implementation (like OpenMPI) configured properly. We next compile this checked-out project by simply executing
+\begin{verbatim}
+    make
+\end{verbatim}
+. If the compilation is successful, users should see an executable named \texttt{spheroid\_TNF\_model\_mpi}. There are several submission script files provided in the top level directory and in this example we use the submission script named \texttt{script\_physiboss\_tnf\_model\_mpi.sh}. The user is encouraged to open this file using a text editor and understand the parameters (as explained in the section above) so that even if a job manager like SLURM or PBS is not available, he/she is able to translate the parameters to execute it on the local system. If the SLURM system is available (like on the Marenostrum supercomputer), this job can simply be submitted (and subsequently executed) using
+\begin{verbatim}
+    sbatch script_physiboss_tnf_model_mpi.sh
+\end{verbatim}. However before submitting this job for running, it is better to check and understand some parameters. We start with the submission script itself and explain sequence which should be followed to perform a basic quick check of the requirements. In the submisssion script, the line
+\begin{verbatim}
+mpiexec --map-by ppr:1:socket:pe=24  --report-bindings ./spheroid_TNF_model_mpi
+\end{verbatim}
+
+indicates that we do \textit{not} input any special settings file to the executable program \texttt{spheroid\_TNF\_model\_mpi}. If you want to input any special settings file, say \texttt{PhysiCell\_settings\_my\_file.xml} then this must be given after the name of the executable. Thus, we are using the default \texttt{PhysiCell\_settings.xml} file in the \texttt{config} directory. If we open the \texttt{Physicell\_settings.xml} file, we see the domain dimensions in the bery beginning of the file as:
+\begin{verbatim}
+<domain>
+		<x_min>-200</x_min>
+		<x_max>200</x_max>
+		<y_min>-200</y_min>
+		<y_max>200</y_max>
+		<z_min>-200</z_min>
+		<z_max>200</z_max>
+		<dx>20</dx>
+		<dy>20</dy>
+		<dz>20</dz>
+		<use_2D>false</use_2D>
+	</domain>    
+\end{verbatim}
+First, this shows that domain dimensions in the X/Y and Z direction vary from $[-200,+200]$ i.e. $400$ units of length. Second, the length/width and height of the \textit{diffusion} voxel is $20$. Please note that the length/breadth/height of the \textit{mechanical} voxel is specified through the \texttt{main.cpp} of the specific project. Further, since PhysiCell-X works \textit{only} for 3-D problems, the 2-D settings are set to \texttt{false}. The total number of diffusion voxels in this case in the X, Y and Z directions are $\frac{200-(-200)}{20} = \frac{400}{20} = 20$ each. If we check in the \texttt{script\_physiboss\_tnf\_model\_mpi.sh} file, we can see that the total number of MPI processes are only \textit{two} i.e. we have a single node with 2 MPI processes per node as indicated by the lines below:
+\begin{verbatim}
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=2
+\end{verbatim}
+One of the conditions that must be fulfilled is that the total number of diffusion (or mechanical) voxels in the X-direction \textit{must} be \textit{completely/exactly/perfectly} divisible by the total number of MPI processes. In this case, we have a total of 20 diffusion voxels and 2 MPI processes and we can see that $\frac{20}{2} = 10$ gives 10 \textit{diffusion} voxels per MPI process. This divisibility condition is not needed in the Y/Z directions as we only implement a 1-dimensional X-direction decomposition. At this stage it is very important to check the size of the mechanical voxel in the \texttt{main.cpp} file in the top level directory and the following line in this file shows that the size of the mechanical voxel is also set to 20 (i.e. the same as the size of the diffusion voxel):
+\begin{verbatim}
+double mechanics_voxel_size = 20;
+\end{verbatim}
+It is clear that the total number of mechanical voxels in the X-direction i.e. $\frac{200-(-200)}{20}=20$ are also divisible by the total number of MPI processes (2 in this case). Thus, we have checked that
+\begin{enumerate}
+    \item Mechanical voxel size $\geq$ Diffusion voxel size.
+    \item Total number of voxels (both Mechanical and Diffusion) in the X-direction are perfectly divisible by the total number of MPI processes. 
+\end{enumerate}
+The \texttt{PhysiCell\_settings.xml} file also indicates that the total number of OpenMP threads is just one i.e.  
+\begin{verbatim}
+<parallel>
+		<omp_num_threads>1</omp_num_threads>
+</parallel>     
+\end{verbatim}
+
+\TOClink
+
+This has no effect on our program \textit{because} we have commented out the line in \texttt{main.cpp} that sets the number of OpenMP threads to the value above i.e. just one OpenMP thread. See the line below in \texttt{main.cpp}.
+\begin{verbatim}
+//omp_set_num_threads(PhysiCell_settings.omp_num_threads); <--- We use OMP_NUM_THREADS
+\end{verbatim}
+Instead of setting the number of OpenMP threads using this XML parameter, we use the \texttt{OMP\_NUM\_THREADS} environment variable as given in \texttt{script\_physiboss\_tnf\_model\_mpi.sh}. In this file, we simply set this environment variable as shown below:
+\begin{verbatim}
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+\end{verbatim}
+where the environment variable \texttt{SLURM\_CPUS\_PER\_TASK} indicate the number of OpenMP threads (SLURM terminology is not intuitive !). This variable is set as (see \texttt{script\_physiboss\_tnf\_model\_mpi.sh}):
+\begin{verbatim}
+#SBATCH --cpus-per-task=24
+\end{verbatim}
+Here, the environment variable \texttt{SLURM\_CPUS\_PER\_TASK} takes its value from the \texttt{--cpus-per-task=24} SLURM option. Thus, the number of OpenMP threads in our program is 24 per socket (and $2 \times 24 = 48$ per node).\\
+
+The initial part of the \texttt{main.cpp} contains the lines of code to build a Cartesian topology. It can be noted that \textit{this part of the code will remain exactly the same for all the parallel programs}. Thus, the user can simply copy and paste this code into any new programs that they make. We show this part of the code below:
+
+\begin{verbatim}
+/*=======================================================================================*/
+/* Create mpi_Environment object, initialize it, then create Cartesian Topology          */
+/*=======================================================================================*/
+	
+  mpi_Environment world;                         
+  world.Initialize();                            
+  mpi_Cartesian cart_topo;                       
+  cart_topo.Build_Cartesian_Topology(world);      
+  cart_topo.Find_Cartesian_Coordinates(world);   
+  cart_topo.Find_Left_Right_Neighbours(world); 
+  /* Other code goes here */
+  ...
+  ...
+  /* Other code ends */
+  world.Finalize(); 
+  return 0;
+\end{verbatim}
+
+If you not familiar with parallel programming and this appears strange to you, then we strongly suggest \textit{not} devoting time to understanding this piece of the code as this code is repeated as it for \textit{all} the programs. However, we encourage the user to check out the \texttt{DistPhy} directory and the \texttt{.h} files under it to get an idea of what data members and functions the classes \texttt{mpi\_Environment} and \texttt{mpi\_Cartesian} contain. We could as developers have abstracted away some of the calls above but we prefer to let the user know (to an extent) the parallel calls that are being executed behind the scenes.\\
+
+After compilation using \texttt{make}, we can now submit the code using 
+\begin{verbatim}
+sbatch script_physiboss_tnf_model_mpi.sh    
+\end{verbatim}
+. If everything goes well (fingers crossed !), we should see an output like:
+
+\begin{scriptsize}
+\begin{verbatim}
+  _____  _               _  _____     _ _     __   __                     _                    ___  __	
+ |  __ \| |             (_)/ ____|   | | |    \ \ / /                    (_)                  / _ \/_ |
+ | |__) | |__  _   _ ___ _| |     ___| | |_____\ V /  __   _____ _ __ ___ _  ___  _ __ ______| | | || |
+ |  ___/| '_ \| | | / __| | |    / _ \ | |______> <   \ \ / / _ \ '__/ __| |/ _ \| '_ \______| | | || |
+ | |    | | | | |_| \__ \ | |___|  __/ | |     / . \   \ V /  __/ |  \__ \ | (_) | | | |     | |_| || |
+ |_|    |_| |_|\__, |___/_|\_____\___|_|_|    /_/ \_\   \_/ \___|_|  |___/_|\___/|_| |_|      \___(_)_|
+                __/ |                                                                                  
+               |___/                                                                                   
+Using config file ./config/PhysiCell_settings.xml ... 
+1
+dc? 1
+User parameters in XML config file: 
+Bool parameters:: 
+update_pc_parameters_O2_based: 0 [dimensionless]
+
+Int parameters:: 
+random_seed: 0 [dimensionless]
+time_add_tnf: 50 [min]
+duration_add_tnf: 10 [min]
+time_remove_tnf: 100000 [min]
+membrane_length: 170 [dimensionless]
+
+Double parameters:: 
+concentration_tnf: 0.05 [TNF/um^3]
+
+String parameters:: 
+init_cells_filename: ./config/init_5k.txt [dimensionless]
+
+
+which boundaries?
+1 1 1 1 1 1
+
+Microenvironment summary: microenvironment: 
+
+Mesh information: 
+type: uniform Cartesian
+Domain: [-200,200] micron x [-200,200] micron x [-200,200] micron
+   resolution: dx = 20 micron
+   voxels (per-process): 4000
+   voxel faces: 0
+   volume: 6.4e+07 cubic micron
+Densities: (2 total)
+   oxygen:
+     units: mmHg
+     diffusion coefficient: 100000 micron^2 / min
+     decay rate: 0.1 min^-1
+     diffusion length scale: 1000 micron
+     initial condition: 38 mmHg
+     boundary condition: 38 mmHg (enabled: true)
+   tnf:
+     units: TNF/um^3
+     diffusion coefficient: 1200 micron^2 / min
+     decay rate: 0.0275 min^-1
+     diffusion length scale: 208.893 micron
+     initial condition: 0 TNF/um^3
+     boundary condition: 0 TNF/um^3 (enabled: false)
+
+MPI Rank = 1 No of cells = 2500
+MPI Rank = 0 No of cells = 2501
+Time to save
+current simulated time: 0 min (max: 800 min)
+total agents: 5001
+interval wall time: 0 days, 0 hours, 0 minutes, and 2.491e-05 seconds 
+total wall time: 0 days, 0 hours, 0 minutes, and 2.8875e-05 seconds 
+
+
+Using method diffusion_decay_solver__constant_coefficients_LOD_3D (implicit 3-D LOD with Thomas Algorithm) ... 
+
+Warning! Do not use get_total_volume!
+Use (some_cell).phenotype.volume.total instead!
+Warning! Do not use get_total_volume!
+Use (some_cell).phenotype.volume.total instead!
+Time to save
+current simulated time: 100 min (max: 800 min)
+total agents: 5164
+interval wall time: 0 days, 0 hours, 0 minutes, and 6.53229 seconds 
+total wall time: 0 days, 0 hours, 0 minutes, and 6.53234 seconds 
+
+Time to save
+current simulated time: 200 min (max: 800 min)
+total agents: 5297
+interval wall time: 0 days, 0 hours, 0 minutes, and 6.06836 seconds 
+total wall time: 0 days, 0 hours, 0 minutes, and 12.6007 seconds 
+
+Time to save
+current simulated time: 300 min (max: 800 min)
+total agents: 5494
+interval wall time: 0 days, 0 hours, 0 minutes, and 6.41571 seconds 
+total wall time: 0 days, 0 hours, 0 minutes, and 19.0164 seconds 
+
+Time to save
+current simulated time: 400 min (max: 800 min)
+total agents: 5657
+interval wall time: 0 days, 0 hours, 0 minutes, and 7.04107 seconds 
+total wall time: 0 days, 0 hours, 0 minutes, and 26.0575 seconds 
+
+Time to save
+current simulated time: 500 min (max: 800 min)
+total agents: 5801
+interval wall time: 0 days, 0 hours, 0 minutes, and 6.49302 seconds 
+total wall time: 0 days, 0 hours, 0 minutes, and 32.5506 seconds 
+
+Time to save
+current simulated time: 600 min (max: 800 min)
+total agents: 2757
+interval wall time: 0 days, 0 hours, 0 minutes, and 5.99081 seconds 
+total wall time: 0 days, 0 hours, 0 minutes, and 38.5414 seconds 
+
+Time to save
+current simulated time: 700 min (max: 800 min)
+total agents: 2800
+interval wall time: 0 days, 0 hours, 0 minutes, and 5.36256 seconds 
+total wall time: 0 days, 0 hours, 0 minutes, and 43.904 seconds 
+
+Time to save
+current simulated time: 800 min (max: 800 min)
+total agents: 2858
+interval wall time: 0 days, 0 hours, 0 minutes, and 5.0926 seconds 
+total wall time: 0 days, 0 hours, 0 minutes, and 48.9966 seconds 
+
+
+Total simulation runtime: 
+0 days, 0 hours, 0 minutes, and 49.0327 seconds    
+\end{verbatim}
+\end{scriptsize}
+
+In addition to giving the various input files such as \texttt{PhysiCell\_settings.xml, config\_5k.txt}, it also gives the cells/agents on each MPI process (initially). For example, the number of cells on MPI process Rank = 1 are 2500 and that on MPI process Rank = 0 are 2501. This information can be useful as it gives us an idea of the work load on each process (ideally we would want this to be as balanced as possible). After the initial time, it is \textit{only}
+the total number of cells in the domain that are displayed (and not on individual processes). In this example, the agents or cells first increase, then decrease due to the effect of TNF and then increases again (an alternating increasing/decreasing trend is expected here). Finally, the total simulation time is printed. In addition to this output, there are multiple \texttt{.svg, .xml} and \texttt{.mat} files written in the \texttt{output} directory which can be examined with a browser, text editor or other post-processing applications.  
+
+\TOClink
+
+\section{Future Work}
+\label{sec:Future_Plans}
+PhysiCell-X is project that is being actively developed as the distributed-parallel version of PhysiCell \cite{ref:PhysiCell}. Many features are being planned for the future releases of PhysiCell-X which may include:
+\begin{itemize}
+    \item A generalized, flexible function to set the initial cell positions and an arbitrary number of parameters related to the cells. The input file will be read by \textit{all} the processes to set the cell positions and any other desired parameter.
+    
+    \item A function to extract the list of neighboring cells of a cell even if they are in the neighboring sub-domain. 
+    
+    \item A facility where a limited number of cells (minimum two) can attach to each other.
+    
+    \item A completely distributed parallel version of the Thomas algorithm to enhance scalability.
+    
+    \item A 3-D domain partitioning scheme to incorporate more cores. 
+    
+    \item GPU support for the most computationally intensive kernels of the application. 
+    
+    \item An in-homogeneous domain partitioning scheme to improve the load balance of cells for spherical domains.
+    
+    \item Multiple parallelized versions of the same function for flexibility. 
+\end{itemize}
+
+\section{Acknowledgements}
+\begin{itemize}
+    \item We profusely thank \texttt{Vincent Noel} for providing the MPI code for interfacing  PhysiBoss, locating memory issues, and sitting through some very painful troubleshooting sessions. 
+    \item Many thanks to \texttt{Randy Heiland} and \texttt{Paul Macklin} for very patiently answering several questions from the developers and carrying out infinitely interesting discussions (even on Friday evenings !). 
+    \item We are very grateful to \texttt{Jose Carbonell} and \texttt{Thalia Ntiniakou} for the constant support, correctness verification using PCA and very useful overall advice in our regular meetings. 
+    \item \texttt{Marc Clasca Ramirez} and \texttt{Marta Garcia Gasulla} gave extremely useful insights into the performance of the OpenMP version of PhysiCell. 
+    \item \texttt{Shardool Kulkarni} must be thanked for mathematically motivating and guiding us to consider alternatives to the serial Thomas algorithm and (most importantly) trusting us with his final year MSc project !  
+\end{itemize}
+The research leading to these results has received funding from EU H2020 Programme under the PerMedCoE project, grant agreement number 951773 and the INFORE project, grant agreement number 825070.
+\TOClink
+
+\bibliographystyle{abbrvnat}
+% \addcontentsline{toc}{chapter}{References}
+% \section{References}
+\bibliography{references}
+
+\end{document}
