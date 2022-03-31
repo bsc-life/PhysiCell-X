@@ -66,7 +66,7 @@ To run the heterogeneity-sample project we just have to execute the binary
 After starting the simulation, the user can see the course of the simulation through the log messages emitted to the standard output. In addition, a set of output files describing the main characteristics of each cell, as well as the density of each of the substrates along the physical space used in the simulation, will be progressively generated in the results folder.  These files are created by using  the  MultiCellDS standard format, composed mainly of an .m file and an xml file (see for more information http://www.mathcancer.org/blog/working-with-physicell-snapshots-in-matlab/). In addition, PhysiCell-X additionally stores a series of SVG files that graphically describe the position of each of the simulated cells, of great interest when the user needs to generate movies to visualize the full course of the simulation.
 
 
-![Slice of heterogeneity sample cell culture. ](heterogeneity.png)
+![Slice of heterogeneity sample cell culture. ](./images/heterogeneity.png)
 
 
 
