@@ -1,16 +1,14 @@
----
-author:
-- |
-    **PhysiCell-X Project**\
-    `Gaurav Saxena, Miguel Ponce-de-Leon, Arnau Montagud,`\
-    `David Vicente Dorca` *and* `Alfonso Valencia`
-bibliography:
-- 'references.bib'
-date: '*Revision:*'
-title: |
-    ![image](./images/PhysiCell-X-Logo.png){width="50%"} \
-    User Guide (Version 0.1)
----
+
+![image](./images/PhysiCell-X-Logo.png)
+
+## User Guide (Version 0.1)
+
+**PhysiCell-X Project**
+
+Gaurav Saxena, Miguel Ponce-de-Leon, Arnau Montagud,David Vicente Dorca and Alfonso Valencia
+
+Revision: _16 March, 2022_
+
 
 [[_TOC_]]
 
