@@ -246,14 +246,13 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 	std::vector<std::vector<double>> generated_positions_at_root;
 	std::vector<double> position = {0,0,0};												//Temporary buffer
 	
-  mpi_CellPositions cp;   //To store cell positions, cell IDs, no. of cell IDs at root only (for all processes)
-  mpi_MyCells       mc;   //To store cell positions, cell IDs, no. of cells at each process.
-  
-/* First Generate Cell positions on rank 0 by reading from file */
- 	
- if(world.rank == 0)
- {
- 		std::vector<init_record> cells = read_init_file(parameters.strings("init_cells_filename"), ';', true);
+	mpi_CellPositions cp;   //To store cell positions, cell IDs, no. of cell IDs at root only (for all processes)
+	mpi_MyCells       mc;   //To store cell positions, cell IDs, no. of cells at each process.
+	
+	/* First Generate Cell positions on rank 0 by reading from file */
+	if(world.rank == 0)
+	{
+		std::vector<init_record> cells = read_init_file(parameters.strings("init_cells_filename"), ';', true);
 	
 		for (int i = 0; i < cells.size(); i++)
 		{ 
@@ -263,22 +262,22 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 			//double elapsed_time = cells[i].elapsed_time; ---> This needs to be made random and set when creating cell
 			generated_positions_at_root.push_back(position); 
 		}
-		
-	/*---------------------------------------------------------------------------------------------------*/
-	/* (1) Obtain the current highest ID - rank 0 knows this as rank 0 generates all IDs 								 */
-	/* (2) Distribute the positions and IDs to respective processes 										 								 */
-	/* (3) Set the maximum ID as the current maximum ID would be needed if new cells are to be generated */
-	/*---------------------------------------------------------------------------------------------------*/
+			
+		/*---------------------------------------------------------------------------------------------------*/
+		/* (1) Obtain the current highest ID - rank 0 knows this as rank 0 generates all IDs 				 */
+		/* (2) Distribute the positions and IDs to respective processes 									 */
+		/* (3) Set the maximum ID as the current maximum ID would be needed if new cells are to be generated */
+		/*---------------------------------------------------------------------------------------------------*/
 	
-	int strt_cell_ID = Basic_Agent::get_max_ID_in_parallel();                               //IDs for new cells (positions) will start from the current highest ID      
-  cp.positions_to_rank_list(generated_positions_at_root, 
-                            m.mesh.bounding_box[0], m.mesh.bounding_box[3], 
-                            m.mesh.bounding_box[1], m.mesh.bounding_box[4], 
-                            m.mesh.bounding_box[2], m.mesh.bounding_box[5], 
-                            m.mesh.dx, m.mesh.dy, m.mesh.dz, 
-                            world, cart_topo, strt_cell_ID);
-        
-  Basic_Agent::set_max_ID_in_parallel(strt_cell_ID + generated_positions_at_root.size()); //Highest ID now is the starting ID + no. of generated coordinates !
+		int strt_cell_ID = Basic_Agent::get_max_ID_in_parallel();                               //IDs for new cells (positions) will start from the current highest ID      
+		cp.positions_to_rank_list(generated_positions_at_root, 
+								m.mesh.bounding_box[0], m.mesh.bounding_box[3], 
+								m.mesh.bounding_box[1], m.mesh.bounding_box[4], 
+								m.mesh.bounding_box[2], m.mesh.bounding_box[5], 
+								m.mesh.dx, m.mesh.dy, m.mesh.dz, 
+								world, cart_topo, strt_cell_ID);
+			
+		Basic_Agent::set_max_ID_in_parallel(strt_cell_ID + generated_positions_at_root.size()); //Highest ID now is the starting ID + no. of generated coordinates !
 	} 
 	
 	distribute_cell_positions(cp, mc, world, cart_topo);                           //Distribute cell positions
