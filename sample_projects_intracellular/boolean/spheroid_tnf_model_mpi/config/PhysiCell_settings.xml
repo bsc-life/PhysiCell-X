@@ -90,10 +90,9 @@
 		<max_time units="min">800</max_time> <!-- 1400 -->
 		<time_units>min</time_units>
 		<space_units>micron</space_units>
-
-			<dt_diffusion units="min">0.02</dt_diffusion>
-			<dt_mechanics units="min">0.1</dt_mechanics>
-			<dt_phenotype units="min">2</dt_phenotype>	
+		<dt_diffusion units="min">0.02</dt_diffusion>
+		<dt_mechanics units="min">0.1</dt_mechanics>
+		<dt_phenotype units="min">2</dt_phenotype>	
 	</overall>
 	
 	<parallel>
@@ -138,7 +137,7 @@
 		</variable>
 
 		<options>
-			<calculate_gradients>true</calculate_gradients>
+			<calculate_gradients>false</calculate_gradients>
 			<track_internalized_substrates_in_each_agent>true</track_internalized_substrates_in_each_agent>
 			<!-- not yet supported --> 
 			<initial_condition type="matlab" enabled="false">
@@ -158,49 +157,40 @@
 					<!-- using higher than normal significant digits to match divisions in default code -->
 					<phase_transition_rates units="1/min"> 
 						<!-- Cycle duration -->
-						<rate start_index="0" end_index="0" fixed_duration="false">0.00075</rate>
+						<!-- <rate start_index="0" end_index="0" fixed_duration="false">/0.00075</rate> -->
+						<rate start_index="0" end_index="0" fixed_duration="false">0.041</rate>
 					</phase_transition_rates>
 				</cycle>
 				
 				<death>  
-					<model code="100" name="apoptosis"> 
-						<death_rate units="1/min">5.31667e-05</death_rate>
-						<phase_durations units="min">
-							<duration index="0" fixed_duration="true">516</duration>
-						</phase_durations>
-						<!--
+					<model code="100" name="apoptosis">
+						<rate units="1/min">5.31667e-05</rate>
 						<phase_transition_rates units="1/min">
-							<rate start_index="0" end_index="1" fixed_duration="false">0.00193798</rate>
-						</phase_transition_rates> -->
+								<rate start_index="0" end_index="1" fixed_duration="true">0.00193798</rate>
+						</phase_transition_rates>
 						<parameters>
-							<unlysed_fluid_change_rate units="1/min">0.05</unlysed_fluid_change_rate>
-							<lysed_fluid_change_rate units="1/min">0</lysed_fluid_change_rate>
-							<cytoplasmic_biomass_change_rate units="1/min">1.66667e-02</cytoplasmic_biomass_change_rate>
-							<nuclear_biomass_change_rate units="1/min">5.83333e-03</nuclear_biomass_change_rate>
-							<calcification_rate units="1/min">0</calcification_rate>
-							<relative_rupture_volume units="dimensionless">2.0</relative_rupture_volume>
+								<unlysed_fluid_change_rate units="1/min">0.05</unlysed_fluid_change_rate>
+								<lysed_fluid_change_rate units="1/min">0</lysed_fluid_change_rate>
+								<cytoplasmic_biomass_change_rate units="1/min">1.66667e-02</cytoplasmic_biomass_change_rate>
+								<nuclear_biomass_change_rate units="1/min">5.83333e-03</nuclear_biomass_change_rate>
+								<calcification_rate units="1/min">0</calcification_rate>
+								<relative_rupture_volume units="dimensionless">2.0</relative_rupture_volume>
 						</parameters>
-					</model> 
+					</model>
 
 					<model code="101" name="necrosis">
 						<rate units="1/min">0.0</rate>
-						<phase_durations units="min">
-							<duration index="0" fixed_duration="true">0</duration>
-							<duration index="1" fixed_duration="true">86400</duration>
-						</phase_durations>
-						<!--
-						<transition_rates units="1/min">
-							<rate start_index="0" end_index="1" fixed_duration="false">9e9</rate>
-							<rate start_index="1" end_index="2" fixed_duration="true">1.15741e-5</rate>
-						</transition_rates>
-						-->
+						<phase_transition_rates units="1/min">
+								<rate start_index="0" end_index="1" fixed_duration="false">9e9</rate>
+								<rate start_index="1" end_index="2" fixed_duration="true">1.15741e-5</rate>
+						</phase_transition_rates>
 						<parameters>
-							<unlysed_fluid_change_rate units="1/min">0.05</unlysed_fluid_change_rate>
-							<lysed_fluid_change_rate units="1/min">0</lysed_fluid_change_rate>
-							<cytoplasmic_biomass_change_rate units="1/min">1.66667e-02</cytoplasmic_biomass_change_rate>
-							<nuclear_biomass_change_rate units="1/min">5.83333e-03</nuclear_biomass_change_rate>
-							<calcification_rate units="1/min">0</calcification_rate>
-							<relative_rupture_volume units="dimensionless">2.0</relative_rupture_volume>
+								<unlysed_fluid_change_rate units="1/min">0.05</unlysed_fluid_change_rate>
+								<lysed_fluid_change_rate units="1/min">0</lysed_fluid_change_rate>
+								<cytoplasmic_biomass_change_rate units="1/min">1.66667e-02</cytoplasmic_biomass_change_rate>
+								<nuclear_biomass_change_rate units="1/min">5.83333e-03</nuclear_biomass_change_rate>
+								<calcification_rate units="1/min">0</calcification_rate>
+								<relative_rupture_volume units="dimensionless">2.0</relative_rupture_volume>
 						</parameters>
 					</model> 
 				</death>					
@@ -232,9 +222,9 @@
 				<next_physiboss_run units="dimensionless">10.</next_physiboss_run>
 				
 				<!-- Molecular model internal variables-->
-				<TNFR_binding_rate type="double" units="1/min" description="TNF receptor binding rate">0.243</TNFR_binding_rate> <!-- 0.243 -->
-				<TNFR_endocytosis_rate type="double" units="1/min" description="TNF receptor-TNF endocytosis rate">0.128</TNFR_endocytosis_rate>
-				<TNFR_recycling_rate type="double" units="1/min" description="TNF receptor recycling">0.293</TNFR_recycling_rate>
+				<TNFR_binding_rate type="double" units="1/min" description="TNF receptor binding rate">0.3</TNFR_binding_rate> <!-- 0.243 -->
+				<TNFR_endocytosis_rate type="double" units="1/min" description="TNF receptor-TNF endocytosis rate">0.2</TNFR_endocytosis_rate>
+				<TNFR_recycling_rate type="double" units="1/min" description="TNF receptor recycling">0.6</TNFR_recycling_rate>
 				<TNFR_activation_threshold type="double" units="" description="TNFR threshold to update booleano model input">0.5</TNFR_activation_threshold>
 				<TNFR_receptors_per_cell type="double" units="dimensionless" description="number of TNFR receptors per cell">1.0</TNFR_receptors_per_cell>
 				<TNF_net_production_rate type="double" units="TNF/cell/min" description="The total TNF produced by the cell when NFkB is active">0</TNF_net_production_rate> <!-- 0.5 ng/mL -->
@@ -244,29 +234,34 @@
 				<fadd_node units="dimensionless">0</fadd_node>
 				<nfkb_node units="dimensionless">0</nfkb_node>
 				<external_tnf units="TNF/um^3">0</external_tnf>
-
 			</custom_data>
 		</cell_definition>
 	</cell_definitions>
 
 	<user_parameters>
 		<random_seed type="int" units="dimensionless">0</random_seed> 
-		<!-- example parameters from the template --> 
-
-		<!-- init file --> 
 		<init_cells_filename type="string" units="">./config/init_5k.txt</init_cells_filename>
+		<time_add_tnf type="int" units="min">335.121</time_add_tnf>
+		<duration_add_tnf type="int" units="min">17.689</duration_add_tnf>
+		<concentration_tnf type="double" units="TNF/um^3">0.0316</concentration_tnf>
+		<time_remove_tnf type="int" units="min">100000</time_remove_tnf>
+		<membrane_length type="int" units=""> 170 </membrane_length>
 
-		<!-- <bnd_file type="string" units="">./config/boolean_network/TNF_nodes.bnd</bnd_file>
-		<cfg_file type="string" units="">./config/boolean_network/TNF_conf.cfg</cfg_file>
-		<maboss_time_step type="double" units="dimensionless">10.</maboss_time_step> -->
 
-		<time_add_tnf type="int" units="min">50</time_add_tnf> <!-- 150 -->
-		<duration_add_tnf type="int" units="min">10</duration_add_tnf> <!-- 10 -->
-		<concentration_tnf type="double" units="TNF/um^3"> 0.05 </concentration_tnf> <!-- 0.5 ng/mL -->
-		<time_remove_tnf type="int" units="min">100000</time_remove_tnf> <!-- 8000 -->
-		<membrane_length type="int" units=""> 170 </membrane_length> <!-- 470 -->
+		<!-- <TNFR_binding_rate_std type="double" units="dimensionless" description="TNF receptor binding rate std">0.237</TNFR_binding_rate_std> -->
+		<TNFR_binding_rate_std type="double" units="dimensionless" description="TNF receptor binding rate std">0.0</TNFR_binding_rate_std>
+		<TNFR_binding_rate_min type="double" units="dimensionless" description="TNF receptor binding rate min">0.05</TNFR_binding_rate_min>
+		<TNFR_binding_rate_max type="double" units="dimensionless" description="TNF receptor binding rate max">0.95</TNFR_binding_rate_max>
 
-		<update_pc_parameters_O2_based type="bool" units="">false</update_pc_parameters_O2_based>
+		<!-- <TNFR_endocytosis_rate_std type="double" units="dimensionless" description="TNF receptor-TNF endocytosis rate std">0.237</TNFR_endocytosis_rate_std> -->
+		<TNFR_endocytosis_rate_std type="double" units="dimensionless" description="TNF receptor-TNF endocytosis rate std">0.0</TNFR_endocytosis_rate_std>
+		<TNFR_endocytosis_rate_min type="double" units="dimensionless" description="TNF receptor-TNF endocytosis rate min">0.05</TNFR_endocytosis_rate_min>
+		<TNFR_endocytosis_rate_max type="double" units="dimensionless" description="TNF receptor-TNF endocytosis rate max">0.95</TNFR_endocytosis_rate_max>
+
+		<!-- <TNFR_recycling_rate_std type="double" units="dimensionless" description="TNF receptor recycling std">0.237</TNFR_recycling_rate_std> -->
+		<TNFR_recycling_rate_std type="double" units="dimensionless" description="TNF receptor recycling std">0.0</TNFR_recycling_rate_std>
+		<TNFR_recycling_rate_min type="double" units="dimensionless" description="TNF receptor recycling min">0.05</TNFR_recycling_rate_min>
+		<TNFR_recycling_rate_max type="double" units="dimensionless" description="TNF receptor recycling max">0.95</TNFR_recycling_rate_max>
 </user_parameters>
 	
 	
