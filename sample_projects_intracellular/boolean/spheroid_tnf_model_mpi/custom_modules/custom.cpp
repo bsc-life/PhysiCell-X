@@ -65,17 +65,21 @@
 ###############################################################################
 */
 
-/*================================================================================
-+ If you use PhysiCell-X in your project, we would really appreciate if you can  +
-+																																							   +
-+ [1] Cite the PhysiCell-X repository by giving its URL												   +
-+																																							   +
-+ [2] Cite BioFVM-X: 																													   +
-+		Saxena, Gaurav, Miguel Ponce-de-Leon, Arnau Montagud, David Vicente Dorca,   +
-+		and Alfonso Valencia. "BioFVM-X: An MPI+ OpenMP 3-D Simulator for Biological + 
-+		Systems." In International Conference on Computational Methods in Systems    +
-+		Biology, pp. 266-279. Springer, Cham, 2021. 																 +
-=================================================================================*/
+/*
+######################################################################################
+#                                                                                    #
+# If you use PhysiCell-X in your project, we would really appreciate if you can      #
+#																				     #
+# [1] Cite the PhysiCell-X repository by giving its URL							     #
+#																				     #
+# [2] Cite BioFVM-X: 															     #
+#		Saxena, Gaurav, Miguel Ponce-de-Leon, Arnau Montagud, David Vicente Dorca,   #
+#		and Alfonso Valencia. "BioFVM-X: An MPI+ OpenMP 3-D Simulator for Biological # 
+#		Systems." In International Conference on Computational Methods in Systems    #
+#		Biology, pp. 266-279. Springer, Cham, 2021. 								 #
+#                                                                                    #
+######################################################################################
+*/
 
 #include "./custom.h"
 #include "../DistPhy/DistPhy_Utils.h"
@@ -92,75 +96,38 @@ void create_cell_types(void)
 	// for all runs
 
 	SeedRandom(parameters.ints("random_seed")); // or specify a seed here
-
-	// housekeeping
-	// std::cout << cell_defaults.name << std::endl; <---- will print using all processes
-
-	cell_defaults.functions.volume_update_function = standard_volume_update_function;
-	cell_defaults.functions.update_velocity = standard_update_cell_velocity;
 	
 	/*-----------------------------------------------------------------------------------------------------------------------------*/
 	/* For parallel settings, set the update velocity in parallel function pointer - this will call the new function which has the */
-	/* same name but a different prototype and implementation (overloaded function)																								 */
-	/* There may be no need to set it at this stage but setting it here for correctness and completeness. 												 */
+	/* same name but a different prototype and implementation (overloaded function)												   */
+	/* There may be no need to set it at this stage but setting it here for correctness and completeness. 						   */
 	/*-----------------------------------------------------------------------------------------------------------------------------*/
-	
+	cell_defaults.functions.update_velocity = standard_update_cell_velocity;
 	cell_defaults.functions.update_velocity_parallel = standard_update_cell_velocity;
+	cell_defaults.functions.volume_update_function = standard_volume_update_function;
+	cell_defaults.functions.update_phenotype = tumor_cell_phenotype_with_signaling;
 	
-	// no migration_bias needed
 	cell_defaults.functions.update_migration_bias = NULL;
-	// No custom rule needed
 	cell_defaults.functions.custom_cell_rule = NULL;
-
-	/*--------------------------------------------------------------------------------------
-		update_pc_parameters_O2_based flag controls how is the update_phenotypes
-	 	if update_pc_parameters_O2_based is set to true	the model will call
-		tumor_cell_phenotype_with_signaling which just call two functions 
-		sequentially: 1) update_cell_and_death_parameters_O2_based and 
-		2) tnf_bm_interface_main; the former updates growth and death rates 
-		based on oxygen while the second is the	function that update the boolean model. 
-		If the flag is false then only the tnf_bm_interface_main is invoked
-	 ---------------------------------------------------------------------------------------*/
-	if (parameters.bools("update_pc_parameters_O2_based"))
-	{
-		cell_defaults.functions.update_phenotype = tumor_cell_phenotype_with_signaling; 
-	}
-	else
-	{
-		cell_defaults.functions.update_phenotype = tnf_bm_interface_main;	
-	}
-
 	cell_defaults.functions.add_cell_basement_membrane_interactions = NULL;
 	cell_defaults.functions.calculate_distance_to_membrane = NULL;
 	cell_defaults.functions.set_orientation = NULL;
 
 	/* This parses the cell definitions in the XML config file. */
 	
-	initialize_cell_definitions_from_pugixml();			//Only serial version exists and is sufficient.
+	// Only serial version exists and is sufficient.
+	initialize_cell_definitions_from_pugixml();
 
-	// initialize tnf
-
+	// Tnitialize TNF submodels
 	tnf_receptor_model_setup();											
 	tnf_boolean_model_interface_setup();						
 	
-	//submodel_registry.display(std::cout); <------ will print using all processes
-
-	// Needs to initialize one of the receptor state to the total receptor value
+	// Tnitialize the receptor state setting the total receptor as unbounded external
 	cell_defaults.custom_data["unbound_external_TNFR"] = cell_defaults.custom_data["TNFR_receptors_per_cell"];
 	cell_defaults.custom_data["bound_external_TNFR"] = 0;
 	cell_defaults.custom_data["bound_internal_TNFR"] = 0;
 
 	build_cell_definitions_maps();
-	
-	//display_cell_definitions(std::cout); <------ will print using all processes
-	
-	/*------------------------------------------------------------------------------------*/
-	/* Multiple print statements have been disabled above as the printing will be done by */
-	/* ALL processes. If you want to print (for checking, testing etc.) then create a new */
-	/* version of void create_cell_types(mpi_Environment &world, mpi_Cartesian &cart_topo)*/
-	/* and then use the IOProcessor(world) function to print using ONLY the root process  */
-	/*------------------------------------------------------------------------------------*/
-
 	return;
 }
 
@@ -182,7 +149,6 @@ void setup_microenvironment(void)
 /*==============================================*/
 /* Parallel version of setup_microenvironment() */
 /*==============================================*/
-
 void setup_microenvironment( mpi_Environment &world, mpi_Cartesian &cart_topo )
 {
 	// make sure to override and go back to 3D
@@ -224,7 +190,6 @@ void setup_tissue(void)
 /*---------------------------------------*/
 /* Parallel version of setup_tissue(...) */
 /*---------------------------------------*/
-
 void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
 
@@ -240,61 +205,113 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 	double Yrange = Ymax - Ymin; 
 	double Zrange = Zmax - Zmin;
 	
-	/* The following 3 are temporary variables */
-
-	Cell* pCell;
-	std::vector<std::vector<double>> generated_positions_at_root;
-	std::vector<double> position = {0,0,0};												//Temporary buffer
+		
+	// To store cell positions, cell IDs, no. of cell IDs at root only (for all processes)
+	mpi_CellPositions cp;   
 	
-  mpi_CellPositions cp;   //To store cell positions, cell IDs, no. of cell IDs at root only (for all processes)
-  mpi_MyCells       mc;   //To store cell positions, cell IDs, no. of cells at each process.
+	// To store cell positions, cell IDs, no. of cells at each process.
+	mpi_MyCells       mc;   
   
-/* First Generate Cell positions on rank 0 by reading from file */
- 	
- if(world.rank == 0)
- {
- 		std::vector<init_record> cells = read_init_file(parameters.strings("init_cells_filename"), ';', true);
-	
+	/* First Generate Cell positions on rank 0 by reading from file */
+	if(world.rank == 0)
+	{
+		std::string init_cells_fame = parameters.strings("init_cells_filename");
+		std::vector<init_record> cells = read_init_file(init_cells_fame, ';', true);
+		std::vector<std::vector<double>> cells_postions_at_root;
+		
+		std::vector<double> position = {0,0,0};
 		for (int i = 0; i < cells.size(); i++)
 		{ 
 			position[0] = cells[i].x; 
 			position[1] = cells[i].y; 
 			position[2] = cells[i].z;
-			//double elapsed_time = cells[i].elapsed_time; ---> This needs to be made random and set when creating cell
-			generated_positions_at_root.push_back(position); 
+			cells_postions_at_root.push_back(position); 
 		}
 		
-	/*---------------------------------------------------------------------------------------------------*/
-	/* (1) Obtain the current highest ID - rank 0 knows this as rank 0 generates all IDs 								 */
-	/* (2) Distribute the positions and IDs to respective processes 										 								 */
-	/* (3) Set the maximum ID as the current maximum ID would be needed if new cells are to be generated */
-	/*---------------------------------------------------------------------------------------------------*/
-	
-	int strt_cell_ID = Basic_Agent::get_max_ID_in_parallel();                               //IDs for new cells (positions) will start from the current highest ID      
-  cp.positions_to_rank_list(generated_positions_at_root, 
-                            m.mesh.bounding_box[0], m.mesh.bounding_box[3], 
-                            m.mesh.bounding_box[1], m.mesh.bounding_box[4], 
-                            m.mesh.bounding_box[2], m.mesh.bounding_box[5], 
-                            m.mesh.dx, m.mesh.dy, m.mesh.dz, 
-                            world, cart_topo, strt_cell_ID);
+		/*---------------------------------------------------------------------------------------------------*/
+		/* (1) Obtain the current highest ID - rank 0 knows this as rank 0 generates all IDs 				 */
+		/* (2) Distribute the positions and IDs to respective processes 									 */
+		/* (3) Set the maximum ID as the current maximum ID would be needed if new cells are to be generated */
+		/*---------------------------------------------------------------------------------------------------*/
+		
+		// IDs for new cells (positions) will start from the current highest ID      
+		int strt_cell_ID = Basic_Agent::get_max_ID_in_parallel();  
+		cp.positions_to_rank_list(	cells_postions_at_root, 
+									m.mesh.bounding_box[0], m.mesh.bounding_box[3], 
+									m.mesh.bounding_box[1], m.mesh.bounding_box[4], 
+									m.mesh.bounding_box[2], m.mesh.bounding_box[5], 
+									m.mesh.dx, m.mesh.dy, m.mesh.dz, 
+									world, cart_topo, strt_cell_ID
+								);
         
-  Basic_Agent::set_max_ID_in_parallel(strt_cell_ID + generated_positions_at_root.size()); //Highest ID now is the starting ID + no. of generated coordinates !
+		// Updating the highest ID to the starting ID + no. of generated (cell possitions)
+  		Basic_Agent::set_max_ID_in_parallel(strt_cell_ID + generated_positions_at_root.size()); 
 	} 
 	
-	distribute_cell_positions(cp, mc, world, cart_topo);                           //Distribute cell positions
+	// Distribute cell positions
+	distribute_cell_positions(cp, mc, world, cart_topo);                           
  
- /* Create cells at individual processes */
- 
- for( int i=0; i < mc.my_no_of_cell_IDs; i++ )
+ 	/* Create cells at individual processes */
+  	for( int i=0; i < mc.my_no_of_cell_IDs; i++ )
 	{	
- 		pCell = create_cell( get_cell_definition("default"), mc.my_cell_IDs[i] );
- 		pCell->phenotype.cycle.data.elapsed_time_in_phase = UniformRandom(); 
-		pCell->assign_position(mc.my_cell_coords[3*i],mc.my_cell_coords[3*i+1],mc.my_cell_coords[3*i+2],world, cart_topo); //pCell->assign_position( positions[i] );
-		update_monitor_variables(pCell);				//No need to parallelize
+		Cell* pCell;
+
+		int cell_id = mc.my_cell_IDs[i];
+ 		
+		pCell = create_cell( get_cell_definition("default"), cell_id );
+		pCell->phenotype.cycle.data.elapsed_time_in_phase = UniformRandom();
+		pCell->assign_position( mc.my_cell_coords[ 3*i + 0 ],
+								mc.my_cell_coords[ 3*i + 1 ],
+								mc.my_cell_coords[ 3*i + 2 ],
+								world, cart_topo ); 
+
+		
+		static int idx_bind_rate = pCell->custom_data.find_variable_index( "TNFR_binding_rate" );
+		static float mean_bind_rate = pCell->custom_data[idx_bind_rate];
+		static float std_bind_rate = parameters.doubles("TNFR_binding_rate_std");
+		static float min_bind_rate = parameters.doubles("TNFR_binding_rate_min");
+		static float max_bind_rate = parameters.doubles("TNFR_binding_rate_max");
+		
+		if ( std_bind_rate > 0 ) {
+			pCell->custom_data[idx_bind_rate] = NormalRandom(mean_bind_rate, std_bind_rate);
+			if (pCell->custom_data[idx_bind_rate] < min_bind_rate)
+			{ pCell->custom_data[idx_bind_rate] = min_bind_rate; }
+			if (pCell->custom_data[idx_bind_rate] > max_bind_rate)
+			{ pCell->custom_data[idx_bind_rate] = max_bind_rate; }
+		}
+		static int idx_endo_rate = pCell->custom_data.find_variable_index( "TNFR_endocytosis_rate" );
+		static float mean_endo_rate = pCell->custom_data[idx_endo_rate];
+		static float std_endo_rate = parameters.doubles("TNFR_endocytosis_rate_std");
+		static float min_endo_rate = parameters.doubles("TNFR_endocytosis_rate_min");
+		static float max_endo_rate = parameters.doubles("TNFR_endocytosis_rate_max");
+		
+		if ( std_endo_rate > 0 ){
+			pCell->custom_data[idx_endo_rate] = NormalRandom(mean_endo_rate, std_endo_rate);
+			if (pCell->custom_data[idx_endo_rate] < min_endo_rate)
+			{ pCell->custom_data[idx_endo_rate] = min_endo_rate; }
+			if (pCell->custom_data[idx_endo_rate] > max_endo_rate)
+			{ pCell->custom_data[idx_endo_rate] = max_endo_rate; }
+		}
+
+
+		static int idx_recycle_rate = pCell->custom_data.find_variable_index( "TNFR_recycling_rate" ); 
+		static float mean_recycle_rate = pCell->custom_data[idx_recycle_rate];
+		static float std_recycle_rate = parameters.doubles("TNFR_recycling_rate_std");
+		static float min_recycle_rate = parameters.doubles("TNFR_recycling_rate_min");
+		static float max_recycle_rate = parameters.doubles("TNFR_recycling_rate_max");
+
+		if ( std_recycle_rate > 0 ) {
+			pCell->custom_data[idx_recycle_rate] = NormalRandom(mean_recycle_rate, std_recycle_rate);
+			if (pCell->custom_data[idx_recycle_rate] < min_recycle_rate)
+			{ pCell->custom_data[idx_recycle_rate] = min_recycle_rate; }
+			if (pCell->custom_data[idx_recycle_rate] > max_recycle_rate)
+			{ pCell->custom_data[idx_recycle_rate] = max_recycle_rate; }
+		}
+
+		update_monitor_variables(pCell);				
 	}
 	 
 } 
-
 
 // custom cell phenotype function to run PhysiBoSS when is needed
 void tumor_cell_phenotype_with_signaling(Cell *pCell, Phenotype &phenotype, double dt)
@@ -304,13 +321,51 @@ void tumor_cell_phenotype_with_signaling(Cell *pCell, Phenotype &phenotype, doub
 		pCell->functions.update_phenotype = NULL;
 		return;
 	}
-
-	update_cell_and_death_parameters_O2_based(pCell, phenotype, dt);  //No parallelization needed
+	update_cell_and_death_parameters_O2_based(pCell, phenotype, dt);
 	tnf_bm_interface_main(pCell, phenotype, dt);
-
 }
 
 
+// Function that injects a density around and sphere of radius *membrane_lenght*
+void inject_density_sphere(int density_index, double concentration, double membrane_lenght)
+{
+	// Inject given concentration on the extremities only
+	#pragma omp parallel for
+	for (int n = 0; n < microenvironment.number_of_voxels(); n++)
+	{
+		auto current_voxel = microenvironment.voxels(n);
+		std::vector<double> cent = {current_voxel.center[0], current_voxel.center[1], current_voxel.center[2]};
+
+		if ((membrane_lenght - norm(cent)) <= 0)
+			microenvironment.density_vector(n)[density_index] = concentration;
+	}
+}
+
+/*------------------------------------------------*/
+/* Parallel version of inject_density_sphere(...) */
+/*------------------------------------------------*/
+void inject_density_sphere( Microenvironment &microenv, mpi_Environment &world, mpi_Cartesian &cart_topo, 
+							int density_index, double concentration, double membrane_lenght) {
+	
+	#pragma omp parallel for
+	for (int n = 0; n < m.number_of_voxels(); n++)
+	{
+		auto current_voxel = microenv.voxels(n);
+		std::vector<double> cent = {current_voxel.center[0], current_voxel.center[1], current_voxel.center[2]};
+		if ((membrane_lenght - norm(cent)) <= 0)
+		{ microenv.density_vector(n)[density_index] = concentration; }
+	}
+}
+
+// Function to remove a density from the environemnt
+void remove_density(int density_index)
+{
+	for (int n = 0; n < microenvironment.number_of_voxels(); n++)
+		microenvironment.density_vector(n)[density_index] = 0;
+	std::cout << "Removal done" << std::endl;
+}
+
+// Custom coloring function for SVG lpots
 std::vector<std::string> my_coloring_function(Cell *pCell)
 {
 	// start with live coloring
@@ -338,7 +393,6 @@ std::vector<std::string> my_coloring_function(Cell *pCell)
 }
 
 // Function to read init files created with PhysiBoSSv2
-
 std::vector<init_record> read_init_file(std::string filename, char delimiter, bool header)
 {
 	// File pointer
@@ -371,19 +425,15 @@ std::vector<init_record> read_init_file(std::string filename, char delimiter, bo
 		// store it in a string variable, 'word'
 		while (getline(s, word, delimiter))
 		{
-
-			// add all the column data
-			// of a row to a vector
 			row.push_back(word);
 		}
 
 		init_record record;
-		record.x = std::stof(row[2]);
-		record.y = std::stof(row[3]);
-		record.z = std::stof(row[4]);
-		record.radius = std::stof(row[5]);
-		record.phase = std::stoi(row[13]);
-		record.elapsed_time = std::stod(row[14]);
+		record.x =      std::stof(row[0]);
+		record.y =      std::stof(row[1]);
+		record.z =      std::stof(row[2]);
+		record.radius = std::stof(row[3]);
+		record.phase =  std::stoi(row[4]);
 
 		result.push_back(record);
 	} while (!fin.eof());
@@ -391,39 +441,7 @@ std::vector<init_record> read_init_file(std::string filename, char delimiter, bo
 	return result;
 }
 
-
-void set_input_nodes(Cell* pCell) {}
-
-void from_nodes_to_cell(Cell* pCell, Phenotype& phenotype, double dt) {}
-
-void color_node(Cell* pCell)
-{
-	std::string node_name = parameters.strings("node_to_visualize");
-	pCell->custom_data[node_name] = pCell->phenotype.intracellular->get_boolean_variable_value(node_name);
-}
-
-void inject_density_sphere(int density_index, double concentration, double membrane_lenght)
-{
-
-// Inject given concentration on the extremities only
-#pragma omp parallel for
-	for (int n = 0; n < microenvironment.number_of_voxels(); n++)
-	{
-		auto current_voxel = microenvironment.voxels(n);
-		std::vector<double> cent = {current_voxel.center[0], current_voxel.center[1], current_voxel.center[2]};
-
-		if ((membrane_lenght - norm(cent)) <= 0)
-			microenvironment.density_vector(n)[density_index] = concentration;
-	}
-}
-
-void remove_density(int density_index)
-{
-	for (int n = 0; n < microenvironment.number_of_voxels(); n++)
-		microenvironment.density_vector(n)[density_index] = 0;
-	std::cout << "Removal done" << std::endl;
-}
-
+// Cell count functions
 
 double total_live_cell_count()
 {

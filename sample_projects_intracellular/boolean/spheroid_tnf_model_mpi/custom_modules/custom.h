@@ -65,23 +65,22 @@
 ###############################################################################
 */
 
-/*================================================================================
-+ If you use PhysiCell-X in your project, we would really appreciate if you can  +
-+																																							   +
-+ [1] Cite the PhysiCell-X repository by giving its URL												   +
-+																																							   +
-+ [2] Cite BioFVM-X: 																													   +
+/*===================================================================================*
++ If you use PhysiCell-X in your project, we would really appreciate if you can 	 +
++																					 +
++ [1] Cite the PhysiCell-X repository by giving its URL								 +
++																					 +
++ [2] Cite BioFVM-X: 																 +
 +		Saxena, Gaurav, Miguel Ponce-de-Leon, Arnau Montagud, David Vicente Dorca,   +
 +		and Alfonso Valencia. "BioFVM-X: An MPI+ OpenMP 3-D Simulator for Biological + 
 +		Systems." In International Conference on Computational Methods in Systems    +
-+		Biology, pp. 266-279. Springer, Cham, 2021. 																 +
-=================================================================================*/
++		Biology, pp. 266-279. Springer, Cham, 2021. 								 +
+*====================================================================================*/
 
 #include "../core/PhysiCell.h"
 #include "../modules/PhysiCell_standard_modules.h" 
 #include "./tnf_receptor_dynamics.h"
 #include "./tnf_boolean_model_interface.h"
-
 
 #include "../addons/PhysiBoSS/src/maboss_network.h"
 
@@ -95,27 +94,24 @@ struct init_record
 	float z;
 	float radius;
 	int phase;
-	double elapsed_time;
 };
 
 // setup functions to help us along 
 void create_cell_types( void );
-void setup_tissue( void );
 
 /*======================================*/
 /* Parallel prototype of setup_tissue() */
 /*======================================*/
-
 void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &cart_topo); 
-
-// set up the BioFVM microenvironment 
-void setup_microenvironment( void ); 
+// set up the intial cells 
+void setup_tissue( void );
 
 /*================================================*/
 /* Parallel prototype of setup_microenvironment() */
 /*================================================*/
-
 void setup_microenvironment(mpi_Environment &world, mpi_Cartesian &cart_topo);
+// set up the BioFVM microenvironment 
+void setup_microenvironment( void ); 
 
 // custom pathology coloring function 
 std::vector<std::string> my_coloring_function( Cell* );
@@ -127,11 +123,11 @@ void tumor_cell_phenotype_with_signaling( Cell* pCell, Phenotype& phenotype, dou
 // function to keep updated some cell custom variables
 void update_monitor_variables( Cell* pCell );
 
-// helper function to read init files
-std::vector<init_record> read_init_file(std::string filename, char delimiter, bool header);
-
-// helper function that calculates phere volume
-inline float sphere_volume_from_radius(float radius) {return 4/3 * PhysiCell_constants::pi * std::pow(radius, 3);}
+/*===============================================*/
+/* Parallel prototype of inject_density_sphere() */
+/*===============================================*/
+void inject_density_sphere( Microenvironment &m, mpi_Environment &world, mpi_Cartesian &cart_topo, 
+							int density_index, double concentration, double membrane_lenght);
 
 // helper function to inject density surrounding a spheroid
 void inject_density_sphere(int density_index, double concentration, double membrane_lenght);
@@ -139,28 +135,27 @@ void inject_density_sphere(int density_index, double concentration, double membr
 // helper function to remove a density
 void remove_density( int density_index );
 
-// function to create a message
-// std::string cells_message_builder(std::vector<Cell*> all_cells, double timepoint);
+// helper function to read init files
+std::vector<init_record> read_init_file(std::string filename, char delimiter, bool header);
 
-double total_live_cell_count();
+// helper function that calculates phere volume
+inline float sphere_volume_from_radius(float radius) {return 4/3 * PhysiCell_constants::pi * std::pow(radius, 3);}
 
 /*===============================================*/
 /* Parallel prototype of total_live_cell_count() */
 /*===============================================*/
 double total_live_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
-
-
-double total_dead_cell_count();
+double total_live_cell_count();
 
 /*===============================================*/
 /* Parallel prototype of total_dead_cell_count() */
 /*===============================================*/
 double total_dead_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
-
-double total_necrosis_cell_count();
+double total_dead_cell_count();
 
 /*===================================================*/
 /* Parallel prototype of total_necrosis_cell_count() */
 /*===================================================*/
 double total_necrosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
+double total_necrosis_cell_count();
 
