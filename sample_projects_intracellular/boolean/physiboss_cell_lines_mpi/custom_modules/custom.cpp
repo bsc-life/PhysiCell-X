@@ -253,7 +253,7 @@ void tumor_cell_phenotype_with_signaling( Cell* pCell, Phenotype& phenotype, dou
 			&& PhysiCell::PhysiCell_globals.current_time >= 100.0 
 			&& pCell->phenotype.intracellular->get_parameter_value("$time_scale") == 0.0
 		){
-			pCell->phenotype.intracellular->set_parameter_value("$time_scale", 0.1);
+			pCell->phenotype.intracellular->set_parameter_value("$time_scale", 1);
 			pCell->assign_position(pCell->position[0]-300.0, pCell->position[1], 0.0, world, cart_topo);
 		}
 		// set_input_nodes(pCell);

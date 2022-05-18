@@ -83,6 +83,8 @@ long SeedRandom( void );
 double UniformRandom( void );
 int UniformInt( void );
 double NormalRandom( double mean, double standard_deviation );
+double LogNormalRandom( double mean, double standard_deviation );
+
 std::vector<double> UniformOnUnitSphere( void ); 
 std::vector<double> UniformOnUnitCircle( void ); 
 
