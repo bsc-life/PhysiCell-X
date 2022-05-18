@@ -174,7 +174,8 @@ class Cell : public Basic_Agent
 	
 	void update_motility_vector( double dt_ );
 	void advance_bundled_phenotype_functions( double dt_ ); 
-	
+	void advance_bundled_phenotype_functions( double dt_ , mpi_Environment &world, mpi_Cartesian &cart_topo ); // Parallel version
+
 	void add_potentials(Cell*);       // Add repulsive and adhesive forces.
 	
 	/*=========================================================*/
