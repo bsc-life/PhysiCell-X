@@ -228,7 +228,8 @@ reset:
 MaBoSS-clean:
 	rm -fr addons/PhysiBoSS/MaBoSS-env-2.0
 	
-clean: MaBoSS-clean
+clean:
+	# MaBoSS-clean
 	rm -f *.o
 	rm -f $(PROGRAM_NAME)*
 	

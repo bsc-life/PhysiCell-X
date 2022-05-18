@@ -107,22 +107,22 @@ using namespace DistPhy::mpi;
 int main( int argc, char* argv[] )
 {
 
-/*=======================================================================================*/
-/* Create mpi_Environment object, initialize it, then create Cartesian Topology          */
-/*=======================================================================================*/
-	
+	/*=======================================================================================*/
+	/* Create mpi_Environment object, initialize it, then create Cartesian Topology          */
+	/*=======================================================================================*/
+		
 	mpi_Environment world;                         //Object contains size of communicator, rank of process
-  world.Initialize();                            //Initialize using MPI_THREAD_FUNNELED, find comm. size and comm. rank
-  mpi_Cartesian cart_topo;                       //Contains dims[3], ccoords[3] array and MPI_Comm mpi_cart_comm
-  cart_topo.Build_Cartesian_Topology(world);     //Create 1-D X decomposition by setting dims[1]=size. 
-  cart_topo.Find_Cartesian_Coordinates(world);   //Find Cartesian Topology coordinates of each process
-  cart_topo.Find_Left_Right_Neighbours(world); 	 //Finds left/right immediate neighbour processes ranks and stores in X_LEFT/X_RIGHT	
-	
+	world.Initialize();                            //Initialize using MPI_THREAD_FUNNELED, find comm. size and comm. rank
+	mpi_Cartesian cart_topo;                       //Contains dims[3], ccoords[3] array and MPI_Comm mpi_cart_comm
+	cart_topo.Build_Cartesian_Topology(world);     //Create 1-D X decomposition by setting dims[1]=size. 
+	cart_topo.Find_Cartesian_Coordinates(world);   //Find Cartesian Topology coordinates of each process
+	cart_topo.Find_Left_Right_Neighbours(world); 	 //Finds left/right immediate neighbour processes ranks and stores in X_LEFT/X_RIGHT	
+
 	bool XML_status = false; 
 
-/*=========================================================================================================*/    
-/* Call parallel version of load_PhysiCell_config_file function, all processes must load the complete file */
-/*=========================================================================================================*/
+	/*=========================================================================================================*/    
+	/* Call parallel version of load_PhysiCell_config_file function, all processes must load the complete file */
+	/*=========================================================================================================*/
 	
 	if( argc > 1 )
 	{ 
@@ -148,9 +148,9 @@ int main( int argc, char* argv[] )
 	SeedRandom( parameters.ints("random_seed") ); // Or a seed can be specified here
 	std::string time_units = "min"; 
 
-/*========================*/
-/* Microenvironment setup */
-/*========================*/
+	/*========================*/
+	/* Microenvironment setup */
+	/*========================*/
 		
 	setup_microenvironment(world, cart_topo);  
 	
@@ -176,13 +176,14 @@ int main( int argc, char* argv[] )
 	if ( seed_tnf )
 	{
 		inject_density_sphere(tnf_idx, concentration_tnf, membrane_lenght);
+		// inject_density_sphere(tnf_idx, concentration_tnf, membrane_lenght, world, cart_topo);
 		for ( int i = 0; i < 25; i ++ )
 			microenvironment.simulate_diffusion_decay( diffusion_dt, world, cart_topo );
 	}
 
-/*=============================*/	
-/* PhysiCell/PhysiCell-X setup */ 
-/*=============================*/	
+	/*=============================*/	
+	/* PhysiCell/PhysiCell-X setup */ 
+	/*=============================*/	
  	
 	// Mechanical voxel size must be >= Diffusion voxel size (check with PhysiCell_settings.xml)
 	double mechanics_voxel_size = 20; 
@@ -307,6 +308,7 @@ int main( int argc, char* argv[] )
 
 			if ( PhysiCell_globals.current_time <= time_tnf_next )
 			{
+				// inject_density_sphere(tnf_idx, concentration_tnf, membrane_lenght, world, cart_topo);
 				inject_density_sphere(tnf_idx, concentration_tnf, membrane_lenght); 
 			}
 

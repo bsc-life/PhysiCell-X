@@ -343,7 +343,7 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 		{
 			if( (*all_cells)[i]->is_out_of_domain == false )
 			{
-				(*all_cells)[i]->advance_bundled_phenotype_functions( time_since_last_cycle );
+				(*all_cells)[i]->advance_bundled_phenotype_functions( time_since_last_cycle, world, cart_topo );
 			}
 		}
 		/*=====================================================================================*/

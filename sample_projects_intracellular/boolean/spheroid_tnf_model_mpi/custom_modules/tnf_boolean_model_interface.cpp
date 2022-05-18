@@ -135,7 +135,15 @@ void tnf_bm_interface_main(Cell* pCell, Phenotype& phenotype, double dt)
         update_boolean_model_inputs(pCell, phenotype, dt );		
     
         // Run maboss to update the boolean state of the cell
-        pCell->phenotype.intracellular->update();							
+        pCell->phenotype.intracellular->update();
+        
+        MaBoSSIntracellular* physiboss = static_cast<MaBoSSIntracellular*> (pCell->phenotype.intracellular);
+
+        //next_physiboss_run
+        double noise = NormalRandom(0, 2.5);
+        noise = max(-5, noise);
+        noise = min(5, noise);
+        physiboss->next_physiboss_run += noise;
 
         // update the cell fate based on the boolean outputs
         update_cell_from_boolean_model(pCell, phenotype, dt);	
