@@ -308,8 +308,8 @@ int main( int argc, char* argv[] )
 
 			if ( PhysiCell_globals.current_time <= time_tnf_next )
 			{
-				// inject_density_sphere(tnf_idx, concentration_tnf, membrane_lenght, world, cart_topo);
-				inject_density_sphere(tnf_idx, concentration_tnf, membrane_lenght); 
+				inject_density_sphere(tnf_idx, concentration_tnf, membrane_lenght, world, cart_topo);
+				//inject_density_sphere(tnf_idx, concentration_tnf, membrane_lenght); 
 			}
 
 			//Update the microenvironment

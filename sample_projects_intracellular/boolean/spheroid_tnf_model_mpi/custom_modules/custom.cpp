@@ -175,7 +175,7 @@ void setup_tissue(void)
 		float x = cells[i].x;
 		float y = cells[i].y;
 		float z = cells[i].z;
-		double elapsed_time = cells[i].elapsed_time;
+		double elapsed_time = UniformRandom();
 		
 		pCell = create_cell(get_cell_definition("default"));
 		pCell->phenotype.cycle.data.elapsed_time_in_phase = elapsed_time;
@@ -245,7 +245,7 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 								);
         
 		// Updating the highest ID to the starting ID + no. of generated (cell possitions)
-  		Basic_Agent::set_max_ID_in_parallel(strt_cell_ID + generated_positions_at_root.size()); 
+  		Basic_Agent::set_max_ID_in_parallel(strt_cell_ID + cells_postions_at_root.size()); 
 	} 
 	
 	// Distribute cell positions
@@ -344,16 +344,16 @@ void inject_density_sphere(int density_index, double concentration, double membr
 /*------------------------------------------------*/
 /* Parallel version of inject_density_sphere(...) */
 /*------------------------------------------------*/
-void inject_density_sphere( Microenvironment &microenv, mpi_Environment &world, mpi_Cartesian &cart_topo, 
+void inject_density_sphere(mpi_Environment &world, mpi_Cartesian &cart_topo, 
 							int density_index, double concentration, double membrane_lenght) {
 	
 	#pragma omp parallel for
-	for (int n = 0; n < m.number_of_voxels(); n++)
+	for (int n = 0; n < microenvironment.number_of_voxels(); n++)
 	{
-		auto current_voxel = microenv.voxels(n);
+		auto current_voxel = microenvironment.voxels(n);
 		std::vector<double> cent = {current_voxel.center[0], current_voxel.center[1], current_voxel.center[2]};
 		if ((membrane_lenght - norm(cent)) <= 0)
-		{ microenv.density_vector(n)[density_index] = concentration; }
+		{ microenvironment.density_vector(n)[density_index] = concentration; }
 	}
 }
 
