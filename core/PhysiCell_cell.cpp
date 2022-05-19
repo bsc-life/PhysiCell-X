@@ -346,6 +346,65 @@ void Cell::advance_bundled_phenotype_functions( double dt_ )
 	return;
 }
 
+void Cell::advance_bundled_phenotype_functions( double dt_ , mpi_Environment &world, mpi_Cartesian &cart_topo )
+{
+	// call the custom code to update the phenotype
+	if( functions.update_phenotype_parallel )
+	{	functions.update_phenotype_parallel( this , phenotype , dt_ , world, cart_topo ); }
+
+	// update volume
+	if( functions.volume_update_function )
+	{
+		functions.volume_update_function(this,phenotype,dt_);
+
+		// The following line is needed in every volume
+		// regulation method (it sets BioFVM total_volume)
+
+		set_total_volume( phenotype.volume.total );
+	}
+
+	// update geometry
+	phenotype.geometry.update( this, phenotype, dt_ );
+
+	// check for new death events
+	if( phenotype.death.check_for_death( dt_ ) == true )
+	{
+		// if so, change the cycle model to the current death model
+		phenotype.cycle.sync_to_cycle_model( phenotype.death.current_model() );
+
+		// also, turn off motility.
+
+		phenotype.motility.is_motile = false;
+		phenotype.motility.motility_vector.assign( 3, 0.0 );
+		functions.update_migration_bias = NULL;
+
+		// turn off secretion, and reduce uptake by a factor of 10
+		phenotype.secretion.set_all_secretion_to_zero();
+		phenotype.secretion.scale_all_uptake_by_factor( 0.10 );
+
+		// make sure to run the death entry function
+		if( phenotype.cycle.current_phase().entry_function )
+		{
+			phenotype.cycle.current_phase().entry_function( this, phenotype, dt_ );
+		}
+	}
+
+	// advance cycle model (for both cell cycle and death cycle models)
+	phenotype.cycle.advance_cycle( this, phenotype, dt_ );
+	if( phenotype.flagged_for_removal )
+	{
+		flag_for_removal();
+		phenotype.flagged_for_removal = false;
+	}
+	if( phenotype.flagged_for_division )
+	{
+		flag_for_division();
+		phenotype.flagged_for_division = false;
+	}
+
+	return;
+}
+
 Cell::Cell()
 {
 	// use the cell defaults;
