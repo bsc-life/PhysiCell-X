@@ -126,8 +126,8 @@ void update_monitor_variables( Cell* pCell );
 /*===============================================*/
 /* Parallel prototype of inject_density_sphere() */
 /*===============================================*/
-void inject_density_sphere( Microenvironment &m, mpi_Environment &world, mpi_Cartesian &cart_topo, 
-							int density_index, double concentration, double membrane_lenght);
+void inject_density_sphere( int density_index, double concentration, double membrane_lenght, 
+							mpi_Environment &world, mpi_Cartesian &cart_topo );
 
 // helper function to inject density surrounding a spheroid
 void inject_density_sphere(int density_index, double concentration, double membrane_lenght);
