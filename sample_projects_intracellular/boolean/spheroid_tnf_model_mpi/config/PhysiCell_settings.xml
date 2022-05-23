@@ -74,12 +74,12 @@
 
 <PhysiCell_settings version="devel-version">
 	<domain>
-		<x_min>-200</x_min>
-		<x_max>200</x_max>
-		<y_min>-200</y_min>
-		<y_max>200</y_max>
-		<z_min>-200</z_min>
-		<z_max>200</z_max>
+		<x_min>-500</x_min>
+		<x_max>500</x_max>
+		<y_min>-500</y_min>
+		<y_max>500</y_max>
+		<z_min>-500</z_min>
+		<z_max>500</z_max>
 		<dx>20</dx>
 		<dy>20</dy>
 		<dz>20</dz>
@@ -87,7 +87,7 @@
 	</domain>
 	
 	<overall>
-		<max_time units="min">800</max_time> <!-- 1400 -->
+		<max_time units="min">4640</max_time> <!-- 1400 -->
 		<time_units>min</time_units>
 		<space_units>micron</space_units>
 		<dt_diffusion units="min">0.02</dt_diffusion>
@@ -103,7 +103,7 @@
 		<folder>output</folder> <!-- use . for root --> 
 
 		<full_data>
-			<interval units="min">100</interval>
+			<interval units="min">30</interval>
 			<enable>true</enable>
 		</full_data>
 		
@@ -113,7 +113,7 @@
 		</SVG>
 		
 		<legacy_data>
-			<enable>true</enable>
+			<enable>false</enable>
 		</legacy_data>
 	</save>
 	
@@ -158,7 +158,7 @@
 					<phase_transition_rates units="1/min"> 
 						<!-- Cycle duration -->
 						<!-- <rate start_index="0" end_index="0" fixed_duration="false">/0.00075</rate> -->
-						<rate start_index="0" end_index="0" fixed_duration="false">0.041</rate>
+						<rate start_index="0" end_index="0" fixed_duration="false">0.0016</rate>
 					</phase_transition_rates>
 				</cycle>
 				
@@ -256,7 +256,7 @@
 
 	<user_parameters>
 		<random_seed type="int" units="dimensionless">0</random_seed> 
-		<init_cells_filename type="string" units="">./config/init_5k.txt</init_cells_filename>
+		<init_cells_filename type="string" units="">./config/init.txt</init_cells_filename>
 		<time_add_tnf type="int" units="min">335.121</time_add_tnf>
 		<duration_add_tnf type="int" units="min">17.689</duration_add_tnf>
 		<concentration_tnf type="double" units="TNF/um^3">0.0316</concentration_tnf>
