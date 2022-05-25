@@ -67,14 +67,14 @@
 
 /*================================================================================
 + If you use PhysiCell-X in your project, we would really appreciate if you can  +
-+																																							   +
-+ [1] Cite the PhysiCell-X repository by giving its URL												   +
-+																																							   +
-+ [2] Cite BioFVM-X: 																													   +
++																				 +
++ [1] Cite the PhysiCell-X repository by giving its URL							 +
++																				 +
++ [2] Cite BioFVM-X: 															 +
 +		Saxena, Gaurav, Miguel Ponce-de-Leon, Arnau Montagud, David Vicente Dorca,   +
 +		and Alfonso Valencia. "BioFVM-X: An MPI+ OpenMP 3-D Simulator for Biological + 
 +		Systems." In International Conference on Computational Methods in Systems    +
-+		Biology, pp. 266-279. Springer, Cham, 2021. 																 +
++		Biology, pp. 266-279. Springer, Cham, 2021. 							 +
 =================================================================================*/
 
 /*=======================================*/
@@ -249,19 +249,19 @@ int main( int argc, char* argv[] )
 				{				
 					//Count Necrotic, Apoptotic and Alive cells
 					std::string message;
-					std::string topic_name = "cells";
 					double timepoint = PhysiCell_globals.current_time;
-					int alive_no,necrotic_no,apoptotic_no;
+					int alive_no, necrotic_no, apoptotic_no;
+					float total_tnf;
 					
 					//Call the parallel versions of the function now which use MPI_Reduce at rank 0 
-					alive_no 		= total_live_cell_count(world, cart_topo);
-					necrotic_no 	= total_necrosis_cell_count(world, cart_topo);
-					apoptotic_no 	= total_dead_cell_count(world, cart_topo);
-					pid_t pid_var   = getpid();
-										
+					alive_no 		 = total_live_cell_count(world, cart_topo);
+					necrotic_no 	 = total_necrosis_cell_count(world, cart_topo);
+					apoptotic_no 	 = total_dead_cell_count(world, cart_topo);
+					total_tnf        = get_total_tnf(world, cart_topo);
+
 					//Create number of cell types message on root process (use if desired)
 					if(IOProcessor(world)) 
-						message = std::to_string(pid_var) + ';' + std::to_string(timepoint) + ';' + std::to_string(alive_no) + ';' + std::to_string(apoptotic_no) + ';' + std::to_string(necrotic_no) + ';';
+						message = std::to_string(timepoint) + ';' + std::to_string(alive_no) + ';' + std::to_string(apoptotic_no) + ';' + std::to_string(necrotic_no) + ';' + std::to_string(total_tnf) + '\n';
 					
 				}
 				
@@ -269,9 +269,9 @@ int main( int argc, char* argv[] )
 				{	
 					sprintf( filename , "%s/output%08u" , PhysiCell_settings.folder.c_str(),  PhysiCell_globals.full_output_index ); 
 					
-					//Use parallel version of function 
+					// Use parallel version of function 
 					save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo ); 
-					//Use serial version
+					// Use serial version
 					// save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time);
 				}
 				
@@ -310,7 +310,6 @@ int main( int argc, char* argv[] )
 			if ( PhysiCell_globals.current_time <= time_tnf_next )
 			{
 				inject_density_sphere(tnf_idx, concentration_tnf, membrane_lenght, world, cart_topo);
-				//inject_density_sphere(tnf_idx, concentration_tnf, membrane_lenght); 
 			}
 
 			//Update the microenvironment

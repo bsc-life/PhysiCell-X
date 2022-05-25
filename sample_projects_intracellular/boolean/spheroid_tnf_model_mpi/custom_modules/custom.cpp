@@ -520,7 +520,7 @@ double total_necrosis_cell_count()
 	return out;
 }
 
-double total_tnf(mpi_Environment &world, mpi_Cartesian &cart_topo)
+double get_total_tnf(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
 	double out = 0.0, global_out;
 	int density_index = 1;

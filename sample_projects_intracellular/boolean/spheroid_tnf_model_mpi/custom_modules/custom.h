@@ -159,3 +159,6 @@ double total_dead_cell_count();
 double total_necrosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
 double total_necrosis_cell_count();
 
+
+double get_total_tnf(mpi_Environment &world, mpi_Cartesian &cart_topo);
+
