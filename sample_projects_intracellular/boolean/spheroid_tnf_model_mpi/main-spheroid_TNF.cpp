@@ -254,10 +254,10 @@ int main( int argc, char* argv[] )
 					int alive_no,necrotic_no,apoptotic_no;
 					
 					//Call the parallel versions of the function now which use MPI_Reduce at rank 0 
-					alive_no 			= total_live_cell_count(world, cart_topo);
+					alive_no 		= total_live_cell_count(world, cart_topo);
 					necrotic_no 	= total_necrosis_cell_count(world, cart_topo);
 					apoptotic_no 	= total_dead_cell_count(world, cart_topo);
-					pid_t pid_var = getpid();
+					pid_t pid_var   = getpid();
 										
 					//Create number of cell types message on root process (use if desired)
 					if(IOProcessor(world)) 

@@ -520,16 +520,13 @@ double total_necrosis_cell_count()
 	return out;
 }
 
-double total_necrosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+double total_tnf(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
 	double out = 0.0, global_out;
-
-	for (int i = 0; i < (*all_cells).size(); i++)
+	int density_index = 1;
+	for (int n = 0; n < microenvironment.number_of_voxels(); n++)
 	{
-		if ((*all_cells)[i]->phenotype.death.dead == true && (*all_cells)[i]->phenotype.death.current_death_model_index == 1)
-		{
-			out += 1.0;
-		}
+		out += microenvironment.density_vector(n)[density_index];
 	}
 
 	MPI_Reduce(&out, &global_out, 1, MPI_DOUBLE, MPI_SUM, 0, cart_topo.mpi_cart_comm);
