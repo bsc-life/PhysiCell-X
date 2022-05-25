@@ -175,8 +175,8 @@ int main( int argc, char* argv[] )
 	//Do small diffusion steps to initialize densities in case seed_tnf is true
 	if ( seed_tnf )
 	{
-		inject_density_sphere(tnf_idx, concentration_tnf, membrane_lenght);
-		// inject_density_sphere(tnf_idx, concentration_tnf, membrane_lenght, world, cart_topo);
+		//inject_density_sphere(tnf_idx, concentration_tnf, membrane_lenght);
+		inject_density_sphere(tnf_idx, concentration_tnf, membrane_lenght, world, cart_topo);
 		for ( int i = 0; i < 25; i ++ )
 			microenvironment.simulate_diffusion_decay( diffusion_dt, world, cart_topo );
 	}
@@ -271,7 +271,8 @@ int main( int argc, char* argv[] )
 					
 					//Use parallel version of function 
 					save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo ); 
-					
+					//Use serial version
+					// save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time);
 				}
 				
 				PhysiCell_globals.full_output_index++; 
@@ -332,11 +333,13 @@ int main( int argc, char* argv[] )
 	
 	//Save a final simulation snapshot 
 	sprintf( filename , "%s/final" , PhysiCell_settings.folder.c_str() ); 
-	save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo ); 
+	save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo );
+	// save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time); 
 	
 	sprintf( filename , "%s/final.svg" , PhysiCell_settings.folder.c_str() ); 
 	SVG_plot( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function, world, cart_topo );
-
+	// SVG_plot( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function);
+	
 	
 	//Timer
 	if(IOProcessor(world)) 
