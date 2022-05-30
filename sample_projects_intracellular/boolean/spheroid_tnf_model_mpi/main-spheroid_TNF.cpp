@@ -229,19 +229,15 @@ int main( int argc, char* argv[] )
 	//Set the performance timers 
 	BioFVM::RUNTIME_TIC();
 	BioFVM::TIC();
-	std::ofstream report_file;
-	
-	sprintf(filename , "%s/simulation_report.txt" , PhysiCell_settings.folder.c_str() ); 
-	report_file.open(filename); 	// create the data log file 
-	report_file << "timepoint\talive\tapoptotic\tnectortic";
-	report_file << "\tmean_free_tnfr\tmean_active_tnfr\tmean_int_TNF\ttotal_tnf"<<std::endl;
 
-	// if( PhysiCell_settings.enable_legacy_saves == false )
-	// {	
-	// 	sprintf( filename , "%s/simulation_report.txt" , PhysiCell_settings.folder.c_str() ); 
-	// 	report_file.open(filename); 	// create the data log file 
-	// 	report_file<<"timepoint\talive\tapoptotic\tnectortic\ttnf"<<std::endl;
-	// }
+	std::ofstream report_file;
+	if( world.rank == 0 )
+	{
+		sprintf(filename , "%s/simulation_report.txt" , PhysiCell_settings.folder.c_str() ); 
+		report_file.open(filename); 	// create the data log file 
+		report_file << "timepoint\talive\tapoptotic\tnectortic";
+		report_file << "\tmean_free_tnfr\tmean_active_tnfr\tmean_int_TNF\ttotal_tnf"<<std::endl;
+	}
 
 	if(IOProcessor(world))
 		std::cout << PhysiCell_settings.enable_legacy_saves << std::endl;
@@ -259,7 +255,7 @@ int main( int argc, char* argv[] )
 				//Use the parallel version of the function	
 				display_simulation_status( std::cout, world, cart_topo );
 
-				if (world.rank == 0) 
+				if( world.rank == 0) 
 				{
 					//Count Necrotic, Apoptotic and Alive cells
 					double timepoint = PhysiCell_globals.current_time;
@@ -360,6 +356,10 @@ int main( int argc, char* argv[] )
 			
 			PhysiCell_globals.current_time += diffusion_dt;
 		}
+		if (world.rank == 0)
+		{
+			report_file.close();
+		}
 	}
 	catch( const std::exception& e )
 	{ 
@@ -382,9 +382,9 @@ int main( int argc, char* argv[] )
 	{
 		std::cout << std::endl << "Total simulation runtime: " << std::endl;
 		BioFVM::display_stopwatch_value( std::cout , BioFVM::runtime_stopwatch_value() ); 
-  }
+ 	 }
   
-  //Gracefully shut-down MPI i.e. distributed parallelization
+  	//Gracefully shut-down MPI i.e. distributed parallelization
 	world.Finalize(); 
 	
 	return 0; 

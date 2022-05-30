@@ -281,7 +281,7 @@ int main( int argc, char* argv[] )
 	}
 	
 	//Gracefully shut-down MPI 
-  world.Finalize(); 
+  	world.Finalize(); 
 
 	return 0; 
 }

@@ -451,23 +451,19 @@ double total_live_cell_count()
 	{
 		if ((*all_cells)[i]->phenotype.death.dead == false && (*all_cells)[i]->type == 0)
 		{
-			out += 1.0;
+			out++;
 		}
 	}
 
 	return out;
 }
-
 double total_live_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
 	double out = 0.0, global_out;
-
 	for (int i = 0; i < (*all_cells).size(); i++)
 	{
 		if ((*all_cells)[i]->phenotype.death.dead == false && (*all_cells)[i]->type == 0)
-		{
-			out += 1.0;
-		}
+			out++;
 	}
 	
 	MPI_Reduce(&out, &global_out, 1, MPI_DOUBLE, MPI_SUM, 0, cart_topo.mpi_cart_comm);
@@ -488,7 +484,6 @@ double total_dead_cell_count()
 
 	return out;
 }
-
 double total_dead_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
 	double out = 0.0, global_out;
@@ -496,9 +491,7 @@ double total_dead_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
 	for (int i = 0; i < (*all_cells).size(); i++)
 	{
 		if ((*all_cells)[i]->phenotype.death.dead == true && (*all_cells)[i]->phenotype.death.current_death_model_index == 0)
-		{
-			out += 1.0;
-		}
+			out++;
 	}
 
 	MPI_Reduce(&out, &global_out, 1, MPI_DOUBLE, MPI_SUM, 0, cart_topo.mpi_cart_comm);
@@ -526,9 +519,7 @@ double total_necrosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_top
 	for (int i = 0; i < (*all_cells).size(); i++)
 	{
 		if ((*all_cells)[i]->phenotype.death.dead == true && (*all_cells)[i]->phenotype.death.current_death_model_index == 1)
-		{
-			out += 1.0;
-		}
+			out++;
 	}
 	MPI_Reduce(&out, &global_out, 1, MPI_DOUBLE, MPI_SUM, 0, cart_topo.mpi_cart_comm);
 	return global_out;
@@ -538,6 +529,7 @@ double get_total_tnf(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
 	double out = 0.0, global_out;
 	int density_index = 1;
+
 	for (int n = 0; n < microenvironment.number_of_voxels(); n++)
 	{
 		out += microenvironment.density_vector(n)[density_index];
@@ -555,6 +547,10 @@ double mean_custom_variable_live(std::string var_name, mpi_Environment &world, m
 	static int var_index;
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 	Cell* pCell;
+
+	if(IOProcessor(world))
+		std::cout << "Time to save" << std::endl;
+
 	for (int i = 0; i < (*all_cells).size(); i++)
 	{
 		pCell = (*all_cells)[i];
@@ -562,9 +558,9 @@ double mean_custom_variable_live(std::string var_name, mpi_Environment &world, m
 		{ continue; }
 		var_index = pCell->custom_data.find_variable_index(var_name);
 		out += pCell->custom_data[var_index];
-		n += 1;
+		n++;
 	}
-	out = out/ ( n * world_size);
+	out = out / ( n * world_size);
 	MPI_Reduce(&out, &global_out, 1, MPI_DOUBLE, MPI_SUM, 0, cart_topo.mpi_cart_comm);
 	return global_out;
 }
@@ -572,7 +568,8 @@ double mean_custom_variable_live(std::string var_name, mpi_Environment &world, m
 double mean_free_TNF_receptor(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
 	std::string var_name = "unbound_external_TNFR";
-	double result = mean_custom_variable_live(var_name, world, cart_topo);
+	double result = 0;
+	result = mean_custom_variable_live(var_name, world, cart_topo);
 	return result;
 }
 
