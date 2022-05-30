@@ -162,8 +162,12 @@ double total_necrosis_cell_count();
 
 double get_total_tnf(mpi_Environment &world, mpi_Cartesian &cart_topo);
 
-double mean_custom_variable_live(std::string var_name, mpi_Environment &world, mpi_Cartesian &cart_topo);
-double mean_free_TNF_receptor(mpi_Environment &world, mpi_Cartesian &cart_topo);
-double mean_active_TNF_receptor(mpi_Environment &world, mpi_Cartesian &cart_topo);
-double mean_internalized_TNF_receptor(mpi_Environment &world, mpi_Cartesian &cart_topo);
+double total_custom_variable_live(std::string var_name, mpi_Environment &world, mpi_Cartesian &cart_topo);
+double total_free_TNF_receptor(mpi_Environment &world, mpi_Cartesian &cart_topo);
+double total_active_TNF_receptor(mpi_Environment &world, mpi_Cartesian &cart_topo);
+double total_internalized_TNF_receptor(mpi_Environment &world, mpi_Cartesian &cart_topo);
+
+double total_active_TNF_node(mpi_Environment &world, mpi_Cartesian &cart_topo);
+double total_active_FADD_node(mpi_Environment &world, mpi_Cartesian &cart_topo);
+double total_active_NFKb_node(mpi_Environment &world, mpi_Cartesian &cart_topo);
 

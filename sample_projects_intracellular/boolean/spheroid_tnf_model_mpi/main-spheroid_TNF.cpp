@@ -236,7 +236,7 @@ int main( int argc, char* argv[] )
 		sprintf(filename , "%s/simulation_report.txt" , PhysiCell_settings.folder.c_str() ); 
 		report_file.open(filename); 	// create the data log file 
 		report_file << "timepoint\talive\tapoptotic\tnectortic";
-		report_file << "\tmean_free_tnfr\tmean_active_tnfr\tmean_int_TNF\ttotal_tnf"<<std::endl;
+		report_file << "\ttotal_free_tnfr\ttotal_active_tnfr\ttotal_int_TNF\ttotal_tnf"<<std::endl;
 	}
 
 	if(IOProcessor(world))
@@ -254,49 +254,33 @@ int main( int argc, char* argv[] )
 					
 				//Use the parallel version of the function	
 				display_simulation_status( std::cout, world, cart_topo );
-
-									//Count Necrotic, Apoptotic and Alive cells
-					double timepoint = PhysiCell_globals.current_time;
-					int alive_no, necrotic_no, apoptotic_no;
-					float total_tnf, mean_free_tnfr, mean_active_tnfr, mean_int_TNF;
-					
-					//Call the parallel versions of the function now which use MPI_Reduce at rank 0 
-					alive_no 		 = total_live_cell_count(world, cart_topo);
-					necrotic_no 	 = total_necrosis_cell_count(world, cart_topo);
-					apoptotic_no 	 = total_dead_cell_count(world, cart_topo);
-
-					total_tnf        = get_total_tnf(world, cart_topo);
-					mean_free_tnfr   = mean_free_TNF_receptor(world, cart_topo);
-					mean_active_tnfr = mean_active_TNF_receptor(world, cart_topo);
-					mean_int_TNF     = mean_internalized_TNF_receptor(world, cart_topo);
+				
+				double timepoint = PhysiCell_globals.current_time;
+				
+				//Count Necrotic, Apoptotic and Alive cells
+				int alive_no, necrotic_no, apoptotic_no;
+				float total_tnf, total_free_tnfr, total_active_tnfr, total_int_TNF;
+				float total_active_TNF, total_active_FADD, total_active_NFKb;
+				
+				//Call the parallel versions of the function now which use MPI_Reduce at rank 0 
+				alive_no 		  = total_live_cell_count(world, cart_topo);
+				necrotic_no 	  = total_necrosis_cell_count(world, cart_topo);
+				apoptotic_no 	  = total_dead_cell_count(world, cart_topo);
+				total_tnf         = get_total_tnf(world, cart_topo);
+				total_free_tnfr   = total_free_TNF_receptor(world, cart_topo);
+				total_active_tnfr = total_active_TNF_receptor(world, cart_topo);
+				total_int_TNF     = total_internalized_TNF_receptor(world, cart_topo);
+				total_active_TNF  = total_active_TNF_node(world, cart_topo);
+				total_active_FADD = total_active_FADD_node(world, cart_topo);
+				total_active_NFKb = total_active_NFKb_node(world, cart_topo);
 
 				if( world.rank == 0) 
 				{
 					report_file << PhysiCell_globals.current_time << "\t" << alive_no << "\t" << necrotic_no << "\t" << apoptotic_no;
-					report_file << "\t" << mean_free_tnfr << mean_active_tnfr << mean_int_TNF << total_tnf<<std::endl;
+					report_file << "\t" << total_free_tnfr << "\t" << total_active_tnfr << "\t" << total_int_TNF;
+					report_file << "\t" << total_active_TNF << "\t" << total_active_FADD << "\t" << total_active_NFKb;
+					report_file << "\t" << total_tnf  <<std::endl;
 				}
-
-				//enble _legacy_saves doesnt get stored correctly as true 
-				// if( PhysiCell_settings.enable_legacy_saves == false || PhysiCell_settings.enable_legacy_saves == true)
-				// {				
-				// 	//Count Necrotic, Apoptotic and Alive cells
-				// 	double timepoint = PhysiCell_globals.current_time;
-				// 	int alive_no, necrotic_no, apoptotic_no;
-				// 	float total_tnf;
-					
-				// 	//Call the parallel versions of the function now which use MPI_Reduce at rank 0 
-				// 	alive_no 		 = total_live_cell_count(world, cart_topo);
-				// 	necrotic_no 	 = total_necrosis_cell_count(world, cart_topo);
-				// 	apoptotic_no 	 = total_dead_cell_count(world, cart_topo);
-				// 	total_tnf        = get_total_tnf(world, cart_topo);
-
-				// 	//Create number of cell types message on root process (use if desired)	
-				// 	//Try to write file in serial way
-				// 	//first collect data from all processes?
-				// 	if (world.rank == 0) {
-				// 		report_file<<PhysiCell_globals.current_time<<"\t"<<alive_no<<"\t"<<necrotic_no<<"\t"<<apoptotic_no<<"\t"<<total_tnf<< std::endl;
-				// 	}
-				// }
 				
 				if( PhysiCell_settings.enable_full_saves == true )
 				{	

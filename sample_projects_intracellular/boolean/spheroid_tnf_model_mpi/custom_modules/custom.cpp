@@ -265,7 +265,7 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 								mc.my_cell_coords[ 3*i + 2 ],
 								world, cart_topo ); 
 
-		
+		/*
 		static int idx_bind_rate = pCell->custom_data.find_variable_index( "TNFR_binding_rate" );
 		static float mean_bind_rate = pCell->custom_data[idx_bind_rate];
 		static float std_bind_rate = parameters.doubles("TNFR_binding_rate_std");
@@ -307,7 +307,7 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 			if (pCell->custom_data[idx_recycle_rate] > max_recycle_rate)
 			{ pCell->custom_data[idx_recycle_rate] = max_recycle_rate; }
 		}
-
+		*/
 		update_monitor_variables(pCell);				
 	}
 	 
@@ -539,7 +539,7 @@ double get_total_tnf(mpi_Environment &world, mpi_Cartesian &cart_topo)
 	return global_out;
 }
 
-double mean_custom_variable_live(std::string var_name, mpi_Environment &world, mpi_Cartesian &cart_topo)
+double total_custom_variable_live(std::string var_name, mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
 	double out = 0.0;
 	double global_out;
@@ -555,31 +555,55 @@ double mean_custom_variable_live(std::string var_name, mpi_Environment &world, m
 		{ continue; }
 		var_index = pCell->custom_data.find_variable_index(var_name);
 		out += pCell->custom_data[var_index];
-		n += n;
+		n++;
 	}
-	// out = out / ( n  world_size);
+	// out = out / ( n * world_size);
 	MPI_Reduce(&out, &global_out, 1, MPI_DOUBLE, MPI_SUM, 0, cart_topo.mpi_cart_comm);
 	return global_out;
 }
 
-double mean_free_TNF_receptor(mpi_Environment &world, mpi_Cartesian &cart_topo)
+double total_free_TNF_receptor(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
 	std::string var_name = "unbound_external_TNFR";
-	double result = 0;
-	result = mean_custom_variable_live(var_name, world, cart_topo);
+	result = total_custom_variable_live(var_name, world, cart_topo);
 	return result;
 }
 
-double mean_active_TNF_receptor(mpi_Environment &world, mpi_Cartesian &cart_topo)
+double total_active_TNF_receptor(mpi_Environment &world, mpi_Cartesian &cart_topo)
 { 
 	std::string var_name = "bound_external_TNFR";
-	double result = mean_custom_variable_live(var_name, world, cart_topo);
+	double result = total_custom_variable_live(var_name, world, cart_topo);
 	return result;
 }
 
-double mean_internalized_TNF_receptor(mpi_Environment &world, mpi_Cartesian &cart_topo)
+double total_internalized_TNF_receptor(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
 	std::string var_name = "bound_internal_TNFR" ;
+	double result = total_custom_variable_live(var_name, world, cart_topo);
+	return result;
+	
+}
+
+
+double total_active_TNF_node(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	std::string var_name = "tnf_node";
+	double result = mean_custom_variable_live(var_name, world, cart_topo);
+	return result;
+	
+}
+
+double total_active_FADD_node(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	std::string var_name = "fadd_node";
+	double result = mean_custom_variable_live(var_name, world, cart_topo);
+	return result;
+	
+}
+
+double total_active_NFKb_node(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	std::string var_name = "nfkb_node";
 	double result = mean_custom_variable_live(var_name, world, cart_topo);
 	return result;
 	
