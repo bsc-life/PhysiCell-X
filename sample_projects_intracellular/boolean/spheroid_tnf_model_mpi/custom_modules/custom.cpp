@@ -344,8 +344,8 @@ void inject_density_sphere(int density_index, double concentration, double membr
 /*------------------------------------------------*/
 /* Parallel version of inject_density_sphere(...) */
 /*------------------------------------------------*/
-void inject_density_sphere(mpi_Environment &world, mpi_Cartesian &cart_topo, 
-							int density_index, double concentration, double membrane_lenght) {
+void inject_density_sphere(int density_index, double concentration, double membrane_lenght,
+							mpi_Environment &world, mpi_Cartesian &cart_topo) {
 	
 	#pragma omp parallel for
 	for (int n = 0; n < microenvironment.number_of_voxels(); n++)
@@ -518,6 +518,20 @@ double total_necrosis_cell_count()
 	}
 
 	return out;
+}
+double total_necrosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	double out = 0.0, global_out;
+
+	for (int i = 0; i < (*all_cells).size(); i++)
+	{
+		if ((*all_cells)[i]->phenotype.death.dead == true && (*all_cells)[i]->phenotype.death.current_death_model_index == 1)
+		{
+			out += 1.0;
+		}
+	}
+	MPI_Reduce(&out, &global_out, 1, MPI_DOUBLE, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+	return global_out;
 }
 
 double get_total_tnf(mpi_Environment &world, mpi_Cartesian &cart_topo)

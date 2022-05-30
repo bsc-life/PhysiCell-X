@@ -229,8 +229,16 @@ int main( int argc, char* argv[] )
 	//Set the performance timers 
 	BioFVM::RUNTIME_TIC();
 	BioFVM::TIC();
-	
-	
+	std::ofstream report_file;
+	if( PhysiCell_settings.enable_legacy_saves == false )
+	{	
+		sprintf( filename , "%s/simulation_report.txt" , PhysiCell_settings.folder.c_str() ); 
+		
+		report_file.open(filename); 	// create the data log file 
+		report_file<<"timepoint\talive\tapoptotic\tnectortic\ttnf"<<std::endl;
+	}
+	if(IOProcessor(world))
+		std::cout << PhysiCell_settings.enable_legacy_saves << std::endl;
 	//Main loop of the program 
 	try 
 	{		
@@ -244,11 +252,11 @@ int main( int argc, char* argv[] )
 					
 				//Use the parallel version of the function	
 				display_simulation_status( std::cout, world, cart_topo );
-				 
-				if( PhysiCell_settings.enable_legacy_saves == true )
+
+				//enble _legacy_saves doesnt get stored correctly as true 
+				if( PhysiCell_settings.enable_legacy_saves == false || PhysiCell_settings.enable_legacy_saves == true)
 				{				
 					//Count Necrotic, Apoptotic and Alive cells
-					std::string message;
 					double timepoint = PhysiCell_globals.current_time;
 					int alive_no, necrotic_no, apoptotic_no;
 					float total_tnf;
@@ -259,10 +267,12 @@ int main( int argc, char* argv[] )
 					apoptotic_no 	 = total_dead_cell_count(world, cart_topo);
 					total_tnf        = get_total_tnf(world, cart_topo);
 
-					//Create number of cell types message on root process (use if desired)
-					if(IOProcessor(world)) 
-						message = std::to_string(timepoint) + ';' + std::to_string(alive_no) + ';' + std::to_string(apoptotic_no) + ';' + std::to_string(necrotic_no) + ';' + std::to_string(total_tnf) + '\n';
-					
+					//Create number of cell types message on root process (use if desired)	
+					//Try to write file in serial way
+					//first collect data from all processes?
+					if (world.rank == 0){
+						report_file<<PhysiCell_globals.current_time<<"\t"<<alive_no<<"\t"<<necrotic_no<<"\t"<<apoptotic_no<<"\t"<<total_tnf<< std::endl;
+					}
 				}
 				
 				if( PhysiCell_settings.enable_full_saves == true )
