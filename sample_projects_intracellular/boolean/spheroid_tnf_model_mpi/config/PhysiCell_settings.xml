@@ -104,7 +104,7 @@
 
 		<full_data>
 			<interval units="min">30</interval>
-			<enable>true</enable>
+			<enable>false</enable>
 		</full_data>
 		
 		<SVG>
@@ -113,7 +113,7 @@
 		</SVG>
 		
 		<legacy_data>
-			<enable>true</enable>
+			<enable>false</enable>
 		</legacy_data>
 	</save>
 	

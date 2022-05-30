@@ -565,7 +565,7 @@ double total_custom_variable_live(std::string var_name, mpi_Environment &world, 
 double total_free_TNF_receptor(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
 	std::string var_name = "unbound_external_TNFR";
-	result = total_custom_variable_live(var_name, world, cart_topo);
+	double result = total_custom_variable_live(var_name, world, cart_topo);
 	return result;
 }
 
@@ -588,7 +588,7 @@ double total_internalized_TNF_receptor(mpi_Environment &world, mpi_Cartesian &ca
 double total_active_TNF_node(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
 	std::string var_name = "tnf_node";
-	double result = mean_custom_variable_live(var_name, world, cart_topo);
+	double result = total_custom_variable_live(var_name, world, cart_topo);
 	return result;
 	
 }
@@ -596,7 +596,7 @@ double total_active_TNF_node(mpi_Environment &world, mpi_Cartesian &cart_topo)
 double total_active_FADD_node(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
 	std::string var_name = "fadd_node";
-	double result = mean_custom_variable_live(var_name, world, cart_topo);
+	double result = total_custom_variable_live(var_name, world, cart_topo);
 	return result;
 	
 }
@@ -604,7 +604,7 @@ double total_active_FADD_node(mpi_Environment &world, mpi_Cartesian &cart_topo)
 double total_active_NFKb_node(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
 	std::string var_name = "nfkb_node";
-	double result = mean_custom_variable_live(var_name, world, cart_topo);
+	double result = total_custom_variable_live(var_name, world, cart_topo);
 	return result;
 	
 }
