@@ -255,9 +255,7 @@ int main( int argc, char* argv[] )
 				//Use the parallel version of the function	
 				display_simulation_status( std::cout, world, cart_topo );
 
-				if( world.rank == 0) 
-				{
-					//Count Necrotic, Apoptotic and Alive cells
+									//Count Necrotic, Apoptotic and Alive cells
 					double timepoint = PhysiCell_globals.current_time;
 					int alive_no, necrotic_no, apoptotic_no;
 					float total_tnf, mean_free_tnfr, mean_active_tnfr, mean_int_TNF;
@@ -272,6 +270,8 @@ int main( int argc, char* argv[] )
 					mean_active_tnfr = mean_active_TNF_receptor(world, cart_topo);
 					mean_int_TNF     = mean_internalized_TNF_receptor(world, cart_topo);
 
+				if( world.rank == 0) 
+				{
 					report_file << PhysiCell_globals.current_time << "\t" << alive_no << "\t" << necrotic_no << "\t" << apoptotic_no;
 					report_file << "\t" << mean_free_tnfr << mean_active_tnfr << mean_int_TNF << total_tnf<<std::endl;
 				}

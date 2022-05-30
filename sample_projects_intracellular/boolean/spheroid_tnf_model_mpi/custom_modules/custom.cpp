@@ -548,9 +548,6 @@ double mean_custom_variable_live(std::string var_name, mpi_Environment &world, m
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 	Cell* pCell;
 
-	if(IOProcessor(world))
-		std::cout << "Time to save" << std::endl;
-
 	for (int i = 0; i < (*all_cells).size(); i++)
 	{
 		pCell = (*all_cells)[i];
@@ -558,9 +555,9 @@ double mean_custom_variable_live(std::string var_name, mpi_Environment &world, m
 		{ continue; }
 		var_index = pCell->custom_data.find_variable_index(var_name);
 		out += pCell->custom_data[var_index];
-		n++;
+		n += n;
 	}
-	out = out / ( n * world_size);
+	// out = out / ( n  world_size);
 	MPI_Reduce(&out, &global_out, 1, MPI_DOUBLE, MPI_SUM, 0, cart_topo.mpi_cart_comm);
 	return global_out;
 }
