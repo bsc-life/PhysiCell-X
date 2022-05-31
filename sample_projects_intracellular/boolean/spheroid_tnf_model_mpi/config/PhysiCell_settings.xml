@@ -253,9 +253,9 @@
 		<debug_mode type="int" units="dimensionless">0</debug_mode>
 		
 		<init_cells_filename type="string" units="">./config/init.txt</init_cells_filename>
-		<time_add_tnf type="int" units="min">335.121</time_add_tnf>
-		<duration_add_tnf type="int" units="min">17.689</duration_add_tnf>
-		<concentration_tnf type="double" units="TNF/um^3">0.0316</concentration_tnf>
+		<time_add_tnf type="int" units="min">335</time_add_tnf>
+		<duration_add_tnf type="int" units="min">18</duration_add_tnf>
+		<concentration_tnf type="double" units="TNF/um^3">0.00316</concentration_tnf>
 		<time_remove_tnf type="int" units="min">100000</time_remove_tnf>
 		<membrane_length type="int" units=""> 170 </membrane_length>
 

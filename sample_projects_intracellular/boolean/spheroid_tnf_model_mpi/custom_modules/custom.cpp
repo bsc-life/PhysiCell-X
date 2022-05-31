@@ -106,7 +106,7 @@ void create_cell_types(void)
 	cell_defaults.functions.update_velocity_parallel = standard_update_cell_velocity;
 	cell_defaults.functions.volume_update_function = standard_volume_update_function;
 	cell_defaults.functions.update_phenotype = tumor_cell_phenotype_with_signaling;
-	cell_defaults.functions.update_phenotype_parallel = tumor_cell_phenotype_with_signaling_parallel;
+	cell_defaults.functions.update_phenotype_parallel = tumor_cell_phenotype_with_signaling;
 	
 	cell_defaults.functions.update_migration_bias = NULL;
 	cell_defaults.functions.custom_cell_rule = NULL;

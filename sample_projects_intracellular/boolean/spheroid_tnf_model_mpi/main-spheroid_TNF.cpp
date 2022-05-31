@@ -156,13 +156,13 @@ int main( int argc, char* argv[] )
 	
 	//User parameters
 	double time_add_tnf = parameters.ints("time_add_tnf");
-	double time_put_tnf = 0;
+	double time_put_tnf = time_add_tnf;
 	double duration_add_tnf = parameters.ints("duration_add_tnf");
-	double time_tnf_next = 0;
+	double time_tnf_next = -1;
 	double time_remove_tnf = parameters.ints("time_remove_tnf");
 	
 	
-	double concentration_tnf = parameters.doubles("concentration_tnf") * 0.1;
+	double concentration_tnf = parameters.doubles("concentration_tnf");
 	
 	//Radius around which the tnf pulse is injected
 	double membrane_lenght = parameters.ints("membrane_length");
@@ -170,9 +170,8 @@ int main( int argc, char* argv[] )
 	//TNF density index
 	static int tnf_idx = microenvironment.find_density_index("tnf");	
 	
-	bool seed_tnf = false;
-	
 	//Do small diffusion steps to initialize densities in case seed_tnf is true
+	bool seed_tnf = false;
 	if ( seed_tnf )
 	{
 		//inject_density_sphere(tnf_idx, concentration_tnf, membrane_lenght);
