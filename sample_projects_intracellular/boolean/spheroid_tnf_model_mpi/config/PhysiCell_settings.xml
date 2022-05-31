@@ -87,7 +87,7 @@
 	</domain>
 	
 	<overall>
-		<max_time units="min">1440</max_time> <!-- 1400 -->
+		<max_time units="min">2040</max_time> <!-- 1400 -->
 		<time_units>min</time_units>
 		<space_units>micron</space_units>
 		<dt_diffusion units="min">0.02</dt_diffusion>
@@ -157,7 +157,7 @@
 					<!-- using higher than normal significant digits to match divisions in default code -->
 					<phase_transition_rates units="1/min"> 
 						<!-- Cycle duration -->
-						<rate start_index="0" end_index="0" fixed_duration="false">0.000944</rate>
+						<rate start_index="0" end_index="0" fixed_duration="false">0.00092</rate>
 					</phase_transition_rates>
 				</cycle>
 				
@@ -245,8 +245,8 @@
 				<fadd_node type="int" units="dimensionless">0</fadd_node>
 				<nfkb_node type="int" units="dimensionless">0</nfkb_node>
 
-				<necrotic_rate type="double" units="1/min" description="Necrotic rate value when NonACD node becomes active">0.00416</necrotic_rate>
-				<apoptotic_rate type="double" units="1/min" description="Apoptotic rate value when Apoptosis node becomes active">0.0083</apoptotic_rate>
+				<necrotic_rate type="double" units="1/min" description="Necrotic rate value when NonACD node becomes active">0.0027</necrotic_rate>
+				<apoptotic_rate type="double" units="1/min" description="Apoptotic rate value when Apoptosis node becomes active">0.0033</apoptotic_rate>
 			</custom_data>
 		</cell_definition>
 	</cell_definitions>
@@ -254,11 +254,13 @@
 	<user_parameters>
 		<random_seed type="int" units="dimensionless">0</random_seed> 
 		<debug_mode type="int" units="dimensionless">0</debug_mode>
-		
+
+		<tumor_radius type="double" units="um">100.0</tumor_radius>
 		<init_cells_filename type="string" units="">./config/init.txt</init_cells_filename>
+		
 		<time_add_tnf type="int" units="min">335</time_add_tnf>
 		<duration_add_tnf type="int" units="min">18</duration_add_tnf>
-		<concentration_tnf type="double" units="TNF/um^3">0.00316</concentration_tnf>
+		<concentration_tnf type="double" units="TNF/um^3">0.002</concentration_tnf>
 		<time_remove_tnf type="int" units="min">100000</time_remove_tnf>
 		<membrane_length type="int" units=""> 170 </membrane_length>
 

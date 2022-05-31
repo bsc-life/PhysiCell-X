@@ -216,10 +216,14 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 	/* First Generate Cell positions on rank 0 by reading from file */
 	if(world.rank == 0)
 	{
+		double tumor_radius =  parameters.doubles("tumor_radius");
+		double cell_radius = cell_defaults.phenotype.geometry.radius;
+
+		std::vector<std::vector<double>> cells_postions_at_root;
+		cells_postions_at_root = create_cell_sphere_positions(cell_radius, tumor_radius);
+		/*
 		std::string init_cells_fame = parameters.strings("init_cells_filename");
 		std::vector<init_record> cells = read_init_file(init_cells_fame, ';', true);
-		std::vector<std::vector<double>> cells_postions_at_root;
-		
 		std::vector<double> position = {0,0,0};
 		for (int i = 0; i < cells.size(); i++)
 		{ 
@@ -228,6 +232,7 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 			position[2] = cells[i].z;
 			cells_postions_at_root.push_back(position); 
 		}
+		*/
 		
 		/*---------------------------------------------------------------------------------------------------*/
 		/* (1) Obtain the current highest ID - rank 0 knows this as rank 0 generates all IDs 				 */
