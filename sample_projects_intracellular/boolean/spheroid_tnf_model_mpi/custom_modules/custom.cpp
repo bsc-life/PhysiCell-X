@@ -106,7 +106,7 @@ void create_cell_types(void)
 	cell_defaults.functions.update_velocity_parallel = standard_update_cell_velocity;
 	cell_defaults.functions.volume_update_function = standard_volume_update_function;
 	cell_defaults.functions.update_phenotype = tumor_cell_phenotype_with_signaling;
-	cell_defaults.functions.update_phenotype_parallel = tumor_cell_phenotype_with_signaling;
+	cell_defaults.functions.update_phenotype_parallel = tumor_cell_phenotype_with_signaling_parallel;
 	
 	cell_defaults.functions.update_migration_bias = NULL;
 	cell_defaults.functions.custom_cell_rule = NULL;
@@ -316,6 +316,19 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 
 // custom cell phenotype function to run PhysiBoSS when is needed
 void tumor_cell_phenotype_with_signaling(Cell *pCell, Phenotype &phenotype, double dt)
+{
+	if (phenotype.death.dead == true)
+	{
+		pCell->functions.update_phenotype = NULL;
+		return;
+	}
+	tnf_bm_interface_main(pCell, phenotype, dt);
+	update_cell_and_death_parameters_O2_based(pCell, phenotype, dt);
+}
+/*----------------------------------------*/
+/* Parallel version of the above function */
+/*----------------------------------------*/
+void tumor_cell_phenotype_with_signaling(Cell *pCell, Phenotype &phenotype, double dt, mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
 	if (phenotype.death.dead == true)
 	{

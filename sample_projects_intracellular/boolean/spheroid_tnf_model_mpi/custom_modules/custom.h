@@ -130,6 +130,10 @@ void remove_density( int density_index, mpi_Environment &world, mpi_Cartesian &c
 // helper function to remove a density
 void remove_density( int density_index );
 
+/*===============================================*/
+/* Parallel prototype of remove_density() */
+/*===============================================*/
+void tumor_cell_phenotype_with_signaling(Cell *pCell, Phenotype &phenotype, double dt, mpi_Environment &world, mpi_Cartesian &cart_topo)
 // Custom cell phenotype function to update cell fate based on the BM and the 
 // tnf receptor model dynamics
 void tumor_cell_phenotype_with_signaling( Cell* pCell, Phenotype& phenotype, double dt );
