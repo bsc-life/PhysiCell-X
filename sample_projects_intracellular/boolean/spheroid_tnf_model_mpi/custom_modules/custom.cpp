@@ -126,7 +126,7 @@ void create_cell_types(void)
 	cell_defaults.custom_data["unbound_external_TNFR"] = cell_defaults.custom_data["TNFR_receptors_per_cell"];
 	cell_defaults.custom_data["bound_external_TNFR"] = 0;
 	cell_defaults.custom_data["bound_internal_TNFR"] = 0;
-
+	
 	build_cell_definitions_maps();
 	return;
 }
@@ -353,7 +353,7 @@ void inject_density_sphere(int density_index, double concentration, double membr
 		auto current_voxel = microenvironment.voxels(n);
 		std::vector<double> cent = {current_voxel.center[0], current_voxel.center[1], current_voxel.center[2]};
 		if ((membrane_lenght - norm(cent)) <= 0)
-		{ microenvironment.density_vector(n)[density_index] = concentration; }
+			microenvironment.density_vector(n)[density_index] = concentration;
 	}
 }
 
@@ -363,6 +363,14 @@ void remove_density(int density_index)
 	for (int n = 0; n < microenvironment.number_of_voxels(); n++)
 		microenvironment.density_vector(n)[density_index] = 0;
 	std::cout << "Removal done" << std::endl;
+}
+
+void remove_density(int density_index, mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	for (int n = 0; n < microenvironment.number_of_voxels(); n++)
+		microenvironment.density_vector(n)[density_index] = 0;
+	if(IOProcessor(world))
+		std::cout << "Removal done" << std::endl;
 }
 
 // Custom coloring function for SVG lpots

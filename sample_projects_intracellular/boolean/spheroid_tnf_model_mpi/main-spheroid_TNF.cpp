@@ -235,8 +235,10 @@ int main( int argc, char* argv[] )
 	{
 		sprintf(filename , "%s/simulation_report.txt" , PhysiCell_settings.folder.c_str() ); 
 		report_file.open(filename); 	// create the data log file 
-		report_file << "timepoint\talive\tapoptotic\tnectortic";
-		report_file << "\ttotal_free_tnfr\ttotal_active_tnfr\ttotal_int_TNF\ttotal_tnf"<<std::endl;
+		report_file << "timepoint" << "\talive" << "\tapoptotic" << "\tnectortic";
+		report_file << "\ttotal_free_tnfr" << "\ttotal_active_tnfr" << "\ttotal_int_TNF";
+		report_file << "\ttotal_active_TNF" << "\ttotal_active_FADD" << "\ttotal_active_NFKb";
+		report_file << "\ttotal_tnf" << std::endl;
 	}
 
 	if(IOProcessor(world))
@@ -266,13 +268,13 @@ int main( int argc, char* argv[] )
 				alive_no 		  = total_live_cell_count(world, cart_topo);
 				necrotic_no 	  = total_necrosis_cell_count(world, cart_topo);
 				apoptotic_no 	  = total_dead_cell_count(world, cart_topo);
-				total_tnf         = get_total_tnf(world, cart_topo);
 				total_free_tnfr   = total_free_TNF_receptor(world, cart_topo);
 				total_active_tnfr = total_active_TNF_receptor(world, cart_topo);
 				total_int_TNF     = total_internalized_TNF_receptor(world, cart_topo);
 				total_active_TNF  = total_active_TNF_node(world, cart_topo);
 				total_active_FADD = total_active_FADD_node(world, cart_topo);
 				total_active_NFKb = total_active_NFKb_node(world, cart_topo);
+				total_tnf         = get_total_tnf(world, cart_topo);
 
 				if( world.rank == 0) 
 				{
@@ -333,7 +335,8 @@ int main( int argc, char* argv[] )
 			microenvironment.simulate_diffusion_decay( diffusion_dt, world, cart_topo );
 			
 			//Update the TNF receptor model of each cell
-			tnf_receptor_model_main( diffusion_dt );		
+			tnf_receptor_model_main( diffusion_dt );
+
 			
 			//Run PhysiCell/PhysiCell-X 
 			((Cell_Container *)microenvironment.agent_container)->update_all_cells( PhysiCell_globals.current_time, world, cart_topo );

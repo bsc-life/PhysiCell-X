@@ -54,9 +54,13 @@ void update_boolean_model_inputs( Cell* pCell, Phenotype& phenotype, double dt )
     // using the state of the receptor dynamics model. The continuos value thresholded is
     // the total TNF-recptor complex (doi:10.1016/j.cellsig.2010.08.016)
     if ( pCell->custom_data[nR_EB] > pCell->custom_data[nTNF_threshold] )
-	{ pCell->phenotype.intracellular->set_boolean_variable_value("TNF", 1); }
+	{ 
+        pCell->phenotype.intracellular->set_boolean_variable_value("TNF", 1);
+        if (parameters.ints("debug_mode") == 1) 
+        { std::cout<<"Threshold reach TNF node was activated in cell: "<<pCell->ID<<std::endl;} 
+    }
 	else
-    { pCell->phenotype.intracellular->set_boolean_variable_value("TNF", 0); }
+        pCell->phenotype.intracellular->set_boolean_variable_value("TNF", 0);
 
     return;
 
@@ -112,7 +116,7 @@ void update_monitor_variables(Cell* pCell )
 	static int index_tnf_node = pCell->custom_data.find_variable_index("tnf_node");
 	static int index_fadd_node = pCell->custom_data.find_variable_index("fadd_node");
 	static int index_nfkb_node = pCell->custom_data.find_variable_index("nfkb_node");
-
+    
 	pCell->custom_data[index_nfkb_node] = pCell->phenotype.intracellular->get_boolean_variable_value( "NFkB" ) ;
 	pCell->custom_data[index_tnf_node] =pCell->phenotype.intracellular->get_boolean_variable_value("TNF");
 	pCell->custom_data[index_fadd_node] = pCell->phenotype.intracellular->get_boolean_variable_value("FADD");
@@ -135,8 +139,23 @@ void tnf_bm_interface_main(Cell* pCell, Phenotype& phenotype, double dt)
         update_boolean_model_inputs(pCell, phenotype, dt );		
     
         // Run maboss to update the boolean state of the cell
+        std::string state_before = pCell->phenotype.intracellular->get_state();
+        if (parameters.ints("debug_mode") == 1)
+            std::cout << "Updating MaBoSS mode in cell " << pCell->ID << std::endl;
         pCell->phenotype.intracellular->update();
-        
+        std::string state_after = pCell->phenotype.intracellular->get_state();
+
+        if (parameters.ints("debug_mode") == 1) 
+        {
+            if (state_before.compare(state_after) == 0)
+                std::cout << "MaBoSS state does not change in cell " << pCell->ID << std::endl;
+            else
+            {
+                std::cout << "MaBoSS state was updated in cell " << pCell->ID << std::endl;
+                std::cout << state_before << " -> " << state_after << std::endl;
+            }
+
+        }
         // Custom noisy next_physiboss_run setp size
         // MaBoSSIntracellular* physiboss = static_cast<MaBoSSIntracellular*> (pCell->phenotype.intracellular);
         // double noise = NormalRandom(0, 2.5);
