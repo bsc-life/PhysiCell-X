@@ -45,10 +45,10 @@ class MaBoSSNetwork
 	
 		std::map< std::string, Node*> nodesByName;
 		std::map< std::string, const Symbol*> parametersByName;
-	
+
 		inline void set_time_to_update(){this->time_to_update = PhysiCell::LogNormalRandom( this->get_update_time_step() , time_stochasticity );}
 
-	
+		
 	public:
 		NetworkState state;
 	
@@ -128,6 +128,7 @@ class MaBoSSNetwork
 		
 		/** \brief Get time to update*/
 		inline double get_time_to_update() {return this->time_to_update;}
+		inline void set_time_to_update(double time){this->time_to_update = time;}
 		
 		/** \brief Change simulation mode */
 		inline void set_discrete_time(bool discrete_time, double time_tick) { 
