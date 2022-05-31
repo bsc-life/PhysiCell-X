@@ -244,6 +244,9 @@
 				<tnf_node type="int" units="dimensionless">0</tnf_node>
 				<fadd_node type="int" units="dimensionless">0</fadd_node>
 				<nfkb_node type="int" units="dimensionless">0</nfkb_node>
+
+				<necrotic_rate type="double" units="1/min" description="Necrotic rate value when NonACD node becomes active">0.00416</necrotic_rate>
+				<apoptotic_rate type="double" units="1/min" description="Apoptotic rate value when Apoptosis node becomes active">0.0083</apoptotic_rate>
 			</custom_data>
 		</cell_definition>
 	</cell_definitions>
