@@ -260,7 +260,7 @@
 		
 		<time_add_tnf type="int" units="min">335</time_add_tnf>
 		<duration_add_tnf type="int" units="min">18</duration_add_tnf>
-		<concentration_tnf type="double" units="TNF/um^3">0.002</concentration_tnf>
+		<concentration_tnf type="double" units="TNF/um^3">0.0035</concentration_tnf>
 		<time_remove_tnf type="int" units="min">100000</time_remove_tnf>
 		<membrane_length type="int" units=""> 170 </membrane_length>
 

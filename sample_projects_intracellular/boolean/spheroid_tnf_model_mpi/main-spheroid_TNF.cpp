@@ -156,9 +156,9 @@ int main( int argc, char* argv[] )
 	
 	//User parameters
 	double time_add_tnf = parameters.ints("time_add_tnf");
-	double time_put_tnf = time_add_tnf;
+	double time_put_tnf = 0;
 	double duration_add_tnf = parameters.ints("duration_add_tnf");
-	double time_tnf_next = -1;
+	double time_tnf_next = 0;
 	double time_remove_tnf = parameters.ints("time_remove_tnf");
 	
 	
