@@ -147,6 +147,9 @@ std::vector<std::string> my_coloring_function( Cell* );
 // helper function that calculates phere volume
 inline float sphere_volume_from_radius(float radius) {return 4/3 * PhysiCell_constants::pi * std::pow(radius, 3);}
 
+// helper function to calculate cell positions within a sphere
+std::vector<std::vector<double>> create_cell_sphere_positions(double cell_radius, double sphere_radius)
+
 // helper function to read init files
 std::vector<init_record> read_init_file(std::string filename, char delimiter, bool header);
 
