@@ -69,11 +69,15 @@ void update_boolean_model_inputs( Cell* pCell, Phenotype& phenotype, double dt )
 
 void update_cell_from_boolean_model(Cell* pCell, Phenotype& phenotype, double dt)
 {	
+    
+    static float max_necrosis_rate = 1.0 / (4.0 * 60.0); // assume cells survive 4 after NonAD node becomes active
+    static float max_apoptotic_rate = 1.0 / (2.0 * 60.0); // assume cells survive 2 after Apoptotic node becomes active
+    
     static int nTNF_external = microenvironment.find_density_index( "tnf" );
     static int nTNF_export_rate = pCell->custom_data.find_variable_index( "TFN_net_production_rate" );
 
-    static int apoptosis_model_index = phenotype.death.find_death_model_index( "Apoptosis" );
-    static int necrosis_model_index = phenotype.death.find_death_model_index( "Necrosis" );
+    static int apoptosis_index = phenotype.death.find_death_model_index( "Apoptosis" );
+    static int necrosis_index = phenotype.death.find_death_model_index( "Necrosis" );
     
     // Getting the state of the boolean model readouts (Readout can be in the XML)
     bool apoptosis = pCell->phenotype.intracellular->get_boolean_variable_value( "Apoptosis" );
@@ -83,13 +87,16 @@ void update_cell_from_boolean_model(Cell* pCell, Phenotype& phenotype, double dt
 	
 	if ( apoptosis ) 
     {
-		pCell->start_death(apoptosis_model_index);
+		pCell->phenotype.death.rates[necrosis_index] = max_apoptotic_rate;
+        //pCell->start_death(apoptosis_index);
 		return;
 	}
 
 	if ( nonACD ) 
     {
-		pCell->start_death(necrosis_model_index);				
+		float multiplier = 0.1;
+        pCell->phenotype.death.rates[necrosis_index] = max_necrosis_rate;
+        //pCell->start_death(necrosis_index);				
 		return;
 	}
 
