@@ -207,6 +207,7 @@ physiboss-tnf-model-mpi:
 	cp ./sample_projects_intracellular/boolean/spheroid_tnf_model_mpi/Makefile .
 	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
 	cp ./sample_projects_intracellular/boolean/spheroid_tnf_model_mpi/config/* ./config/
+	cp -r ./sample_projects_intracellular/boolean/spheroid_tnf_model_mpi/scripts ./
 
 ecoli-acetic-switch-sample:
 	cp ./sample_projects_intracellular/fba/ecoli_acetic_switch/custom_modules/* ./custom_modules/

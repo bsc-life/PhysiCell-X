@@ -224,6 +224,7 @@ reset:
 	rm -f ./config/init.txt
 	rm -f ./config/TNF_conf.cfg
 	rm -f ./config/TNF_nodes.bnd
+	rm -fr ./scripts
 
 MaBoSS-clean:
 	rm -fr addons/PhysiBoSS/MaBoSS-env-2.0
