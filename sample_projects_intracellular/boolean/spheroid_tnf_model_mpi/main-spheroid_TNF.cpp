@@ -95,7 +95,6 @@
 #include "./addons/PhysiBoSS/src/maboss_intracellular.h"	
 #include "./custom_modules/custom.h" 
 
-
 using namespace BioFVM;
 using namespace PhysiCell;
 
@@ -145,40 +144,14 @@ int main( int argc, char* argv[] )
 	
 	//omp_set_num_threads(PhysiCell_settings.omp_num_threads); <--- We use OMP_NUM_THREADS
 	
+	
 	SeedRandom( parameters.ints("random_seed") ); // Or a seed can be specified here
 	std::string time_units = "min"; 
 
 	/*========================*/
 	/* Microenvironment setup */
 	/*========================*/
-		
-	setup_microenvironment(world, cart_topo);  
-	
-	//User parameters
-	double time_add_tnf = parameters.ints("time_add_tnf");
-	double time_put_tnf = 0;
-	double duration_add_tnf = parameters.ints("duration_add_tnf");
-	double time_tnf_next = 0;
-	double time_remove_tnf = parameters.ints("time_remove_tnf");
-	
-	
-	double concentration_tnf = parameters.doubles("concentration_tnf");
-	
-	//Radius around which the tnf pulse is injected
-	double membrane_lenght = parameters.ints("membrane_length");
-	
-	//TNF density index
-	static int tnf_idx = microenvironment.find_density_index("tnf");	
-	
-	//Do small diffusion steps to initialize densities in case seed_tnf is true
-	bool seed_tnf = false;
-	if ( seed_tnf )
-	{
-		//inject_density_sphere(tnf_idx, concentration_tnf, membrane_lenght);
-		inject_density_sphere(tnf_idx, concentration_tnf, membrane_lenght, world, cart_topo);
-		for ( int i = 0; i < 25; i ++ )
-			microenvironment.simulate_diffusion_decay( diffusion_dt, world, cart_topo );
-	}
+	setup_microenvironment(world, cart_topo);  	
 
 	/*=============================*/	
 	/* PhysiCell/PhysiCell-X setup */ 
@@ -187,18 +160,27 @@ int main( int argc, char* argv[] )
 	// Mechanical voxel size must be >= Diffusion voxel size (check with PhysiCell_settings.xml)
 	double mechanics_voxel_size = 20; 
 	
-
 	// Calling the parallel version of Cell Container creation 
 	Cell_Container* cell_container = create_cell_container_for_microenvironment( microenvironment, mechanics_voxel_size, world, cart_topo );
 	
-	//----> Users typically start modifying here. START USERMODS 
-	
+	// Create cell definitions for each cell type
 	create_cell_types();
 	
 	//Calling the parallel version of setup_tissue(...) 
 	setup_tissue(microenvironment, world, cart_topo);
 
-	//----> Users typically stop modifying here. END USERMODS  
+ 	/*=====================================*/
+	/* Setup parameters for the TNF Pulses */
+	/*=====================================*/
+	double tnf_pulse_period = parameters.doubles("tnf_pulse_period");
+	double tnf_pulse_duration = parameters.doubles("tnf_pulse_duration");
+	double tnf_pulse_concentration = parameters.doubles("tnf_pulse_concentration");
+	double time_remove_tnf = parameters.doubles("time_remove_tnf");
+	double membrane_lenght = parameters.doubles("membrane_length"); // radious around which the tnf pulse is injected
+	
+	double tnf_pulse_timer = tnf_pulse_period;
+	double tnf_pulse_injection_timer = -1;
+	static int tnf_idx = microenvironment.find_density_index("tnf");
 	
 	//Set MultiCellDS save options <--- These MUST all be 'true' here 
 	set_save_biofvm_mesh_as_matlab( true ); 
@@ -242,6 +224,7 @@ int main( int argc, char* argv[] )
 
 	if(IOProcessor(world))
 		std::cout << PhysiCell_settings.enable_legacy_saves << std::endl;
+	
 	//Main loop of the program 
 	try 
 	{		
@@ -249,10 +232,7 @@ int main( int argc, char* argv[] )
 		{
 			//Save data if it's time. 
 			if( fabs( PhysiCell_globals.current_time - PhysiCell_globals.next_full_save_time ) < 0.01 * diffusion_dt )
-			{
-				if(IOProcessor(world))
-					std::cout << "Time to save" << std::endl;
-					
+			{					
 				//Use the parallel version of the function	
 				display_simulation_status( std::cout, world, cart_topo );
 				
@@ -311,23 +291,25 @@ int main( int argc, char* argv[] )
 				}
 			}
 
-			//Custom add-ons could potentially go here. 
-		
-			if ( PhysiCell_globals.current_time >= time_put_tnf )
+			/*
+			  Custom add-ons could potentially go here. 
+			*/			
+			if ( PhysiCell_globals.current_time >= tnf_pulse_timer )
 			{
-				time_tnf_next = PhysiCell_globals.current_time + duration_add_tnf;
-				time_put_tnf += time_add_tnf;
+				tnf_pulse_injection_timer = PhysiCell_globals.current_time + tnf_pulse_duration;
+				tnf_pulse_timer += tnf_pulse_period;
+			}
+
+			if ( PhysiCell_globals.current_time <= tnf_pulse_injection_timer )
+			{
+				inject_density_sphere(tnf_idx, tnf_pulse_concentration, membrane_lenght, world, cart_topo);
 			}
 
 			if ( PhysiCell_globals.current_time >= time_remove_tnf )
 			{
-				remove_density(tnf_idx);													
+				remove_density(tnf_idx, world, cart_topo);
+				std::cout << "REMOVING ALL TNF" << std::endl;
 				time_remove_tnf += PhysiCell_settings.max_time;
-			}
-
-			if ( PhysiCell_globals.current_time <= time_tnf_next )
-			{
-				inject_density_sphere(tnf_idx, concentration_tnf, membrane_lenght, world, cart_topo);
 			}
 
 			//Update the microenvironment

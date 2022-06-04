@@ -105,8 +105,8 @@ void create_cell_types(void)
 	cell_defaults.functions.update_velocity = standard_update_cell_velocity;
 	cell_defaults.functions.update_velocity_parallel = standard_update_cell_velocity;
 	cell_defaults.functions.volume_update_function = standard_volume_update_function;
-	cell_defaults.functions.update_phenotype = tumor_cell_phenotype_with_signaling;
-	cell_defaults.functions.update_phenotype_parallel = tumor_cell_phenotype_with_signaling;
+	cell_defaults.functions.update_phenotype = update_phenotype_with_signaling;
+	cell_defaults.functions.update_phenotype_parallel = update_phenotype_with_signaling;
 	
 	cell_defaults.functions.update_migration_bias = NULL;
 	cell_defaults.functions.custom_cell_rule = NULL;
@@ -214,26 +214,25 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 	mpi_MyCells       mc;   
   
 	/* First Generate Cell positions on rank 0 by reading from file */
-	if(world.rank == 0)
-	{
-		double tumor_radius =  parameters.doubles("tumor_radius");
-		double cell_radius = cell_defaults.phenotype.geometry.radius;
-
+	if(world.rank == 0){
 		std::vector<std::vector<double>> cells_postions_at_root;
-		cells_postions_at_root = create_cell_sphere_positions(cell_radius, tumor_radius);
-		/*
-		std::string init_cells_fame = parameters.strings("init_cells_filename");
-		std::vector<init_record> cells = read_init_file(init_cells_fame, ';', true);
-		std::vector<double> position = {0,0,0};
-		for (int i = 0; i < cells.size(); i++)
-		{ 
-			position[0] = cells[i].x; 
-			position[1] = cells[i].y; 
-			position[2] = cells[i].z;
-			cells_postions_at_root.push_back(position); 
+		if ( parameters.bools("read_init") ) {
+			std::string init_cells_fame = parameters.strings("init_cells_filename");
+			std::vector<init_record> cells = read_init_file(init_cells_fame, ';', true);
+			std::vector<double> position = {0,0,0};
+			for (int i = 0; i < cells.size(); i++)
+			{ 
+				position[0] = cells[i].x; 
+				position[1] = cells[i].y; 
+				position[2] = cells[i].z;
+				cells_postions_at_root.push_back(position); 
+			}
+		} else {
+			double tumor_radius =  parameters.doubles("tumor_radius");
+			double cell_radius = cell_defaults.phenotype.geometry.radius;
+			cells_postions_at_root = create_cell_sphere_positions(cell_radius, tumor_radius);
 		}
-		*/
-		
+
 		/*---------------------------------------------------------------------------------------------------*/
 		/* (1) Obtain the current highest ID - rank 0 knows this as rank 0 generates all IDs 				 */
 		/* (2) Distribute the positions and IDs to respective processes 									 */
@@ -258,8 +257,7 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 	distribute_cell_positions(cp, mc, world, cart_topo);                           
  
  	/* Create cells at individual processes */
-  	for( int i=0; i < mc.my_no_of_cell_IDs; i++ )
-	{	
+  	for( int i=0; i < mc.my_no_of_cell_IDs; i++ ) {	
 		Cell* pCell;
 
 		int cell_id = mc.my_cell_IDs[i];
@@ -271,7 +269,6 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 								mc.my_cell_coords[ 3*i + 2 ],
 								world, cart_topo ); 
 
-		/*
 		static int idx_bind_rate = pCell->custom_data.find_variable_index( "TNFR_binding_rate" );
 		static float mean_bind_rate = pCell->custom_data[idx_bind_rate];
 		static float std_bind_rate = parameters.doubles("TNFR_binding_rate_std");
@@ -313,37 +310,91 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 			if (pCell->custom_data[idx_recycle_rate] > max_recycle_rate)
 			{ pCell->custom_data[idx_recycle_rate] = max_recycle_rate; }
 		}
-		*/
+
 		update_monitor_variables(pCell);				
 	}
 	 
 } 
 
-// custom cell phenotype function to run PhysiBoSS when is needed
-void tumor_cell_phenotype_with_signaling(Cell *pCell, Phenotype &phenotype, double dt)
+
+std::vector<std::vector<double>> create_cell_sphere_positions(double cell_radius, double sphere_radius)
 {
-	if (phenotype.death.dead == true)
-	{
-		pCell->functions.update_phenotype = NULL;
-		return;
-	}
-	tnf_bm_interface_main(pCell, phenotype, dt);
-	update_cell_and_death_parameters_O2_based(pCell, phenotype, dt);
-}
-/*----------------------------------------*/
-/* Parallel version of the above function */
-/*----------------------------------------*/
-void tumor_cell_phenotype_with_signaling(Cell *pCell, Phenotype &phenotype, double dt, mpi_Environment &world, mpi_Cartesian &cart_topo)
-{
-	if (phenotype.death.dead == true)
-	{
-		pCell->functions.update_phenotype = NULL;
-		return;
-	}
-	update_cell_and_death_parameters_O2_based(pCell, phenotype, dt);
-	tnf_bm_interface_main(pCell, phenotype, dt);
+    std::vector<std::vector<double>> cells;
+    int xc=0,yc=0,zc=0;
+    double x_spacing= cell_radius*sqrt(3);
+    double y_spacing= cell_radius*2;
+    double z_spacing= cell_radius*sqrt(3);
+
+    std::vector<double> tempPoint(3,0.0);
+    // std::vector<double> cylinder_center(3,0.0);
+
+    for(double z=-sphere_radius;z<sphere_radius;z+=z_spacing, zc++)
+    {
+        for(double x=-sphere_radius;x<sphere_radius;x+=x_spacing, xc++)
+        {
+            for(double y=-sphere_radius;y<sphere_radius;y+=y_spacing, yc++)
+            {
+                tempPoint[0]=x + (zc%2) * 0.5 * cell_radius;
+                tempPoint[1]=y + (xc%2) * cell_radius;
+                tempPoint[2]=z;
+
+                if(sqrt(norm_squared(tempPoint))< sphere_radius)
+                { cells.push_back(tempPoint); }
+            }
+
+        }
+    }
+    return cells;
 }
 
+// Function to read init files created with PhysiBoSSv2
+std::vector<init_record> read_init_file(std::string filename, char delimiter, bool header)
+{
+	// File pointer
+	std::fstream fin;
+	std::vector<init_record> result;
+
+	// Open an existing file
+	fin.open(filename, std::ios::in);
+
+	// Read the Data from the file
+	// as String Vector
+	std::vector<std::string> row;
+	std::string line, word;
+
+	if (header)
+		getline(fin, line);
+
+	do
+	{
+		row.clear();
+
+		// read an entire row and
+		// store it in a string variable 'line'
+		getline(fin, line);
+
+		// used for breaking words
+		std::stringstream s(line);
+
+		// read every column data of a row and
+		// store it in a string variable, 'word'
+		while (getline(s, word, delimiter))
+		{
+			row.push_back(word);
+		}
+
+		init_record record;
+		record.x =      std::stof(row[0]);
+		record.y =      std::stof(row[1]);
+		record.z =      std::stof(row[2]);
+		record.radius = std::stof(row[3]);
+		record.phase =  std::stoi(row[4]);
+
+		result.push_back(record);
+	} while (!fin.eof());
+
+	return result;
+}
 
 // Function that injects a density around and sphere of radius *membrane_lenght*
 void inject_density_sphere(int density_index, double concentration, double membrane_lenght)
@@ -419,88 +470,7 @@ std::vector<std::string> my_coloring_function(Cell *pCell)
 	return output;
 }
 
-std::vector<std::vector<double>> create_cell_sphere_positions(double cell_radius, double sphere_radius)
-{
-    std::vector<std::vector<double>> cells;
-    int xc=0,yc=0,zc=0;
-    double x_spacing= cell_radius*sqrt(3);
-    double y_spacing= cell_radius*2;
-    double z_spacing= cell_radius*sqrt(3);
-
-    std::vector<double> tempPoint(3,0.0);
-    // std::vector<double> cylinder_center(3,0.0);
-
-    for(double z=-sphere_radius;z<sphere_radius;z+=z_spacing, zc++)
-    {
-        for(double x=-sphere_radius;x<sphere_radius;x+=x_spacing, xc++)
-        {
-            for(double y=-sphere_radius;y<sphere_radius;y+=y_spacing, yc++)
-            {
-                tempPoint[0]=x + (zc%2) * 0.5 * cell_radius;
-                tempPoint[1]=y + (xc%2) * cell_radius;
-                tempPoint[2]=z;
-
-                if(sqrt(norm_squared(tempPoint))< sphere_radius)
-                { cells.push_back(tempPoint); }
-            }
-
-        }
-    }
-    return cells;
-
-}
-
-// Function to read init files created with PhysiBoSSv2
-std::vector<init_record> read_init_file(std::string filename, char delimiter, bool header)
-{
-	// File pointer
-	std::fstream fin;
-	std::vector<init_record> result;
-
-	// Open an existing file
-	fin.open(filename, std::ios::in);
-
-	// Read the Data from the file
-	// as String Vector
-	std::vector<std::string> row;
-	std::string line, word;
-
-	if (header)
-		getline(fin, line);
-
-	do
-	{
-		row.clear();
-
-		// read an entire row and
-		// store it in a string variable 'line'
-		getline(fin, line);
-
-		// used for breaking words
-		std::stringstream s(line);
-
-		// read every column data of a row and
-		// store it in a string variable, 'word'
-		while (getline(s, word, delimiter))
-		{
-			row.push_back(word);
-		}
-
-		init_record record;
-		record.x =      std::stof(row[0]);
-		record.y =      std::stof(row[1]);
-		record.z =      std::stof(row[2]);
-		record.radius = std::stof(row[3]);
-		record.phase =  std::stoi(row[4]);
-
-		result.push_back(record);
-	} while (!fin.eof());
-
-	return result;
-}
-
 // Cell count functions
-
 double total_live_cell_count()
 {
 	double out = 0.0;
@@ -641,7 +611,6 @@ double total_internalized_TNF_receptor(mpi_Environment &world, mpi_Cartesian &ca
 	return result;
 	
 }
-
 
 double total_active_TNF_node(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {

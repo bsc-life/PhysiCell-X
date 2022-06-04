@@ -113,6 +113,15 @@ void setup_microenvironment(mpi_Environment &world, mpi_Cartesian &cart_topo);
 // set up the BioFVM microenvironment 
 void setup_microenvironment( void ); 
 
+// helper function to read init files
+std::vector<init_record> read_init_file(std::string filename, char delimiter, bool header);
+
+// helper function to calculate cell positions within a sphere
+std::vector<std::vector<double>> create_cell_sphere_positions(double cell_radius, double sphere_radius);
+
+// helper function that calculates phere volume
+inline float sphere_volume_from_radius(float radius) {return 4/3 * PhysiCell_constants::pi * std::pow(radius, 3);}
+
 /*===============================================*/
 /* Parallel prototype of inject_density_sphere() */
 /*===============================================*/
@@ -130,28 +139,8 @@ void remove_density( int density_index, mpi_Environment &world, mpi_Cartesian &c
 // helper function to remove a density
 void remove_density( int density_index );
 
-/*===============================================*/
-/* Parallel prototype of remove_density() */
-/*===============================================*/
-void tumor_cell_phenotype_with_signaling(Cell *pCell, Phenotype &phenotype, double dt, mpi_Environment &world, mpi_Cartesian &cart_topo);
-// Custom cell phenotype function to update cell fate based on the BM and the 
-// tnf receptor model dynamics
-void tumor_cell_phenotype_with_signaling(Cell* pCell, Phenotype& phenotype, double dt);
-
-// function to keep updated some cell custom variables
-void update_monitor_variables( Cell* pCell );
-
 // custom pathology coloring function 
 std::vector<std::string> my_coloring_function( Cell* );
-
-// helper function that calculates phere volume
-inline float sphere_volume_from_radius(float radius) {return 4/3 * PhysiCell_constants::pi * std::pow(radius, 3);}
-
-// helper function to calculate cell positions within a sphere
-std::vector<std::vector<double>> create_cell_sphere_positions(double cell_radius, double sphere_radius);
-
-// helper function to read init files
-std::vector<init_record> read_init_file(std::string filename, char delimiter, bool header);
 
 /*===============================================*/
 /* Parallel prototype of total_live_cell_count() */
