@@ -246,7 +246,7 @@ int main( int argc, char* argv[] )
 				//Call the parallel versions of the function now which use MPI_Reduce at rank 0 
 				alive_no 		  = total_live_cell_count(world, cart_topo);
 				necrotic_no 	  = total_necrosis_cell_count(world, cart_topo);
-				apoptotic_no 	  = total_dead_cell_count(world, cart_topo);
+				apoptotic_no 	  = total_apoptosis_cell_count(world, cart_topo);
 				total_free_tnfr   = total_free_TNF_receptor(world, cart_topo);
 				total_active_tnfr = total_active_TNF_receptor(world, cart_topo);
 				total_int_TNF     = total_internalized_TNF_receptor(world, cart_topo);
