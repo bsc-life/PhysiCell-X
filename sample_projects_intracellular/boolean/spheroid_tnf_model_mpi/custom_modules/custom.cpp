@@ -471,85 +471,80 @@ std::vector<std::string> my_coloring_function(Cell *pCell)
 }
 
 // Cell count functions
-double total_live_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+int total_live_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
-	double out = 0.0, global_out;
-	#pragma omp parallel for
+	int local_count = 0;
+	#pragma omp parallel for private (i) reduction (+: local_count )
 	for (int i = 0; i < (*all_cells).size(); i++)
 	{
+		Cell* pCell = (*all_cells)[i];
 		if ((*all_cells)[i]->phenotype.death.dead)
 			continue;
-		out++;
+		local_count++;
 	}
-	
-	MPI_Reduce(&out, &global_out, 1, MPI_DOUBLE, MPI_SUM, 0, cart_topo.mpi_cart_comm);
-	return global_out;
-}
-
-double total_dead_cell_count(int death_model_index, mpi_Environment &world, mpi_Cartesian &cart_topo)
-{
-	double global_count;
-	double count = 0.0;
-	#pragma omp parallel for
-	for (int i = 0; i < (*all_cells).size(); i++)
-	{
-		Cell* pCell = (all_cells)[i];
-		int current_death_model_index = pCell->phenotype.death.current_death_model_index;
-		if( (pCell->phenotype.death.dead==true) && (current_death_model_index==necrosis_index) )
-			count++;
-	}
-	MPI_Reduce(&count, &global_count, 1, MPI_DOUBLE, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+	int global_count;
+	MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
 	return global_count;
 }
 
-double total_necrosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+int total_dead_cell_count(int death_model_index, mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	int local_count = 0;
+	#pragma omp parallel for private (i) reduction (+: local_count )
+	for (int i = 0; i < (*all_cells).size(); i++)
+	{
+		Cell* pCell = (*all_cells)[i];
+		int current_death_model_index = pCell->phenotype.death.current_death_model_index;
+		if( (pCell->phenotype.death.dead==true) && (current_death_model_index==death_model_index) )
+			local_count++;
+	}
+	int global_count;
+	MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+	return global_count;
+}
+
+int total_necrosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
 	static int necrosis_index = cell_defaults.phenotype.death.find_death_model_index( PhysiCell_constants::necrosis_death_model );
-	double count = total_dead_cell_count(necrosis_index, world, cart_topo);
+	int count = total_dead_cell_count(necrosis_index, world, cart_topo);
 	return count;
 }
 
-double total_apoptosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+int total_apoptosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {	
 	static int apoptosis_index = cell_defaults.phenotype.death.find_death_model_index( PhysiCell_constants::apoptosis_death_model );
-	double count = total_dead_cell_count(apoptosis_index, world, cart_topo);
+	int count = total_dead_cell_count(apoptosis_index, world, cart_topo);
 	return count;
 }
 
 double get_total_tnf(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
-	double out = 0.0, global_out;
+	double local_total = 0.0;
 	int density_index = 1;
-	#pragma omp parallel for
-	for (int n = 0; n < microenvironment.number_of_voxels(); n++)
+	#pragma omp parallel for private (i) reduction (+: local_total )
+	for (int i = 0; i < microenvironment.number_of_voxels(); i++)
 	{
-		out += microenvironment.density_vector(n)[density_index];
+		local_total += microenvironment.density_vector(i)[density_index];
 	}
-
-	MPI_Reduce(&out, &global_out, 1, MPI_DOUBLE, MPI_SUM, 0, cart_topo.mpi_cart_comm);
-	return global_out;
+	double global_total;;
+	MPI_Reduce(&local_total, &global_total, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+	return global_total;
 }
 
 double total_custom_variable_live(std::string var_name, mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
-	double out = 0.0;
-	double global_out;
-	int world_size, n;
-	static int var_index;
-    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-	
-	#pragma omp parallel for
+	double local_out = 0.0;
+	#pragma omp parallel for private (i) reduction (+: local_out )
 	for (int i = 0; i < (*all_cells).size(); i++)
 	{
 		Cell* pCell = (*all_cells)[i];
 		if (pCell->phenotype.death.dead == true )
 		{ continue; }
 		var_index = pCell->custom_data.find_variable_index(var_name);
-		out += pCell->custom_data[var_index];
-		n++;
+		local_out += pCell->custom_data[var_index];
 	}
-	// out = out / ( n * world_size);
-	MPI_Reduce(&out, &global_out, 1, MPI_DOUBLE, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+	double global_out;
+	MPI_Reduce(&local_out, &global_out, 1, MPI_DOUBLE, MPI_SUM, 0, cart_topo.mpi_cart_comm);
 	return global_out;
 }
 

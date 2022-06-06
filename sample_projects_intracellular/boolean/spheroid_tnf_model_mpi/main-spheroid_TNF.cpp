@@ -216,7 +216,8 @@ int main( int argc, char* argv[] )
 	{
 		sprintf(filename , "%s/simulation_report.txt" , PhysiCell_settings.folder.c_str() ); 
 		report_file.open(filename); 	// create the data log file 
-		report_file << "timepoint" << "\talive" << "\tapoptotic" << "\tnectortic";
+		report_file << "timepoint";
+		report_file << "\talive" << "\tapoptotic" << "\tnectortic";
 		report_file << "\ttotal_free_tnfr" << "\ttotal_active_tnfr" << "\ttotal_int_TNF";
 		report_file << "\ttotal_active_TNF" << "\ttotal_active_FADD" << "\ttotal_active_NFKb";
 		report_file << "\ttotal_tnf" << std::endl;
@@ -239,26 +240,26 @@ int main( int argc, char* argv[] )
 				double timepoint = PhysiCell_globals.current_time;
 				
 				//Count Necrotic, Apoptotic and Alive cells
-				int alive_no, necrotic_no, apoptotic_no;
-				float total_tnf, total_free_tnfr, total_active_tnfr, total_int_TNF;
+
 				float total_active_TNF, total_active_FADD, total_active_NFKb;
 				
 				//Call the parallel versions of the function now which use MPI_Reduce at rank 0 
-				alive_no 		  = total_live_cell_count(world, cart_topo);
-				necrotic_no 	  = total_necrosis_cell_count(world, cart_topo);
-				apoptotic_no 	  = total_apoptosis_cell_count(world, cart_topo);
-				total_free_tnfr   = total_free_TNF_receptor(world, cart_topo);
-				total_active_tnfr = total_active_TNF_receptor(world, cart_topo);
-				total_int_TNF     = total_internalized_TNF_receptor(world, cart_topo);
-				total_active_TNF  = total_active_TNF_node(world, cart_topo);
-				total_active_FADD = total_active_FADD_node(world, cart_topo);
-				total_active_NFKb = total_active_NFKb_node(world, cart_topo);
-				total_tnf         = get_total_tnf(world, cart_topo);
+				int alive_no 		    = total_live_cell_count(world, cart_topo);
+				int apoptotic_no   	    = total_apoptosis_cell_count(world, cart_topo);
+				int necrotic_no 	    = total_necrosis_cell_count(world, cart_topo);
+				float total_free_tnfr   = total_free_TNF_receptor(world, cart_topo);
+				float total_active_tnfr = total_active_TNF_receptor(world, cart_topo);
+				float total_int_tnfr    = total_internalized_TNF_receptor(world, cart_topo);
+				float total_active_TNF  = total_active_TNF_node(world, cart_topo);
+				float total_active_FADD = total_active_FADD_node(world, cart_topo);
+				float total_active_NFKb = total_active_NFKb_node(world, cart_topo);
+				float total_tnf         = get_total_tnf(world, cart_topo);
 
 				if( world.rank == 0) 
 				{
-					report_file << PhysiCell_globals.current_time << "\t" << alive_no << "\t" << necrotic_no << "\t" << apoptotic_no;
-					report_file << "\t" << total_free_tnfr << "\t" << total_active_tnfr << "\t" << total_int_TNF;
+					report_file << PhysiCell_globals.current_time;
+					report_file << "\t" << alive_no << "\t" << apoptotic_no << "\t" << necrotic_no;
+					report_file << "\t" << total_free_tnfr << "\t" << total_active_tnfr << "\t" << total_int_tnfr;
 					report_file << "\t" << total_active_TNF << "\t" << total_active_FADD << "\t" << total_active_NFKb;
 					report_file << "\t" << total_tnf  <<std::endl;
 				}
