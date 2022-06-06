@@ -474,7 +474,7 @@ std::vector<std::string> my_coloring_function(Cell *pCell)
 int total_live_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
 	int local_count = 0;
-	#pragma omp parallel for private (i) reduction (+: local_count )
+	#pragma omp parallel for reduction (+: local_count )
 	for (int i = 0; i < (*all_cells).size(); i++)
 	{
 		Cell* pCell = (*all_cells)[i];
@@ -490,7 +490,7 @@ int total_live_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
 int total_dead_cell_count(int death_model_index, mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
 	int local_count = 0;
-	#pragma omp parallel for private (i) reduction (+: local_count )
+	#pragma omp parallel for reduction (+: local_count )
 	for (int i = 0; i < (*all_cells).size(); i++)
 	{
 		Cell* pCell = (*all_cells)[i];
@@ -505,23 +505,45 @@ int total_dead_cell_count(int death_model_index, mpi_Environment &world, mpi_Car
 
 int total_necrosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
-	static int necrosis_index = cell_defaults.phenotype.death.find_death_model_index( PhysiCell_constants::necrosis_death_model );
-	int count = total_dead_cell_count(necrosis_index, world, cart_topo);
-	return count;
+	int local_count = 0;
+	#pragma omp parallel for reduction (+: local_count )
+	for (int i = 0; i < (*all_cells).size(); i++)
+	{
+		Cell* pCell = (*all_cells)[i];
+		if( pCell->phenotype.death.dead==false )
+			continue;
+		if( pCell->phenotype.cycle.current_phase().code == PhysiCell_constants::necrotic_swelling || 
+			pCell->phenotype.cycle.current_phase().code == PhysiCell_constants::necrotic_lysed || 
+			pCell->phenotype.cycle.current_phase().code == PhysiCell_constants::necrotic )	
+			local_count++;
+	}
+	int global_count;
+	MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+	return global_count;
 }
 
 int total_apoptosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {	
-	static int apoptosis_index = cell_defaults.phenotype.death.find_death_model_index( PhysiCell_constants::apoptosis_death_model );
-	int count = total_dead_cell_count(apoptosis_index, world, cart_topo);
-	return count;
+	int local_count = 0;
+	#pragma omp parallel for reduction (+: local_count )
+	for (int i = 0; i < (*all_cells).size(); i++)
+	{
+		Cell* pCell = (*all_cells)[i];
+		if( pCell->phenotype.death.dead==false )
+			continue;
+		if( pCell->phenotype.cycle.current_phase().code == PhysiCell_constants::apoptotic )
+			local_count++;
+	}
+	int global_count;
+	MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+	return global_count;
 }
 
 double get_total_tnf(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
 	double local_total = 0.0;
 	int density_index = 1;
-	#pragma omp parallel for private (i) reduction (+: local_total )
+	#pragma omp parallel for reduction (+: local_total )
 	for (int i = 0; i < microenvironment.number_of_voxels(); i++)
 	{
 		local_total += microenvironment.density_vector(i)[density_index];
@@ -534,7 +556,7 @@ double get_total_tnf(mpi_Environment &world, mpi_Cartesian &cart_topo)
 double total_custom_variable_live(std::string var_name, mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
 	double local_out = 0.0;
-	#pragma omp parallel for private (i) reduction (+: local_out )
+	#pragma omp parallel for reduction (+: local_out )
 	for (int i = 0; i < (*all_cells).size(); i++)
 	{
 		Cell* pCell = (*all_cells)[i];

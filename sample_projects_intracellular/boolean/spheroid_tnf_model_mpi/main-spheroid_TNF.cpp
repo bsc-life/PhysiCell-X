@@ -237,13 +237,7 @@ int main( int argc, char* argv[] )
 				//Use the parallel version of the function	
 				display_simulation_status( std::cout, world, cart_topo );
 				
-				double timepoint = PhysiCell_globals.current_time;
-				
-				//Count Necrotic, Apoptotic and Alive cells
-
-				float total_active_TNF, total_active_FADD, total_active_NFKb;
-				
-				//Call the parallel versions of the function now which use MPI_Reduce at rank 0 
+				double timepoint        = PhysiCell_globals.current_time;
 				int alive_no 		    = total_live_cell_count(world, cart_topo);
 				int apoptotic_no   	    = total_apoptosis_cell_count(world, cart_topo);
 				int necrotic_no 	    = total_necrosis_cell_count(world, cart_topo);
