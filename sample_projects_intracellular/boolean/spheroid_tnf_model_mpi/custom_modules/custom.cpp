@@ -561,7 +561,7 @@ double total_custom_variable_live(std::string var_name, mpi_Environment &world, 
 		Cell* pCell = (*all_cells)[i];
 		if (pCell->phenotype.death.dead == true )
 		{ continue; }
-		var_index = pCell->custom_data.find_variable_index(var_name);
+		int var_index = pCell->custom_data.find_variable_index(var_name);
 		local_out += pCell->custom_data[var_index];
 	}
 	double global_out;
