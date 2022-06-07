@@ -487,15 +487,14 @@ int total_live_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
 	return global_count;
 }
 
-int total_dead_cell_count(int death_model_index, mpi_Environment &world, mpi_Cartesian &cart_topo)
+int total_dead_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
 	int local_count = 0;
 	#pragma omp parallel for reduction (+: local_count )
 	for (int i = 0; i < (*all_cells).size(); i++)
 	{
 		Cell* pCell = (*all_cells)[i];
-		int current_death_model_index = pCell->phenotype.death.current_death_model_index;
-		if( (pCell->phenotype.death.dead==true) && (current_death_model_index==death_model_index) )
+		if(pCell->phenotype.death.dead==true)
 			local_count++;
 	}
 	int global_count;
