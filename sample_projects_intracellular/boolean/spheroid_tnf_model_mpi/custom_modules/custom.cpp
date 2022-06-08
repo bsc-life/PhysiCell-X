@@ -494,7 +494,7 @@ int total_dead_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
 	for (int i = 0; i < (*all_cells).size(); i++)
 	{
 		Cell* pCell = (*all_cells)[i];
-		if(pCell->phenotype.death.dead==true)
+		if(pCell->phenotype.death.dead == true)
 			local_count++;
 	}
 	int global_count;
@@ -509,7 +509,7 @@ int total_necrosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
 	for (int i = 0; i < (*all_cells).size(); i++)
 	{
 		Cell* pCell = (*all_cells)[i];
-		if( pCell->phenotype.death.dead==false )
+		if( pCell->phenotype.death.dead == false )
 			continue;
 		if( pCell->phenotype.cycle.current_phase().code == PhysiCell_constants::necrotic_swelling || 
 			pCell->phenotype.cycle.current_phase().code == PhysiCell_constants::necrotic_lysed || 
@@ -528,7 +528,7 @@ int total_apoptosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
 	for (int i = 0; i < (*all_cells).size(); i++)
 	{
 		Cell* pCell = (*all_cells)[i];
-		if( pCell->phenotype.death.dead==false )
+		if( pCell->phenotype.death.dead == false )
 			continue;
 		if( pCell->phenotype.cycle.current_phase().code == PhysiCell_constants::apoptotic )
 			local_count++;
