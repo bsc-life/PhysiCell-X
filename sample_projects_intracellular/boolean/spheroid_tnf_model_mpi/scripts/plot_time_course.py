@@ -137,17 +137,17 @@ def main():
     # labels_dict['unbound_external_TNFR'] = "TNFR[e]"
     # labels_dict['bound_internal_TNFR'] = "TNFR-TNF[i]"
     # df_time_course, df_time_tnf, df_cell_variables = load_datasets(output_folder, labels_dict)
-    # df_time_course = df_time_course
+    # df_time_course = df_time_course.rename(columns={'live': 'alive'})
 
     
-    df_all_variables = pd.read_csv('../output/simulation_report.txt', sep='\t', index_col='timepoint')
+    df_all_variables = pd.read_csv('../output/simulation_report.tsv', sep='\t', index_col='timepoint')
     labels_dict = {}
     labels_dict['total_free_tnfr'] = "TNFR-TNF[e]"
     labels_dict['total_active_tnfr'] = "TNFR[e]"
     labels_dict['total_int_TNF'] = "TNFR-TNF[i]"
     list_of_variables = list(labels_dict.values())
 
-    df_time_course = df_all_variables[['alive', 'apoptotic', 'nectortic']]
+    df_time_course = df_all_variables[['alive', 'dead', 'apoptotic', 'necrotic']]
     df_cell_variables = df_all_variables[list_of_variables]
     df_time_tnf = df_all_variables[['total_tnf']].rename(columns={'total_tnf': 'tnf'})
 
