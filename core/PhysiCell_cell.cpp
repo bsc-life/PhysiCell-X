@@ -6271,9 +6271,11 @@ Cell_Definition* initialize_cell_definition_from_pugixml( pugi::xml_node cd_node
 	node = node.child( "death" ); 
 	if( node )
 	{
-		node = node.child( "model" );
-		while( node )
+		pugi::xml_node model_node = node.child( "model" );
+		while( model_node )
 		{
+			node = model_node;
+
 			int model; // = node.attribute("code").as_int() ; 
 			if( strlen( node.attribute("code").as_string() ) > 0 )
 			{ model = node.attribute("code").as_int(); }
@@ -6366,7 +6368,7 @@ Cell_Definition* initialize_cell_definition_from_pugixml( pugi::xml_node cd_node
 					
 			// set the model 
 			// if the model already exists, just overwrite the parameters 
-			 if (model == PhysiCell_constants::apoptosis_death_model) 
+            if (model == PhysiCell_constants::apoptosis_death_model) 
             {
 //					pCD->phenotype.death.add_death_model( rate , &apoptosis , apoptosis_parameters );
                 if( death_model_already_exists == false )
@@ -6497,7 +6499,6 @@ Cell_Definition* initialize_cell_definition_from_pugixml( pugi::xml_node cd_node
 			}
 			
 		}
-
 */				
 				
 				
@@ -6507,7 +6508,7 @@ Cell_Definition* initialize_cell_definition_from_pugixml( pugi::xml_node cd_node
 			
 			// node = node.parent(); 
 			
-			node = node.next_sibling( "model" ); 
+			model_node = model_node.next_sibling( "model" ); 
 //			death_model_index++; 
 		}
 		
