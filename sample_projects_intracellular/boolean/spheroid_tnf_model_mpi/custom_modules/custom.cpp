@@ -489,17 +489,17 @@ int total_live_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
 
 int total_dead_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
-	int local_count = 0;
-	#pragma omp parallel for reduction (+: local_count )
-	for (int i = 0; i < (*all_cells).size(); i++)
-	{
-		Cell* pCell = (*all_cells)[i];
-		if(pCell->phenotype.death.dead == true)
-			local_count++;
-	}
-	int global_count;
-	MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
-	return global_count;
+    int local_count = 0;
+    #pragma omp parallel for reduction (+: local_count )
+    for (int i = 0; i < (*all_cells).size(); i++)
+    {
+        Cell* pCell = (*all_cells)[i];
+        if(pCell->phenotype.death.dead==true)
+        { local_count++; }
+    }
+    int global_count;
+    MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+    return global_count;
 }
 
 int total_necrosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)

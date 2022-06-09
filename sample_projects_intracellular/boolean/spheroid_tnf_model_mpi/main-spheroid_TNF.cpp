@@ -214,13 +214,13 @@ int main( int argc, char* argv[] )
 	std::ofstream report_file;
 	if( world.rank == 0 )
 	{
-		sprintf(filename , "%s/simulation_report.txt" , PhysiCell_settings.folder.c_str() ); 
-		report_file.open(filename); 	// create the data log file 
-		report_file << "timepoint";
-		report_file << "\talive" << "\tapoptotic" << "\tnectortic";
-		report_file << "\ttotal_free_tnfr" << "\ttotal_active_tnfr" << "\ttotal_int_TNF";
-		report_file << "\ttotal_active_TNF" << "\ttotal_active_FADD" << "\ttotal_active_NFKb";
-		report_file << "\ttotal_tnf" << std::endl;
+        sprintf(filename , "%s/simulation_report.tsv" , PhysiCell_settings.folder.c_str() );
+        report_file.open(filename);     // create the data log file 
+        report_file << "timepoint";
+        report_file << "\talive" << "\tdead" << "\tapoptotic" << "\tnecrotic";
+        report_file << "\ttotal_free_tnfr" << "\ttotal_active_tnfr" << "\ttotal_int_TNF";
+        report_file << "\ttotal_active_TNF" << "\ttotal_active_FADD" << "\ttotal_active_NFKb";
+        report_file << "\ttotal_tnf" << std::endl;
 	}
 
 	if(IOProcessor(world))
@@ -237,25 +237,26 @@ int main( int argc, char* argv[] )
 				//Use the parallel version of the function	
 				display_simulation_status( std::cout, world, cart_topo );
 				
-				double timepoint        = PhysiCell_globals.current_time;
-				int alive_no 		    = total_live_cell_count(world, cart_topo);
-				int apoptotic_no   	    = total_apoptosis_cell_count(world, cart_topo);
-				int necrotic_no 	    = total_necrosis_cell_count(world, cart_topo);
-				float total_free_tnfr   = total_free_TNF_receptor(world, cart_topo);
-				float total_active_tnfr = total_active_TNF_receptor(world, cart_topo);
-				float total_int_tnfr    = total_internalized_TNF_receptor(world, cart_topo);
-				float total_active_TNF  = total_active_TNF_node(world, cart_topo);
-				float total_active_FADD = total_active_FADD_node(world, cart_topo);
-				float total_active_NFKb = total_active_NFKb_node(world, cart_topo);
-				float total_tnf         = get_total_tnf(world, cart_topo);
+                double timepoint        = PhysiCell_globals.current_time;
+                int alive               = total_live_cell_count(world, cart_topo);
+                int dead                = total_dead_cell_count(world, cart_topo);
+                int apoptotic           = total_apoptosis_cell_count(world, cart_topo);
+                int necrotic            = total_necrosis_cell_count(world, cart_topo);
+                float total_free_tnfr   = total_free_TNF_receptor(world, cart_topo);
+                float total_active_tnfr = total_active_TNF_receptor(world, cart_topo);
+                float total_int_tnfr    = total_internalized_TNF_receptor(world, cart_topo);
+                float total_active_TNF  = total_active_TNF_node(world, cart_topo);
+                float total_active_FADD = total_active_FADD_node(world, cart_topo);
+                float total_active_NFKb = total_active_NFKb_node(world, cart_topo);
+                float total_tnf         = get_total_tnf(world, cart_topo);
 
 				if( world.rank == 0) 
 				{
-					report_file << PhysiCell_globals.current_time;
-					report_file << "\t" << alive_no << "\t" << apoptotic_no << "\t" << necrotic_no;
-					report_file << "\t" << total_free_tnfr << "\t" << total_active_tnfr << "\t" << total_int_tnfr;
-					report_file << "\t" << total_active_TNF << "\t" << total_active_FADD << "\t" << total_active_NFKb;
-					report_file << "\t" << total_tnf  <<std::endl;
+                    report_file << PhysiCell_globals.current_time;
+                    report_file << "\t" << alive << "\t" << dead << "\t" << apoptotic << "\t" << necrotic;
+                    report_file << "\t" << total_free_tnfr << "\t" << total_active_tnfr << "\t" << total_int_tnfr;
+                    report_file << "\t" << total_active_TNF << "\t" << total_active_FADD << "\t" << total_active_NFKb;
+                    report_file << "\t" << total_tnf  <<std::endl;
 				}
 				
 				if( PhysiCell_settings.enable_full_saves == true )
