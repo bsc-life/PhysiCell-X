@@ -256,7 +256,7 @@ int main( int argc, char* argv[] )
 				{
                     report_file << PhysiCell_globals.current_time;
                     report_file << "\t" << "\t" << basic_agents << cell_agents << "\t" << alive;
-					report_file "\t" << dead << "\t" << apoptotic << "\t" << necrotic;
+					report_file << "\t" << dead << "\t" << apoptotic << "\t" << necrotic;
                     // report_file << "\t" << total_free_tnfr << "\t" << total_active_tnfr << "\t" << total_int_tnfr;
                     // report_file << "\t" << total_active_TNF << "\t" << total_active_FADD << "\t" << total_active_NFKb;
                     report_file << "\t" << total_tnf  <<std::endl;
