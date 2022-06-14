@@ -126,6 +126,7 @@ void update_phenotype_with_signaling(Cell *pCell, Phenotype &phenotype, double d
 	if( phenotype.death.dead == true )
 	{
 		pCell->functions.update_phenotype = NULL;
+        pCell->functions.update_phenotype_parallel = NULL;
 		return;
 	}
 
