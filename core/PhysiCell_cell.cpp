@@ -6508,7 +6508,7 @@ Cell_Definition* initialize_cell_definition_from_pugixml( pugi::xml_node cd_node
 			
 			// node = node.parent(); 
 			
-			model_node = model_node.next_sibling( "model" ); 
+			model_node = model_node.next_sibling( "model" );
 //			death_model_index++; 
 		}
 		
@@ -6516,7 +6516,7 @@ Cell_Definition* initialize_cell_definition_from_pugixml( pugi::xml_node cd_node
 	
 	// volume 
 	node = cd_node.child( "phenotype" );
-	node = node.child( "volume" ); 
+	node = node.child( "volume" );
 	if( node )
 	{
 		Volume* pV = &(pCD->phenotype.volume);

@@ -238,7 +238,7 @@ int main( int argc, char* argv[] )
 				display_simulation_status( std::cout, world, cart_topo );
 				
                 double timepoint        = PhysiCell_globals.current_time;
-				int basic_agents;
+				int basic_agents        = total_basic_agent_count(world, cart_topo);
 				int cell_agents         = total_cell_agent_count(world, cart_topo);
                 int alive               = total_live_cell_count(world, cart_topo);
                 int dead                = total_dead_cell_count(world, cart_topo);
