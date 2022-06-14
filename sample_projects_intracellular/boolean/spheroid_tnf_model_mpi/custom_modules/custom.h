@@ -145,6 +145,7 @@ std::vector<std::string> my_coloring_function( Cell* );
 /*===============================================*/
 /* Parallel prototype of total_live_cell_count() */
 /*===============================================*/
+int total_agents_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
 int total_live_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
 int total_dead_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
 int total_necrosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo);

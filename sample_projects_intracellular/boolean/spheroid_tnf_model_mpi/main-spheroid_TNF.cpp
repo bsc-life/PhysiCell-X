@@ -217,9 +217,9 @@ int main( int argc, char* argv[] )
         sprintf(filename , "%s/simulation_report.tsv" , PhysiCell_settings.folder.c_str() );
         report_file.open(filename);     // create the data log file 
         report_file << "timepoint";
-        report_file << "\talive" << "\tdead" << "\tapoptotic" << "\tnecrotic";
-        report_file << "\ttotal_free_tnfr" << "\ttotal_active_tnfr" << "\ttotal_int_TNF";
-        report_file << "\ttotal_active_TNF" << "\ttotal_active_FADD" << "\ttotal_active_NFKb";
+        report_file << "\tagents\talive\tdead\tapoptotic\tnecrotic";
+        report_file << "\ttotal_free_tnfr\ttotal_active_tnfr\ttotal_int_TNF";
+        report_file << "\ttotal_active_TNF\ttotal_active_FADD\ttotal_active_NFKb";
         report_file << "\ttotal_tnf" << std::endl;
 	}
 
@@ -238,6 +238,7 @@ int main( int argc, char* argv[] )
 				display_simulation_status( std::cout, world, cart_topo );
 				
                 double timepoint        = PhysiCell_globals.current_time;
+				int agents              = total_agents_count(world, cart_topo);
                 int alive               = total_live_cell_count(world, cart_topo);
                 int dead                = total_dead_cell_count(world, cart_topo);
                 int apoptotic           = total_apoptosis_cell_count(world, cart_topo);
@@ -253,7 +254,7 @@ int main( int argc, char* argv[] )
 				if( world.rank == 0) 
 				{
                     report_file << PhysiCell_globals.current_time;
-                    report_file << "\t" << alive << "\t" << dead << "\t" << apoptotic << "\t" << necrotic;
+                    report_file << "\t" << agents << "\t" << alive << "\t" << dead << "\t" << apoptotic << "\t" << necrotic;
                     report_file << "\t" << total_free_tnfr << "\t" << total_active_tnfr << "\t" << total_int_tnfr;
                     report_file << "\t" << total_active_TNF << "\t" << total_active_FADD << "\t" << total_active_NFKb;
                     report_file << "\t" << total_tnf  <<std::endl;
