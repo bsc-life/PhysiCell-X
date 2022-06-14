@@ -470,7 +470,20 @@ std::vector<std::string> my_coloring_function(Cell *pCell)
 	return output;
 }
 
-int total_agents_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+
+
+
+int total_basic_agent_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	int local_count = (*all_basic_agents).size();
+	int global_count;
+	MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+	return global_count;
+}
+
+
+
+int total_cell_agent_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
 	int local_count = (*all_cells).size();
 	int global_count;

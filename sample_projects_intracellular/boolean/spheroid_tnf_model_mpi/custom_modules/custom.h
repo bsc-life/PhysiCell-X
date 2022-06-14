@@ -145,7 +145,8 @@ std::vector<std::string> my_coloring_function( Cell* );
 /*===============================================*/
 /* Parallel prototype of total_live_cell_count() */
 /*===============================================*/
-int total_agents_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
+int total_basic_agent_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
+int total_cell_agent_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
 int total_live_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
 int total_dead_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
 int total_necrosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
@@ -156,11 +157,9 @@ double get_total_tnf(mpi_Environment &world, mpi_Cartesian &cart_topo);
 double total_custom_variable_live(std::string var_name, mpi_Environment &world, mpi_Cartesian &cart_topo);
 
 double total_active_TNF_receptor(mpi_Environment &world, mpi_Cartesian &cart_topo);
-
 double total_free_TNF_receptor(mpi_Environment &world, mpi_Cartesian &cart_topo);
 double total_internalized_TNF_receptor(mpi_Environment &world, mpi_Cartesian &cart_topo);
 
 double total_active_TNF_node(mpi_Environment &world, mpi_Cartesian &cart_topo);
 double total_active_FADD_node(mpi_Environment &world, mpi_Cartesian &cart_topo);
 double total_active_NFKb_node(mpi_Environment &world, mpi_Cartesian &cart_topo);
-
