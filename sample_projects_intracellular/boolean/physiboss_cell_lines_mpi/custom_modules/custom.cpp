@@ -92,7 +92,8 @@ void create_cell_types( void )
 
 	cell_defaults.functions.update_migration_bias = NULL; 
 	cell_defaults.functions.update_phenotype = NULL;
-	cell_defaults.functions.update_phenotype_parallel = tumor_cell_phenotype_with_signaling; // update_cell_and_death_parameters_O2_based; 
+	// cell_defaults.functions.update_phenotype_parallel = tumor_cell_phenotype_with_signaling; // update_cell_and_death_parameters_O2_based; 
+	cell_defaults.functions.update_phenotype_parallel = NULL;
 	cell_defaults.functions.custom_cell_rule = NULL; 
 	
 	cell_defaults.functions.add_cell_basement_membrane_interactions = NULL; 
@@ -118,7 +119,7 @@ void create_cell_types( void )
 
 	build_cell_definitions_maps(); 
 	
-	display_cell_definitions( std::cout ); 
+	// display_cell_definitions( std::cout ); 
 	
 	return; 
 }
@@ -292,4 +293,90 @@ std::vector<std::string> my_coloring_function( Cell* pCell )
 void color_node(Cell* pCell){
 	std::string node_name = parameters.strings("node_to_visualize");
 	pCell->custom_data[node_name] = pCell->phenotype.intracellular->get_boolean_variable_value(node_name);
+}
+
+int total_basic_agent_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	int local_count = all_basic_agents.size();
+	int global_count;
+	MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+	return global_count;
+}
+
+
+
+int total_cell_agent_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	int local_count = (*all_cells).size();
+	int global_count;
+	MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+	return global_count;
+}
+
+
+// Cell count functions
+int total_live_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	int local_count = 0;
+	#pragma omp parallel for reduction (+: local_count )
+	for (int i = 0; i < (*all_cells).size(); i++)
+	{
+		Cell* pCell = (*all_cells)[i];
+		if(pCell->phenotype.death.dead==false)
+		{ local_count++;; }
+	}
+	int global_count;
+	MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+	return global_count;
+}
+
+int total_dead_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+    int local_count = 0;
+    #pragma omp parallel for reduction (+: local_count )
+    for (int i = 0; i < (*all_cells).size(); i++)
+    {
+        Cell* pCell = (*all_cells)[i];
+        if(pCell->phenotype.death.dead==true)
+        { local_count++; }
+    }
+    int global_count;
+    MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+    return global_count;
+}
+
+int total_necrosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	int local_count = 0;
+	#pragma omp parallel for reduction (+: local_count )
+	for (int i = 0; i < (*all_cells).size(); i++)
+	{
+		Cell* pCell = (*all_cells)[i];
+		if( pCell->phenotype.death.dead==false )
+		{ continue; }
+		if( pCell->phenotype.cycle.current_phase().code == PhysiCell_constants::necrotic_swelling || 
+			pCell->phenotype.cycle.current_phase().code == PhysiCell_constants::necrotic_lysed || 
+			pCell->phenotype.cycle.current_phase().code == PhysiCell_constants::necrotic )	
+		{ local_count++; }
+	}
+	int global_count;
+	MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+	return global_count;
+}
+
+int total_apoptosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{	
+	int local_count = 0;
+	#pragma omp parallel for reduction (+: local_count )
+	for (int i = 0; i < (*all_cells).size(); i++)
+	{
+		Cell* pCell = (*all_cells)[i];
+		if( pCell->phenotype.death.dead==false )
+		{ continue; }
+		if( pCell->phenotype.cycle.current_phase().code == PhysiCell_constants::apoptotic )
+		{ local_count++; }
+	}
+	int global_count;
+	MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+	return global_count;
 }

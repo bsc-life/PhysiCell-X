@@ -74,12 +74,12 @@
 
 <PhysiCell_settings version="devel-version">
 	<domain>
-		<x_min>-220</x_min>
-		<x_max>220</x_max>
-		<y_min>-120</y_min>
-		<y_max>120</y_max>
-		<z_min>-20</z_min>
-		<z_max>20</z_max>
+		<x_min>-1000</x_min>
+		<x_max>1000</x_max>
+		<y_min>-1000</y_min>
+		<y_max>1000</y_max>
+		<z_min>-1000</z_min>
+		<z_max>1000</z_max>
 		<dx>10</dx>
 		<dy>10</dy>
 		<dz>10</dz>
@@ -87,7 +87,7 @@
 	</domain>
 	
 	<overall>
-		<max_time units="min">200</max_time>
+		<max_time units="min">4000</max_time>
 		<time_units>min</time_units>
 		<space_units>micron</space_units>
 
@@ -97,14 +97,14 @@
 	</overall>
 	
 	<parallel>
-		<omp_num_threads>6</omp_num_threads>
+		<omp_num_threads>1</omp_num_threads>
 	</parallel> 
 	
 	<save>
 		<folder>output</folder> <!-- use . for root --> 
 
 		<full_data>
-			<interval units="min">10</interval>
+			<interval units="min">30</interval>
 			<enable>true</enable>
 		</full_data>
 		
@@ -154,11 +154,36 @@
 				
 				<death>  
 					<model code="100" name="apoptosis"> 
-						<death_rate units="1/min">0</death_rate>
+						<death_rate units="1/min">5.31667e-05</death_rate>
+						<phase_durations units="min">
+							<duration index="0" fixed_duration="true">516</duration>
+						</phase_durations>
+
+						<parameters>
+							<unlysed_fluid_change_rate units="1/min">0.05</unlysed_fluid_change_rate>
+							<lysed_fluid_change_rate units="1/min">0</lysed_fluid_change_rate>
+							<cytoplasmic_biomass_change_rate units="1/min">1.66667e-02</cytoplasmic_biomass_change_rate>
+							<nuclear_biomass_change_rate units="1/min">5.83333e-03</nuclear_biomass_change_rate>
+							<calcification_rate units="1/min">0</calcification_rate>
+							<relative_rupture_volume units="dimensionless">2.0</relative_rupture_volume>
+						</parameters>
 					</model> 
 
 					<model code="101" name="necrosis">
 						<death_rate units="1/min">0.0</death_rate>
+						<phase_durations units="min">
+							<duration index="0" fixed_duration="true">0</duration>
+							<duration index="1" fixed_duration="true">86400</duration>
+						</phase_durations>
+
+						<parameters>
+							<unlysed_fluid_change_rate units="1/min">0.05</unlysed_fluid_change_rate>
+							<lysed_fluid_change_rate units="1/min">0</lysed_fluid_change_rate>
+							<cytoplasmic_biomass_change_rate units="1/min">1.66667e-02</cytoplasmic_biomass_change_rate>
+							<nuclear_biomass_change_rate units="1/min">5.83333e-03</nuclear_biomass_change_rate>
+							<calcification_rate units="1/min">0</calcification_rate>
+							<relative_rupture_volume units="dimensionless">2.0</relative_rupture_volume>
+						</parameters>
 					</model> 
 				</death>					
 				
@@ -189,42 +214,6 @@
 			</phenotype>
 			<custom_data/>
 		</cell_definition>
-		<cell_definition name="other" parent_type="default" ID="1">
-			<phenotype>
-				<intracellular type="maboss">
-					<bnd_filename>./config/model_1.bnd</bnd_filename>
-				</intracellular>			
-			</phenotype>
-			<custom_data/>
-		</cell_definition>
-		<cell_definition name="another" parent_type="default" ID="2">
-			<phenotype>
-				<intracellular type="maboss">
-					<mutations>
-						<mutation node="C">0.0</mutation>
-					</mutations>
-				</intracellular>			
-			</phenotype>
-			<custom_data/>
-		</cell_definition>
-		<cell_definition name="yet_another" parent_type="default" ID="3">
-			<phenotype>
-				<intracellular type="maboss">
-					<parameters>
-						<parameter name="$time_scale">0.2</parameter>
-					</parameters>
-				</intracellular>
-			</phenotype>
-			<custom_data/>
-		</cell_definition>
-		<cell_definition name="yet_yet_another" parent_type="default" ID="4">
-			<phenotype>
-				<intracellular type="maboss">
-					<scaling>0.25</scaling>
-				</intracellular>
-			</phenotype>
-			<custom_data/>
-		</cell_definition>
 		<cell_definition name="last_one" parent_type="default" ID="5">
 			<phenotype>
 				<intracellular type="maboss">
@@ -235,8 +224,7 @@
 			</phenotype>
 			<custom_data/>
 		</cell_definition>
-	</cell_definitions>	
-	
+	</cell_definitions>
 	<user_parameters>
 		<random_seed type="int" units="dimensionless">0</random_seed> 
 		<node_to_visualize type="string" units="">C</node_to_visualize> <!-- insert the name of the node you want to visualize in paraview-->

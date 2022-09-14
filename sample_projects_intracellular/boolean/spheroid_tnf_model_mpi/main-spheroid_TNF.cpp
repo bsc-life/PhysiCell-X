@@ -223,8 +223,7 @@ int main( int argc, char* argv[] )
         report_file << "\ttotal_tnf" << std::endl;
 	}
 
-	if(IOProcessor(world))
-		std::cout << PhysiCell_settings.enable_legacy_saves << std::endl;
+	
 	
 	//Main loop of the program 
 	try 
@@ -255,7 +254,7 @@ int main( int argc, char* argv[] )
 				if( world.rank == 0) 
 				{
                     report_file << PhysiCell_globals.current_time;
-                    report_file << "\t" << "\t" << basic_agents << cell_agents << "\t" << alive;
+                    report_file << "\t"<< basic_agents  << "\t" << cell_agents << "\t" << alive;
 					report_file << "\t" << dead << "\t" << apoptotic << "\t" << necrotic;
                     // report_file << "\t" << total_free_tnfr << "\t" << total_active_tnfr << "\t" << total_int_tnfr;
                     // report_file << "\t" << total_active_TNF << "\t" << total_active_FADD << "\t" << total_active_NFKb;

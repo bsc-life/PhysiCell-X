@@ -105,8 +105,11 @@ void create_cell_types(void)
 	cell_defaults.functions.update_velocity = standard_update_cell_velocity;
 	cell_defaults.functions.update_velocity_parallel = standard_update_cell_velocity;
 	cell_defaults.functions.volume_update_function = standard_volume_update_function;
-	cell_defaults.functions.update_phenotype = update_phenotype_with_signaling;
-	cell_defaults.functions.update_phenotype_parallel = update_phenotype_with_signaling;
+	// cell_defaults.functions.update_phenotype = update_phenotype_with_signaling;
+	// cell_defaults.functions.update_phenotype_parallel = update_phenotype_with_signaling;
+
+	cell_defaults.functions.update_phenotype = update_cell_and_death_parameters_O2_based;
+	cell_defaults.functions.update_phenotype_parallel = update_cell_and_death_parameters_O2_based;
 	
 	cell_defaults.functions.update_migration_bias = NULL;
 	cell_defaults.functions.custom_cell_rule = NULL;
@@ -129,6 +132,8 @@ void create_cell_types(void)
 	cell_defaults.custom_data["bound_internal_TNFR"] = 0;
 	
 	build_cell_definitions_maps();
+	display_cell_definitions(std::cout);
+
 	return;
 }
 
@@ -220,6 +225,10 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 			std::string init_cells_fame = parameters.strings("init_cells_filename");
 			std::vector<init_record> cells = read_init_file(init_cells_fame, ';', true);
 			std::vector<double> position = {0,0,0};
+			if( world.rank == 0 )
+			{
+				std::cout<<cells.size()<<std::endl; 
+			}
 			for (int i = 0; i < cells.size(); i++)
 			{ 
 				position[0] = cells[i].x; 

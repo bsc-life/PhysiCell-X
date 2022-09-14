@@ -118,7 +118,7 @@ int main( int argc, char* argv[] )
 /* Create mpi_Environment object, initialize it, then create Cartesian Topology          */
 /*=======================================================================================*/
 	
-		mpi_Environment world;                         //object contains size of communicator, rank of process
+	mpi_Environment world;                         //object contains size of communicator, rank of process
     world.Initialize();                            //Initialize using MPI_THREAD_FUNNELED, find comm. size and comm. rank
     mpi_Cartesian cart_topo;                       //Contains dims[3], coords[3] array and MPI_Comm mpi_cart_comm
     cart_topo.Build_Cartesian_Topology(world);     //Create 1-D X decomposition by setting dims[1]=size. 
@@ -206,12 +206,25 @@ int main( int argc, char* argv[] )
 	
 	//Use the parallel version of the function for SVG file plotting
 	sprintf( filename , "%s/initial.svg" , PhysiCell_settings.folder.c_str() ); 
-  SVG_plot( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function, world, cart_topo );
+	SVG_plot( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function, world, cart_topo );
 	
 	//Set the performance timers 
 	BioFVM::RUNTIME_TIC();
 	BioFVM::TIC();
 	
+	std::ofstream report_file;
+	if( world.rank == 0 )
+	{
+        sprintf(filename , "%s/simulation_report.tsv" , PhysiCell_settings.folder.c_str() );
+        report_file.open(filename);     // create the data log file 
+        report_file << "timepoint";
+        report_file << "\tbasic_agents\tcell_agents\talive\tdead\tonly_apoptotic\tnecrotic\tdead_but_ghost\tnecrotic_ghost"<<std::endl;;
+		// report_file <<	"apoptotic_and_14\tapoptotic_not_14" <<std::endl;;
+		std::cout   << "Apoptotic Code "<< PhysiCell_constants::apoptotic <<std::endl;;
+		std::cout   << "necrotic_swelling Code "<< PhysiCell_constants::necrotic_swelling << std::endl;;
+		std::cout   << "necrotic_lysed Code "<< PhysiCell_constants::necrotic_lysed << std::endl;;
+		std::cout   << "necrotic Code "<< PhysiCell_constants::necrotic  << std::endl;;
+	}
 	//Main loop of the program
 	try 
 	{	
@@ -222,7 +235,28 @@ int main( int argc, char* argv[] )
 			{
 				
 				//Use the parallel version of the function to display total cells, time
-				display_simulation_status( std::cout, world, cart_topo ); 
+				display_simulation_status( std::cout, world, cart_topo );
+				
+                double timepoint        = PhysiCell_globals.current_time;
+				int basic_agents        = total_basic_agent_count(world, cart_topo);
+				int cell_agents         = total_cell_agent_count(world, cart_topo);
+                int alive               = total_live_cell_count(world, cart_topo);
+                int dead                = total_dead_cell_count(world, cart_topo);
+                int apoptotic           = total_apoptosis_cell_count(world, cart_topo);
+                int necrotic            = total_necrosis_cell_count(world, cart_topo);
+				int dead_but_ghost 		= total_dead_but_ghost(world, cart_topo);
+				int necrotic_ghost 		= total_necrotic_ghost(world, cart_topo);
+				// int apoptotic_dead_alive = total_apoptosis_and_codealive(world, cart_topo);
+				// int apoptotic_dead_not_alive = total_apoptosis_not_codealive(world, cart_topo);
+				if( world.rank == 0) 
+				{
+                    report_file << PhysiCell_globals.current_time;
+                    report_file << "\t" << basic_agents <<"\t" << cell_agents << "\t" << alive;
+					report_file << "\t" << dead << "\t" << apoptotic << "\t" << necrotic << "\t" << dead_but_ghost << "\t" << necrotic_ghost <<std::endl;;
+					// report_file << "\t" << apoptotic_dead_alive << "\t" << apoptotic_dead_not_alive << std::endl;;
+
+				}
+				
 				
 				if( PhysiCell_settings.enable_full_saves == true )
 				{	
@@ -258,7 +292,9 @@ int main( int argc, char* argv[] )
 			((Cell_Container *)microenvironment.agent_container)->update_all_cells( PhysiCell_globals.current_time, world, cart_topo);
 			
 			PhysiCell_globals.current_time += diffusion_dt;
-		}		
+		}
+			report_file.close();
+		
 	}
 	catch( const std::exception& e )
 	{ 

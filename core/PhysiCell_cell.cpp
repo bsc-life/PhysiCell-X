@@ -351,6 +351,8 @@ void Cell::advance_bundled_phenotype_functions( double dt_ , mpi_Environment &wo
 	// call the custom code to update the phenotype
 	if( functions.update_phenotype_parallel )
 	{	functions.update_phenotype_parallel( this , phenotype , dt_ , world, cart_topo ); }
+	if( functions.update_phenotype )
+	{	functions.update_phenotype( this , phenotype , dt_); }
 
 	// update volume
 	if( functions.volume_update_function )
@@ -700,7 +702,8 @@ Cell* Cell::divide(int p_ID, mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
 	// phenotype.flagged_for_division = false;
 	// phenotype.flagged_for_removal = false;
-	//std::cout<<"Daughter ID = "<<p_ID<<" Parent ID: "<<this->ID<<" Rank:"<<world.rank;
+	// std::cout<<"------"<<std::endl;
+	// std::cout<<"Daughter ID = "<<p_ID<<" Parent ID: "<<this->ID<<" Rank:"<<world.rank<<std::endl;
 	
 	// make sure ot remove adhesions 
 	remove_all_attached_cells();
@@ -850,15 +853,16 @@ Cell* Cell::divide(int p_ID, mpi_Environment &world, mpi_Cartesian &cart_topo)
 	update_voxel_in_container(world, cart_topo);			//Though world, cart_topo are not needed in this, just to distinguish
 	phenotype.volume.divide(); 												//Don't think anything to parallelize
 	child->phenotype.volume.divide();
+	
 	child->set_total_volume(child->phenotype.volume.total);
 	set_total_volume(phenotype.volume.total);
 
 	// child->set_phenotype( phenotype );
 	child->phenotype = phenotype;
-		
+	// track if parent is a ghost and print
+	// std::cout<<"Daughter ID = "<<p_ID<<" Phenotype: "<<child->phenotype<<std::endl;
 	if (child->phenotype.intracellular)
     child->phenotype.intracellular->start();
-  	
 // #ifdef ADDON_PHYSIDFBA
 // 	child->fba_model = this->fba_model;
 // #endif
@@ -2152,7 +2156,7 @@ void Cell::print_cell(mpi_Environment &world)
 		ofile<<"UNPACKED CELL"<<std::endl;
 
 	ofile << "NEW POSITION ="<<"("<<position[0]<<","<<position[1]<<","<<position[2]<<")"<<std::endl;
-/*
+
 	ofile<<"=> class Cell {"<<std::endl;
 	ofile<<"TYPE_NAME:"<<type_name<<std::endl;
 
@@ -2273,14 +2277,14 @@ void Cell::print_cell(mpi_Environment &world)
 	if(this->phenotype.cycle.data.pCycle_Model != NULL)
 		ofile<<"pCycle_Model is NOT NULL"<<std::endl;
 	ofile<<"time_units:"<<this->phenotype.cycle.data.time_units<<std::endl;
- */
+ 
 	for(int i=0; i<this->phenotype.cycle.data.transition_rates.size();i++)
 		{
 			ofile<<"Transition Rates Vector:"<<i<<std::endl;
 			for(int j=0; j<this->phenotype.cycle.data.transition_rates[i].size();j++)
 				ofile<<"rate "<<j<<":"<<this->phenotype.cycle.data.transition_rates[i][j]<<std::endl;
 		}
-	/*
+	
 	ofile<<"current_phase_index:"<<this->phenotype.cycle.data.current_phase_index<<std::endl;
 	ofile<<"elapsed_time_in_phase:"<<this->phenotype.cycle.data.elapsed_time_in_phase<<std::endl;
 
@@ -2380,7 +2384,7 @@ void Cell::print_cell(mpi_Environment &world)
 	for(int i=0; i<this->phenotype.molecular.fraction_transferred_when_ingested.size();i++)
 			ofile<<"fraction_transferred_when_ingested "<<i<<":"<<this->phenotype.molecular.fraction_transferred_when_ingested[i]<<std::endl;
 
-*/
+/*
 if (this->phenotype.intracellular != NULL) {
 		ofile<<"=> class Cell { class Phenotype { class Intracellular { "<<std::endl;
 #ifdef ADDON_PHYSIBOSS
@@ -2411,12 +2415,12 @@ if (this->phenotype.intracellular != NULL) {
 #endif	
 	}
 
-
+*/
 	ofile<<"=> class Cell { "<<std::endl;
 	ofile<<"is_out_of_domain:"<<is_out_of_domain<<std::endl;
 	ofile<<"is_movable:"<<is_movable<<std::endl;
 	
-/*	
+	
 	for(int i=0; i<displacement.size(); i++)
 		ofile<<"Displacement["<<i<<"]:"<<displacement[i]<<std::endl;
 
@@ -2481,7 +2485,7 @@ if (this->phenotype.intracellular != NULL) {
 	 	ofile<<i<<":"<<fraction_transferred_when_ingested->data()[i]<<std::endl;
 
 	ofile<<"Vel[0]:"<< velocity[0]<<" Vel[1]:"<<velocity[1]<<" Vel[2]:"<<velocity[2]<<std::endl;
-*/
+
 	ofile.close();
 
 }
@@ -2564,16 +2568,18 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 	/* Also try to send the length of the buffer to be allocated when sending.					 */
 	/*-----------------------------------------------------------------------------------*/
 
-  //std::cout<<"Total cells crossing to left in Rank "<<world.rank<<":"<<no_cells_cross_left<<std::endl;
-	//std::cout<<"Total cells crossing to right in Rank "<<world.rank<<":"<<no_cells_cross_right<<std::endl;
+  	std::cout<<"Total cells crossing to left in Rank "<<world.rank<<":"<<no_cells_cross_left<<std::endl;
+	std::cout<<"Total cells crossing to right in Rank "<<world.rank<<":"<<no_cells_cross_right<<std::endl;
 
 	/* IMPORTANT: CANNOT USE #pragma omp for HERE AS ALL THREADS WILL WRITE TO THE SAME SHARED BUFFER */
 	for(int i=0; i<(*all_cells).size();i++)
 	{
 		pCell = (*all_cells)[i];
 
+		
 		if(pCell->crossed_to_left_subdomain == true)
-		{
+		{	
+			// std::cout<< "cell id "<< pCell->ID<<"Crossing from right to left rank with rank id "<<world.rank<<<<std::endl;
 			//pCell->crossed_to_left_subdomain = false; //RESET IT BUT LATER REMOVE THIS LINE
 			/* Cell ID first - needed to create a cell */
 			
@@ -2747,12 +2753,11 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 
 		/* Packing of data members of Phases as its object is a member of Cycle_Model */
 		/* std::vector<Phase> phases; is a member of it - its a vector */
-
+		 
 		len_vector = pCell->functions.cycle_model.phases.size();
 		len_snd_buf_left = position_left + sizeof(len_vector);
 		snd_buf_left.resize(len_snd_buf_left);
 		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-
 		for(int i=0; i<len_vector; i++)
 		{
 			len_snd_buf_left = position_left + 2 * sizeof(int);
@@ -2789,12 +2794,10 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 
 		/* Packing members of Phase_Link - std::vector<std::vector<Phase_Link>> phase_links is a member of */
 		/* class Cycle_Model which is a member of Functions - we're packing in DFS i.e. Inorder traversal	 */
-
 		len_vector = pCell->functions.cycle_model.phase_links.size();
 		len_snd_buf_left = position_left + sizeof(len_vector);
 		snd_buf_left.resize(len_snd_buf_left);
 		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-
 		for(int i=0; i<len_vector; i++)
 		{
 			len_int = pCell->functions.cycle_model.phase_links[i].size();
@@ -2889,7 +2892,7 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 
 		/* Now packing members of class Cell_State as this is the next member in class Cell */
 		/* has std::vector<double> orientation and double simple_pressure 									*/
-
+		// std::cout<<"size snd_buf_left "<<len_snd_buf_left<<std::endl;; 
 		len_vector = pCell->state.orientation.size();
 		len_snd_buf_left = position_left + sizeof(len_vector) + len_vector * sizeof(double) + sizeof(double);
 		snd_buf_left.resize(len_snd_buf_left);
@@ -2929,7 +2932,7 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 		len_snd_buf_left = position_left + sizeof(len_vector);
 		snd_buf_left.resize(len_snd_buf_left);
 		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-
+		// std::cout<<"size snd_buf_left "<<len_snd_buf_left<<std::endl;; 
 		for(int i=0; i<len_vector; i++)
 		{
 			 len_int = inverse_index_maps_cycle_data_1[i].size();
@@ -2943,7 +2946,7 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 				MPI_Pack(&(it->second), 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD );
 			}
 		}
-
+		// std::cout<<"size snd_buf_left "<<len_snd_buf_left<<std::endl;; 
 			/*=====================================================================*/
 			/* Cycle_Model* pCycle_Model;  IS NOT PACKED  												 */
 			/*=====================================================================*/
@@ -3417,8 +3420,18 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 		snd_buf_left.resize(len_snd_buf_left);
 		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
 		MPI_Pack(&(pCell->velocity[0]), len_vector, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-
-		//pCell->print_cell(world);
+		if(pCell->phenotype.death.dead == true && pCell->phenotype.cycle.current_phase().code == 14)
+		{
+			std::cout<<"Packing right to left "<<"Rank= "<<world.rank<<" Cell ID= "<<pCell->ID<<" received IS ZOMBIE"<<std::endl;
+			// pCell->print_cell(world);
+		}
+		int pcellsize=1332;
+		if(len_snd_buf_left%pcellsize){
+			pCell->print_cell(world);
+			 (*all_cells)[i-1]->print_cell(world);
+			std::cout<<"Packing phenotype.cycle.current_phase().code "<<pCell->phenotype.cycle.current_phase().code<<std::endl;
+		}
+		// pCell->print_cell(world);
 	}
 
 
@@ -3607,7 +3620,6 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 		len_snd_buf_right = position_right + sizeof(len_vector);
 		snd_buf_right.resize(len_snd_buf_right);
 		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-
 		for(int i=0; i<len_vector; i++)
 		{
 			len_snd_buf_right = position_right + 2 * sizeof(int);
@@ -3649,7 +3661,6 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 		len_snd_buf_right = position_right + sizeof(len_vector);
 		snd_buf_right.resize(len_snd_buf_right);
 		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-
 		for(int i=0; i<len_vector; i++)
 		{
 			len_int = pCell->functions.cycle_model.phase_links[i].size();
@@ -3669,7 +3680,6 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 				MPI_Pack(&temp_int, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
 			}
 		}
-
 		/* Going back to packing the remaning data fields of Cycle_Model */
 		/* Next field is is 'default_phase_index' of Cycle_Model class */
 
@@ -3686,7 +3696,7 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 		len_snd_buf_right = position_right + sizeof(len_vector);
 		snd_buf_right.resize(len_snd_buf_right);
 		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-
+		// std::cout<<"size snd_buf_right "<<len_snd_buf_right<<std::endl;; 
 		for(int i=0; i<len_vector; i++)
 		{
 			 len_int = inverse_index_maps_cycle_data[i].size();
@@ -3744,7 +3754,7 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 
 		/* Now packing members of class Cell_State as this is the next member in class Cell */
 		/* has std::vector<double> orientation and double simple_pressure 									*/
-
+		// std::cout<<"size snd_buf_right "<<len_snd_buf_right<<std::endl;; 
 		len_vector = pCell->state.orientation.size();
 		len_snd_buf_right = position_right + sizeof(len_vector) + len_vector * sizeof(double) + sizeof(double);
 		snd_buf_right.resize(len_snd_buf_right);
@@ -4267,27 +4277,39 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 		snd_buf_right.resize(len_snd_buf_right);
 		MPI_Pack(&len_vector, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
 		MPI_Pack(&(pCell->velocity[0]), len_vector, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+		if(pCell->phenotype.death.dead == true && pCell->phenotype.cycle.current_phase().code == 14)
+		{
+			std::cout<<"Packing left to right "<<"Rank="<<world.rank<<" Cell ID=" <<pCell->ID<<" received IS ZOMBIE"<<std::endl;;
+			
+		}
+		//if size of buffer is not dividable by 1332 print the cell
+		int pcellsize=1332;
+		if(len_snd_buf_right%pcellsize){
+			pCell->print_cell(world);
+			 (*all_cells)[i-1]->print_cell(world);
+			std::cout<<"phenotype.cycle.current_phase().code "<<pCell->phenotype.cycle.current_phase().code<<std::endl;;
+		}
 
-		//pCell->print_cell(world);
+		// pCell->print_cell(world);
 	}
  }
  
  		
-// 		if(no_cells_cross_left > 0)
-// 		{
-// 			std::cout<<"+++PACKING+++"<<std::endl; 
-//  			std::cout<<"Rank = " << world.rank << std::endl;
-// 			std::cout<<"Cells going to left = "								<< no_cells_cross_left 	<< std::endl;
-// 			std::cout<<"Buffer size for cells going to left: "	<< snd_buf_left.size() 	<< std::endl; 
-// 		}
-// 		
-// 		if(no_cells_cross_right > 0)
-// 		{
-// 			std::cout<<"+++PACKING+++"<<std::endl; 
-//  			std::cout<<"Rank = " << world.rank << std::endl;
-// 			std::cout<<"Cells going to right = "							<< no_cells_cross_right << std::endl;
-// 			std::cout<<"Buffer size for cells going to right: "	<< snd_buf_right.size() << std::endl;
-// 		}
+		if(no_cells_cross_left > 0)
+		{
+			std::cout<<"+++PACKING+++"<<std::endl; 
+ 			std::cout<<"Rank = " << world.rank << std::endl;
+			std::cout<<"Cells going to left = "								<< no_cells_cross_left 	<< std::endl;
+			std::cout<<"Buffer size for cells going to left: "	<< snd_buf_left.size() 	<< std::endl; 
+		}
+		
+		if(no_cells_cross_right > 0)
+		{
+			std::cout<<"+++PACKING+++"<<std::endl; 
+ 			std::cout<<"Rank = " << world.rank << std::endl;
+			std::cout<<"Cells going to right = "							<< no_cells_cross_right << std::endl;
+			std::cout<<"Buffer size for cells going to right: "	<< snd_buf_right.size() << std::endl;
+		}
 		
 }
 
@@ -4330,21 +4352,21 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 		int len_vector_nest = 0;
 		
 		
-// 		if(no_of_cells_from_right > 0)
-// 		{
-// 			std::cout<<"---UNPACKING---"<<std::endl;
-// 			std::cout<<"Rank = " << world.rank << std::endl;
-// 			std::cout<<"Cells from right = "<< no_of_cells_from_right << std::endl;
-// 			std::cout<<"Buffer size for cells from right: "<< rcv_buf_right.size() <<std::endl; 
-// 		}
-// 		
-// 		if(no_of_cells_from_left > 0)
-// 		{
-// 			std::cout<<"---UNPACKING---"<<std::endl;
-// 			std::cout<<"Rank = " << world.rank << std::endl;
-// 			std::cout<<"Cells from left = "<< no_of_cells_from_left << std::endl;
-// 			std::cout<<"Buffer size for cells from left: "<< rcv_buf_left.size() <<std::endl; 
-// 		}
+		if(no_of_cells_from_right > 0)
+		{
+			std::cout<<"---UNPACKING---"<<std::endl;
+			std::cout<<"Rank = " << world.rank << std::endl;
+			std::cout<<"Cells from right = "<< no_of_cells_from_right << std::endl;
+			std::cout<<"Buffer size for cells from right: "<< rcv_buf_right.size() <<std::endl; 
+		}
+		
+		if(no_of_cells_from_left > 0)
+		{
+			std::cout<<"---UNPACKING---"<<std::endl;
+			std::cout<<"Rank = " << world.rank << std::endl;
+			std::cout<<"Cells from left = "<< no_of_cells_from_left << std::endl;
+			std::cout<<"Buffer size for cells from left: "<< rcv_buf_left.size() <<std::endl; 
+		}
 
 		/* Unpack all cells coming from right */
 
@@ -4364,6 +4386,8 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 
 				//std::cout<<"CELLS from RIGHT position_right ="<<position_right<<std::endl;
 				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &cell_ID, 1, MPI_INT, MPI_COMM_WORLD);
+				// if(pCell->phenotype.death.dead == true && pCell->phenotype.cycle.current_phase().code == 14)
+				// {std::cout<<"Rank="<<world.rank<<" Cell ID="<<cell_ID<<" received IS ZOMBIE"<<std::endl;}
 				//std::cout<<"Rank="<<world.rank<<" Cell ID="<<cell_ID<<" received"<<std::endl;
 
 
@@ -4759,7 +4783,27 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 				pCell->phenotype.death.dead = temp_int == 1 ? true : false;
 
 				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &(pCell->phenotype.death.current_death_model_index), 1, MPI_INT, MPI_COMM_WORLD);
+				//
+				if(pCell->phenotype.death.dead == true){
+					pCell->phenotype.cycle.sync_to_cycle_model( pCell->phenotype.death.current_model() ); 
+					// also, turn off motility.
+					
+					pCell->phenotype.motility.is_motile = false; 
+					pCell->phenotype.motility.motility_vector.assign( 3, 0.0 ); 
+					pCell->functions.update_migration_bias = NULL;
+					
+					// turn off secretion, and reduce uptake by a factor of 10 
+					pCell->phenotype.secretion.set_all_secretion_to_zero();
+					pCell->phenotype.secretion.scale_all_uptake_by_factor( 0.10 );
+					
+					// make sure to run the death entry function
 
+					if( pCell->phenotype.cycle.current_phase().entry_function )
+					{
+						pCell->phenotype.cycle.current_phase().entry_function( pCell, pCell->phenotype, phenotype_dt ); 
+					}
+
+				}
 			/* Next unpack the class Volume that is a member of class Phenotype 															 */
 			/* Next 22 doubles to be unpacked - define dynamic double array of 22 length then call Unpack once */
 
@@ -5063,16 +5107,22 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &len_vector, 1, MPI_INT, MPI_COMM_WORLD);
 			pCell->velocity.resize(len_vector);
 			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &(pCell->velocity[0]), len_vector, MPI_DOUBLE, MPI_COMM_WORLD);
-		 
+		 	if(pCell->phenotype.death.dead == true && pCell->phenotype.cycle.current_phase().code == 14)
+				{std::cout<<"Unpacking lefto to right Rank="<<world.rank<<" Cell ID= "<<pCell->ID<<" received IS ZOMBIE"<<std::endl;}
 		 	/* The following print should be INSIDE the for loop, earlier it was OUTSIDE the for loop */
-		 	//pCell->print_cell(world);
+		 	// pCell->print_cell(world);
+			int pcellsize=1332;
+			if(size_right%pcellsize){
+			pCell->print_cell(world);
+			std::cout<<"phenotype.cycle.current_phase().code "<<pCell->phenotype.cycle.current_phase().code<<std::endl;;
+		}
 		 }	 
 		}
 
 		if(no_of_cells_from_left > 0)
 		{
-			 size_left = rcv_buf_left.size();
-
+			size_left = rcv_buf_left.size();
+			std::cout<<"no_of_cells_from_left "<<no_of_cells_from_left<<std::endl;;
 			/*-------------------------------------------------------------------------------------------------*/
 			/* IMPORTANT: need to start a for(int i=0; i<no_of_cells_from_left; i++) here BUT cannot put this */
 			/* loop BEFORE completing the unpacking, as the next cell would get filled with wrong values 			 */
@@ -5085,7 +5135,7 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 
 				//std::cout<<"CELLS from LEFT position_left ="<<position_left<<std::endl;
 				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &cell_ID, 1, MPI_INT, MPI_COMM_WORLD);
-				//std::cout<<"Rank= "<<world.rank<<" Cell ID="<<cell_ID<<" received"<<std::endl;
+				// std::cout<<"Rank= "<<world.rank<<"Unpacking cells from left to right"<<std::endl;
 
 				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, cell_position, 3, MPI_DOUBLE, MPI_COMM_WORLD);
 				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &len_str, 1, MPI_INT, MPI_COMM_WORLD);
@@ -5479,7 +5529,26 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 				pCell->phenotype.death.dead = temp_int == 1 ? true : false;
 
 				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &(pCell->phenotype.death.current_death_model_index), 1, MPI_INT, MPI_COMM_WORLD);
+				//added
+				if(pCell->phenotype.death.dead == true){
+					pCell->phenotype.cycle.sync_to_cycle_model( pCell->phenotype.death.current_model() ); 
+					// also, turn off motility.
+					
+					pCell->phenotype.motility.is_motile = false; 
+					pCell->phenotype.motility.motility_vector.assign( 3, 0.0 ); 
+					pCell->functions.update_migration_bias = NULL;
+					
+					// turn off secretion, and reduce uptake by a factor of 10 
+					pCell->phenotype.secretion.set_all_secretion_to_zero();
+					pCell->phenotype.secretion.scale_all_uptake_by_factor( 0.10 );
+					
+					// make sure to run the death entry function 
+					if( pCell->phenotype.cycle.current_phase().entry_function )
+					{
+						pCell->phenotype.cycle.current_phase().entry_function( pCell, pCell->phenotype, phenotype_dt ); 
+					}
 
+				}
 			/* Next unpack the class Volume that is a member of class Phenotype 															 */
 			/* Next 22 doubles to be unpacked - define dynamic double array of 22 length then call Unpack once */
 
@@ -5782,9 +5851,18 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &len_vector, 1, MPI_INT, MPI_COMM_WORLD);
 			pCell->velocity.resize(len_vector);
 			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &(pCell->velocity[0]), len_vector, MPI_DOUBLE, MPI_COMM_WORLD);
-			
+			if(pCell->phenotype.death.dead == true && pCell->phenotype.cycle.current_phase().code == 14)
+			{std::cout<<"Unpacking right to left Rank="<<world.rank<<" Cell ID= "<<pCell->ID<<" received IS ZOMBIE"<<std::endl;
+			pCell->print_cell(world);
+			// pCell->phenotype.cycle. == 14
+			}
+			int pcellsize=1332;
+			if(size_left%pcellsize){
+			pCell->print_cell(world);
+			std::cout<<"phenotype.cycle.current_phase().code "<<pCell->phenotype.cycle.current_phase().code<<std::endl;;
+		}
 			/* The following print should be INSIDE the for loop, earlier it was OUTSIDE the loop */
-			//pCell->print_cell(world);
+			// pCell->print_cell(world);
 		 } 
 		}
 
@@ -5964,6 +6042,7 @@ void display_cell_definitions( std::ostream& os )
 	return; 
 }
 
+//parallel version of display_cell_definition
 Cell_Definition* find_cell_definition( std::string search_string )
 {
 	// if the registry isn't built yet, then do it!

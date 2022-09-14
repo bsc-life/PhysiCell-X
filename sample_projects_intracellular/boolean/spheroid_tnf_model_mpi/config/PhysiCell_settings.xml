@@ -87,7 +87,7 @@
 	</domain>
 	
 	<overall>
-		<max_time units="min">1440</max_time>
+		<max_time units="min">2880</max_time>
 		<time_units>min</time_units>
 		<space_units>micron</space_units>
 		<dt_diffusion units="min">0.02</dt_diffusion>
@@ -225,12 +225,6 @@
 				</secretion>
 				<molecular />
 
-				<intracellular type="maboss">
-					<bnd_filename>./config/TNF_nodes.bnd</bnd_filename>
-					<cfg_filename>./config/TNF_conf.cfg</cfg_filename>
-					<time_step>10</time_step>
-					<time_stochasticity>1</time_stochasticity>
-				</intracellular>
 			</phenotype>
 			<custom_data>
 				<!-- Molecular model internal variables-->

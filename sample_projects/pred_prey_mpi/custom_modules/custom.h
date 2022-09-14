@@ -101,3 +101,10 @@ void predator_hunting_function( Cell* pCell, Phenotype& phenotype, double dt );
 void predator_cycling_function( Cell* pCell, Phenotype& phenotype, double dt ); 
 
 void prey_cycling_function( Cell* pCell , Phenotype& phenotype, double dt ); 
+
+int total_basic_agent_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
+int total_cell_agent_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
+int total_live_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
+int total_dead_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
+int total_necrosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
+int total_apoptosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
