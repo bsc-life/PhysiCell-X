@@ -167,7 +167,7 @@ int main( int argc, char* argv[] )
 	//PhysiCell setup
  	
 	//Set mechanics voxel size, must be >= Diffusion voxel size
-	double mechanics_voxel_size = 30;
+	double mechanics_voxel_size = 20;
     
 /*=========================================================*/
 /* Calling the parallel version of Cell Container creation */
