@@ -207,7 +207,6 @@ physiboss-tnf-model-mpi:
 	cp ./sample_projects_intracellular/boolean/spheroid_tnf_model_mpi/Makefile .
 	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
 	cp ./sample_projects_intracellular/boolean/spheroid_tnf_model_mpi/config/* ./config/
-	cp -r ./sample_projects_intracellular/boolean/spheroid_tnf_model_mpi/scripts ./
 
 ecoli-acetic-switch-sample:
 	cp ./sample_projects_intracellular/fba/ecoli_acetic_switch/custom_modules/* ./custom_modules/
@@ -226,7 +225,14 @@ cancer-metabolism-sample:
 	cp ./sample_projects_intracellular/fba/cancer_metabolism/Makefile ./
 	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml
 	cp ./sample_projects_intracellular/fba/cancer_metabolism/config/* ./config/
-	
+test-case-mpi:
+	cp ./sample_projects/test_case/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects/test_case/main_test_case.cpp ./main.cpp 
+	cp Makefile Makefile-backup
+	cp ./sample_projects/test_case/Makefile .
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
+	cp ./sample_projects/test_case/config/* ./config/	
 # early examples for convergence testing 
 
 physicell_test_mech1: $(PhysiCell_OBJECTS) ./examples/PhysiCell_test_mechanics_1.cpp 

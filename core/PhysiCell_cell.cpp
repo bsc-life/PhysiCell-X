@@ -2568,8 +2568,8 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 	/* Also try to send the length of the buffer to be allocated when sending.					 */
 	/*-----------------------------------------------------------------------------------*/
 
-  	std::cout<<"Total cells crossing to left in Rank "<<world.rank<<":"<<no_cells_cross_left<<std::endl;
-	std::cout<<"Total cells crossing to right in Rank "<<world.rank<<":"<<no_cells_cross_right<<std::endl;
+  	// std::cout<<"Total cells crossing to left in Rank "<<world.rank<<":"<<no_cells_cross_left<<std::endl;
+	// std::cout<<"Total cells crossing to right in Rank "<<world.rank<<":"<<no_cells_cross_right<<std::endl;
 
 	/* IMPORTANT: CANNOT USE #pragma omp for HERE AS ALL THREADS WILL WRITE TO THE SAME SHARED BUFFER */
 	for(int i=0; i<(*all_cells).size();i++)
@@ -3425,12 +3425,12 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 			std::cout<<"Packing right to left "<<"Rank= "<<world.rank<<" Cell ID= "<<pCell->ID<<" received IS ZOMBIE"<<std::endl;
 			// pCell->print_cell(world);
 		}
-		int pcellsize=1332;
-		if(len_snd_buf_left%pcellsize){
-			pCell->print_cell(world);
-			 (*all_cells)[i-1]->print_cell(world);
-			std::cout<<"Packing phenotype.cycle.current_phase().code "<<pCell->phenotype.cycle.current_phase().code<<std::endl;
-		}
+		// int pcellsize=1332;
+		// if(len_snd_buf_left%pcellsize){
+		// 	pCell->print_cell(world);
+		// 	 (*all_cells)[i-1]->print_cell(world);
+		// 	std::cout<<"Packing phenotype.cycle.current_phase().code "<<pCell->phenotype.cycle.current_phase().code<<std::endl;
+		// }
 		// pCell->print_cell(world);
 	}
 
@@ -4283,12 +4283,12 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 			
 		}
 		//if size of buffer is not dividable by 1332 print the cell
-		int pcellsize=1332;
-		if(len_snd_buf_right%pcellsize){
-			pCell->print_cell(world);
-			 (*all_cells)[i-1]->print_cell(world);
-			std::cout<<"phenotype.cycle.current_phase().code "<<pCell->phenotype.cycle.current_phase().code<<std::endl;;
-		}
+		// int pcellsize=1332;
+		// if(len_snd_buf_right%pcellsize){
+		// 	pCell->print_cell(world);
+		// 	 (*all_cells)[i-1]->print_cell(world);
+		// 	std::cout<<"phenotype.cycle.current_phase().code "<<pCell->phenotype.cycle.current_phase().code<<std::endl;;
+		// }
 
 		// pCell->print_cell(world);
 	}
@@ -4300,7 +4300,7 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 			std::cout<<"+++PACKING+++"<<std::endl; 
  			std::cout<<"Rank = " << world.rank << std::endl;
 			std::cout<<"Cells going to left = "								<< no_cells_cross_left 	<< std::endl;
-			std::cout<<"Buffer size for cells going to left: "	<< snd_buf_left.size() 	<< std::endl; 
+			// std::cout<<"Buffer size for cells going to left: "	<< snd_buf_left.size() 	<< std::endl; 
 		}
 		
 		if(no_cells_cross_right > 0)
@@ -4308,7 +4308,7 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 			std::cout<<"+++PACKING+++"<<std::endl; 
  			std::cout<<"Rank = " << world.rank << std::endl;
 			std::cout<<"Cells going to right = "							<< no_cells_cross_right << std::endl;
-			std::cout<<"Buffer size for cells going to right: "	<< snd_buf_right.size() << std::endl;
+			// std::cout<<"Buffer size for cells going to right: "	<< snd_buf_right.size() << std::endl;
 		}
 		
 }
@@ -5111,11 +5111,11 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 				{std::cout<<"Unpacking lefto to right Rank="<<world.rank<<" Cell ID= "<<pCell->ID<<" received IS ZOMBIE"<<std::endl;}
 		 	/* The following print should be INSIDE the for loop, earlier it was OUTSIDE the for loop */
 		 	// pCell->print_cell(world);
-			int pcellsize=1332;
-			if(size_right%pcellsize){
-			pCell->print_cell(world);
-			std::cout<<"phenotype.cycle.current_phase().code "<<pCell->phenotype.cycle.current_phase().code<<std::endl;;
-		}
+			// int pcellsize=1332;
+			// if(size_right%pcellsize){
+			// pCell->print_cell(world);
+			// std::cout<<"phenotype.cycle.current_phase().code "<<pCell->phenotype.cycle.current_phase().code<<std::endl;;
+			// }
 		 }	 
 		}
 
@@ -5853,14 +5853,14 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &(pCell->velocity[0]), len_vector, MPI_DOUBLE, MPI_COMM_WORLD);
 			if(pCell->phenotype.death.dead == true && pCell->phenotype.cycle.current_phase().code == 14)
 			{std::cout<<"Unpacking right to left Rank="<<world.rank<<" Cell ID= "<<pCell->ID<<" received IS ZOMBIE"<<std::endl;
-			pCell->print_cell(world);
+			// pCell->print_cell(world);
 			// pCell->phenotype.cycle. == 14
 			}
 			int pcellsize=1332;
-			if(size_left%pcellsize){
-			pCell->print_cell(world);
-			std::cout<<"phenotype.cycle.current_phase().code "<<pCell->phenotype.cycle.current_phase().code<<std::endl;;
-		}
+			// if(size_left%pcellsize){
+			// pCell->print_cell(world);
+			// std::cout<<"phenotype.cycle.current_phase().code "<<pCell->phenotype.cycle.current_phase().code<<std::endl;;
+			// }
 			/* The following print should be INSIDE the for loop, earlier it was OUTSIDE the loop */
 			// pCell->print_cell(world);
 		 } 
