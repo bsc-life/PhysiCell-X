@@ -57,5 +57,5 @@ for i in range(0,points.shape[1]-1):
                         )
     if distance<=0.95 * 2.0 *cell_radius:
         print("overlap")
-np.savetxt("cells500000_2.csv", np.transpose(points), delimiter="," ,fmt='%f')
+np.savetxt("./config/cells500000_1000.csv", np.transpose(points), delimiter="," ,fmt='%f')
         

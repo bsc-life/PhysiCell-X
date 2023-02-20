@@ -226,7 +226,8 @@ class Cell_Container : public BioFVM::Agent_Container
 	
 	void pack(std::vector<Cell*> *all_cells, mpi_Environment &world, mpi_Cartesian &cart_topo);
 	void unpack(mpi_Environment &world, mpi_Cartesian &cart_topo); //As of now this is a dummy function
-	
+	void send(Cell* pCell,int position,std::vector<char> snd_buf,mpi_Environment &world, mpi_Cartesian &cart_topo);
+
 	/*------------------------------------------------------------------------*/
 	/* Added by Gaurav Saxena 																								*/
 	/* velocity of a cell is updated using (1) other cells in its voxel	 			*/

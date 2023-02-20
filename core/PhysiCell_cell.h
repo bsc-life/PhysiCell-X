@@ -309,9 +309,8 @@ class Cell : public Basic_Agent
 	/* Prints all data fields of a cell - will help in serializing */
 	/* to send data across processes 															 */
 	/*=============================================================*/
-	void print_cell(mpi_Environment &world); 
+	void print_cell(mpi_Environment &world);
 };
-
 Cell* create_cell( void );  
 Cell* create_cell( Cell_Definition& cd ); 
 

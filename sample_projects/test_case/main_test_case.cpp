@@ -177,7 +177,8 @@ int main( int argc, char* argv[] )
 	create_cell_types();
 
 	setup_tissue(microenvironment, world, cart_topo);      //Custom parallel function 
-
+	if(IOProcessor(world))
+        std::cout << "created main " << all_cells->size() << " closely-packed tumor cells ... " << std::endl;
 	/* Users typically start modifying here. START USERMODS */ 
 	
 	/*......................................................*/
@@ -185,10 +186,10 @@ int main( int argc, char* argv[] )
 	/* Users typically stop modifying here. END USERMODS 		*/ 
 	
 	//Set MultiCellDS save options, these MUST all be true 
-	set_save_biofvm_mesh_as_matlab( true ); 
-	set_save_biofvm_data_as_matlab( true ); 
-	set_save_biofvm_cell_data( true ); 
-	set_save_biofvm_cell_data_as_custom_matlab( true );
+	set_save_biofvm_mesh_as_matlab( false ); 
+	set_save_biofvm_data_as_matlab( false ); 
+	set_save_biofvm_cell_data( false ); 
+	set_save_biofvm_cell_data_as_custom_matlab( false );
 	
 	//Save a simulation snapshot 
 	char filename[1024];

@@ -77,7 +77,6 @@ void tumor_cell_phenotype_with_oncoprotein( Cell* pCell, Phenotype& phenotype, d
 // set the tumor cell properties, then call the function 
 // to set up the tumor cells 
 void create_cell_types( void );
-void create_cell_types( mpi_Environment &world, mpi_Cartesian &cart_topo );
 
 void setup_tissue();
 
@@ -88,7 +87,6 @@ void setup_tissue();
 void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &cart_topo);
 
 // set up the microenvironment to include the immunostimulatory factor 
-void setup_microenvironment( void );  // done
 
 /*================================================*/
 /* Parallel prototype of setup_microenvironment() */
@@ -100,6 +98,7 @@ std::vector<std::string> heterogeneity_coloring_function( Cell* );
 
 // Added by TD
 std::vector<std::vector<double>> read_cell_positions(std::string filename, char delimiter, bool header);
+void dummy_phenotype_update( Cell* pCell, Phenotype& phenotype, double dt,mpi_Environment &world, mpi_Cartesian &cart_topo );
 int total_basic_agent_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
 int total_cell_agent_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
 int total_live_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo);

@@ -93,55 +93,59 @@ void create_cell_types( void )
 	// for all runs 
 	
 	SeedRandom( parameters.ints( "random_seed" ) ); 
-	
+
 	// Housekeeping 
-	
 	initialize_default_cell_definition();
-	cell_defaults.phenotype.secretion.sync_to_microenvironment( &microenvironment ); 
-	
-	// Turn the default cycle model to live, 
-	// so it's easier to turn-off proliferation
-	
-	cell_defaults.phenotype.cycle.sync_to_cycle_model( live ); 
-	
-	// Make sure we're ready for 2D <---- This is changed to 3-D in PhysiCell-X
-	// in setup_microenvironment(...) as PhysiCell-X works ONLY in 3-D
-	
-	cell_defaults.functions.set_orientation = up_orientation;  
-	cell_defaults.phenotype.geometry.polarity = 1.0; 
-	cell_defaults.phenotype.motility.restrict_to_2D = true; 
-	
-	// Use default proliferation and death 
-	
-	int cycle_start_index = live.find_phase_index( PhysiCell_constants::live ); 
-	int cycle_end_index = live.find_phase_index( PhysiCell_constants::live ); 
-	
-	int apoptosis_index = cell_defaults.phenotype.death.find_death_model_index( PhysiCell_constants::apoptosis_death_model ); 
-	
+	//same
 	cell_defaults.parameters.o2_proliferation_saturation = 38.0;  
 	cell_defaults.parameters.o2_reference = 38.0; 
 
+
+	cell_defaults.functions.update_phenotype = NULL;
+	cell_defaults.functions.update_phenotype_parallel = dummy_phenotype_update;
+  
+	cell_defaults.functions.volume_update_function = standard_volume_update_function;
+	cell_defaults.functions.update_velocity = standard_update_cell_velocity;	
+	// Turn the default cycle model to live, 
+	// so it's easier to turn-off proliferation
+	cell_defaults.phenotype.secretion.sync_to_microenvironment( &microenvironment ); 
+	cell_defaults.phenotype.cycle.sync_to_cycle_model( live ); 
+	//thsi we keep because they are not default.
+	//Now lets chek physicell
+	// commented the lines below because of consistency with vanilla version
+	// cell_defaults.phenotype.geometry.polarity = 1.0; 
+	// cell_defaults.phenotype.motility.restrict_to_2D = true; 
+	// std::cout<<"After "<<cell_defaults.phenotype.geometry.polarity <<cell_defaults.phenotype.motility.restrict_to_2D<<std::endl;
+	//These were not set in the vanilla version 
+	// int cycle_start_index = live.find_phase_index( PhysiCell_constants::live ); 
+	// int cycle_end_index = live.find_phase_index( PhysiCell_constants::live ); 
+	
+	// int apoptosis_index = cell_defaults.phenotype.death.find_death_model_index( PhysiCell_constants::apoptosis_death_model ); 
+	
+	
+	// cell_defaults.functions.set_orientation = up_orientation;
+
+
+
+	
+	// Use default proliferation and death 
+	
+
+
+
 	initialize_cell_definitions_from_pugixml(); 
 	
-	// Set default uptake and secretion 
 	
-	static int oxygen_ID = microenvironment.find_density_index( "oxygen" ); 
-
-	// Oxygen
-	 
-	cell_defaults.phenotype.secretion.secretion_rates[oxygen_ID] = 0; 
-	cell_defaults.phenotype.secretion.uptake_rates[oxygen_ID] = 10; 
-	cell_defaults.phenotype.secretion.saturation_densities[oxygen_ID] = 38; 
 
 	// Set the default cell type to no phenotype updates 
 	
-	cell_defaults.functions.update_phenotype_parallel = tumor_cell_phenotype_with_oncoprotein;
+	
 	// cell_defaults.functions.update_phenotype = tumor_cell_phenotype_with_oncoprotein; 
  
-	cell_defaults.name = "cancer cell"; 
-	cell_defaults.type = 0; 
+	// cell_defaults.name = "cancer cell"; 
+	// cell_defaults.type = 0; 
 	
-	// Add custom data 
+	// // Add custom data 
 	
 	cell_defaults.custom_data.add_variable( "oncoprotein" , "dimensionless", 1.0 ); 
 	
@@ -159,94 +163,8 @@ void create_cell_types( void )
 
 	return; 
 }
-void create_cell_types( mpi_Environment &world, mpi_Cartesian &cart_topo )
-{
-	// Use the same random seed so that future experiments have the 
-	// same initial histogram of oncoprotein, even if threading means 
-	// that future division and other events are still not identical 
-	// for all runs 
-	
-	SeedRandom( parameters.ints( "random_seed" ) ); 
-	
-	// Housekeeping 
-	
-	initialize_default_cell_definition();
-	cell_defaults.phenotype.secretion.sync_to_microenvironment( &microenvironment ); 
-	
-	// Turn the default cycle model to live, 
-	// so it's easier to turn-off proliferation
-	
-	cell_defaults.phenotype.cycle.sync_to_cycle_model( live ); 
-	
-	// Make sure we're ready for 2D <---- This is changed to 3-D in PhysiCell-X
-	// in setup_microenvironment(...) as PhysiCell-X works ONLY in 3-D
-	
-	cell_defaults.functions.set_orientation = up_orientation;  
-	cell_defaults.phenotype.geometry.polarity = 1.0; 
-	cell_defaults.phenotype.motility.restrict_to_2D = true; 
-	
-	// Use default proliferation and death 
-	
-	int cycle_start_index = live.find_phase_index( PhysiCell_constants::live ); 
-	int cycle_end_index = live.find_phase_index( PhysiCell_constants::live ); 
-	
-	int apoptosis_index = cell_defaults.phenotype.death.find_death_model_index( PhysiCell_constants::apoptosis_death_model ); 
-	
-	cell_defaults.parameters.o2_proliferation_saturation = 38.0;  
-	cell_defaults.parameters.o2_reference = 38.0; 
 
-	initialize_cell_definitions_from_pugixml(); 
-	
-	// Set default uptake and secretion 
-	
-	static int oxygen_ID = microenvironment.find_density_index( "oxygen" ); 
 
-	// Oxygen
-	 
-	cell_defaults.phenotype.secretion.secretion_rates[oxygen_ID] = 0; 
-	cell_defaults.phenotype.secretion.uptake_rates[oxygen_ID] = 10; 
-	cell_defaults.phenotype.secretion.saturation_densities[oxygen_ID] = 38; 
-
-	// Set the default cell type to no phenotype updates 
-	
-	cell_defaults.functions.update_phenotype_parallel = tumor_cell_phenotype_with_oncoprotein;
-	// cell_defaults.functions.update_phenotype = tumor_cell_phenotype_with_oncoprotein; 
- 
-	cell_defaults.name = "cancer cell"; 
-	cell_defaults.type = 0; 
-	
-	// Add custom data 
-	
-	cell_defaults.custom_data.add_variable( "oncoprotein" , "dimensionless", 1.0 ); 
-	
-	build_cell_definitions_maps(); //Uncommenting it
-	
-	display_cell_definitions( std::cout );
-	//  <------ will print using all processes, thus disabled
-	
-	/*---------------------------------------------------------------------------------------*/
-	/* display_cell_definitions(...) has been disabled above as the printing will be done by */
-	/* ALL processes. If you want to print (for checking, testing etc.) then create a new 	 */
-	/* version of void create_cell_types(mpi_Environment &world, mpi_Cartesian &cart_topo)	 */
-	/* and then use the IOProcessor(world) function to print using ONLY the root process  	 */
-	/*---------------------------------------------------------------------------------------*/
-
-	return; 
-}
-void setup_microenvironment( void )
-{
-	
-	// Make sure not override and go back to 2D <--- ONLY valid for PhysiCell and NOT PhysiCell-X 
-	if( default_microenvironment_options.simulate_2D == true )
-	{
-		std::cout << "Warning: overriding XML config option and setting to 3D!" << std::endl; 
-		default_microenvironment_options.simulate_2D = false; 
-	}
-	
-	initialize_microenvironment(); 	
-
-	return; 
-}
 
 /*==============================================*/
 /* Parallel version of setup_microenvironment() */
@@ -269,120 +187,6 @@ void setup_microenvironment(mpi_Environment &world, mpi_Cartesian &cart_topo)
 	return; 
 }	
 
-
-void setup_tissue( void )
-{
-	// place a cluster of tumor cells at the center 
-	
-	double cell_radius = cell_defaults.phenotype.geometry.radius; 
-	double cell_spacing = 0.95 * 2.0 * cell_radius; 
-	
-	double tumor_radius = parameters.doubles( "tumor_radius" ); // 250.0; 
-	std::cout << "tumor_radius " << tumor_radius << std::endl; 
-
-	// Parameter<double> temp; 
-	
-	int i = parameters.doubles.find_index( "tumor_radius" ); 
-	std::cout << "parameters.doubles.find_index(tumor_radius );  " << i << std::endl; 
-	
-	Cell* pCell = NULL; 
-	
-	double x = 0.0; 
-	double x_outer = tumor_radius; 
-	double y = 0.0; 
-	
-	double p_mean = parameters.doubles( "oncoprotein_mean" ); 
-	double p_sd = parameters.doubles( "oncoprotein_sd" ); 
-	double p_min = parameters.doubles( "oncoprotein_min" ); 
-	double p_max = parameters.doubles( "oncoprotein_max" ); 
-	
-	int n = 0; 
-	while( y < tumor_radius )
-	{
-		x = 0.0; 
-		if( n % 2 == 1 )
-		{ x = 0.5*cell_spacing; }
-		x_outer = sqrt( tumor_radius*tumor_radius - y*y ); 
-		
-		while( x < x_outer )
-		{
-			pCell = create_cell(); // tumor cell 
-			pCell->assign_position( x , y , 0.0 );
-			pCell->custom_data[0] = NormalRandom( p_mean, p_sd );
-			if( pCell->custom_data[0] < p_min )
-			{ pCell->custom_data[0] = p_min; }
-			if( pCell->custom_data[0] > p_max )
-			{ pCell->custom_data[0] = p_max; }
-			
-			if( fabs( y ) > 0.01 )
-			{
-				pCell = create_cell(); // tumor cell 
-				pCell->assign_position( x , -y , 0.0 );
-				pCell->custom_data[0] = NormalRandom( p_mean, p_sd );
-				if( pCell->custom_data[0] < p_min )
-				{ pCell->custom_data[0] = p_min; }
-				if( pCell->custom_data[0] > p_max )
-				{ pCell->custom_data[0] = p_max; }				
-			}
-			
-			if( fabs( x ) > 0.01 )
-			{ 
-				pCell = create_cell(); // tumor cell 
-				pCell->assign_position( -x , y , 0.0 );
-				pCell->custom_data[0] = NormalRandom( p_mean, p_sd );
-				if( pCell->custom_data[0] < p_min )
-				{ pCell->custom_data[0] = p_min; }
-				if( pCell->custom_data[0] > p_max )
-				{ pCell->custom_data[0] = p_max; }
-		
-				if( fabs( y ) > 0.01 )
-				{
-					pCell = create_cell(); // tumor cell 
-					pCell->assign_position( -x , -y , 0.0 );
-					pCell->custom_data[0] = NormalRandom( p_mean, p_sd );
-					if( pCell->custom_data[0] < p_min )
-					{ pCell->custom_data[0] = p_min; }
-					if( pCell->custom_data[0] > p_max )
-					{ pCell->custom_data[0] = p_max; }
-				}
-			}
-			x += cell_spacing; 
-			
-		}
-		
-		y += cell_spacing * sqrt(3.0)/2.0; 
-		n++; 
-	}
-	
-	double sum = 0.0; 
-	double min = 9e9; 
-	double max = -9e9; 
-	for( int i=0; i < all_cells->size() ; i++ )
-	{
-		double r = (*all_cells)[i]->custom_data[0]; 
-		sum += r;
-		if( r < min )
-		{ min = r; } 
-		if( r > max )
-		{ max = r; }
-	}
-	double mean = sum / ( all_cells->size() + 1e-15 ); 
-	// compute standard deviation 
-	sum = 0.0; 
-	for( int i=0; i < all_cells->size(); i++ )
-	{
-		sum +=  ( (*all_cells)[i]->custom_data[0] - mean )*( (*all_cells)[i]->custom_data[0] - mean ); 
-	}
-	double standard_deviation = sqrt( sum / ( all_cells->size() - 1.0 + 1e-15 ) ); 
-	
-	std::cout << std::endl << "Oncoprotein summary: " << std::endl
-			  << "===================" << std::endl; 
-	std::cout << "mean: " << mean << std::endl; 
-	std::cout << "standard deviation: " << standard_deviation << std::endl; 
-	std::cout << "[min max]: [" << min << " " << max << "]" << std::endl << std::endl; 
-	
-	return; 
-}
 
 /*-------------------------------------------------------------------*/
 /* Miguel Ponce-de-Leon's function for generating positions of cells */
@@ -606,6 +410,7 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 		std::cout << "mean: " << mean << std::endl; 
 		std::cout << "standard deviation: " << standard_deviation << std::endl; 
 		std::cout << "[min max]: [" << global_min << " " << global_max << "]" << std::endl << std::endl;
+		std::cout << "end of setup tissue " << generated_positions_at_root.size() << " closely-packed tumor cells ... " << std::endl;
 	} 
 	
 	return; 
@@ -615,7 +420,7 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 
 void tumor_cell_phenotype_with_oncoprotein( Cell* pCell, Phenotype& phenotype, double dt )
 {
-	update_cell_and_death_parameters_O2_based(pCell,phenotype,dt);
+	// update_cell_and_death_parameters_O2_based(pCell,phenotype,dt);
 	
 	// If cell is dead, don't bother with future phenotype changes. 
 	
@@ -630,8 +435,8 @@ void tumor_cell_phenotype_with_oncoprotein( Cell* pCell, Phenotype& phenotype, d
 	static int cycle_start_index = live.find_phase_index( PhysiCell_constants::live ); 
 	static int cycle_end_index = live.find_phase_index( PhysiCell_constants::live ); 
 	static int oncoprotein_i = pCell->custom_data.find_variable_index( "oncoprotein" ); 
-
-	phenotype.cycle.data.transition_rate( cycle_start_index ,cycle_end_index ) *= pCell->custom_data[oncoprotein_i] ; 
+	// this is stohastic
+	// phenotype.cycle.data.transition_rate( cycle_start_index ,cycle_end_index ) *= pCell->custom_data[oncoprotein_i] ; 
 	
 	return; 
 }
@@ -657,7 +462,22 @@ void tumor_cell_phenotype_with_oncoprotein( Cell* pCell, Phenotype& phenotype, d
 	
 	return; 
 }
+void dummy_phenotype_update( Cell* pCell, Phenotype& phenotype, double dt,mpi_Environment &world, mpi_Cartesian &cart_topo )
+{
+	
+	
+	// If cell is dead, don't bother with future phenotype changes. 
+	
+	if( phenotype.death.dead == true )
+	{
+		pCell->functions.update_phenotype = NULL; 	
+		pCell->functions.update_phenotype_parallel=NULL;	
+		return; 
+	}
 
+	
+	return; 
+}
 
 std::vector<std::string> heterogeneity_coloring_function( Cell* pCell )
 {
