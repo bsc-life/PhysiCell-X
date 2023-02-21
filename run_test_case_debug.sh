@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --nodes=10
+#SBATCH --nodes=5
 #SBATCH --ntasks-per-node=2
 #SBATCH --cpus-per-task=24
 #SBATCH -t 02:00:00
@@ -22,7 +22,7 @@ export OMP_PROC_BIND=spread
 #Simplest execution
 
 # mpiexec --map-by ppr:1:node:pe=24 ./heterogeneity.exe config/het.xml
-mpiexec -n 10 ./test_case.exe ./config/PhysiCell_settings_deb.xml
+srun ./test_case.exe ./config/PhysiCell_settings_deb_1000_500.xml
 # Execution using --map-by ppr syntax to create 1 MPI process per node
 # and 48 threads per MPI process and also report the MPI+OpenMP bindings in
 # the standard error file, use this syntax for performance, possibly best
