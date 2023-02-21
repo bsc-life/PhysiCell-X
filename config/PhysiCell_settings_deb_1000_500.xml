@@ -101,7 +101,7 @@
 	</parallel> 
 	
 	<save>
-		<folder>/gpfs/projects/bsc08/shared_projects/PerMedCoE/debug_physicell_X/results_0/output_x_1000_500</folder> <!-- use . for root --> 
+		<folder>output_1000</folder> <!-- use . for root --> 
 
 		<full_data>
 			<interval units="min">10</interval>
