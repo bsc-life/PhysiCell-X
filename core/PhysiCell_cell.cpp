@@ -5530,25 +5530,25 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 
 				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &(pCell->phenotype.death.current_death_model_index), 1, MPI_INT, MPI_COMM_WORLD);
 				//added
-				// if(pCell->phenotype.death.dead == true){
-				// 	pCell->phenotype.cycle.sync_to_cycle_model( pCell->phenotype.death.current_model() ); 
-				// 	// also, turn off motility.
+				if(pCell->phenotype.death.dead == true){
+					pCell->phenotype.cycle.sync_to_cycle_model( pCell->phenotype.death.current_model() ); 
+					// also, turn off motility.
 					
-				// 	pCell->phenotype.motility.is_motile = false; 
-				// 	pCell->phenotype.motility.motility_vector.assign( 3, 0.0 ); 
-				// 	pCell->functions.update_migration_bias = NULL;
+					pCell->phenotype.motility.is_motile = false; 
+					pCell->phenotype.motility.motility_vector.assign( 3, 0.0 ); 
+					pCell->functions.update_migration_bias = NULL;
 					
-				// 	// turn off secretion, and reduce uptake by a factor of 10 
-				// 	pCell->phenotype.secretion.set_all_secretion_to_zero();
-				// 	pCell->phenotype.secretion.scale_all_uptake_by_factor( 0.10 );
+					// turn off secretion, and reduce uptake by a factor of 10 
+					pCell->phenotype.secretion.set_all_secretion_to_zero();
+					pCell->phenotype.secretion.scale_all_uptake_by_factor( 0.10 );
 					
-				// 	// make sure to run the death entry function 
-				// 	if( pCell->phenotype.cycle.current_phase().entry_function )
-				// 	{
-				// 		pCell->phenotype.cycle.current_phase().entry_function( pCell, pCell->phenotype, phenotype_dt ); 
-				// 	}
+					// make sure to run the death entry function 
+					if( pCell->phenotype.cycle.current_phase().entry_function )
+					{
+						pCell->phenotype.cycle.current_phase().entry_function( pCell, pCell->phenotype, phenotype_dt ); 
+					}
 
-				// }
+				}
 			/* Next unpack the class Volume that is a member of class Phenotype 															 */
 			/* Next 22 doubles to be unpacked - define dynamic double array of 22 length then call Unpack once */
 
