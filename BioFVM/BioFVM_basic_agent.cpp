@@ -266,37 +266,37 @@ void Basic_Agent::set_internal_uptake_constants( double dt )
 	
 	return; 
 }
-
+//Jose: number of densities instead of size of p_density_vectors[0].size()
 void Basic_Agent::register_microenvironment( Microenvironment* microenvironment_in )
 {
 	microenvironment = microenvironment_in; 	
-	secretion_rates->resize( microenvironment->density_vector(0).size() , 0.0 );
-	saturation_densities->resize( microenvironment->density_vector(0).size() , 0.0 );
-	uptake_rates->resize( microenvironment->density_vector(0).size() , 0.0 );
+	secretion_rates->resize( microenvironment->number_of_densities() , 0.0 );
+	saturation_densities->resize( microenvironment->number_of_densities() , 0.0 );
+	uptake_rates->resize( microenvironment->number_of_densities() , 0.0 );
 	
 	/*-------------------------------------------------------------------*/
 	/* Gaurav Saxena added the following statement as it changed in v1.7 */
 	/*-------------------------------------------------------------------*/
 	
-	net_export_rates->resize( microenvironment->density_vector(0).size() , 0.0 );	
+	net_export_rates->resize( microenvironment->number_of_densities() , 0.0 );	
 
 	// some solver temporary variables 
-	cell_source_sink_solver_temp1.resize( microenvironment->density_vector(0).size() , 0.0 );
-	cell_source_sink_solver_temp2.resize( microenvironment->density_vector(0).size() , 1.0 );
+	cell_source_sink_solver_temp1.resize( microenvironment->number_of_densities() , 0.0 );
+	cell_source_sink_solver_temp2.resize( microenvironment->number_of_densities() , 1.0 );
 	
 	/*----------------------------------------------------------------------*/
 	/* Gaurav Saxena added the following 2 statements as it changed in v1.7 */
 	/*----------------------------------------------------------------------*/	
 	
-	cell_source_sink_solver_temp_export1.resize( microenvironment->density_vector(0).size() , 0.0 );
-	cell_source_sink_solver_temp_export2.resize( microenvironment->density_vector(0).size() , 0.0 );
+	cell_source_sink_solver_temp_export1.resize( microenvironment->number_of_densities() , 0.0 );
+	cell_source_sink_solver_temp_export2.resize( microenvironment->number_of_densities() , 0.0 );
 	
 	// new for internalized substrate tracking 
-	internalized_substrates->resize( microenvironment->density_vector(0).size() , 0.0 );
-	total_extracellular_substrate_change.resize( microenvironment->density_vector(0).size() , 1.0 );
+	internalized_substrates->resize( microenvironment->number_of_densities() , 0.0 );
+	total_extracellular_substrate_change.resize( microenvironment->number_of_densities() , 1.0 );
 	
-	fraction_released_at_death->resize( microenvironment->density_vector(0).size() , 0.0 ); 
-	fraction_transferred_when_ingested->resize( microenvironment->density_vector(0).size() , 0.0 ); 
+	fraction_released_at_death->resize( microenvironment->number_of_densities() , 0.0 ); 
+	fraction_transferred_when_ingested->resize( microenvironment->number_of_densities() , 0.0 ); 
 
 	return; 
 }
@@ -377,7 +377,7 @@ int Basic_Agent::get_current_voxel_index( void )
 	return current_voxel_index;
 }
 
-std::vector<double>& Basic_Agent::nearest_density_vector( void ) 
+double* Basic_Agent::nearest_density_vector( void ) 
 {  	
 	return microenvironment->nearest_density_vector( current_voxel_index ); 
 }
@@ -497,6 +497,7 @@ void Basic_Agent::set_total_extracellular_substrate_change(std::vector<double> &
 	total_extracellular_substrate_change = ref_vec; 	
 }
 
+//Jose: modified function
 void Basic_Agent::simulate_secretion_and_uptake( Microenvironment* pS, double dt )
 {
 	if(!is_active)

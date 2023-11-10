@@ -73,19 +73,19 @@ class Microenvironment
 	friend std::ostream& operator<<(std::ostream& os, const Microenvironment& S);  
 
 	/*! For internal use and accelerations in solvers */ 
-	std::vector< std::vector<double> > temporary_density_vectors1; 
+	std::vector<double> temporary_density_vectors1; 
 	/*! For internal use and accelerations in solvers */ 
-	std::vector< std::vector<double> > temporary_density_vectors2; 
+	std::vector<double> temporary_density_vectors2; 
 	
 	/*! for internal use in bulk source/sink solvers */
-	std::vector< std::vector<double> > bulk_source_sink_solver_temp1; 
-	std::vector< std::vector<double> > bulk_source_sink_solver_temp2; 
-	std::vector< std::vector<double> > bulk_source_sink_solver_temp3; 
+	std::vector<double> bulk_source_sink_solver_temp1; 
+	std::vector<double> bulk_source_sink_solver_temp2; 
+	std::vector<double> bulk_source_sink_solver_temp3; 
 	bool bulk_source_sink_solver_setup_done; 
 
 	
 	/*! stores pointer to current density solutions. Access via operator() functions. */ 
-	std::vector< std::vector<double> >* p_density_vectors; 
+	//std::vector< std::vector<double> >* p_density_vectors; 
 	
 	std::vector< std::vector<gradient> > gradient_vectors; 
 	std::vector<bool> gradient_vector_computed; 
@@ -149,6 +149,8 @@ class Microenvironment
 
 		
  public:
+	int granurality;
+	std::vector<double>& p_density_vectors = temporary_density_vectors1; // Jose
 	
 	/*! The mesh for the diffusing quantities */ 
 	Cartesian_Mesh mesh;
@@ -188,9 +190,9 @@ class Microenvironment
  void (*diffusion_decay_solver_mpi)(Microenvironment&, double, mpi_Environment&, mpi_Cartesian&); 	
 
 	 
-	void (*bulk_supply_rate_function)( Microenvironment* pMicroenvironment, int voxel_index, std::vector<double>* write_destination );
-	void (*bulk_supply_target_densities_function)( Microenvironment* pMicroenvironment, int voxel_index, std::vector<double>* write_destination );
-	void (*bulk_uptake_rate_function)( Microenvironment* pMicroenvironment, int voxel_index, std::vector<double>* write_destination );
+	void (*bulk_supply_rate_function)( Microenvironment* pMicroenvironment, int voxel_index, double* write_destination );
+	void (*bulk_supply_target_densities_function)( Microenvironment* pMicroenvironment, int voxel_index, double* write_destination );
+	void (*bulk_uptake_rate_function)( Microenvironment* pMicroenvironment, int voxel_index, double* write_destination );
 		
 	/*! functions to simplify size queries */ 
 	
@@ -241,15 +243,15 @@ class Microenvironment
 	std::vector<unsigned int> nearest_cartesian_indices( std::vector<double>& position ); 
 	Voxel& nearest_voxel( std::vector<double>& position ); 
 	Voxel& voxels( int voxel_index );
-	std::vector<double>& nearest_density_vector( std::vector<double>& position );  
-	std::vector<double>& nearest_density_vector( int voxel_index );  
+	double* nearest_density_vector( std::vector<double>& position );  
+	double* nearest_density_vector( int voxel_index );  
 
 	/*! access the density vector at  [ X(i),Y(j),Z(k) ] */
-	std::vector<double>& operator()( int i, int j, int k ); 
+	double* operator()( int i, int j, int k ); 
 	/*! access the density vector at  [ X(i),Y(j),0 ]  -- helpful for 2-D problems */
-	std::vector<double>& operator()( int i, int j );  
+	double* operator()( int i, int j );  
 	/*! access the density vector at [x,y,z](n) */
-	std::vector<double>& operator()( int n );  
+	double* operator()( int n );  
 	
 	std::vector<gradient>& gradient_vector(int i, int j, int k); 
 	std::vector<gradient>& gradient_vector(int i, int j ); 
@@ -262,11 +264,11 @@ class Microenvironment
 	void reset_all_gradient_vectors( void ); 
 	
 	/*! access the density vector at  [ X(i),Y(j),Z(k) ] */
-	std::vector<double>& density_vector( int i, int j, int k ); 
+	double* density_vector( int i, int j, int k ); 
 	/*! access the density vector at  [ X(i),Y(j),0 ]  -- helpful for 2-D problems */
-	std::vector<double>& density_vector( int i, int j ); 
+	double* density_vector( int i, int j ); 
 	/*! access the density vector at [x,y,z](n) */
-	std::vector<double>& density_vector( int n ); 
+	double* density_vector( int n ); 
 
 	/*! advance the diffusion-decay solver by dt time */
 	void simulate_diffusion_decay( double dt ); 
@@ -292,6 +294,7 @@ class Microenvironment
 	void update_dirichlet_node( int voxel_index , int substrate_index , double new_value );
 	void remove_dirichlet_node( int voxel_index ); 
 	void apply_dirichlet_conditions( void ); 
+	void apply_dirichlet_conditions( int rank, int size ); 
 
 	void set_substrate_dirichlet_activation( int substrate_index , bool new_value ); 
 	//double get_substrate_dirichlet_activation( int substrate_index ); ---> changed in v1.7 as below (Gaurav Saxena)
@@ -375,6 +378,10 @@ void one_function( std::vector<double>& position, std::vector<double>& input , s
 
 void zero_function( Microenvironment* pMicroenvironment, int voxel_index, std::vector<double>* write_destination );
 void one_function( Microenvironment* pMicroenvironment, int voxel_index, std::vector<double>* write_destination );
+
+//Jose pointer implementation
+void zero_function( Microenvironment* pMicroenvironment, int voxel_index, double* write_destination );
+void one_function( Microenvironment* pMicroenvironment, int voxel_index,  double* write_destination );
 
 void set_default_microenvironment( Microenvironment* M );
 Microenvironment* get_default_microenvironment( void ); 

@@ -625,9 +625,9 @@ void Cartesian_Mesh::create_voxel_faces( void )
 	
 	connected_voxel_indices.resize( voxels.size() ); 
 	
-	int i_jump = 1; 
-	int j_jump = x_coordinates.size(); 
-	int k_jump = x_coordinates.size() * y_coordinates.size(); 
+	int i_jump = y_coordinates.size() * z_coordinates.size(); 
+	int j_jump = y_coordinates.size(); 
+	int k_jump = 1; 
 		
 	// x-aligned connections 
 	for( unsigned int k=0 ; k < z_coordinates.size() ; k++ )
@@ -1169,22 +1169,23 @@ unsigned int Cartesian_Mesh::voxel_index( unsigned int i, unsigned int j, unsign
  /* size of x/y/z_coordinates is same as local_x/y/z_nodes      */
  /*-------------------------------------------------------------*/
     
- return ( k * y_coordinates.size() * x_coordinates.size() + j * x_coordinates.size() + i) ; //Wrote it in a slightly more readable form ---> Gaurav Saxena
+ return ( i * y_coordinates.size() * z_coordinates.size() + j * z_coordinates.size() + k) ; //New indexation---> Jose 
 }
 
 std::vector<unsigned int> Cartesian_Mesh::cartesian_indices( unsigned int n )
 {
 	std::vector<unsigned int> out(3, -1 ); 
 
+	//Jose: new indexation
 	// figure out i; 
-	unsigned int XY = x_coordinates.size() * y_coordinates.size();
-	out[2] = (unsigned int) floor( n/XY ); 
+	unsigned int YZ = y_coordinates.size() * z_coordinates.size();
+	out[0] = (unsigned int) floor( n/YZ ); 
  
 	// figure out j; 
-	out[1] = (unsigned int) floor(   (n - out[2]*XY) / x_coordinates.size() );
+	out[1] = (unsigned int) floor(   (n - out[0]*YZ) / z_coordinates.size() );
  
 	// figure out k; 
-	out[0] = n - x_coordinates.size()*(   out[1] + y_coordinates.size()*out[2] ); 
+	out[2] = n - z_coordinates.size()*(   out[1] + y_coordinates.size()*out[0] ); 
 
 	return out; 
 }
@@ -1317,6 +1318,7 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
 	return; 
 }
 
+//Jose application of optimizations
 void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double dx_new, double dy_new , double dz_new )
 {
 	dx = dx_new;
@@ -1365,11 +1367,11 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
 	voxels.assign( x_coordinates.size() * y_coordinates.size() * z_coordinates.size() , template_voxel ); 
 	
 	int n=0; 
-	for( unsigned int k=0 ; k < z_coordinates.size() ; k++ )
+	for( unsigned int i=0 ; i < x_coordinates.size() ; i++ )
 	{
 		for( unsigned int j=0 ; j < y_coordinates.size() ; j++ )
 		{
-			for( unsigned int i=0 ; i < x_coordinates.size() ; i++ )
+			for( unsigned int k=0 ; k < z_coordinates.size() ; k++ )
 			{
 				voxels[n].center[0] = x_coordinates[i]; 
 				voxels[n].center[1] = y_coordinates[j]; 
@@ -1390,9 +1392,9 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
 	for( unsigned int i=0; i < connected_voxel_indices.size() ; i++ )
 	{ connected_voxel_indices[i].clear(); }
 	
-	int i_jump = 1; 
-	int j_jump = x_coordinates.size(); 
-	int k_jump = x_coordinates.size() * y_coordinates.size(); 
+	int i_jump = y_coordinates.size() * z_coordinates.size(); 
+	int j_jump = z_coordinates.size(); 
+	int k_jump = 1; 
 	
 	// x-aligned connections 
 	int count = 0; 

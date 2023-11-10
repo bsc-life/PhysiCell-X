@@ -93,6 +93,7 @@ void diffusion_decay_solver__constant_coefficients_explicit_uniform_mesh( Microe
 	return; 
 }
 
+/*
 void diffusion_decay_solver__constant_coefficients_LOD_3D( Microenvironment& M, double dt )
 {
 	if( M.mesh.regular_mesh == false || M.mesh.Cartesian_mesh == false )
@@ -298,602 +299,758 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D( Microenvironment& M, 
 
 	return; 
 }
-
+*/
 /*--------------------------------------------------------------------------------------*/
 /* Parallel version of the 3-D Thomas Solver, uses X-decomposition i.e. the X-direction */
 /* of BioFVM going from left to right is divided into slices, each slice given to 1 MPI */
 /* process. 
 /*--------------------------------------------------------------------------------------*/
-
+//Jose
 void diffusion_decay_solver__constant_coefficients_LOD_3D( Microenvironment& M, double dt, mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
-	MPI_Request send_req, recv_req;
-	
-	double t_strt_set, t_end_set; 
-	double t_strt_x, t_end_x;
-	double t_strt_y,t_end_y;
-	double t_strt_z,t_end_z; 
-    
-	
-  if( M.mesh.uniform_mesh == false || M.mesh.Cartesian_mesh == false )
-	{
-		std::cout << "Error: This algorithm is written for uniform Cartesian meshes. Try: other solvers!" << std::endl << std::endl; 
-		return; 
-	}
+        int granurality = 64;
+        int size = world.Size();
+        int rank = world.Rank();
+	    MPI_Request send_req[granurality+1];
+        MPI_Request recv_req[granurality+1];
+        double t_strt_set, t_end_set;
+        double t_strt_x, t_end_x;
+        double t_strt_y, t_end_y;
+        double t_strt_z, t_end_z;
 
-/*----------------------------------------------*/
-/* define constants and pre-computed quantities */
-/*----------------------------------------------*/
-	
-	if( ! M.diffusion_solver_setup_done )
-	{
-		 if(world.rank == 0)
-		  	std::cout << std::endl << "Using method " << __FUNCTION__ << " (implicit 3-D LOD with Thomas Algorithm) ... " 
-		  	<< std::endl << std::endl;  
-		
-/*-------------------------------------------------------------------------------------------*/
-/* x_coordinates are of size local_x_nodes,(see function resize() of class Cartesian_Mesh 	 */ 
-/* in BioFVM_Cartesian.cpp. Each line of Voxels going from left to right forms a tridiagonal */ 
-/* system of Equations. Now these lines are going to split in the X decomposition.				   */
-/*-------------------------------------------------------------------------------------------*/
-		
-    M.thomas_denomx.resize( M.mesh.x_coordinates.size() , M.zero );           //sizeof(x_coordinates) = local_x_nodes, denomx is the main diagonal elements
-		M.thomas_cx.resize( M.mesh.x_coordinates.size() , M.zero );               //Both b and c of tridiagonal matrix are equal, hence just one array needed
-		
-/*-----------------------------------------------------------------------*/
-/* y_coordinates are of size of local_y_nodes. Each line of Voxels going */
-/* from bottom to top forms a tridiagonal system of Equations.  				 */
-/*-----------------------------------------------------------------------*/
-
-		M.thomas_denomy.resize( M.mesh.y_coordinates.size() , M.zero );           
-		M.thomas_cy.resize( M.mesh.y_coordinates.size() , M.zero );
-        
-/*-----------------------------------------------------------------------*/
-/* z_coordinates are of size of local_z_nodes. Each line of Voxels going */         
-/* from front to back forms a tridiagonal system of Equations. 	 				 */
-/*-----------------------------------------------------------------------*/
-		
-		M.thomas_denomz.resize( M.mesh.z_coordinates.size() , M.zero );
-		M.thomas_cz.resize( M.mesh.z_coordinates.size() , M.zero );
-
-/*-------------------------------------------------------------*/
-/* For X-decomposition thomas_i_jump - 1 can be in the previous*/
-/* process and thomas_i_jump+1 can be in the next process      */
-/* hence we can use thomas_j_jump and thomas_k_jump safely     */
-/* but we CANNOT use thomas_i_jump safely                      */              
-/*-------------------------------------------------------------*/
-
-		M.thomas_i_jump = 1; 
-		M.thomas_j_jump = M.mesh.x_coordinates.size(); 
-		M.thomas_k_jump = M.thomas_j_jump * M.mesh.y_coordinates.size(); 
-        
-/*-------------------------------------------------------------*/
-/* This part below of defining constants SHOULD typically      */
-/* not change during parallelization.                          */
-/*-------------------------------------------------------------*/
-
-		M.thomas_constant1  = M.diffusion_coefficients;      // dt*D/dx^2 
-		M.thomas_constant1a = M.zero;                        // -dt*D/dx^2; 
-		M.thomas_constant2  = M.decay_rates;                 // (1/3)* dt*lambda 
-		M.thomas_constant3  = M.one;                         // 1 + 2*constant1 + constant2; 
-		M.thomas_constant3a = M.one;                         // 1 + constant1 + constant2; 		
-			
-		M.thomas_constant1 *= dt; 
-		M.thomas_constant1 /= M.mesh.dx; 
-		M.thomas_constant1 /= M.mesh.dx; 
-
-		M.thomas_constant1a = M.thomas_constant1; 
-		M.thomas_constant1a *= -1.0; 
-
-		M.thomas_constant2 *= dt; 
-		M.thomas_constant2 /= 3.0;                            // for the LOD splitting of the source, division by 3 is for 3-D 
-
-		M.thomas_constant3 += M.thomas_constant1; 
-		M.thomas_constant3 += M.thomas_constant1; 
-		M.thomas_constant3 += M.thomas_constant2; 
-
-		M.thomas_constant3a += M.thomas_constant1; 
-		M.thomas_constant3a += M.thomas_constant2; 
-
-		// Thomas solver coefficients 
-        
-/*-----------------------------------------------------------------------*/
-/* In 1-D X decomposition, x-lines are partitioned and hence assignments */
-/* for the X-dimension WILL change. For y/z, they SHOULD not change.		 */
-/*-----------------------------------------------------------------------*/
-
-		M.thomas_cx.assign( M.mesh.x_coordinates.size() , M.thomas_constant1a );                  //Fill b and c elements with -D * dt/dx^2 
-		M.thomas_denomx.assign( M.mesh.x_coordinates.size()  , M.thomas_constant3 );              //Fill diagonal elements with (1 + 1/3 * lambda * dt + 2*D*dt/dx^2)
-		
-		if(world.rank == 0)
-            M.thomas_denomx[0] = M.thomas_constant3a;                                                 //First diagonal element is   (1 + 1/3 * lambda * dt + 1*D*dt/dx^2)
-            
-		if(world.rank == (world.size-1))
-            M.thomas_denomx[ M.mesh.x_coordinates.size()-1 ] = M.thomas_constant3a;                   //Last diagonal element  is   (1 + 1/3 * lambda * dt + 1*D*dt/dx^2) 
-		
-		if(world.rank == 0)
-       if( M.mesh.x_coordinates.size() == 1 )                                                    //This is an extreme case, won't exist, still if it does
-        {                                                                                         //then this must be at rank 0
-           M.thomas_denomx[0] = M.one; 
-           M.thomas_denomx[0] += M.thomas_constant2; 
-        } 
-        
-    if(world.rank == 0)
-           M.thomas_cx[0] /= M.thomas_denomx[0];                                                     //The first c element of tridiagonal matrix is div by first diagonal el.
-
-/*------------------------------------------------*/		
-/* axpy(1st, 2nd, 3rd) => 1st = 1st + 2nd * 3rd 	*/
-/* The value at  size-1 is not actually used  		*/
-/* Since value of size-1 is not used, it means it */
-/* is the value after the last Diagonal element   */
-/* -----------------------------------------------*/
-                                                                                                 
-        for(int ser_ctr=0; ser_ctr<=world.size-1; ser_ctr++)
+        if (M.mesh.uniform_mesh == false || M.mesh.Cartesian_mesh == false)
         {
-            if(world.rank == ser_ctr)
-            {
-            		/* LATER CHECK IF CONDITIONS CAN BE MERGED - BECAUSE IT LOOKS LIKE A REPETITION */
-            		
-                if(world.rank == 0 && world.rank <= world.size-1)                   //If size=1, then this process does not send data
-                {
-                    
-                    for( int i=1 ; i <= M.mesh.x_coordinates.size()-1 ; i++ )
-                    { 
-                        axpy( &M.thomas_denomx[i] , M.thomas_constant1 , M.thomas_cx[i-1] ); 
-                        M.thomas_cx[i] /= M.thomas_denomx[i];                  // the value at  size-1 is not actually used  
-                    }
-                }
-                else
-                {
-                    for( int i=1 ; i <= M.mesh.x_coordinates.size()-1 ; i++ )
-                    { 
-                        axpy( &M.thomas_denomx[i] , M.thomas_constant1 , M.thomas_cx[i-1] ); 
-                        M.thomas_cx[i] /= M.thomas_denomx[i];                   // the value at  size-1 is not actually used  
-                    }
-                }
-                    
-                if(world.rank < (world.size-1))
-                {
-                    MPI_Isend(&(M.thomas_cx[M.mesh.x_coordinates.size()-1][0]), M.thomas_cx[M.mesh.x_coordinates.size()-1].size(), MPI_DOUBLE, ser_ctr+1, 1111, cart_topo.mpi_cart_comm, &send_req);
-                    MPI_Wait(&send_req, MPI_STATUS_IGNORE);
-                }
-            }
-                    
-            if(world.rank == (ser_ctr+1) && (ser_ctr+1) <= (world.size-1))
-            {
-                    
-                std::vector<double> temp_cx(M.thomas_cx[0].size());
-                    
-                MPI_Irecv(&temp_cx[0], temp_cx.size(), MPI_DOUBLE, ser_ctr, 1111, cart_topo.mpi_cart_comm, &recv_req);
-                MPI_Wait(&recv_req, MPI_STATUS_IGNORE);
-                    
-                   
-                axpy( &M.thomas_denomx[0] , M.thomas_constant1 , temp_cx );                        //CHECK IF &temp_cz[0] is OK, axpy() in BioFVM_vector.cpp 
-                M.thomas_cx[0] /= M.thomas_denomx[0];                                                  // the value at  size-1 is not actually used  
-            }
-            
-            MPI_Barrier(cart_topo.mpi_cart_comm); 
+            std::cout << "Error: This algorithm is written for uniform Cartesian meshes. Try: other solvers!" << std::endl
+                      << std::endl;
+            return;
         }
-                                                                                                 
-/*--------------------------------------------------------------------*/
-/* In 1-D X decomposition, z and y-lines are contiguous and typically */
-/* the assignments below for z, y should not be changed.              */
-/* Both the first voxel i.e. index 0 and last voxel i.e. index=       */
-/* y_coordinates.size()-1 are on the same process (same for Z)        */
-/*--------------------------------------------------------------------*/
-		
-		M.thomas_cy.assign( M.mesh.y_coordinates.size() , M.thomas_constant1a ); 
-		M.thomas_denomy.assign( M.mesh.y_coordinates.size()  , M.thomas_constant3 ); 
-		M.thomas_denomy[0] = M.thomas_constant3a; 
-		M.thomas_denomy[ M.mesh.y_coordinates.size()-1 ] = M.thomas_constant3a;
-		 
-		if( M.mesh.y_coordinates.size() == 1 )
-		{ 
-        M.thomas_denomy[0] = M.one; 
-        M.thomas_denomy[0] += M.thomas_constant2;        
-    } 
-    
-		M.thomas_cy[0] /= M.thomas_denomy[0];
-		 
-		for( int i=1 ; i <= M.mesh.y_coordinates.size()-1 ; i++ )
-		{ 
-			axpy( &M.thomas_denomy[i] , M.thomas_constant1 , M.thomas_cy[i-1] ); 
-			M.thomas_cy[i] /= M.thomas_denomy[i];                                         // the value at  size-1 is not actually used  
-		}
 
-/*----------------------------------*/
-/* Setting Z-coordinate parameters  */
-/*----------------------------------*/
+        // define constants and pre-computed quantities
 
-		M.thomas_cz.assign( M.mesh.z_coordinates.size() , M.thomas_constant1a ); 
-		M.thomas_denomz.assign( M.mesh.z_coordinates.size()  , M.thomas_constant3 ); 
-		M.thomas_denomz[0] = M.thomas_constant3a; 
-		M.thomas_denomz[ M.mesh.z_coordinates.size()-1 ] = M.thomas_constant3a; 
-		
-		if( M.mesh.z_coordinates.size() == 1 )
-		{ 
-            M.thomas_denomz[0] = M.one; 
-            M.thomas_denomz[0] += M.thomas_constant2; 
-    }
-     
-		M.thomas_cz[0] /= M.thomas_denomz[0]; 
-		
-		for( int i=1 ; i <= M.mesh.z_coordinates.size()-1 ; i++ )
-		{ 
-			axpy( &M.thomas_denomz[i] , M.thomas_constant1 , M.thomas_cz[i-1] ); 
-			M.thomas_cz[i] /= M.thomas_denomz[i];                                        // the value at  size-1 is not actually used  
-		}	
+        if (!M.diffusion_solver_setup_done)
+        {
+            // t_strt_set = MPI_Wtime();
+            // std::cout << std::endl << "Using method " << __FUNCTION__ << " (implicit 3-D LOD with Thomas Algorithm) ... "
+            //<< std::endl << std::endl;
 
-		M.diffusion_solver_setup_done = true; 
-	
-	}
+            /*-------------------------------------------------------------*/
+            /* x_coordinates are of size local_x_nodes                     */
+            /* (see function resize() of class Cartesian Mesh in           */
+            /* BioFVM_parallel.cpp.                                        */
+            /* Each line of Voxels going from left to right forms          */
+            /* a tridiagonal system of Equations                           */
+            /* Now these lines are going to split in the X decomposition   */
+            /*-------------------------------------------------------------*/
 
-	// x-diffusion 
-	
-/*------------------------------------------------------------*/
-/* CHECK LATER IF DIRICHLET CONDITIONS ARE BEING SET PROPERLY	*/
-/*------------------------------------------------------------*/
+            M.thomas_denomx.resize(M.mesh.x_coordinates.size(), M.zero); // sizeof(x_coordinates) = local_x_nodes, denomx is the main diagonal elements
+            M.thomas_cx.resize(M.mesh.x_coordinates.size(), M.zero);     // Both b and c of tridiagonal matrix are equal, hence just one array needed
 
-	M.apply_dirichlet_conditions();																									
-    
- /*-----------------------------------------------------------------------------------*/
- /*                        FORWARD ELIMINATION - x DIRECTION/DECOMPOSITION            */
- /*-----------------------------------------------------------------------------------*/
- 
- /*----------------------------------------------------------------------------------------------------*/
- /* 2-D Y-Z planes are to be packed and sent to adjacent processes.                                    */
- /* My direction of traversing is go up up up i.e. y direction points then go in i.e. Z-direction      */
- /* Remember to visualize 3-D as 2-D plates kept after one another. Hence Z-direction data is farther  */
- /* apart than X/Y direction.                                                                          */
- /*----------------------------------------------------------------------------------------------------*/
- 
+            /*-------------------------------------------------------------*/
+            /* y_coordinates are of size of local_y_nodes.                 */
+            /* Each line of Voxels going                                   */
+            /* from bottom to top forms a tridiagonal system of Equations  */
+            /*-------------------------------------------------------------*/
 
- int y_size = M.mesh.y_coordinates.size();
- int z_size = M.mesh.z_coordinates.size();
- int p_size = (*M.p_density_vectors)[0].size();     //All p_density_vectors elements have same size, use anyone
- 
- 
- int snd_data_size = z_size * y_size * p_size;      //Number of data elements to be sent                                      
- int rcv_data_size = z_size * y_size * p_size;      //Number of data elements to be received
- 
- 
- std::vector<double> snd_data(snd_data_size);
- std::vector<double> rcv_data(rcv_data_size);
+            M.thomas_denomy.resize(M.mesh.y_coordinates.size(), M.zero);
+            M.thomas_cy.resize(M.mesh.y_coordinates.size(), M.zero);
 
-/*--------------------------------------------------------------------------------------------------*/ 
-/* So row is along Z axis, column of each row is along Y-axis and each element has p_density_vector */
-/*--------------------------------------------------------------------------------------------------*/ 
- 
- std::vector<std::vector<std::vector<double>>> block3d(z_size, std::vector<std::vector<double>>( y_size, std::vector<double>(p_size)));
-    
- //t_strt_x = MPI_Wtime();  
+            /*-------------------------------------------------------------*/
+            /* z_coordinates are of size of local_z_nodes.                 */
+            /* Each line of Voxels going                                   */
+            /* from front to back forms a tridiagonal system of Equations  */
+            /*-------------------------------------------------------------*/
 
-/*-----------------------------------------------------------------------------------------*/
-/* The zeroth element on each process in the x-direction with rank >= 1 is to be treated	 */ 
-/* separately because its previous element is on the process before it and so data must be */
-/* caught in block3D and then calculations are to be done. 																 */
-/* Data is sent using a 1-dimensional array, received in 1-dimensional array BUT then that */
-/* data is transferred to a 3D array called 'block3d', its easier to use this block3d in 	 */
-/* 'axpy' calculations. 																																	 */
-/*-----------------------------------------------------------------------------------------*/	
-	
-for(int ser_ctr=0; ser_ctr <= world.size-1; ser_ctr++)
- {
-     if(world.rank == ser_ctr)
-     {
-         if(world.rank == 0)
-         {
-            #pragma omp parallel for
-            for(int k=0; k<= M.mesh.z_coordinates.size()-1; k++)
+            M.thomas_denomz.resize(M.mesh.z_coordinates.size(), M.zero);
+            M.thomas_cz.resize(M.mesh.z_coordinates.size(), M.zero);
+
+            /*-------------------------------------------------------------*/
+            /* For X-decomposition thomas_i_jump - 1 can be in the previous*/
+            /* process and thomas_i_jump+1 can be in the next processs     */
+            /* hence we can use thomas_j_jump and thomas_k_jump safely     */
+            /* but we CANNOT use thomas_i_jump safely                      */
+            /*-------------------------------------------------------------*/
+
+            M.thomas_i_jump = M.number_of_densities() * M.mesh.z_coordinates.size() * M.mesh.y_coordinates.size();
+            M.thomas_j_jump = M.number_of_densities() * M.mesh.z_coordinates.size();
+            M.thomas_k_jump = M.number_of_densities(); // M.thomas_j_jump * M.mesh.y_coordinates.size();
+
+            /*-------------------------------------------------------------*/
+            /* This part below of defining constants SHOULD typically      */
+            /* not change during parallelization.                          */
+            /*-------------------------------------------------------------*/
+
+            M.thomas_constant1 = M.diffusion_coefficients; // dt*D/dx^2
+            M.thomas_constant1a = M.zero;                  // -dt*D/dx^2;
+            M.thomas_constant2 = M.decay_rates;            // (1/3)* dt*lambda
+            M.thomas_constant3 = M.one;                    // 1 + 2*constant1 + constant2;
+            M.thomas_constant3a = M.one;                   // 1 + constant1 + constant2;
+
+            M.thomas_constant1 *= dt;
+            M.thomas_constant1 /= M.mesh.dx;
+            M.thomas_constant1 /= M.mesh.dx;
+
+            M.thomas_constant1a = M.thomas_constant1;
+            M.thomas_constant1a *= -1.0;
+
+            M.thomas_constant2 *= dt;
+            M.thomas_constant2 /= 3.0; // for the LOD splitting of the source, division by 3 is for 3-D
+
+            M.thomas_constant3 += M.thomas_constant1;
+            M.thomas_constant3 += M.thomas_constant1;
+            M.thomas_constant3 += M.thomas_constant2;
+
+            M.thomas_constant3a += M.thomas_constant1;
+            M.thomas_constant3a += M.thomas_constant2;
+
+            // Thomas solver coefficients
+
+            /*--------------------------------------------------------------------*/
+            /* In 1-D X decomposition, y and z-lines are contiguous and typically */
+            /* the assignments below for y,z should not be changed                */
+            /*--------------------------------------------------------------------*/
+
+            M.thomas_cx.assign(M.mesh.x_coordinates.size(), M.thomas_constant1a);    // Fill b and c elements with -D * dt/dx^2
+            M.thomas_denomx.assign(M.mesh.x_coordinates.size(), M.thomas_constant3); // Fill diagonal elements with (1 + 1/3 * lambda * dt + 2*D*dt/dx^2)
+
+            if (rank == 0)
+                M.thomas_denomx[0] = M.thomas_constant3a; // First diagonal element is   (1 + 1/3 * lambda * dt + 1*D*dt/dx^2)
+
+            if (rank == (size - 1))
+                M.thomas_denomx[M.mesh.x_coordinates.size() - 1] = M.thomas_constant3a; // Last diagonal element  is   (1 + 1/3 * lambda * dt + 1*D*dt/dx^2)
+
+            if (rank == 0)
+                if (M.mesh.x_coordinates.size() == 1) // This is an extreme case, won't exist, still if it does
+                {                                     // then this must be at rank 0
+                    M.thomas_denomx[0] = M.one;
+                    M.thomas_denomx[0] += M.thomas_constant2;
+                }
+            if (rank == 0)
+                M.thomas_cx[0] /= M.thomas_denomx[0]; // The first c element of tridiagonal matrix is div by first diagonal el.
+
+            // axpy(1st, 2nd, 3rd) => 1st = 1st + 2nd * 3rd
+            // the value at  size-1 is not actually used
+            // Since value of size-1 is not used, it means it is the value after the last Diagonal element
+            // cout << "Rank " << rank << endl;
+            for (int ser_ctr = 0; ser_ctr <= size - 1; ser_ctr++)
             {
-                for(int j=0; j<= M.mesh.y_coordinates.size()-1; j++)
+                if (rank == ser_ctr)
                 {
-                    int n = M.voxel_index(0,j,k);
-                    (*M.p_density_vectors)[n] /= M.thomas_denomx[0];
-                    
-                    for( int i=1; i < M.mesh.x_coordinates.size() ; i++ )
+                    if (rank == 0 && rank <= size - 1) // If size=1, then this process does not send data
                     {
-                        int n  = M.voxel_index(i,j,k); 
-                        //int n1 = M.voxel_index(i-1,j,k);            //Can remove this overhead of finding index now
-                        axpy( &(*M.p_density_vectors)[n] , M.thomas_constant1 , (*M.p_density_vectors)[n-M.thomas_i_jump] ); 
-                        (*M.p_density_vectors)[n] /= M.thomas_denomx[i]; 
+
+                        for (int i = 1; i <= M.mesh.x_coordinates.size() - 1; i++)
+                        {
+                            axpy(&M.thomas_denomx[i], M.thomas_constant1, M.thomas_cx[i - 1]);
+                            M.thomas_cx[i] /= M.thomas_denomx[i]; // the value at  size-1 is not actually used
+                        }
+                    }
+                    else
+                    {
+                        for (int i = 1; i <= M.mesh.x_coordinates.size() - 1; i++)
+                        {
+                            axpy(&M.thomas_denomx[i], M.thomas_constant1, M.thomas_cx[i - 1]);
+                            M.thomas_cx[i] /= M.thomas_denomx[i]; // the value at  size-1 is not actually used
+                        }
+                    }
+
+                    if (rank < (size - 1))
+                    {
+                        MPI_Isend(&(M.thomas_cx[M.mesh.x_coordinates.size() - 1][0]), M.thomas_cx[M.mesh.x_coordinates.size() - 1].size(), MPI_DOUBLE, ser_ctr + 1, 1111, mpi_Cart_comm, &send_req[0]);
+                    }
+                }
+
+                if (rank == (ser_ctr + 1) && (ser_ctr + 1) <= (size - 1))
+                {
+
+                    std::vector<double> temp_cx(M.thomas_cx[0].size());
+
+                    MPI_Irecv(&temp_cx[0], temp_cx.size(), MPI_DOUBLE, ser_ctr, 1111, mpi_Cart_comm, &recv_req[0]);
+                    MPI_Wait(&recv_req[0], MPI_STATUS_IGNORE);
+
+                    axpy(&M.thomas_denomx[0], M.thomas_constant1, temp_cx); // CHECK IF &temp_cz[0] is OK, axpy() in BioFVM_vector.cpp
+                    M.thomas_cx[0] /= M.thomas_denomx[0];                   // the value at  size-1 is not actually used
+                }
+
+                MPI_Barrier(mpi_Cart_comm);
+            }
+            cout << "Diffusion set up is done" << endl;
+
+            /*--------------------------------------------------------------------*/
+            /* In 1-D X decomposition, z and y-lines are contiguous adn typically */
+            /* the assignments below for z,y should not be changed                */
+            /* Both the first voxel i.e. index 0 and last voxel i.e. index=       */
+            /* y_coordinates.size()-1 are on the same process                     */
+            /*--------------------------------------------------------------------*/
+
+            M.thomas_cy.assign(M.mesh.y_coordinates.size(), M.thomas_constant1a);
+            M.thomas_denomy.assign(M.mesh.y_coordinates.size(), M.thomas_constant3);
+            M.thomas_denomy[0] = M.thomas_constant3a;
+            M.thomas_denomy[M.mesh.y_coordinates.size() - 1] = M.thomas_constant3a;
+            if (M.mesh.y_coordinates.size() == 1)
+            {
+                M.thomas_denomy[0] = M.one;
+                M.thomas_denomy[0] += M.thomas_constant2;
+            }
+            M.thomas_cy[0] /= M.thomas_denomy[0];
+            for (int i = 1; i <= M.mesh.y_coordinates.size() - 1; i++)
+            {
+                axpy(&M.thomas_denomy[i], M.thomas_constant1, M.thomas_cy[i - 1]);
+                M.thomas_cy[i] /= M.thomas_denomy[i]; // the value at  size-1 is not actually used
+            }
+
+            M.thomas_cz.assign(M.mesh.z_coordinates.size(), M.thomas_constant1a);
+            M.thomas_denomz.assign(M.mesh.z_coordinates.size(), M.thomas_constant3);
+            M.thomas_denomz[0] = M.thomas_constant3a;
+            M.thomas_denomz[M.mesh.z_coordinates.size() - 1] = M.thomas_constant3a;
+            if (M.mesh.z_coordinates.size() == 1)
+            {
+                M.thomas_denomz[0] = M.one;
+                M.thomas_denomz[0] += M.thomas_constant2;
+            }
+            M.thomas_cz[0] /= M.thomas_denomz[0];
+            for (int i = 1; i <= M.mesh.z_coordinates.size() - 1; i++)
+            {
+                axpy(&M.thomas_denomz[i], M.thomas_constant1, M.thomas_cz[i - 1]);
+                M.thomas_cz[i] /= M.thomas_denomz[i]; // the value at  size-1 is not actually used
+            }
+
+            M.diffusion_solver_setup_done = true;
+            // t_end_set = MPI_Wtime();
+            // std::cout<<"Set-up time = "<<(t_end_set-t_strt_set)<<std::endl;
+
+            
+            //if (rank == 0) file << "X-diffusion,Y-diffusion,Z-diffusion,Apply Dirichlet" << std::endl;
+        }
+
+
+        // x-diffusion
+        // cout << "Rank " << rank << " starting x-diffusion" << endl;
+        //auto start_time = std::chrono::high_resolution_clock::now();
+        M.apply_dirichlet_conditions(rank, size);
+        //auto end_time = std::chrono::high_resolution_clock::now();
+        //auto apply_us = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
+
+
+        // cout << "Rank " << rank << " apply dirichlet condition done" << endl;
+        /*-----------------------------------------------------------------------------------*/
+        /*                        FORWARD ELIMINATION - x DIRECTION/DECOMPOSITION            */
+        /*-----------------------------------------------------------------------------------*/
+
+        /* For data packing...                                                                                 */
+        /* My direction of traversing is go up up up i.e. y direction points then go in i.e. Z-direction       */
+        /* Remember to visualize 3-D as 2-D plates kept after one another. Hence Z-direction data is farther   */
+        /* apart than X/Y direction                                                                            */
+
+        int y_size = M.mesh.y_coordinates.size();
+        int z_size = M.mesh.z_coordinates.size();
+        int p_size = M.number_of_densities(); 
+
+        int step_size = (z_size * y_size) / granurality;
+
+        int snd_data_size = step_size * p_size; // Number of data elements to be sent
+        int rcv_data_size = step_size * p_size; // All p_density_vectors elements have same size, use anyone
+
+        int snd_data_size_last = ((z_size * y_size) % granurality) * p_size; // Number of data elements to be sent
+        int rcv_data_size_last = ((z_size * y_size) % granurality) * p_size;
+        bool last_iteration = ((z_size * y_size) % granurality) > 0;
+        // cout << "Rank " << rank << " snd_data_size: " << snd_data_size << " rcv_data_size: " << rcv_data_size << endl;
+
+        /* So row is along Z axis, column of each row is along Y-axis and each element has p_density_vector*/
+
+        std::vector<double> block3d(z_size * y_size * p_size);
+
+        // t_strt_x = MPI_Wtime();
+        // cout << "Rank " << rank << " starting forward" << endl;
+        //start_time = std::chrono::high_resolution_clock::now();
+        
+        if (rank == 0)
+        {
+            // cout << "Rank " << rank << "is computing" << endl;
+            for (int step = 0; step < granurality; ++step)
+            {
+                int initial_index = step * snd_data_size;
+                #pragma omp parallel for
+                for (int index = initial_index; index < initial_index + snd_data_size; index += p_size)
+                {
+                    int index_dec = index; 
+                    for (int d = 0; d < M.thomas_denomx[0].size(); d++)
+                    {
+                        M.p_density_vectors[index + d] /= M.thomas_denomx[0][d];
+                    }
+
+                    for (int i = 1; i < M.mesh.x_coordinates.size(); i++)
+                    {
+                        
+                        int index_inc = index_dec + M.thomas_i_jump;
+                        // axpy(&(*M.p_density_vectors)[n], M.thomas_constant1, (*M.p_density_vectors)[n - M.thomas_i_jump]);
+                        for (int d = 0; d < M.thomas_k_jump; d++)
+                        {
+                            M.p_density_vectors[index_inc + d] += M.thomas_constant1[d] * M.p_density_vectors[index_dec + d];
+                        }
+
+                        //(*M.p_density_vectors)[n] /= M.thomas_denomx[i];
+                        for (int d = 0; d < M.thomas_denomx[i].size(); d++)
+                        {
+                            M.p_density_vectors[index_inc + d] /= M.thomas_denomx[i][d];
+                        }
+                        index_dec = index_inc;
+                    }
+                }
+
+                if (size > 1) {
+                    int x_end = M.mesh.x_coordinates.size() - 1;
+                    int offset = step * snd_data_size;
+                    MPI_Status status;
+                    MPI_Isend(&(M.p_density_vectors[x_end * M.thomas_i_jump + offset]), snd_data_size, MPI_DOUBLE, rank + 1, step, mpi_Cart_comm, &send_req[step]);
+                }
+            }
+            //Last iteration
+            if (last_iteration) {
+                int initial_index = granurality * snd_data_size;
+                #pragma omp parallel for
+                for (int index = initial_index; index < initial_index + snd_data_size_last; index += p_size)
+                {
+                    int index_dec = index; 
+                    for (int d = 0; d < M.thomas_denomx[0].size(); d++)
+                    {
+                        M.p_density_vectors[index + d] /= M.thomas_denomx[0][d];
+                    }
+
+                    for (int i = 1; i < M.mesh.x_coordinates.size(); i++)
+                    {
+                        int index_inc = index_dec + M.thomas_i_jump;
+                        // axpy(&(*M.p_density_vectors)[n], M.thomas_constant1, (*M.p_density_vectors)[n - M.thomas_i_jump]);
+                        for (int d = 0; d < M.thomas_k_jump; d++)
+                        {
+                            M.p_density_vectors[index_inc + d] += M.thomas_constant1[d] * M.p_density_vectors[index_dec + d];
+                        }
+
+                        //(*M.p_density_vectors)[n] /= M.thomas_denomx[i];
+                        for (int d = 0; d < M.thomas_denomx[i].size(); d++)
+                        {
+                            M.p_density_vectors[index_inc + d] /= M.thomas_denomx[i][d];
+                        }
+                        index_dec = index_inc;
+                    }
+                }
+
+                if (size > 1) {
+                    int x_end = M.mesh.x_coordinates.size() - 1;
+                    int offset = granurality * snd_data_size;
+                    MPI_Status status;
+                    MPI_Isend(&(M.p_density_vectors[x_end * M.thomas_i_jump + offset]), snd_data_size_last, MPI_DOUBLE, rank + 1, granurality, mpi_Cart_comm, &send_req[granurality]);
+                    
+                }
+            }
+        }
+        else
+        {
+            if (rank >= 1 && rank <= (size - 1))
+            {
+                for (int step = 0; step < granurality; ++step)
+                {
+                    int initial_index = step * snd_data_size;
+                    MPI_Irecv(&(block3d[initial_index]), rcv_data_size, MPI_DOUBLE, rank-1, step, mpi_Cart_comm, &(recv_req[step]));
+                }
+                if (last_iteration)
+                    MPI_Irecv(&(block3d[granurality*snd_data_size]), rcv_data_size_last, MPI_DOUBLE, rank-1, granurality, mpi_Cart_comm, &(recv_req[granurality]));
+                for (int step = 0; step < granurality; ++step)
+                {
+                    int initial_index = step * snd_data_size;
+                    MPI_Wait(&recv_req[step], MPI_STATUS_IGNORE);
+                    #pragma omp parallel for
+                    for (int index = initial_index; index < initial_index + snd_data_size; index += p_size)
+                    {
+                        // axpy(&(*M.p_density_vectors)[n], M.thomas_constant1, block3d[k][j]);
+                        int index_dec = index;
+                        for (int d = 0; d < M.thomas_k_jump; d++)
+                        {
+                            M.p_density_vectors[index + d] += M.thomas_constant1[d] * block3d[index + d];
+                        }
+
+                        //(*M.p_density_vectors)[n] /= M.thomas_denomx[0];
+                        for (int d = 0; d < M.thomas_denomx[0].size(); d++)
+                        {
+                            M.p_density_vectors[index + d] /= M.thomas_denomx[0][d];
+                        }
+
+                        for (int i = 1; i < M.mesh.x_coordinates.size(); i++)
+                        {
+
+                            int index_inc = index_dec + M.thomas_i_jump;
+                            // axpy(&(*M.p_density_vectors)[n], M.thomas_constant1, (*M.p_density_vectors)[n - M.thomas_i_jump]);
+                            for (int d = 0; d < M.thomas_k_jump; d++)
+                            {
+                                M.p_density_vectors[index_inc + d] += M.thomas_constant1[d] * M.p_density_vectors[index_dec + d];
+                            }
+                            //(*M.p_density_vectors)[n] /= M.thomas_denomx[i];
+                            for (int d = 0; d < M.thomas_denomx[i].size(); d++)
+                            {
+                                M.p_density_vectors[index_inc + d] /= M.thomas_denomx[i][d];
+                            }
+
+                            index_dec = index_inc;
+                        }
+                        
+                    }
+                    if (rank < (size - 1))
+                    {
+                        int x_end = M.mesh.x_coordinates.size() - 1;
+                        MPI_Isend(&(M.p_density_vectors[x_end * M.thomas_i_jump + initial_index]), snd_data_size, MPI_DOUBLE, rank + 1, step, mpi_Cart_comm, &send_req[step]);
+                    }
+                }
+                if (last_iteration)
+                {
+                    int initial_index = granurality * snd_data_size;
+                    MPI_Wait(&recv_req[granurality], MPI_STATUS_IGNORE); //Need to change
+                    #pragma omp parallel for
+                    for (int index = initial_index; index < initial_index + snd_data_size_last; index += p_size)
+                    {
+                        // axpy(&(*M.p_density_vectors)[n], M.thomas_constant1, block3d[k][j]);
+                        int index_dec = index;
+                        for (int d = 0; d < M.thomas_k_jump; d++)
+                        {
+                            M.p_density_vectors[index + d] += M.thomas_constant1[d] * block3d[index + d];
+                        }
+
+                        //(*M.p_density_vectors)[n] /= M.thomas_denomx[0];
+                        for (int d = 0; d < M.thomas_denomx[0].size(); d++)
+                        {
+                            M.p_density_vectors[index + d] /= M.thomas_denomx[0][d];
+                        }
+
+                        for (int i = 1; i < M.mesh.x_coordinates.size(); i++)
+                        {
+
+                            int index_inc = index_dec + M.thomas_i_jump;
+                            // axpy(&(*M.p_density_vectors)[n], M.thomas_constant1, (*M.p_density_vectors)[n - M.thomas_i_jump]);
+                            for (int d = 0; d < M.thomas_k_jump; d++)
+                            {
+                                M.p_density_vectors[index_inc + d] += M.thomas_constant1[d] * M.p_density_vectors[index_dec + d];
+                            }
+                            //(*M.p_density_vectors)[n] /= M.thomas_denomx[i];
+                            for (int d = 0; d < M.thomas_denomx[i].size(); d++)
+                            {
+                                M.p_density_vectors[index_inc + d] /= M.thomas_denomx[i][d];
+                            }
+
+                            index_dec = index_inc;
+                        }
+                        
+                    }
+                    // End of computation region
+                    if (rank < (size - 1))
+                    {
+                        int x_end = M.mesh.x_coordinates.size() - 1;
+                        MPI_Request aux;
+                        MPI_Isend(&(M.p_density_vectors[x_end * M.thomas_i_jump + initial_index]), snd_data_size_last, MPI_DOUBLE, rank + 1, granurality, mpi_Cart_comm, &send_req[granurality]);
+                      
                     }
                 }
             }
-         }
-         else
-         {
-            #pragma omp parallel for 
-            for(int k=0; k<= M.mesh.z_coordinates.size()-1; k++)
+        }
+        
+        /*-----------------------------------------------------------------------------------*/
+        /*                         CODE FOR BACK SUBSITUTION                                 */
+        /*-----------------------------------------------------------------------------------*/
+        
+        //cout << "Rank " << rank << " starting backward substitution" << endl;
+
+        if (rank == (size - 1))
+        {
+            for (int step = 0; step < granurality; ++step)
             {
-                for(int j=0; j<= M.mesh.y_coordinates.size()-1; j++)
+                int initial_index = ((M.mesh.x_coordinates.size() - 1)*M.thomas_i_jump) + (step * snd_data_size);
+                #pragma omp parallel for
+
+                for (int index = initial_index; index < initial_index + snd_data_size; index += p_size)
                 {
-                    int n = M.voxel_index(0,j,k);                               //Need to consider case separately for k=0, as k-1 would be -1 ! 
-                    axpy( &(*M.p_density_vectors)[n] , M.thomas_constant1 , block3d[k][j]); 
-                    (*M.p_density_vectors)[n] /= M.thomas_denomx[0];
-                    
-                    for( int i=1; i < M.mesh.x_coordinates.size() ; i++ )
+                    int index_aux = index;
+                    //int index = j * M.thomas_j_jump + k * M.thomas_k_jump + (M.mesh.x_coordinates.size() - 1) * M.thomas_i_jump;
+                    for (int i = M.mesh.x_coordinates.size() - 2; i >= 0; i--)
                     {
-                        int n = M.voxel_index(i,j,k); 
-                        //int n1 = M.voxel_index(i-1,j,k);
-                        axpy( &(*M.p_density_vectors)[n] , M.thomas_constant1 , (*M.p_density_vectors)[n-M.thomas_i_jump] ); 
-                        (*M.p_density_vectors)[n] /= M.thomas_denomx[i]; 
+
+                        int index_dec = index_aux - M.thomas_i_jump;
+                        // naxpy(&(*M.p_density_vectors)[n], M.thomas_cx[i], (*M.p_density_vectors)[n + M.thomas_i_jump]);
+                        for (int d = 0; d < M.thomas_k_jump; d++)
+                        {
+                            M.p_density_vectors[index_dec + d] -= M.thomas_cx[i][d] * M.p_density_vectors[index_aux + d];
+                        }
+                        index_aux = index_dec;
                     }
                 }
+                if (size > 1) {
+                    MPI_Request aux;
+                    MPI_Isend(&(M.p_density_vectors[step * snd_data_size]), snd_data_size, MPI_DOUBLE, rank - 1, step, mpi_Cart_comm, &send_req[step]);
+                }
             }
-         }
+
+            //Last iteration
+            if (last_iteration) {
+                int initial_index = ((M.mesh.x_coordinates.size() - 1)*M.thomas_i_jump) + (granurality * snd_data_size);
+                #pragma omp parallel for
+                for (int index = initial_index; index < initial_index + snd_data_size_last; index += p_size)
+                {
+                    int index_aux = index;
+                    for (int i = M.mesh.x_coordinates.size() - 2; i >= 0; i--)
+                    {
+
+                        int index_dec = index_aux - M.thomas_i_jump;
+                        // naxpy(&(*M.p_density_vectors)[n], M.thomas_cx[i], (*M.p_density_vectors)[n + M.thomas_i_jump]);
+                        for (int d = 0; d < M.thomas_k_jump; d++)
+                        {
+                            M.p_density_vectors[index_dec + d] -= M.thomas_cx[i][d] * M.p_density_vectors[index_aux + d];
+                        }
+                        index_aux = index_dec;
+                    }
+                }
+                if (size > 1) {
+                    MPI_Request aux;
+                    MPI_Isend(&(M.p_density_vectors[granurality * snd_data_size]), snd_data_size_last, MPI_DOUBLE, rank - 1, granurality, mpi_Cart_comm, &send_req[granurality]);
+                    //cout << "Rank " << rank << " has send" << endl;
+                }
+            
+            }
+        }
+        else
+        {
+            MPI_Request status[granurality]; 
+            MPI_Request status_last;
+            for (int step = 0; step < granurality; ++step)
+            {
+                MPI_Irecv(&(block3d[step*snd_data_size]), rcv_data_size, MPI_DOUBLE, rank+1, step, mpi_Cart_comm, &recv_req[step]);
+            }
+            if (last_iteration)
+                MPI_Irecv(&(block3d[granurality*snd_data_size]), rcv_data_size_last, MPI_DOUBLE, rank+1, granurality, mpi_Cart_comm, &recv_req[granurality]);
+
+            
+            for (int step = 0; step < granurality; ++step)
+            {
+                int initial_index = ((M.mesh.x_coordinates.size() - 1)*M.thomas_i_jump) + (step * snd_data_size);
+                int index_3d_initial = (step * snd_data_size);
+                MPI_Wait(&recv_req[step], MPI_STATUS_IGNORE);
+                #pragma omp parallel for
+                for (int offset = 0; offset < snd_data_size; offset += p_size)
+                {
+                    int index_aux = initial_index + offset;
+                    int index_3d = index_3d_initial + offset;
+                    for (int d = 0; d < M.thomas_k_jump; d++)
+                    {
+                        M.p_density_vectors[index_aux + d] -= M.thomas_cx[M.mesh.x_coordinates.size() - 1][d] * block3d[index_3d + d];
+                    }
+
+                    for (int i = M.mesh.x_coordinates.size() - 2; i >= 0; i--)
+                    {
+
+                        int index_dec = index_aux - M.thomas_i_jump;
+                        // naxpy(&(*M.p_density_vectors)[n], M.thomas_cx[i], (*M.p_density_vectors)[n + M.thomas_i_jump]);
+                        for (int d = 0; d < M.thomas_k_jump; d++)
+                        {
+                            M.p_density_vectors[index_dec + d] -= M.thomas_cx[i][d] * M.p_density_vectors[index_aux + d];
+                        }
+                        index_aux = index_dec;
+                        
+                    }
+                }
+                if (rank > 0)
+                {
+                    MPI_Request aux;
+                    MPI_Isend(&(M.p_density_vectors[step * snd_data_size]), snd_data_size, MPI_DOUBLE, rank - 1, step, mpi_Cart_comm, &send_req[step]);
+                    // cout << "Rank " << rank << " has send" << endl;
+                }
+            }
+            if (last_iteration)
+            {
+                int initial_index = ((M.mesh.x_coordinates.size() - 1)*M.thomas_i_jump) + (granurality * snd_data_size);
+                int index_3d_initial = (granurality * snd_data_size);
+                MPI_Wait(&recv_req[granurality], MPI_STATUS_IGNORE);
+                #pragma omp parallel for
+                for (int offset = 0; offset < snd_data_size_last; offset += p_size)
+                {
+                    int index_aux = initial_index + offset;
+                    //int index = j * M.thomas_j_jump + k * M.thomas_k_jump + (M.mesh.x_coordinates.size() - 1) * M.thomas_i_jump;
+                    int index_3d = index_3d_initial + offset;
+                    // naxpy(&(*M.p_density_vectors)[n], M.thomas_cx[M.mesh.x_coordinates.size() - 1], block3d[k][j]);
+                    for (int d = 0; d < M.thomas_k_jump; d++)
+                    {
+                        M.p_density_vectors[index_aux + d] -= M.thomas_cx[M.mesh.x_coordinates.size() - 1][d] * block3d[index_3d + d];
+                    }
+
+                    for (int i = M.mesh.x_coordinates.size() - 2; i >= 0; i--)
+                    {
+
+                        int index_dec = index_aux - M.thomas_i_jump;
+                        // naxpy(&(*M.p_density_vectors)[n], M.thomas_cx[i], (*M.p_density_vectors)[n + M.thomas_i_jump]);
+                        for (int d = 0; d < M.thomas_k_jump; d++)
+                        {
+                            M.p_density_vectors[index_dec + d] -= M.thomas_cx[i][d] * M.p_density_vectors[index_aux + d];
+                        }
+                        index_aux = index_dec;
+                        
+                    }
+                }
+                if (rank > 0)
+                {
+                    MPI_Request aux;
+                    MPI_Isend(&(M.p_density_vectors[granurality * snd_data_size]), snd_data_size_last, MPI_DOUBLE, rank - 1, granurality, mpi_Cart_comm, &send_req[granurality]);
+                }
+            }
+        }
+        MPI_Barrier(mpi_Cart_comm);
+
+        //end_time = std::chrono::high_resolution_clock::now();
+        //auto duration_us = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
+        //if (rank == 0)
+            //std::cout << "   X diffusion: " << duration_ms << "ms" << std::endl;
+         //   file << duration_us << ",";
+
+       
+        //start_time = std::chrono::high_resolution_clock::now();
+        M.apply_dirichlet_conditions(rank, size);
+        //end_time = std::chrono::high_resolution_clock::now();
+        //apply_us += std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
+        //if (rank == 0)
+            //std::cout << "   Apply dirichlet: " << duration_ms << "ms" << std::endl;
+            //std::ofstream << duration_us << ",";
+
+        // cout << "Rank " << rank << " Y diffusion" << endl;
+        // t_strt_y = MPI_Wtime();
+        //start_time = std::chrono::high_resolution_clock::now();
+
+#pragma omp parallel for collapse(2)
+        for (int k = 0; k < M.mesh.z_coordinates.size(); k++)
+        {
+            for (int i = 0; i < M.mesh.x_coordinates.size(); i++)
+            {
+
+                int index = i * M.thomas_i_jump + k * M.thomas_k_jump;
+                //(*M.p_density_vectors)[n] /= M.thomas_denomy[0];
+                for (int d = 0; d < M.thomas_denomy[0].size(); d++)
+                {
+                    M.p_density_vectors[index + d] /= M.thomas_denomy[0][d];
+                }
+
+                for (int j = 1; j < M.mesh.y_coordinates.size(); j++)
+                {
+
+                    int index_inc = index + M.thomas_j_jump;
+                    // axpy(&(*M.p_density_vectors)[n], M.thomas_constant1, (*M.p_density_vectors)[n - M.thomas_j_jump]);
+                    for (int d = 0; d < M.thomas_k_jump; d++)
+                    {
+                        M.p_density_vectors[index_inc + d] += M.thomas_constant1[d] * M.p_density_vectors[index + d];
+                    }
+                    //(*M.p_density_vectors)[n] /= M.thomas_denomy[j];
+                    for (int d = 0; d < M.thomas_denomy[j].size(); d++)
+                    {
+                        M.p_density_vectors[index_inc + d] /= M.thomas_denomy[j][d];
+                    }
+                    index = index_inc;
+                }
+
+                // back substitution
+
+                index = i * M.thomas_i_jump + k * M.thomas_k_jump + (M.thomas_j_jump * (M.mesh.y_coordinates.size() - 1));
+                for (int j = M.mesh.y_coordinates.size() - 2; j >= 0; j--)
+                {
+
+                    int index_dec = index - M.thomas_j_jump;
+                    // naxpy(&(*M.p_density_vectors)[n], M.thomas_cy[j], (*M.p_density_vectors)[n + M.thomas_j_jump]);
+                    for (int d = 0; d < M.thomas_k_jump; d++)
+                    {
+                        M.p_density_vectors[index_dec + d] -= M.thomas_cy[j][d] * M.p_density_vectors[index + d];
+                    }
+                    index = index_dec;
+                }
+            }
+        }
+        //end_time = std::chrono::high_resolution_clock::now();
+        //duration_us = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
+        //if (rank == 0)
+            //std::cout << "   Y diffussion: " << duration_ms << "ms" << std::endl;
+        //    file << duration_us << ",";
+        // t_end_y = MPI_Wtime();
+        // std::cout<<"Y solve time = "<<(t_end_y-t_strt_y)<<std::endl;
+
+
+        // cout << "Rank " << rank << " apply dirichlet" << endl;
          
-         if(world.rank < (world.size-1))
-         {
-             int x_end = M.mesh.x_coordinates.size()-1; 
-             int ctr=0;
-             
-             for(int k=0; k<= M.mesh.z_coordinates.size()-1; k++)
-             {
-                for(int j=0; j<= M.mesh.y_coordinates.size()-1; j++)
-                {
-                    int n = M.voxel_index(x_end,j,k); 
-                    for(int ele=0; ele <= (*M.p_density_vectors)[n].size()-1; ele++)
-                        snd_data[ctr++] = (*M.p_density_vectors)[n][ele]; 
-                }
-             }
-             MPI_Isend(&snd_data[0], snd_data_size, MPI_DOUBLE, ser_ctr+1, 1111, cart_topo.mpi_cart_comm, &send_req);
-             MPI_Wait(&send_req, MPI_STATUS_IGNORE); 
-         }         
-     }
-     if(world.rank == (ser_ctr+1) && world.rank <= (world.size-1))
-     {
-             //Receive the data here and try to put in same format as vector of vectors in 'block3d'
-             
-             MPI_Irecv(&rcv_data[0], rcv_data_size, MPI_DOUBLE, ser_ctr, 1111,  cart_topo.mpi_cart_comm, &recv_req);
-             MPI_Wait(&recv_req,MPI_STATUS_IGNORE);
-              
-             int ctr = 0;
-             for(int m=0; m<z_size; m++)
-             {
-                 for(int n=0; n<y_size; n++)
-                 {
-                     for(int p=0; p<p_size; p++)
-                     {
-                         block3d[m][n][p]=rcv_data[ctr++];
-                     }
-                 }
-             }
-    }
-    MPI_Barrier(cart_topo.mpi_cart_comm);
- }
- 
- 
- /*----------------------------------------------------------------------------------------*/
- /*  BACK SUBSITUTION for x-direction: while doing Forward elimination, we have gone like  */
- /* left to right, bottom to top then front to back - so we have reached the back-top-right*/ 						
- /* corner of the physical domain. Now we begin from the same point and going towards			 */
- /* front left bottom corner. This way there is a possibility that last used data may be 	 */
- /* found in the cache hierarchy. 																												 */
- /*----------------------------------------------------------------------------------------*/
- 
- 
- for(int ser_ctr = world.size-1; ser_ctr >= 0; ser_ctr--)
- {
-     if(world.rank == ser_ctr)
-     {
-         if(world.rank == (world.size-1))
-         {
-            #pragma omp parallel for
-            for(int k=M.mesh.z_coordinates.size()-1; k>=0 ; k--)
-            {
-                for(int j=M.mesh.y_coordinates.size()-1; j>=0 ; j--)
-                {
-                    for( int i=M.mesh.x_coordinates.size()-2; i>=0 ; i-- )
-                    {
-                        int n  = M.voxel_index(i,j,k); 
-                        //int n2 = M.voxel_index(i+1,j,k);                                    //can remove overhead of finding index here
-                        naxpy( &(*M.p_density_vectors)[n] , M.thomas_cx[i] , (*M.p_density_vectors)[n+M.thomas_i_jump] );
-                    }
-                }
-            }
-         }
-         else
-         {
-            #pragma omp parallel for 
-            for(int k=M.mesh.z_coordinates.size()-1; k>=0 ; k--)
-            {
-                for(int j=M.mesh.y_coordinates.size()-1; j>=0 ; j--)
-                {
-                    int n = M.voxel_index(M.mesh.x_coordinates.size()-1,j,k);                                
-                    naxpy( &(*M.p_density_vectors)[n] , M.thomas_cx[M.mesh.x_coordinates.size()-1] , block3d[k][j]);
-                    
-                    for( int i=M.mesh.x_coordinates.size()-2; i >=0; i-- )
-                    {
-                        int n  = M.voxel_index(i,j,k); 
-                        //int n2 = M.voxel_index(i+1,j,k);
-                        naxpy( &(*M.p_density_vectors)[n] , M.thomas_cx[i] , (*M.p_density_vectors)[n+M.thomas_i_jump] );
-                    }
-                }
-            }
-         }
-         if(world.rank > 0)
-         {
-             int x_start = 0; 
-             int ctr=0;
-             
-             for(int k=0; k<= M.mesh.z_coordinates.size()-1; k++)
-             {
-                for(int j=0; j<= M.mesh.y_coordinates.size()-1; j++)
-                {
-                    int n = M.voxel_index(x_start,j,k); 
-                    for(int ele=0; ele <= (*M.p_density_vectors)[n].size()-1; ele++)
-                        snd_data[ctr++] = (*M.p_density_vectors)[n][ele]; 
-                }
-             }
-             MPI_Isend(&snd_data[0], snd_data_size, MPI_DOUBLE, ser_ctr-1, 1111, cart_topo.mpi_cart_comm, &send_req);
-             MPI_Wait(&send_req, MPI_STATUS_IGNORE); 
-         }         
-     }
-     if(world.rank == (ser_ctr-1) && world.rank >= 0)
-     {
-             //Receive the data here and try to put in same format as vector of vectors
-             MPI_Irecv(&rcv_data[0], rcv_data_size, MPI_DOUBLE, ser_ctr, 1111,  cart_topo.mpi_cart_comm, &recv_req);
-             MPI_Wait(&recv_req,MPI_STATUS_IGNORE); 
-             
-             int ctr = 0;
-             for(int m=0; m<z_size; m++)
-             {
-                 for(int n=0; n<y_size; n++)
-                 {
-                     for(int p=0; p<p_size; p++)
-                     {
-                         block3d[m][n][p]=rcv_data[ctr++];
-                     }
-                 }
-             }
-    }
-    MPI_Barrier(cart_topo.mpi_cart_comm);
- }
-  //t_end_x = MPI_Wtime();
-  //std::cout<<"X solve time = "<<(t_end_x-t_strt_x)<<std::endl;
-	
-	/*-----------------------------------------------------*/
-	/* y-diffusion : contiguous data i.e. no decomposition */
-	/*-----------------------------------------------------*/
 
-	M.apply_dirichlet_conditions();
-	
-	//t_strt_y = MPI_Wtime();
-	#pragma omp parallel for 
-	for( int k=0; k < M.mesh.z_coordinates.size() ; k++ )
-	{
-		for( int i=0; i < M.mesh.x_coordinates.size() ; i++ )
-		{
-			/*----------------------------------------------------------------------*/
-			/* Thomas solver, y-direction : Forward Elimination Phase 							*/
-			/* remaining part of forward elimination, using pre-computed quantities */
-			/*----------------------------------------------------------------------*/
 
-			int n = M.voxel_index(i,0,k);
-			(*M.p_density_vectors)[n] /= M.thomas_denomy[0]; 
 
-			for( int j=1; j < M.mesh.y_coordinates.size() ; j++ )
-			{
-				n = M.voxel_index(i,j,k); 
-				axpy( &(*M.p_density_vectors)[n] , M.thomas_constant1 , (*M.p_density_vectors)[n-M.thomas_j_jump] ); 
-				(*M.p_density_vectors)[n] /= M.thomas_denomy[j]; 
-			}
-
-			/*----------------------------------------------------------------------*/
-			/* Thomas solver, y-direction : Backward Substitution  Phase 						*/
-			/* n = voxel_index( mesh.x_coordinates.size()-2 ,j,k);									*/
-			/*----------------------------------------------------------------------*/  
-
-			for( int j = M.mesh.y_coordinates.size()-2 ; j >= 0 ; j-- )
-			{
-				n = M.voxel_index(i,j,k); 
-				naxpy( &(*M.p_density_vectors)[n] , M.thomas_cy[j] , (*M.p_density_vectors)[n+M.thomas_j_jump] ); 
-			}
-  	}
- }
- //t_end_y = MPI_Wtime();
- //std::cout<<"Y solve time = "<<(t_end_y-t_strt_y)<<std::endl;
-
-	/*-----------------------------------------------------*/
-	/* z-diffusion : contiguous data i.e. no decomposition */
-	/*-----------------------------------------------------*/
-
- M.apply_dirichlet_conditions();
- 
-    /*------------------------------------------------------------------------------*/
-    /* NOTES: What if the Z-direction was decomposed ? Notes for a split z-direction*/
-    /* NOTES REMAIN THE SAME FOR X-DECOMPOSITION																		*/
-    /* PROCESSING OF 0TH ELEMENT IN ARRAY                                           */
-    /* The processing on the 0th element of array will be done                      */
-    /* only on rank = 0, or basically the processes containing                      */
-    /* the front boundary of the domain.                                            */
-    /* MPI divides domain into thick slices in Z-direction                          */
-    /* OpenMP divides the thick slices in vertical direction i.e. horizontal lines. */
-    /*------------------------------------------------------------------------------*/
- 
-    /*------------------------------------------------------------------------------*/
-    /* FORWARD SUBSITUTION AND DATA SENDING OF BACK PLANE                           */
-    /* Let all the processing finish at rank 0, now we need to send  the 'back'     */
-    /* square of p_density_vectors[] to rank 1. Do the same at rank 2 so on...      */
-    /* Possibly the thomas_k_jump will also change                                  */
-    /* Instead of using thomas_k_jump, we can use prev=voxel_index(i,j,k-1)         */
-    /* and then use it in (*M.p_density_vectors)[prev]                              */
-    /* Also for rank > 0, it needs to start at k=0                                  */
-    /* The values of p_density_vectors sent from the previous neighbour will be     */
-    /* stored in temp_p_density_vectors -- only used for k=1 else just use          */
-    /* p_density_vectors. Vector of vectors is not stored contiguously              */ 
-    /* So we need to pack them into a single array and then send it to other end    */
-    /*------------------------------------------------------------------------------*/
-    
-    /*---------------------------------------------------------------------------------*/
-    /* BACK SUBSTITUTION AND DATA SENDING OF FRONT PLANE                               */
-    /* This starts from the last process i.e. rank = size-1 then proceeds backwards    */
-    /* i.e. from back boundary to front boundary. On the last process k starts from    */
-    /* z_coordinates.size()-2 but on other processes, it starts from                   */
-    /* z_coordinates.size()-1.                                                         */
-    /*---------------------------------------------------------------------------------*/
- 
- 		/*------------------COMMENT OUT FROM HERE-----------------------------------------*/
- 		/* So the code is like M.apply_dirichlet_conditions() then code for Z-diffusion   */
- 		/* Then M.apply_dirichlet_conditions();                                           */
- 		/*--------------------------------------------------------------------------------*/
- 
-		/*----------------------------------------------------------------------------------------------------------*/
-		/*Declaring a matrix with z_size rows, y_size columns and each element of matrix is a vector of size p_size.*/
-		/*First will store received data from rcv_data into this 3-d block because we need to pass base address     */
-		/*of vectors in the routine axpy()                                                                          */
-		/*----------------------------------------------------------------------------------------------------------*/
-
- 
- 		//t_strt_z = MPI_Wtime();
- 
-   #pragma omp parallel for 
-   for( int j=0; j < M.mesh.y_coordinates.size() ; j++ )
-  	{
-   		for( int i=0; i < M.mesh.x_coordinates.size() ; i++ )
-   		{
-       /*----------------------------------------------------------------------*/
-			 /* Thomas solver, Z-direction : Forward Elimination Phase 							 */
-			 /* remaining part of forward elimination, using pre-computed quantities */
-			 /*----------------------------------------------------------------------*/ 
-     		
-     		int n = M.voxel_index(i,j,0);
- 				(*M.p_density_vectors)[n] /= M.thomas_denomz[0]; 
+        
+        //start_time = std::chrono::high_resolution_clock::now();
+        M.apply_dirichlet_conditions(rank, size);
+        //end_time = std::chrono::high_resolution_clock::now();
+        //apply_us += std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
      
-     		//should be an empty loop if mesh.z_coordinates.size() < 2
-     	  
- 				for( int k=1; k < M.mesh.z_coordinates.size() ; k++ )
- 				{
- 					n = M.voxel_index(i,j,k); 
- 					axpy( &(*M.p_density_vectors)[n] , M.thomas_constant1 , (*M.p_density_vectors)[n-M.thomas_k_jump] ); 
- 					(*M.p_density_vectors)[n] /= M.thomas_denomz[k]; 
- 				}
- 				
- 			/*----------------------------------------------------------------------*/
-			/* Thomas solver, z-direction : Backward Substitution  Phase 						*/
-			/*----------------------------------------------------------------------*/
- 				
- 				for( int k = M.mesh.z_coordinates.size()-2 ; k >= 0 ; k-- )
- 				{
- 					n = M.voxel_index(i,j,k); 
- 					naxpy( &(*M.p_density_vectors)[n] , M.thomas_cz[k] , (*M.p_density_vectors)[n+M.thomas_k_jump] ); 
- 				}
-   		}
-   }
- 
- 	//t_end_z = MPI_Wtime();
- 	//std::cout<<"Z solve time = "<<(t_end_z-t_strt_z)<<std::endl;
-	
- M.apply_dirichlet_conditions();
-	
-	//reset gradient vectors : 				Commented out in original code 
-	//M.reset_all_gradient_vectors(); Commented out in original code
+        
+        //start_time = std::chrono::high_resolution_clock::now();
+#pragma omp parallel for collapse(2)
+        for (int j = 0; j < M.mesh.y_coordinates.size(); j++)
+        {
 
-	return; 
+            for (int i = 0; i < M.mesh.x_coordinates.size(); i++)
+            {
+
+                int index = i * M.thomas_i_jump + j * M.thomas_j_jump;
+                //(*M.p_density_vectors)[n] /= M.thomas_denomz[0];
+                for (int d = 0; d < M.thomas_denomz[0].size(); d++)
+                {
+                    M.p_density_vectors[index + d] /= M.thomas_denomz[0][d];
+                }
+
+                // should be an empty loop if mesh.z_coordinates.size() < 2
+                for (int k = 1; k < M.mesh.z_coordinates.size(); k++)
+                {
+
+                    int index_inc = index + M.thomas_k_jump;
+                    // axpy(&(*M.p_density_vectors)[n], M.thomas_constant1, (*M.p_density_vectors)[n - M.thomas_k_jump]);
+                    for (int d = 0; d < M.thomas_k_jump; d++)
+                    {
+                        M.p_density_vectors[index_inc + d] += M.thomas_constant1[d] * M.p_density_vectors[index + d];
+                    }
+                    //(*M.p_density_vectors)[n] /= M.thomas_denomz[k];
+                    for (int d = 0; d < M.thomas_denomz[k].size(); d++)
+                    {
+                        M.p_density_vectors[index_inc + d] /= M.thomas_denomz[k][d];
+                    }
+
+                    index = index_inc;
+                }
+
+                index = i * M.thomas_i_jump + j * M.thomas_j_jump + (M.thomas_k_jump * (M.mesh.z_coordinates.size() - 1));
+                for (int k = M.mesh.z_coordinates.size() - 2; k >= 0; k--)
+                {
+
+                    int index_dec = index - M.thomas_k_jump;
+                    // naxpy(&(*M.p_density_vectors)[n], M.thomas_cz[k], (*M.p_density_vectors)[n + M.thomas_k_jump]);
+                    for (int d = 0; d < M.thomas_k_jump; d++)
+                    {
+                        M.p_density_vectors[index_dec + d] -= M.thomas_cz[k][d] * M.p_density_vectors[index + d];
+                    }
+                    index = index_dec;
+                }
+            }
+        }
+		/*
+        end_time = std::chrono::high_resolution_clock::now();
+        duration_us = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
+        if (rank == 0)
+            file << duration_us << ",";
+		*/
+    
+        //start_time = std::chrono::high_resolution_clock::now();
+        M.apply_dirichlet_conditions(rank, size);
+        /*end_time = std::chrono::high_resolution_clock::now();
+        apply_us += std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
+        if (rank == 0)
+            file << apply_us/4.0 << std::endl;
+		*/
+        
+        return;
 }
 
-
+//Jose
 void diffusion_decay_solver__constant_coefficients_LOD_2D( Microenvironment& M, double dt )
 {
 	if( M.mesh.regular_mesh == false )
@@ -901,9 +1058,9 @@ void diffusion_decay_solver__constant_coefficients_LOD_2D( Microenvironment& M, 
 		std::cout << "Error: This algorithm is written for regular Cartesian meshes. Try: something else." << std::endl << std::endl; 
 		return; 
 	}
-	
+	std::cout << "Diffusion decay solver constant coefficients LOD 2D is desactivated" << std::endl;
 	// constants for the linear solver (Thomas algorithm) 
-	
+	/*
 	if( !M.diffusion_solver_setup_done )
 	{
 		std::cout << std::endl << "Using method " << __FUNCTION__ << " (2D LOD with Thomas Algorithm) ... " << std::endl << std::endl;  
@@ -916,7 +1073,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_2D( Microenvironment& M, 
 		
 		// define constants and pre-computed quantities 
 
-		M.thomas_i_jump = 1; 
+		M.thomas_i_jump = M.number_of_densities(); 
 		M.thomas_j_jump = M.mesh.x_coordinates.size(); 
 
 		M.thomas_constant1 =  M.diffusion_coefficients; //   dt*D/dx^2 
@@ -1043,11 +1200,13 @@ void diffusion_decay_solver__constant_coefficients_LOD_2D( Microenvironment& M, 
 	// reset gradient vectors 
 //	M.reset_all_gradient_vectors(); 
 	
-	return; 
+	return; */
 }
 
 void diffusion_decay_explicit_uniform_rates( Microenvironment& M, double dt )
 {
+    std::cout << "Diffusion decay explicit uniform rates is desactivated" << std::endl;
+    /*
 	using std::vector; 
 	using std::cout; 
 	using std::endl; 
@@ -1112,7 +1271,7 @@ void diffusion_decay_explicit_uniform_rates( Microenvironment& M, double dt )
 	
 	// reset gradient vectors 
 //	M.reset_all_gradient_vectors(); 
-
+*/
 	return; 
 }
 
@@ -1124,8 +1283,10 @@ void diffusion_decay_solver__constant_coefficients_LOD_1D( Microenvironment& M, 
 		return; 
 	}
 	
+    std::cout << "Diffusion decay solver constant 1D is desactivated" << std::endl;
+
 	// constants for the linear solver (Thomas algorithm) 
-	
+	/*
 	if( !M.diffusion_solver_setup_done )
 	{
 		std::cout << std::endl << "Using method " << __FUNCTION__ << " (2D LOD with Thomas Algorithm) ... " << std::endl << std::endl;  
@@ -1216,7 +1377,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_1D( Microenvironment& M, 
 	
 	// reset gradient vectors 
 //	M.reset_all_gradient_vectors(); 
-	
+	*/
 	return; 
 }
 
