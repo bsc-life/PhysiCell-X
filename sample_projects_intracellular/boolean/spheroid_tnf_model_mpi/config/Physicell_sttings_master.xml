@@ -74,42 +74,42 @@
 
 <PhysiCell_settings version="devel-version">
 	<domain>
-		<x_min>-220</x_min>
-		<x_max>220</x_max>
-		<y_min>-120</y_min>
-		<y_max>120</y_max>
-		<z_min>-20</z_min>
-		<z_max>20</z_max>
-		<dx>10</dx>
-		<dy>10</dy>
-		<dz>10</dz>
+		<x_min>-200</x_min>
+		<x_max>200</x_max>
+		<y_min>-200</y_min>
+		<y_max>200</y_max>
+		<z_min>-200</z_min>
+		<z_max>200</z_max>
+		<dx>20</dx>
+		<dy>20</dy>
+		<dz>20</dz>
 		<use_2D>false</use_2D>
 	</domain>
 	
 	<overall>
-		<max_time units="min">200</max_time>
+		<max_time units="min">800</max_time> <!-- 1400 -->
 		<time_units>min</time_units>
 		<space_units>micron</space_units>
 
-		<dt_diffusion units="min">0.02</dt_diffusion>
-		<dt_mechanics units="min">0.1</dt_mechanics>
-		<dt_phenotype units="min">0.5</dt_phenotype>	
+			<dt_diffusion units="min">0.02</dt_diffusion>
+			<dt_mechanics units="min">0.1</dt_mechanics>
+			<dt_phenotype units="min">2</dt_phenotype>	
 	</overall>
 	
 	<parallel>
-		<omp_num_threads>6</omp_num_threads>
+		<omp_num_threads>1</omp_num_threads>
 	</parallel> 
 	
 	<save>
 		<folder>output</folder> <!-- use . for root --> 
 
 		<full_data>
-			<interval units="min">10</interval>
+			<interval units="min">100</interval>
 			<enable>true</enable>
 		</full_data>
 		
 		<SVG>
-			<interval units="min">10</interval>
+			<interval units="min">100</interval>
 			<enable>true</enable>
 		</SVG>
 		
@@ -127,6 +127,15 @@
 			<initial_condition units="mmHg">38.0</initial_condition>
 			<Dirichlet_boundary_condition units="mmHg" enabled="true">38.0</Dirichlet_boundary_condition>
 		</variable>
+		
+		<variable name="tnf" units="TNF/um^3" ID="1">
+			<physical_parameter_set>
+				<diffusion_coefficient units="micron^2/min">1200.0</diffusion_coefficient>
+				<decay_rate units="1/min">.0275</decay_rate> 
+			</physical_parameter_set>
+			<initial_condition units="molecules/voxel">0.0</initial_condition>
+			<Dirichlet_boundary_condition units="molecules/voxel" enabled="false">0.0</Dirichlet_boundary_condition>
+		</variable>
 
 		<options>
 			<calculate_gradients>true</calculate_gradients>
@@ -140,16 +149,17 @@
 				<filename>./config/dirichlet.mat</filename>
 			</dirichlet_nodes>
 		</options>
-	</microenvironment_setup>	
-		
+	</microenvironment_setup>		
+	
 	<cell_definitions>
 		<cell_definition name="default" ID="0">
 			<phenotype>
-				<cycle code="2" name="live">  
+				<cycle code="5" name="live_cells_cycle_model">  
 					<!-- using higher than normal significant digits to match divisions in default code -->
-					<transition_rates units="1/min"> 
-						<rate start_index="0" end_index="0" fixed_duration="true">0.0</rate>
-					</transition_rates>
+					<phase_transition_rates units="1/min"> 
+						<!-- Cycle duration -->
+						<rate start_index="0" end_index="0" fixed_duration="false">0.00075</rate>
+					</phase_transition_rates>
 				</cycle>
 				
 				<death>  
@@ -158,7 +168,10 @@
 						<phase_durations units="min">
 							<duration index="0" fixed_duration="true">516</duration>
 						</phase_durations>
-
+						<!--
+						<phase_transition_rates units="1/min">
+							<rate start_index="0" end_index="1" fixed_duration="false">0.00193798</rate>
+						</phase_transition_rates> -->
 						<parameters>
 							<unlysed_fluid_change_rate units="1/min">0.05</unlysed_fluid_change_rate>
 							<lysed_fluid_change_rate units="1/min">0</lysed_fluid_change_rate>
@@ -170,12 +183,17 @@
 					</model> 
 
 					<model code="101" name="necrosis">
-						<death_rate units="1/min">0.0</death_rate>
+						<rate units="1/min">0.0</rate>
 						<phase_durations units="min">
 							<duration index="0" fixed_duration="true">0</duration>
 							<duration index="1" fixed_duration="true">86400</duration>
 						</phase_durations>
-
+						<!--
+						<transition_rates units="1/min">
+							<rate start_index="0" end_index="1" fixed_duration="false">9e9</rate>
+							<rate start_index="1" end_index="2" fixed_duration="true">1.15741e-5</rate>
+						</transition_rates>
+						-->
 						<parameters>
 							<unlysed_fluid_change_rate units="1/min">0.05</unlysed_fluid_change_rate>
 							<lysed_fluid_change_rate units="1/min">0</lysed_fluid_change_rate>
@@ -186,86 +204,70 @@
 						</parameters>
 					</model> 
 				</death>					
+
+				<secretion>
+					<substrate name="oxygen">
+						<secretion_rate units="1/min">0</secretion_rate>
+						<secretion_target units="substrate density">38</secretion_target>
+						<uptake_rate units="1/min">10</uptake_rate>
+						<net_export_rate units="total substrate/min">0</net_export_rate> 
+					</substrate> 
+					<substrate name="tnf">
+						<secretion_rate units="1/min">0</secretion_rate>
+						<secretion_target units="substrate density">0</secretion_target>
+						<uptake_rate units="1/min">0</uptake_rate>
+						<net_export_rate units="total substrate/min">0</net_export_rate> 
+					</substrate> 	
+				</secretion>
+				<molecular />
+
+				<intracellular type="maboss">
+					<bnd_filename>./config/TNF_nodes.bnd</bnd_filename>
+					<cfg_filename>./config/TNF_conf.cfg</cfg_filename>
+					<time_step>10</time_step>
+				</intracellular>
+			</phenotype>
+			<custom_data>
+				<!-- Time steps for maboss update-->
+				<next_physiboss_run units="dimensionless">10.</next_physiboss_run>
 				
-				<volume>  
-					<total units="micron^3">1000</total>
-					
-					<fluid_change_rate units="1/min">0.0</fluid_change_rate>
-					<cytoplasmic_biomass_change_rate units="1/min">0.0</cytoplasmic_biomass_change_rate>
-					<nuclear_biomass_change_rate units="1/min">0.0</nuclear_biomass_change_rate>
-				</volume> 				
-				
-				<motility>  
-					<options>
-						<enabled>false</enabled>
-						<use_2D>false</use_2D>
-					</options>
-				</motility>
-				<intracellular type="maboss">
-					<bnd_filename>./config/model_0.bnd</bnd_filename>
-					<cfg_filename>./config/model.cfg</cfg_filename>
-					<time_step>5</time_step>
-					<time_stochasticity>0.5</time_stochasticity>
-					<initial_values>
-						<initial_value node="A">1</initial_value>
-						<initial_value node="C">0</initial_value>
-					</initial_values>	
-				</intracellular>
-			</phenotype>
-			<custom_data/>
+				<!-- Molecular model internal variables-->
+				<TNFR_binding_rate type="double" units="1/min" description="TNF receptor binding rate">0.243</TNFR_binding_rate> <!-- 0.243 -->
+				<TNFR_endocytosis_rate type="double" units="1/min" description="TNF receptor-TNF endocytosis rate">0.128</TNFR_endocytosis_rate>
+				<TNFR_recycling_rate type="double" units="1/min" description="TNF receptor recycling">0.293</TNFR_recycling_rate>
+				<TNFR_activation_threshold type="double" units="" description="TNFR threshold to update booleano model input">0.5</TNFR_activation_threshold>
+				<TNFR_receptors_per_cell type="double" units="dimensionless" description="number of TNFR receptors per cell">1.0</TNFR_receptors_per_cell>
+				<TNF_net_production_rate type="double" units="TNF/cell/min" description="The total TNF produced by the cell when NFkB is active">0</TNF_net_production_rate> <!-- 0.5 ng/mL -->
+
+				<!-- Auxiliary variables used to monitorize simulation-->
+				<tnf_node units="dimensionless">0</tnf_node>
+				<fadd_node units="dimensionless">0</fadd_node>
+				<nfkb_node units="dimensionless">0</nfkb_node>
+				<external_tnf units="TNF/um^3">0</external_tnf>
+
+			</custom_data>
 		</cell_definition>
-		<cell_definition name="other" parent_type="default" ID="1">
-			<phenotype>
-				<intracellular type="maboss">
-					<bnd_filename>./config/model_1.bnd</bnd_filename>
-				</intracellular>			
-			</phenotype>
-			<custom_data/>
-		</cell_definition>
-		<cell_definition name="another" parent_type="default" ID="2">
-			<phenotype>
-				<intracellular type="maboss">
-					<mutations>
-						<mutation node="C">0.0</mutation>
-					</mutations>
-				</intracellular>			
-			</phenotype>
-			<custom_data/>
-		</cell_definition>
-		<cell_definition name="yet_another" parent_type="default" ID="3">
-			<phenotype>
-				<intracellular type="maboss">
-					<parameters>
-						<parameter name="$time_scale">0.2</parameter>
-					</parameters>
-				</intracellular>
-			</phenotype>
-			<custom_data/>
-		</cell_definition>
-		<cell_definition name="yet_yet_another" parent_type="default" ID="4">
-			<phenotype>
-				<intracellular type="maboss">
-					<scaling>0.25</scaling>
-				</intracellular>
-			</phenotype>
-			<custom_data/>
-		</cell_definition>
-		<cell_definition name="last_one" parent_type="default" ID="5">
-			<phenotype>
-				<intracellular type="maboss">
-					<parameters>
-						<parameter name="$time_scale">0.0</parameter>
-					</parameters>
-				</intracellular>
-			</phenotype>
-			<custom_data/>
-		</cell_definition>
-	</cell_definitions>	
-	
+	</cell_definitions>
+
 	<user_parameters>
 		<random_seed type="int" units="dimensionless">0</random_seed> 
-		<node_to_visualize type="string" units="">C</node_to_visualize> <!-- insert the name of the node you want to visualize in paraview-->
-	</user_parameters>
+		<!-- example parameters from the template --> 
+
+		<!-- init file --> 
+		<init_cells_filename type="string" units="">./config/init_5k.txt</init_cells_filename>
+
+		<!-- <bnd_file type="string" units="">./config/boolean_network/TNF_nodes.bnd</bnd_file>
+		<cfg_file type="string" units="">./config/boolean_network/TNF_conf.cfg</cfg_file>
+		<maboss_time_step type="double" units="dimensionless">10.</maboss_time_step> -->
+
+		<time_add_tnf type="int" units="min">50</time_add_tnf> <!-- 150 -->
+		<duration_add_tnf type="int" units="min">10</duration_add_tnf> <!-- 10 -->
+		<concentration_tnf type="double" units="TNF/um^3"> 0.05 </concentration_tnf> <!-- 0.5 ng/mL -->
+		<time_remove_tnf type="int" units="min">100000</time_remove_tnf> <!-- 8000 -->
+		<membrane_length type="int" units=""> 170 </membrane_length> <!-- 470 -->
+
+		<update_pc_parameters_O2_based type="bool" units="">false</update_pc_parameters_O2_based>
+</user_parameters>
 	
 	
 </PhysiCell_settings>

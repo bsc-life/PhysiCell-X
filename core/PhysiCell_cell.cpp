@@ -351,6 +351,8 @@ void Cell::advance_bundled_phenotype_functions( double dt_ , mpi_Environment &wo
 	// call the custom code to update the phenotype
 	if( functions.update_phenotype_parallel )
 	{	functions.update_phenotype_parallel( this , phenotype , dt_ , world, cart_topo ); }
+	if( functions.update_phenotype )
+	{	functions.update_phenotype( this , phenotype , dt_); }
 
 	// update volume
 	if( functions.volume_update_function )
@@ -4273,21 +4275,21 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
  }
  
  		
-// 		if(no_cells_cross_left > 0)
-// 		{
-// 			std::cout<<"+++PACKING+++"<<std::endl; 
-//  			std::cout<<"Rank = " << world.rank << std::endl;
-// 			std::cout<<"Cells going to left = "								<< no_cells_cross_left 	<< std::endl;
-// 			std::cout<<"Buffer size for cells going to left: "	<< snd_buf_left.size() 	<< std::endl; 
-// 		}
-// 		
-// 		if(no_cells_cross_right > 0)
-// 		{
-// 			std::cout<<"+++PACKING+++"<<std::endl; 
-//  			std::cout<<"Rank = " << world.rank << std::endl;
-// 			std::cout<<"Cells going to right = "							<< no_cells_cross_right << std::endl;
-// 			std::cout<<"Buffer size for cells going to right: "	<< snd_buf_right.size() << std::endl;
-// 		}
+		// if(no_cells_cross_left > 0)
+		// {
+		// 	std::cout<<"+++PACKING+++"<<std::endl; 
+ 		// 	std::cout<<"Rank = " << world.rank << std::endl;
+		// 	std::cout<<"Cells going to left = "								<< no_cells_cross_left 	<< std::endl;
+		// 	// std::cout<<"Buffer size for cells going to left: "	<< snd_buf_left.size() 	<< std::endl; 
+		// }
+		
+		// if(no_cells_cross_right > 0)
+		// {
+		// 	std::cout<<"+++PACKING+++"<<std::endl; 
+ 		// 	std::cout<<"Rank = " << world.rank << std::endl;
+		// 	std::cout<<"Cells going to right = "							<< no_cells_cross_right << std::endl;
+		// 	// std::cout<<"Buffer size for cells going to right: "	<< snd_buf_right.size() << std::endl;
+		// }
 		
 }
 
@@ -4330,21 +4332,21 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 		int len_vector_nest = 0;
 		
 		
-// 		if(no_of_cells_from_right > 0)
-// 		{
-// 			std::cout<<"---UNPACKING---"<<std::endl;
-// 			std::cout<<"Rank = " << world.rank << std::endl;
-// 			std::cout<<"Cells from right = "<< no_of_cells_from_right << std::endl;
-// 			std::cout<<"Buffer size for cells from right: "<< rcv_buf_right.size() <<std::endl; 
-// 		}
-// 		
-// 		if(no_of_cells_from_left > 0)
-// 		{
-// 			std::cout<<"---UNPACKING---"<<std::endl;
-// 			std::cout<<"Rank = " << world.rank << std::endl;
-// 			std::cout<<"Cells from left = "<< no_of_cells_from_left << std::endl;
-// 			std::cout<<"Buffer size for cells from left: "<< rcv_buf_left.size() <<std::endl; 
-// 		}
+		// if(no_of_cells_from_right > 0)
+		// {
+		// 	std::cout<<"---UNPACKING---"<<std::endl;
+		// 	std::cout<<"Rank = " << world.rank << std::endl;
+		// 	std::cout<<"Cells from right = "<< no_of_cells_from_right << std::endl;
+		// 	std::cout<<"Buffer size for cells from right: "<< rcv_buf_right.size() <<std::endl; 
+		// }
+		
+		// if(no_of_cells_from_left > 0)
+		// {
+		// 	std::cout<<"---UNPACKING---"<<std::endl;
+		// 	std::cout<<"Rank = " << world.rank << std::endl;
+		// 	std::cout<<"Cells from left = "<< no_of_cells_from_left << std::endl;
+		// 	std::cout<<"Buffer size for cells from left: "<< rcv_buf_left.size() <<std::endl; 
+		// }
 
 		/* Unpack all cells coming from right */
 
@@ -4759,7 +4761,27 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 				pCell->phenotype.death.dead = temp_int == 1 ? true : false;
 
 				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &(pCell->phenotype.death.current_death_model_index), 1, MPI_INT, MPI_COMM_WORLD);
+				//fix for ghosts
+				if(pCell->phenotype.death.dead == true){
+					pCell->phenotype.cycle.sync_to_cycle_model( pCell->phenotype.death.current_model() ); 
+					// also, turn off motility.
+					
+					pCell->phenotype.motility.is_motile = false; 
+					pCell->phenotype.motility.motility_vector.assign( 3, 0.0 ); 
+					pCell->functions.update_migration_bias = NULL;
+					
+					// turn off secretion, and reduce uptake by a factor of 10 
+					pCell->phenotype.secretion.set_all_secretion_to_zero();
+					pCell->phenotype.secretion.scale_all_uptake_by_factor( 0.10 );
+					
+					// make sure to run the death entry function
 
+					if( pCell->phenotype.cycle.current_phase().entry_function )
+					{
+						pCell->phenotype.cycle.current_phase().entry_function( pCell, pCell->phenotype, phenotype_dt ); 
+					}
+
+				}
 			/* Next unpack the class Volume that is a member of class Phenotype 															 */
 			/* Next 22 doubles to be unpacked - define dynamic double array of 22 length then call Unpack once */
 
@@ -5479,6 +5501,24 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 				pCell->phenotype.death.dead = temp_int == 1 ? true : false;
 
 				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &(pCell->phenotype.death.current_death_model_index), 1, MPI_INT, MPI_COMM_WORLD);
+				//added
+				if(pCell->phenotype.death.dead == true){
+					pCell->phenotype.cycle.sync_to_cycle_model( pCell->phenotype.death.current_model() ); 
+					// also, turn off motility.
+					
+					pCell->phenotype.motility.is_motile = false; 
+					pCell->phenotype.motility.motility_vector.assign( 3, 0.0 ); 
+					pCell->functions.update_migration_bias = NULL;
+					
+					// turn off secretion, and reduce uptake by a factor of 10 
+					pCell->phenotype.secretion.set_all_secretion_to_zero();
+					pCell->phenotype.secretion.scale_all_uptake_by_factor( 0.10 );
+					
+					// make sure to run the death entry function 
+					if( pCell->phenotype.cycle.current_phase().entry_function )
+					{
+						pCell->phenotype.cycle.current_phase().entry_function( pCell, pCell->phenotype, phenotype_dt ); 
+					}
 
 			/* Next unpack the class Volume that is a member of class Phenotype 															 */
 			/* Next 22 doubles to be unpacked - define dynamic double array of 22 length then call Unpack once */
@@ -6271,9 +6311,11 @@ Cell_Definition* initialize_cell_definition_from_pugixml( pugi::xml_node cd_node
 	node = node.child( "death" ); 
 	if( node )
 	{
-		node = node.child( "model" );
-		while( node )
+		pugi::xml_node model_node = node.child( "model" );
+		while( model_node )
 		{
+			node = model_node;
+
 			int model; // = node.attribute("code").as_int() ; 
 			if( strlen( node.attribute("code").as_string() ) > 0 )
 			{ model = node.attribute("code").as_int(); }
@@ -6366,7 +6408,7 @@ Cell_Definition* initialize_cell_definition_from_pugixml( pugi::xml_node cd_node
 					
 			// set the model 
 			// if the model already exists, just overwrite the parameters 
-			 if (model == PhysiCell_constants::apoptosis_death_model) 
+            if (model == PhysiCell_constants::apoptosis_death_model) 
             {
 //					pCD->phenotype.death.add_death_model( rate , &apoptosis , apoptosis_parameters );
                 if( death_model_already_exists == false )
@@ -6507,7 +6549,7 @@ Cell_Definition* initialize_cell_definition_from_pugixml( pugi::xml_node cd_node
 			
 			// node = node.parent(); 
 			
-			node = node.next_sibling( "model" ); 
+			model_node = model_node.next_sibling( "model" );
 //			death_model_index++; 
 		}
 		
@@ -6515,7 +6557,7 @@ Cell_Definition* initialize_cell_definition_from_pugixml( pugi::xml_node cd_node
 	
 	// volume 
 	node = cd_node.child( "phenotype" );
-	node = node.child( "volume" ); 
+	node = node.child( "volume" );
 	if( node )
 	{
 		Volume* pV = &(pCD->phenotype.volume);

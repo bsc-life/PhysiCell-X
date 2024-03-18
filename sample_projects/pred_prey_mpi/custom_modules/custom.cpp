@@ -456,3 +456,88 @@ void prey_cycling_function( Cell* pCell , Phenotype& phenotype, double dt )
 	
 	return; 
 }
+int total_basic_agent_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	int local_count = all_basic_agents.size();
+	int global_count;
+	MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+	return global_count;
+}
+
+
+
+int total_cell_agent_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	int local_count = (*all_cells).size();
+	int global_count;
+	MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+	return global_count;
+}
+
+
+// Cell count functions
+int total_live_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	int local_count = 0;
+	#pragma omp parallel for reduction (+: local_count )
+	for (int i = 0; i < (*all_cells).size(); i++)
+	{
+		Cell* pCell = (*all_cells)[i];
+		if(pCell->phenotype.death.dead==false)
+		{ local_count++;; }
+	}
+	int global_count;
+	MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+	return global_count;
+}
+
+int total_dead_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+    int local_count = 0;
+    #pragma omp parallel for reduction (+: local_count )
+    for (int i = 0; i < (*all_cells).size(); i++)
+    {
+        Cell* pCell = (*all_cells)[i];
+        if(pCell->phenotype.death.dead==true)
+        { local_count++; }
+    }
+    int global_count;
+    MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+    return global_count;
+}
+
+int total_necrosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	int local_count = 0;
+	#pragma omp parallel for reduction (+: local_count )
+	for (int i = 0; i < (*all_cells).size(); i++)
+	{
+		Cell* pCell = (*all_cells)[i];
+		if( pCell->phenotype.death.dead==false )
+		{ continue; }
+		if( pCell->phenotype.cycle.current_phase().code == PhysiCell_constants::necrotic_swelling || 
+			pCell->phenotype.cycle.current_phase().code == PhysiCell_constants::necrotic_lysed || 
+			pCell->phenotype.cycle.current_phase().code == PhysiCell_constants::necrotic )	
+		{ local_count++; }
+	}
+	int global_count;
+	MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+	return global_count;
+}
+
+int total_apoptosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{	
+	int local_count = 0;
+	#pragma omp parallel for reduction (+: local_count )
+	for (int i = 0; i < (*all_cells).size(); i++)
+	{
+		Cell* pCell = (*all_cells)[i];
+		if( pCell->phenotype.death.dead==false )
+		{ continue; }
+		if( pCell->phenotype.cycle.current_phase().code == PhysiCell_constants::apoptotic )
+		{ local_count++; }
+	}
+	int global_count;
+	MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+	return global_count;
+}

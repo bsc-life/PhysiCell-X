@@ -27,21 +27,21 @@ Submodel_Information tnf_receptor_info;
 
 void tnf_receptor_model_setup()
 {
-  tnf_receptor_info.name = "TNF trasnporter model"; 
+  	tnf_receptor_info.name = "TNF trasnporter model"; 
 	tnf_receptor_info.version = "0.1.0";
 	
-  tnf_receptor_info.main_function = tnf_receptor_model; 
+  	tnf_receptor_info.main_function = tnf_receptor_model; 
 
 	// what custom data do I need?
 	tnf_receptor_info.cell_variables.push_back( "TNFR_activation_threshold" );
 
-  tnf_receptor_info.cell_variables.push_back( "unbound_external_TNFR" );
+  	tnf_receptor_info.cell_variables.push_back( "unbound_external_TNFR" );
 	tnf_receptor_info.cell_variables.push_back( "bound_external_TNFR" );
 	tnf_receptor_info.cell_variables.push_back( "bound_internal_TNFR" );
     
-  tnf_receptor_info.cell_variables.push_back( "TNFR_binding_rate" ); 
+  	tnf_receptor_info.cell_variables.push_back( "TNFR_binding_rate" ); 
 	tnf_receptor_info.cell_variables.push_back( "TNFR_endocytosis_rate" );
-  tnf_receptor_info.cell_variables.push_back( "TNFR_recycling_rate" );
+  	tnf_receptor_info.cell_variables.push_back( "TNFR_recycling_rate" );
 	tnf_receptor_info.cell_variables.push_back( "TFN_net_production_rate" );
 
 	tnf_receptor_info.register_model();

@@ -1011,7 +1011,10 @@ void update_cell_and_death_parameters_O2_based( Cell* pCell, Phenotype& phenotyp
 	
 	return; 
 }
-
+void update_cell_and_death_parameters_O2_based( Cell* pCell, Phenotype& phenotype, double dt ,mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	update_cell_and_death_parameters_O2_based( pCell, phenotype, dt );
+}
 void chemotaxis_function( Cell* pCell, Phenotype& phenotype , double dt )
 {
 	// bias direction is gradient for the indicated substrate 

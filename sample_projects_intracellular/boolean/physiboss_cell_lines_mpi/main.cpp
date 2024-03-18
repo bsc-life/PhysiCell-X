@@ -206,12 +206,13 @@ int main( int argc, char* argv[] )
 	BioFVM::TIC();
 	
 	std::ofstream report_file;
-	if( PhysiCell_settings.enable_legacy_saves == true )
-	{	
-		sprintf( filename , "%s/simulation_report.txt" , PhysiCell_settings.folder.c_str() ); 
-		
-		report_file.open(filename); 	// create the data log file 
-		report_file<<"simulated time\tnum cells\tnum division\tnum death\twall time"<<std::endl;
+	if( world.rank == 0 )
+	{
+        sprintf(filename , "%s/simulation_report.tsv" , PhysiCell_settings.folder.c_str() );
+        report_file.open(filename);     // create the data log file 
+        report_file << "timepoint";
+        report_file << "\tbasic_agents\tcell_agents\talive\tdead\tapoptotic\tnecrotic"<< std::endl;
+
 	}
 	
 	// main loop 
@@ -238,6 +239,22 @@ int main( int argc, char* argv[] )
 					// sprintf( filename , "%s/states_%08u.csv", PhysiCell_settings.folder.c_str(), PhysiCell_globals.full_output_index);
 					
 					// MaBoSSIntracellular::save( filename, *PhysiCell::all_cells );
+
+					double timepoint        = PhysiCell_globals.current_time;
+					int basic_agents        = total_basic_agent_count(world, cart_topo);
+					int cell_agents         = total_cell_agent_count(world, cart_topo);
+					int alive               = total_live_cell_count(world, cart_topo);
+					int dead                = total_dead_cell_count(world, cart_topo);
+					int apoptotic           = total_apoptosis_cell_count(world, cart_topo);
+					int necrotic            = total_necrosis_cell_count(world, cart_topo);
+
+
+					if( world.rank == 0) 
+					{
+						report_file << PhysiCell_globals.current_time;
+						report_file << "\t" << basic_agents<< "\t" << cell_agents << "\t" << alive;
+						report_file << "\t" << dead << "\t" << apoptotic << "\t" << necrotic <<std::endl;
+					}
 	
 				}
 				
@@ -277,7 +294,7 @@ int main( int argc, char* argv[] )
 			PhysiCell_globals.current_time += diffusion_dt;
 		}
 
-		if( PhysiCell_settings.enable_legacy_saves == true )
+		if( PhysiCell_settings.enable_full_saves == true )
 		{			
 			// log_output(PhysiCell_globals.current_time, PhysiCell_globals.full_output_index, microenvironment, report_file);
 			report_file.close();

@@ -96,8 +96,6 @@ void create_cell_types(void)
 	// housekeeping
 	// std::cout << cell_defaults.name << std::endl; <---- will print using all processes
 
-	cell_defaults.functions.volume_update_function = standard_volume_update_function;
-	cell_defaults.functions.update_velocity = standard_update_cell_velocity;
 	
 	/*-----------------------------------------------------------------------------------------------------------------------------*/
 	/* For parallel settings, set the update velocity in parallel function pointer - this will call the new function which has the */
@@ -105,8 +103,9 @@ void create_cell_types(void)
 	/* There may be no need to set it at this stage but setting it here for correctness and completeness. 												 */
 	/*-----------------------------------------------------------------------------------------------------------------------------*/
 	
+	cell_defaults.functions.update_velocity = standard_update_cell_velocity;
 	cell_defaults.functions.update_velocity_parallel = standard_update_cell_velocity;
-	
+	cell_defaults.functions.volume_update_function = standard_volume_update_function;
 	// no migration_bias needed
 	cell_defaults.functions.update_migration_bias = NULL;
 	// No custom rule needed
@@ -210,7 +209,8 @@ void setup_tissue(void)
 		float y = cells[i].y;
 		float z = cells[i].z;
 		double elapsed_time = cells[i].elapsed_time;
-		
+		//check following funcionality
+		//double elapsed_time = UniformRandom();
 		pCell = create_cell(get_cell_definition("default"));
 		pCell->phenotype.cycle.data.elapsed_time_in_phase = elapsed_time;
 		pCell->assign_position(x, y, z);
@@ -269,7 +269,8 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 		/* (3) Set the maximum ID as the current maximum ID would be needed if new cells are to be generated */
 		/*---------------------------------------------------------------------------------------------------*/
 	
-		int strt_cell_ID = Basic_Agent::get_max_ID_in_parallel();                               //IDs for new cells (positions) will start from the current highest ID      
+		//IDs for new cells (positions) will start from the current highest ID 
+		int strt_cell_ID = Basic_Agent::get_max_ID_in_parallel();                                    
 		cp.positions_to_rank_list(generated_positions_at_root, 
 								m.mesh.bounding_box[0], m.mesh.bounding_box[3], 
 								m.mesh.bounding_box[1], m.mesh.bounding_box[4], 
