@@ -214,6 +214,42 @@
 			</phenotype>
 			<custom_data/>
 		</cell_definition>
+		<cell_definition name="other" parent_type="default" ID="1">
+			<phenotype>
+				<intracellular type="maboss">
+					<bnd_filename>./config/model_1.bnd</bnd_filename>
+				</intracellular>			
+			</phenotype>
+			<custom_data/>
+		</cell_definition>
+		<cell_definition name="another" parent_type="default" ID="2">
+			<phenotype>
+				<intracellular type="maboss">
+					<mutations>
+						<mutation node="C">0.0</mutation>
+					</mutations>
+				</intracellular>			
+			</phenotype>
+			<custom_data/>
+		</cell_definition>
+		<cell_definition name="yet_another" parent_type="default" ID="3">
+			<phenotype>
+				<intracellular type="maboss">
+					<parameters>
+						<parameter name="$time_scale">0.2</parameter>
+					</parameters>
+				</intracellular>
+			</phenotype>
+			<custom_data/>
+		</cell_definition>
+		<cell_definition name="yet_yet_another" parent_type="default" ID="4">
+			<phenotype>
+				<intracellular type="maboss">
+					<scaling>0.25</scaling>
+				</intracellular>
+			</phenotype>
+			<custom_data/>
+		</cell_definition>
 		<cell_definition name="last_one" parent_type="default" ID="5">
 			<phenotype>
 				<intracellular type="maboss">
