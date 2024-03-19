@@ -128,8 +128,8 @@ class MaBoSSNetwork
 		
 		/** \brief Get time to update*/
 		inline double get_time_to_update() {return this->time_to_update;}
-		inline void set_time_to_update(double time){this->time_to_update = time;}
-		
+		//inline void set_time_to_update(double time){this->time_to_update = time;}
+		inline void set_time_to_update(double time) { this->time_to_update = ( 1 + (PhysiCell::UniformRandom()*2-1)*time_stochasticity ) *  time; }
 		/** \brief Change simulation mode */
 		inline void set_discrete_time(bool discrete_time, double time_tick) { 
 			this->engine->setDiscreteTime(discrete_time); this->engine->setTimeTick(time_tick); 
