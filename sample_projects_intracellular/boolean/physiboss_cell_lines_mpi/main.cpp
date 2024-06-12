@@ -214,7 +214,7 @@ int main( int argc, char* argv[] )
         report_file << "\tbasic_agents\tcell_agents\talive\tdead\tapoptotic\tnecrotic"<< std::endl;
 
 	}
-	
+
 	// main loop 
 	
 	try 

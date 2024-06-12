@@ -40,13 +40,10 @@ void Submodel_Information::register_model( void )
 		for( unsigned int i=0; i < cell_defaults.custom_data.variables.size() ; i++ )
 		{
 			if( cell_defaults.custom_data.variables[i].name == cell_variables[n] )
-			{ found_it = true; }
+				found_it = true;
 		}
 		if( found_it == false )
-		{
 			cell_defaults.custom_data.add_variable( cell_variables[n] , "none", 0.0 ); 
-		}
-		
 	}
 	
 	// add the model to the registry of submodels 
@@ -76,24 +73,14 @@ void Submodel_Information::display( std::ostream& os )
 
 void Submodel_Registry::register_model( Submodel_Information& model )
 {
+	bool found = false; 
 	#pragma omp critical 
-	{
-		// already registered? 
-		bool found = false; 
-		for( int n = 0; n < submodels.size() ; n++ )
-		{
-			if( submodels[n] == &model )
-			{ found = true; } 
-		} 
-		
-		if( found == false )
-		{
-			submodels.push_back( &model ); 
-//			add_software_citation(); 
-// void add_software_citation( std::string name , std::string version, std::string DOI , std::string URL )
-		}
-	}
-	
+	for( int n = 0; n < submodels.size() ; n++ ) {
+		if( submodels[n] == &model )
+			found = true;
+	} 
+	if( found == false )
+		submodels.push_back( &model ); 
 	return;
 }
 

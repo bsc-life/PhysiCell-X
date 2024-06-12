@@ -144,7 +144,8 @@ void create_cell_types( void )
 	
 	build_cell_definitions_maps(); //Uncommenting it
 	
-	// display_cell_definitions( std::cout ); <------ will print using all processes, thus disabled
+	display_cell_definitions( std::cout );
+	//  <------ will print using all processes, thus disabled
 	
 	/*---------------------------------------------------------------------------------------*/
 	/* display_cell_definitions(...) has been disabled above as the printing will be done by */
@@ -201,10 +202,12 @@ void setup_tissue( void )
 	double cell_spacing = 0.95 * 2.0 * cell_radius; 
 	
 	double tumor_radius = parameters.doubles( "tumor_radius" ); // 250.0; 
-	
+	std::cout << "tumor_radius " << tumor_radius << std::endl; 
+
 	// Parameter<double> temp; 
 	
 	int i = parameters.doubles.find_index( "tumor_radius" ); 
+	std::cout << "parameters.doubles.find_index(tumor_radius );  " << i << std::endl; 
 	
 	Cell* pCell = NULL; 
 	
@@ -354,7 +357,8 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 	
 	double tumor_radius = parameters.doubles( "tumor_radius" ); // 250.0; now changed to 150 in PhysiCell_settings.xml file	
 	int i = parameters.doubles.find_index( "tumor_radius" ); 
-	
+	std::cout << "tumor_radius " << tumor_radius << std::endl; 
+	std::cout << "parameters.doubles.find_index(tumor_radius );  " << i << std::endl;
 	Cell* pCell = NULL; 
     
     std::vector<std::vector<double>> positions;		 

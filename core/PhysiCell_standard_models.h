@@ -136,7 +136,6 @@ void empty_function( Cell* pCell, Phenotype& phenotype, double dt ); // done
 void up_orientation( Cell* pCell, Phenotype& phenotype, double dt ); // done
 
 // standard o2-based phenotype changes 
-
 void update_cell_and_death_parameters_O2_based( Cell* pCell, Phenotype& phenotype, double dt ); 
 // Thalia Diniaco paraller wrapper 
 void update_cell_and_death_parameters_O2_based(Cell* pCell, Phenotype& phenotype, double dt, mpi_Environment &world, mpi_Cartesian &cart_topo);

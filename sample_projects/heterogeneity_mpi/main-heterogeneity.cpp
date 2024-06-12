@@ -118,7 +118,7 @@ int main( int argc, char* argv[] )
 /* Create mpi_Environment object, initialize it, then create Cartesian Topology          */
 /*=======================================================================================*/
 	
-		mpi_Environment world;                         //object contains size of communicator, rank of process
+	mpi_Environment world;                         //object contains size of communicator, rank of process
     world.Initialize();                            //Initialize using MPI_THREAD_FUNNELED, find comm. size and comm. rank
     mpi_Cartesian cart_topo;                       //Contains dims[3], coords[3] array and MPI_Comm mpi_cart_comm
     cart_topo.Build_Cartesian_Topology(world);     //Create 1-D X decomposition by setting dims[1]=size. 

@@ -67,14 +67,14 @@
 
 /*================================================================================
 + If you use PhysiCell-X in your project, we would really appreciate if you can  +
-+																																							   +
-+ [1] Cite the PhysiCell-X repository by giving its URL												   +
-+																																							   +
-+ [2] Cite BioFVM-X: 																													   +
++																				 +
++ [1] Cite the PhysiCell-X repository by giving its URL							 +
++																				 +
++ [2] Cite BioFVM-X: 															 +
 +		Saxena, Gaurav, Miguel Ponce-de-Leon, Arnau Montagud, David Vicente Dorca,   +
 +		and Alfonso Valencia. "BioFVM-X: An MPI+ OpenMP 3-D Simulator for Biological + 
 +		Systems." In International Conference on Computational Methods in Systems    +
-+		Biology, pp. 266-279. Springer, Cham, 2021. 																 +
++		Biology, pp. 266-279. Springer, Cham, 2021. 							 +
 =================================================================================*/
 
 /*=======================================*/
@@ -94,7 +94,6 @@
 #include "./modules/PhysiCell_standard_modules.h" 
 #include "./addons/PhysiBoSS/src/maboss_intracellular.h"	
 #include "./custom_modules/custom.h" 
-
 
 using namespace BioFVM;
 using namespace PhysiCell;
@@ -145,41 +144,14 @@ int main( int argc, char* argv[] )
 	
 	//omp_set_num_threads(PhysiCell_settings.omp_num_threads); <--- We use OMP_NUM_THREADS
 	
+	
 	SeedRandom( parameters.ints("random_seed") ); // Or a seed can be specified here
 	std::string time_units = "min"; 
 
 	/*========================*/
 	/* Microenvironment setup */
 	/*========================*/
-		
-	setup_microenvironment(world, cart_topo);  
-	
-	//User parameters
-	double time_add_tnf = parameters.ints("time_add_tnf");
-	double time_put_tnf = 0;
-	double duration_add_tnf = parameters.ints("duration_add_tnf");
-	double time_tnf_next = 0;
-	double time_remove_tnf = parameters.ints("time_remove_tnf");
-	
-	
-	double concentration_tnf = parameters.doubles("concentration_tnf") * 0.1;
-	
-	//Radius around which the tnf pulse is injected
-	double membrane_lenght = parameters.ints("membrane_length");
-	
-	//TNF density index
-	static int tnf_idx = microenvironment.find_density_index("tnf");	
-	
-	bool seed_tnf = false;
-	
-	//Do small diffusion steps to initialize densities in case seed_tnf is true
-	if ( seed_tnf )
-	{
-		inject_density_sphere(tnf_idx, concentration_tnf, membrane_lenght);
-		// inject_density_sphere(tnf_idx, concentration_tnf, membrane_lenght, world, cart_topo);
-		for ( int i = 0; i < 25; i ++ )
-			microenvironment.simulate_diffusion_decay( diffusion_dt, world, cart_topo );
-	}
+	setup_microenvironment(world, cart_topo);  	
 
 	/*=============================*/	
 	/* PhysiCell/PhysiCell-X setup */ 
@@ -188,18 +160,27 @@ int main( int argc, char* argv[] )
 	// Mechanical voxel size must be >= Diffusion voxel size (check with PhysiCell_settings.xml)
 	double mechanics_voxel_size = 20; 
 	
-
 	// Calling the parallel version of Cell Container creation 
 	Cell_Container* cell_container = create_cell_container_for_microenvironment( microenvironment, mechanics_voxel_size, world, cart_topo );
 	
-	//----> Users typically start modifying here. START USERMODS 
-	
+	// Create cell definitions for each cell type
 	create_cell_types();
 	
 	//Calling the parallel version of setup_tissue(...) 
 	setup_tissue(microenvironment, world, cart_topo);
 
-	//----> Users typically stop modifying here. END USERMODS  
+ 	/*=====================================*/
+	/* Setup parameters for the TNF Pulses */
+	/*=====================================*/
+	double tnf_pulse_period = parameters.doubles("tnf_pulse_period");
+	double tnf_pulse_duration = parameters.doubles("tnf_pulse_duration");
+	double tnf_pulse_concentration = parameters.doubles("tnf_pulse_concentration");
+	double time_remove_tnf = parameters.doubles("time_remove_tnf");
+	double membrane_lenght = parameters.doubles("membrane_length"); // radious around which the tnf pulse is injected
+	
+	double tnf_pulse_timer = tnf_pulse_period;
+	double tnf_pulse_injection_timer = -1;
+	static int tnf_idx = microenvironment.find_density_index("tnf");
 	
 	//Set MultiCellDS save options <--- These MUST all be 'true' here 
 	set_save_biofvm_mesh_as_matlab( true ); 
@@ -229,6 +210,19 @@ int main( int argc, char* argv[] )
 	//Set the performance timers 
 	BioFVM::RUNTIME_TIC();
 	BioFVM::TIC();
+
+	std::ofstream report_file;
+	if( world.rank == 0 )
+	{
+        sprintf(filename , "%s/simulation_report.tsv" , PhysiCell_settings.folder.c_str() );
+        report_file.open(filename);     // create the data log file 
+        report_file << "timepoint";
+        report_file << "\tbasic_agents\tcell_agents\talive\tdead\tapoptotic\tnecrotic";
+        // report_file << "\ttotal_free_tnfr\ttotal_active_tnfr\ttotal_int_TNF";
+        // report_file << "\ttotal_active_TNF\ttotal_active_FADD\ttotal_active_NFKb";
+        report_file << "\ttotal_tnf" << std::endl;
+	}
+
 	
 	
 	//Main loop of the program 
@@ -238,40 +232,43 @@ int main( int argc, char* argv[] )
 		{
 			//Save data if it's time. 
 			if( fabs( PhysiCell_globals.current_time - PhysiCell_globals.next_full_save_time ) < 0.01 * diffusion_dt )
-			{
-				if(IOProcessor(world))
-					std::cout << "Time to save" << std::endl;
-					
+			{					
 				//Use the parallel version of the function	
 				display_simulation_status( std::cout, world, cart_topo );
-				 
-				if( PhysiCell_settings.enable_legacy_saves == true )
-				{				
-					//Count Necrotic, Apoptotic and Alive cells
-					std::string message;
-					std::string topic_name = "cells";
-					double timepoint = PhysiCell_globals.current_time;
-					int alive_no,necrotic_no,apoptotic_no;
-					
-					//Call the parallel versions of the function now which use MPI_Reduce at rank 0 
-					alive_no 			= total_live_cell_count(world, cart_topo);
-					necrotic_no 	= total_necrosis_cell_count(world, cart_topo);
-					apoptotic_no 	= total_dead_cell_count(world, cart_topo);
-					pid_t pid_var = getpid();
-										
-					//Create number of cell types message on root process (use if desired)
-					if(IOProcessor(world)) 
-						message = std::to_string(pid_var) + ';' + std::to_string(timepoint) + ';' + std::to_string(alive_no) + ';' + std::to_string(apoptotic_no) + ';' + std::to_string(necrotic_no) + ';';
-					
+				
+                double timepoint        = PhysiCell_globals.current_time;
+				int basic_agents        = total_basic_agent_count(world, cart_topo);
+				int cell_agents         = total_cell_agent_count(world, cart_topo);
+                int alive               = total_live_cell_count(world, cart_topo);
+                int dead                = total_dead_cell_count(world, cart_topo);
+                int apoptotic           = total_apoptosis_cell_count(world, cart_topo);
+                int necrotic            = total_necrosis_cell_count(world, cart_topo);
+                // float total_free_tnfr   = total_free_TNF_receptor(world, cart_topo);
+                // float total_active_tnfr = total_active_TNF_receptor(world, cart_topo);
+                // float total_int_tnfr    = total_internalized_TNF_receptor(world, cart_topo);
+                // float total_active_TNF  = total_active_TNF_node(world, cart_topo);
+                // float total_active_FADD = total_active_FADD_node(world, cart_topo);
+                // float total_active_NFKb = total_active_NFKb_node(world, cart_topo);
+                float total_tnf         = get_total_tnf(world, cart_topo);
+
+				if( world.rank == 0) 
+				{
+                    report_file << PhysiCell_globals.current_time;
+                    report_file << "\t"<< basic_agents  << "\t" << cell_agents << "\t" << alive;
+					report_file << "\t" << dead << "\t" << apoptotic << "\t" << necrotic;
+                    // report_file << "\t" << total_free_tnfr << "\t" << total_active_tnfr << "\t" << total_int_tnfr;
+                    // report_file << "\t" << total_active_TNF << "\t" << total_active_FADD << "\t" << total_active_NFKb;
+                    report_file << "\t" << total_tnf  <<std::endl;
 				}
 				
 				if( PhysiCell_settings.enable_full_saves == true )
 				{	
 					sprintf( filename , "%s/output%08u" , PhysiCell_settings.folder.c_str(),  PhysiCell_globals.full_output_index ); 
 					
-					//Use parallel version of function 
+					// Use parallel version of function 
 					save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo ); 
-					
+					// Use serial version
+					// save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time);
 				}
 				
 				PhysiCell_globals.full_output_index++; 
@@ -292,36 +289,42 @@ int main( int argc, char* argv[] )
 				}
 			}
 
-			//Custom add-ons could potentially go here. 
-		
-			if ( PhysiCell_globals.current_time >= time_put_tnf )
+			/*
+			  Custom add-ons could potentially go here. 
+			*/			
+			if ( PhysiCell_globals.current_time >= tnf_pulse_timer )
 			{
-				time_tnf_next = PhysiCell_globals.current_time + duration_add_tnf;
-				time_put_tnf += time_add_tnf;
+				tnf_pulse_injection_timer = PhysiCell_globals.current_time + tnf_pulse_duration;
+				tnf_pulse_timer += tnf_pulse_period;
+			}
+
+			if ( PhysiCell_globals.current_time <= tnf_pulse_injection_timer )
+			{
+				inject_density_sphere(tnf_idx, tnf_pulse_concentration, membrane_lenght, world, cart_topo);
 			}
 
 			if ( PhysiCell_globals.current_time >= time_remove_tnf )
 			{
-				remove_density(tnf_idx);													
+				remove_density(tnf_idx, world, cart_topo);
+				std::cout << "REMOVING ALL TNF" << std::endl;
 				time_remove_tnf += PhysiCell_settings.max_time;
-			}
-
-			if ( PhysiCell_globals.current_time <= time_tnf_next )
-			{
-				// inject_density_sphere(tnf_idx, concentration_tnf, membrane_lenght, world, cart_topo);
-				inject_density_sphere(tnf_idx, concentration_tnf, membrane_lenght); 
 			}
 
 			//Update the microenvironment
 			microenvironment.simulate_diffusion_decay( diffusion_dt, world, cart_topo );
 			
 			//Update the TNF receptor model of each cell
-			tnf_receptor_model_main( diffusion_dt );		
+			tnf_receptor_model_main( diffusion_dt );
+
 			
 			//Run PhysiCell/PhysiCell-X 
 			((Cell_Container *)microenvironment.agent_container)->update_all_cells( PhysiCell_globals.current_time, world, cart_topo );
 			
 			PhysiCell_globals.current_time += diffusion_dt;
+		}
+		if (world.rank == 0)
+		{
+			report_file.close();
 		}
 	}
 	catch( const std::exception& e )
@@ -332,20 +335,22 @@ int main( int argc, char* argv[] )
 	
 	//Save a final simulation snapshot 
 	sprintf( filename , "%s/final" , PhysiCell_settings.folder.c_str() ); 
-	save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo ); 
+	save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo );
+	// save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time); 
 	
 	sprintf( filename , "%s/final.svg" , PhysiCell_settings.folder.c_str() ); 
 	SVG_plot( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function, world, cart_topo );
-
+	// SVG_plot( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function);
+	
 	
 	//Timer
 	if(IOProcessor(world)) 
 	{
 		std::cout << std::endl << "Total simulation runtime: " << std::endl;
 		BioFVM::display_stopwatch_value( std::cout , BioFVM::runtime_stopwatch_value() ); 
-  }
+ 	 }
   
-  //Gracefully shut-down MPI i.e. distributed parallelization
+  	//Gracefully shut-down MPI i.e. distributed parallelization
 	world.Finalize(); 
 	
 	return 0; 

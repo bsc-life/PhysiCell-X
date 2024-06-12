@@ -144,7 +144,8 @@ void create_cell_types( void )
 		
 	build_cell_definitions_maps(); 
 	
-	//display_cell_definitions( std::cout ); <---- Will be printed out by all processes 
+	display_cell_definitions( std::cout );
+	//  <---- Will be printed out by all processes 
 	
 	/*---------------------------------------------------------------------------------------*/
 	/* display_cell_definitions(...) has been disabled above as the printing will be done by */

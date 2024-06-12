@@ -702,7 +702,6 @@ Cell* Cell::divide(int p_ID, mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
 	// phenotype.flagged_for_division = false;
 	// phenotype.flagged_for_removal = false;
-	//std::cout<<"Daughter ID = "<<p_ID<<" Parent ID: "<<this->ID<<" Rank:"<<world.rank;
 	
 	// make sure ot remove adhesions 
 	remove_all_attached_cells();
@@ -2154,7 +2153,7 @@ void Cell::print_cell(mpi_Environment &world)
 		ofile<<"UNPACKED CELL"<<std::endl;
 
 	ofile << "NEW POSITION ="<<"("<<position[0]<<","<<position[1]<<","<<position[2]<<")"<<std::endl;
-/*
+
 	ofile<<"=> class Cell {"<<std::endl;
 	ofile<<"TYPE_NAME:"<<type_name<<std::endl;
 
@@ -2275,14 +2274,14 @@ void Cell::print_cell(mpi_Environment &world)
 	if(this->phenotype.cycle.data.pCycle_Model != NULL)
 		ofile<<"pCycle_Model is NOT NULL"<<std::endl;
 	ofile<<"time_units:"<<this->phenotype.cycle.data.time_units<<std::endl;
- */
+ 
 	for(int i=0; i<this->phenotype.cycle.data.transition_rates.size();i++)
 		{
 			ofile<<"Transition Rates Vector:"<<i<<std::endl;
 			for(int j=0; j<this->phenotype.cycle.data.transition_rates[i].size();j++)
 				ofile<<"rate "<<j<<":"<<this->phenotype.cycle.data.transition_rates[i][j]<<std::endl;
 		}
-	/*
+	
 	ofile<<"current_phase_index:"<<this->phenotype.cycle.data.current_phase_index<<std::endl;
 	ofile<<"elapsed_time_in_phase:"<<this->phenotype.cycle.data.elapsed_time_in_phase<<std::endl;
 
@@ -2382,7 +2381,7 @@ void Cell::print_cell(mpi_Environment &world)
 	for(int i=0; i<this->phenotype.molecular.fraction_transferred_when_ingested.size();i++)
 			ofile<<"fraction_transferred_when_ingested "<<i<<":"<<this->phenotype.molecular.fraction_transferred_when_ingested[i]<<std::endl;
 
-*/
+
 if (this->phenotype.intracellular != NULL) {
 		ofile<<"=> class Cell { class Phenotype { class Intracellular { "<<std::endl;
 #ifdef ADDON_PHYSIBOSS
@@ -2418,7 +2417,7 @@ if (this->phenotype.intracellular != NULL) {
 	ofile<<"is_out_of_domain:"<<is_out_of_domain<<std::endl;
 	ofile<<"is_movable:"<<is_movable<<std::endl;
 	
-/*	
+	
 	for(int i=0; i<displacement.size(); i++)
 		ofile<<"Displacement["<<i<<"]:"<<displacement[i]<<std::endl;
 
@@ -2483,7 +2482,7 @@ if (this->phenotype.intracellular != NULL) {
 	 	ofile<<i<<":"<<fraction_transferred_when_ingested->data()[i]<<std::endl;
 
 	ofile<<"Vel[0]:"<< velocity[0]<<" Vel[1]:"<<velocity[1]<<" Vel[2]:"<<velocity[2]<<std::endl;
-*/
+
 	ofile.close();
 
 }
@@ -5519,7 +5518,7 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 					{
 						pCell->phenotype.cycle.current_phase().entry_function( pCell, pCell->phenotype, phenotype_dt ); 
 					}
-
+				}
 			/* Next unpack the class Volume that is a member of class Phenotype 															 */
 			/* Next 22 doubles to be unpacked - define dynamic double array of 22 length then call Unpack once */
 

@@ -74,12 +74,12 @@
 
 <PhysiCell_settings version="devel-version">
 	<domain>
-		<x_min>-220</x_min>
-		<x_max>220</x_max>
-		<y_min>-120</y_min>
-		<y_max>120</y_max>
-		<z_min>-20</z_min>
-		<z_max>20</z_max>
+		<x_min>-1000</x_min>
+		<x_max>1000</x_max>
+		<y_min>-1000</y_min>
+		<y_max>1000</y_max>
+		<z_min>-1000</z_min>
+		<z_max>1000</z_max>
 		<dx>10</dx>
 		<dy>10</dy>
 		<dz>10</dz>
@@ -87,7 +87,7 @@
 	</domain>
 	
 	<overall>
-		<max_time units="min">200</max_time>
+		<max_time units="min">4000</max_time>
 		<time_units>min</time_units>
 		<space_units>micron</space_units>
 
@@ -97,14 +97,14 @@
 	</overall>
 	
 	<parallel>
-		<omp_num_threads>6</omp_num_threads>
+		<omp_num_threads>1</omp_num_threads>
 	</parallel> 
 	
 	<save>
 		<folder>output</folder> <!-- use . for root --> 
 
 		<full_data>
-			<interval units="min">10</interval>
+			<interval units="min">30</interval>
 			<enable>true</enable>
 		</full_data>
 		
@@ -260,8 +260,7 @@
 			</phenotype>
 			<custom_data/>
 		</cell_definition>
-	</cell_definitions>	
-	
+	</cell_definitions>
 	<user_parameters>
 		<random_seed type="int" units="dimensionless">0</random_seed> 
 		<node_to_visualize type="string" units="">C</node_to_visualize> <!-- insert the name of the node you want to visualize in paraview-->

@@ -74,12 +74,12 @@
 
 <PhysiCell_settings version="devel-version">
 	<domain>
-		<x_min>-240</x_min>
-		<x_max>240</x_max>
-		<y_min>-240</y_min>
-		<y_max>240</y_max>
-		<z_min>-240</z_min>
-		<z_max>240</z_max>
+		<x_min>-1000</x_min>
+		<x_max>1000</x_max>
+		<y_min>-1000</y_min>
+		<y_max>1000</y_max>
+		<z_min>-1000</z_min>
+		<z_max>1000</z_max>
 		<dx>20</dx>
 		<dy>20</dy>
 		<dz>20</dz>
@@ -87,30 +87,30 @@
 	</domain>
 	
 	<overall>
-		<max_time units="min">720</max_time> <!-- 5 days * 24 h * 60 min -->
+		<max_time units="min">1440</max_time> <!-- 5 days * 24 h * 60 min -->
 		<time_units>min</time_units>
 		<space_units>micron</space_units>
 	
-		<dt_diffusion units="min">0.01</dt_diffusion>
+		<dt_diffusion units="min">0.02</dt_diffusion>
 		<dt_mechanics units="min">0.1</dt_mechanics>
-		<dt_phenotype units="min">6</dt_phenotype>	
+		<dt_phenotype units="min">2</dt_phenotype>	
 	</overall>
 	
 	<parallel>
-		<omp_num_threads>48</omp_num_threads>
+		<omp_num_threads>1</omp_num_threads>
 	</parallel> 
 	
 	<save>
 		<folder>output</folder> <!-- use . for root --> 
 
 		<full_data>
-			<interval units="min">120</interval>
+			<interval units="min">30</interval>
 			<enable>true</enable>
 		</full_data>
 		
 		<SVG>
-			<interval units="min">120</interval>
-			<enable>true</enable>
+			<interval units="min">30</interval>
+			<enable>false</enable>
 		</SVG>
 		
 		<legacy_data>
@@ -183,7 +183,6 @@
 					</model> 
 
 					<model code="101" name="necrosis">
-						<!--<rate units="1/min">0.0</rate>-->
 						<death_rate units="1/min">0.0</death_rate>
 						<!-- use phase_transition_rates OR phase_durations -->
 						<!-- necrosis uses phase_duration[0] = 0 so that it always immediately
@@ -280,7 +279,7 @@
 	<!-- </initial_conditions>		 -->
 	
 	<user_parameters>
-		<tumor_radius type="double" units="micron">150.0</tumor_radius>
+		<tumor_radius type="double" units="micron">300.0</tumor_radius>
 		<oncoprotein_mean type="double" units="dimensionless">1.0</oncoprotein_mean>
 		<oncoprotein_sd type="double" units="dimensionless">0.25</oncoprotein_sd>
 		<oncoprotein_min type="double" units="dimensionless">0.0</oncoprotein_min>
