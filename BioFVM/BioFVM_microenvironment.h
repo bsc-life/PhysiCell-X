@@ -84,6 +84,8 @@ class Microenvironment
 	bool bulk_source_sink_solver_setup_done; 
 
 	
+	int n_subs; //Number of substrates to within the microenvironment
+
 	/*! stores pointer to current density solutions. Access via operator() functions. */ 
 	//std::vector< std::vector<double> >* p_density_vectors; 
 	
@@ -122,8 +124,16 @@ class Microenvironment
 	std::vector< std::vector<double> > thomas_denomz;
 	std::vector< std::vector<double> > thomas_cz;
 	bool diffusion_solver_setup_done; 
+	//BioFVM-B diffusion-decay optimization variables
+	bool diffusion_solver_vectorized_setup_done;
+	int snd_data_size, snd_data_size_last; //Size of the block message
+	int rcv_data_size, rcv_data_size_last;
+	//Tridiagonal variables for vectorization
+	vector<double> gthomas_constant1, gthomas_constant1a, gthomas_constant2, gthomas_constant3, gthomas_constant3a;
+	vector<vector<double>> gthomas_denomx,gthomas_denomy, gthomas_denomz;
+	vector<vector<double>> gthomas_cx, gthomas_cy, gthomas_cz;
+	int gvec_size; 
 	
-	// on "resize density" type operations, need to extend all of these 
 	
 	/*
 	std::vector<int> dirichlet_indices; 
@@ -149,7 +159,9 @@ class Microenvironment
 
 		
  public:
+	//Diffusion-decay 3D solver blocking parameter
 	int granurality;
+
 	std::vector<double>& p_density_vectors = temporary_density_vectors1; // Jose
 	
 	/*! The mesh for the diffusing quantities */ 
@@ -238,7 +250,7 @@ class Microenvironment
   /* Parallel prototype of a new function nearest_voxel_local_index */
   /*================================================================*/
   
-  int nearest_voxel_local_index( std::vector<double>& position, mpi_Environment &world, mpi_Cartesian &cart_topo ); 
+	int nearest_voxel_local_index( std::vector<double>& position, mpi_Environment &world, mpi_Cartesian &cart_topo ); 
   
 	std::vector<unsigned int> nearest_cartesian_indices( std::vector<double>& position ); 
 	Voxel& nearest_voxel( std::vector<double>& position ); 
@@ -294,7 +306,7 @@ class Microenvironment
 	void update_dirichlet_node( int voxel_index , int substrate_index , double new_value );
 	void remove_dirichlet_node( int voxel_index ); 
 	void apply_dirichlet_conditions( void ); 
-	void apply_dirichlet_conditions( int rank, int size ); 
+	void apply_dirichlet_boundaries_conditions( int rank, int size ); 
 
 	void set_substrate_dirichlet_activation( int substrate_index , bool new_value ); 
 	//double get_substrate_dirichlet_activation( int substrate_index ); ---> changed in v1.7 as below (Gaurav Saxena)

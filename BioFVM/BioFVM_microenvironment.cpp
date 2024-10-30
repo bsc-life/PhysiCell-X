@@ -93,14 +93,13 @@ void one_function( Microenvironment* pMicroenvironment, int voxel_index, std::ve
 	return; 
 }
 
-//Jose pointer implementation
+//BioFVM-B pointer implementation
 void zero_function( Microenvironment* pMicroenvironment, int voxel_index, double* write_destination ) 
 {
 	for( unsigned int i=0 ; i < pMicroenvironment->number_of_densities() ; i++ )
 	{ write_destination[i] = 0.0; }
 	return; 
 }
-//Jose pointer implementation
 void one_function( Microenvironment* pMicroenvironment, int voxel_index, double* write_destination )
 {
 	for( unsigned int i=0 ; i < pMicroenvironment->number_of_densities() ; i++ )
@@ -146,6 +145,11 @@ Microenvironment::Microenvironment()
 	
 	one.resize( 1 , 1.0 ); 
 	zero.resize( 1 , 0.0 );
+
+	//Densities setup
+	density_names.assign( 1 , "unnamed" ); 
+	density_units.assign( 1 , "none" );
+	n_subs = 1; 
 	
 	temporary_density_vectors1.resize( mesh.voxels.size()*number_of_densities() , 0.0 ); 
 	temporary_density_vectors2.resize( mesh.voxels.size()*number_of_densities() , 0.0 ); 
@@ -163,8 +167,7 @@ Microenvironment::Microenvironment()
 	bulk_supply_target_densities_function = zero_function; 
 	bulk_uptake_rate_function = zero_function; 
 
-	density_names.assign( 1 , "unnamed" ); 
-	density_units.assign( 1 , "none" ); 
+
 
 	diffusion_coefficients.assign( number_of_densities() , 0.0 ); 
 	decay_rates.assign( number_of_densities() , 0.0 ); 
@@ -193,7 +196,11 @@ Microenvironment::Microenvironment()
 	default_microenvironment_options.Dirichlet_ymin_values.assign( 1 , 1.0 ); 
 	default_microenvironment_options.Dirichlet_ymax_values.assign( 1 , 1.0 ); 
 	default_microenvironment_options.Dirichlet_zmin_values.assign( 1 , 1.0 ); 
-	default_microenvironment_options.Dirichlet_zmax_values.assign( 1 , 1.0 ); 
+	default_microenvironment_options.Dirichlet_zmax_values.assign( 1 , 1.0 );
+	//Diffusion solver initialization
+	granurality = 1;
+	diffusion_solver_setup_done = false;
+	diffusion_solver_vectorized_setup_done = false;
 	
 	if(default_microenvironment==NULL)
 	{ default_microenvironment=this; }
@@ -327,7 +334,7 @@ void Microenvironment::apply_dirichlet_conditions( void )
 	return; 
 }
 
-void Microenvironment::apply_dirichlet_conditions( int rank, int size)
+void Microenvironment::apply_dirichlet_boundaries_conditions( int rank, int size)
 	{
 		int x_begin = 0;
 		int x_end = mesh.x_size -1;
@@ -343,10 +350,7 @@ void Microenvironment::apply_dirichlet_conditions( int rank, int size)
 			#pragma parallel for collapse(2)
 			for (int j = 0 ; j < mesh.y_size; j++){
 				for (int k = 0; k < mesh.z_size; k++){
-					int voxel_index =  
-					//x_begin*mesh.y_size*mesh.z_size*densities + j*mesh.z_size*densities + k*densities;
-
-
+					int voxel_index =  voxel_index(0,j,k);
 					for (int d = 0; d < densities; d++)
 					{
 						if (dirichlet_activation_vector[d] == true)
@@ -363,9 +367,7 @@ void Microenvironment::apply_dirichlet_conditions( int rank, int size)
 			#pragma parallel for collapse(2)
 			for (int j = 0 ; j < mesh.y_size; j++){
 				for (int k = 0; k < mesh.z_size; k++){
-					int index = x_end*mesh.y_size*mesh.z_size*densities + 
-								j*mesh.z_size*densities +
-								k*densities;
+					int index = voxel_index(x_end, j, k);
 					for (int d = 0; d < densities; d++)
 						{
 							if (dirichlet_activation_vector[d] == true)
@@ -462,7 +464,10 @@ void Microenvironment::resize_voxels( int new_number_of_voxes )
 	
 	dirichlet_value_vectors.assign( mesh.voxels.size(), one ); 
 
-	dirichlet_activation_vectors.assign( mesh.voxels.size() , dirichlet_activation_vector ); 
+	dirichlet_activation_vectors.assign( mesh.voxels.size() , dirichlet_activation_vector );
+
+	diffusion_solver_setup_done = false;
+	diffusion_solver_vectorized_setup_done = false; 
 	
 	return; 
 }
@@ -541,7 +546,6 @@ void Microenvironment::resize_space( double x_start, double x_end, double y_star
 // 	return;  
 // }
 
-//Jose: optimized version
 void Microenvironment::resize_space( double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double dx_new , double dy_new , double dz_new )
 {
 	mesh.resize( x_start, x_end, y_start, y_end, z_start, z_end,  dx_new , dy_new , dz_new ); 
@@ -635,8 +639,8 @@ void Microenvironment::resize_densities( int new_size )
 
 	for( unsigned int k=0 ; k < mesh.voxels.size() ; k++ )
 	{
-		gradient_vectors[k].resize( number_of_densities() ); 
-		for( unsigned int i=0 ; i < number_of_densities() ; i++ )
+		gradient_vectors[k].resize( new_size ); 
+		for( unsigned int i=0 ; i < new_size ; i++ )
 		{
 			(gradient_vectors[k])[i].resize( 3, 0.0 );
 		}
@@ -777,7 +781,7 @@ void Microenvironment::add_density( void )
 		}
 	}
 
-	gradient_vector_computed.resize( mesh.voxels.size() , false ); 	
+	gradient_vector_computed.resize( mesh.voxels.size() , false ); 	//No need to resize
 	
 	one_half = one; 
 	one_half *= 0.5; 
@@ -1327,9 +1331,9 @@ void Microenvironment::write_to_matlab( std::string filename, mpi_Environment &w
 		}
 	}
 	
-		strcpy(char_filename, filename.c_str());
+	strcpy(char_filename, filename.c_str());
     
-		MPI_File_open(cart_topo.mpi_cart_comm, char_filename, MPI_MODE_WRONLY, MPI_INFO_NULL, &fh);      //This file is already created while writing Matlab header
+	MPI_File_open(cart_topo.mpi_cart_comm, char_filename, MPI_MODE_WRONLY, MPI_INFO_NULL, &fh);      //This file is already created while writing Matlab header
     MPI_File_get_size(fh,&file_size);
     
     offset = file_size + world.rank * sizeof(double) * number_of_data_entries * size_of_each_datum;
@@ -1340,10 +1344,10 @@ void Microenvironment::write_to_matlab( std::string filename, mpi_Environment &w
     MPI_File_set_view(fh, offset, etype, filetype, "native", MPI_INFO_NULL); 
     MPI_File_write(fh, buffer, elements_to_write, MPI_DOUBLE, MPI_STATUS_IGNORE);
  
-		MPI_File_close(&fh);
+	MPI_File_close(&fh);
     delete [] buffer;
     
-		return;
+	return;
 }
 
 
@@ -1476,7 +1480,7 @@ std::vector<gradient>& Microenvironment::nearest_gradient_vector( std::vector<do
 	return gradient_vectors[n];
 }
 
-void Microenvironment::compute_all_gradient_vectors( void )
+void Microenvironment::compute_all_gradient_vectors( void ) 
 {
 	static double two_dx = mesh.dx; 
 	static double two_dy = mesh.dy; 
@@ -1982,7 +1986,7 @@ void initialize_microenvironment( void )
 		default_microenvironment_options.Z_range[0] = -default_microenvironment_options.dz/2.0; 
 		default_microenvironment_options.Z_range[1] = default_microenvironment_options.dz/2.0;
 	}
-	//Jose voy por aqui
+
 	microenvironment.resize_space( default_microenvironment_options.X_range[0], default_microenvironment_options.X_range[1] , 
 		default_microenvironment_options.Y_range[0], default_microenvironment_options.Y_range[1], 
 		default_microenvironment_options.Z_range[0], default_microenvironment_options.Z_range[1], 
@@ -2056,8 +2060,6 @@ void initialize_microenvironment( void )
 		// add the Dirichlet nodes in the right places 
 		
 	}
-	std::cout << "which boundaries?" << std::endl; 
-	std::cout << xmin << " " << xmax << " " << ymin << " " << ymax << " " << zmin << " " << zmax << std::endl; 
 
 	// add the Dirichlet nodes in the right places 
 	// now, go in and set the values 
@@ -2410,7 +2412,7 @@ void initialize_microenvironment( void )
 void initialize_microenvironment( mpi_Environment &world, mpi_Cartesian &cart_topo )
 {
 	int coords[3];     //To store mpi_coords[] array for convenience - later needed for setting Dirichlet conditions
-  int dims[3];       //To store mpi_dims[] array for convenience - later needed for Dirichlet conditions
+    int dims[3];       //To store mpi_dims[] array for convenience - later needed for Dirichlet conditions
 	
 	// create and name a microenvironment; 
 	microenvironment.name = default_microenvironment_options.name;

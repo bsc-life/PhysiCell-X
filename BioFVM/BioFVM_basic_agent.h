@@ -68,12 +68,13 @@ class Basic_Agent
 	int current_microenvironment_voxel_index;
 	double volume;
 	bool volume_is_changed;
-	int current_voxel_index;	
+	int current_voxel_index;
+	int current_voxel_global_index; //-->PhysiCell MPI exclusive
 	
- protected:
+ protected: 
 	std::vector<double> cell_source_sink_solver_temp1;
 	std::vector<double> cell_source_sink_solver_temp2;
-	
+
 	/*----------------------------------------------------------------------*/
 	/* Gaurav Saxena added the following 2 data members as they are in v1.7 */
 	/*----------------------------------------------------------------------*/
@@ -82,7 +83,7 @@ class Basic_Agent
 	std::vector<double> cell_source_sink_solver_temp_export2;
 	
 	std::vector<double> previous_velocity; 
-//	bool is_active; ----> Commented in v1.8
+
 	
 	std::vector<double> total_extracellular_substrate_change; 
 	
@@ -109,24 +110,24 @@ class Basic_Agent
 	
 	std::vector<double> & get_previous_velocity();
 	
-	bool 									get_is_active();
+	bool get_is_active();
 	
 	std::vector<double> & get_total_extracellular_substrate_change();
 	
 	void set_cell_source_sink_solver_temp1(std::vector<double> & ref_vec);
-  void set_cell_source_sink_solver_temp2(std::vector<double> & ref_vec);
-  void set_cell_source_sink_solver_temp_export1(std::vector<double> & ref_vec);
-  void set_cell_source_sink_solver_temp_export2(std::vector<double> & ref_vec); 
-//  void set_previous_velocity(std::vector<double> & ref_vec);----> already in class Cell
-  void set_is_active(int flag);
-  void set_total_extracellular_substrate_change(std::vector<double> & ref_vec);
+	void set_cell_source_sink_solver_temp2(std::vector<double> & ref_vec);
+	void set_cell_source_sink_solver_temp_export1(std::vector<double> & ref_vec);
+	void set_cell_source_sink_solver_temp_export2(std::vector<double> & ref_vec); 
+	//  void set_previous_velocity(std::vector<double> & ref_vec);----> already in class Cell
+	void set_is_active(int flag);
+	void set_total_extracellular_substrate_change(std::vector<double> & ref_vec);
 	
 	void set_total_volume(double);
 	void update_voxel_index();
 
-/*----------------------------------------------------------------*/
-/* Parallel prototype of update_voxel_index() 										*/
-/*----------------------------------------------------------------*/	
+	/*----------------------------------------------------------------*/
+	/* Parallel prototype of update_voxel_index() 					  */
+	/*----------------------------------------------------------------*/	
 	void update_voxel_index(mpi_Environment &world, mpi_Cartesian &cart_topo);
 
 	/* new for internalized substrates in 1.5.0 */ 
@@ -148,9 +149,9 @@ class Basic_Agent
 /* One variable and 2 functions added for Parallel Implementation */
 /*----------------------------------------------------------------*/
     
-  static int max_ID_in_parallel;                      //Static variable that maintains the highest ID number generated.(--->added by Gaurav Saxena)
+    static int max_ID_in_parallel;                      //Static variable that maintains the highest ID number generated.(--->added by Gaurav Saxena)
 	static int get_max_ID_in_parallel();                //--->Added by Gaurav Saxena
-  static void set_max_ID_in_parallel(int id);         //--->Added by Gaurav Saxena
+    static void set_max_ID_in_parallel(int id);         //--->Added by Gaurav Saxena
 	
 	
 	bool assign_position(double x, double y, double z);

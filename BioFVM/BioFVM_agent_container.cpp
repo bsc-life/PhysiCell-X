@@ -45,7 +45,7 @@
 #                                                                           #
 #############################################################################
 */
-
+//PhysiCell-B integration checked
 #include "BioFVM_agent_container.h"
 #include "BioFVM_basic_agent.h"
 #include "BioFVM_vector.h"

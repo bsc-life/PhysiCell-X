@@ -105,7 +105,7 @@ Basic_Agent::Basic_Agent(int p_ID)
 	
 	ID = p_ID; 				//The p_ID is coming from create_cell(p_ID)-->new Cell(p_ID)-->Basic_Agent(p_ID)
 										//p_ID is an abbreviation of parallel_ID i.e. ID in parallel settings 
-  is_active=true;
+    is_active=true;
 	
 	volume = 1.0; 
 	
@@ -115,9 +115,9 @@ Basic_Agent::Basic_Agent(int p_ID)
 	 
 	// link into the microenvironment, if one is defined
 	 
-	secretion_rates			= new std::vector<double>(0);
-	uptake_rates				= new std::vector<double>(0);
-	saturation_densities= new std::vector<double>(0);
+	secretion_rates	= new std::vector<double>(0);
+	uptake_rates = new std::vector<double>(0);
+	saturation_densities = new std::vector<double>(0);
 	
 	/*---------------------------------------------------*/
 	/* Gaurav Saxena added the next statement due to v1.7*/
@@ -125,8 +125,8 @@ Basic_Agent::Basic_Agent(int p_ID)
 	
 	net_export_rates = new std::vector<double>(0);
 	
-	internalized_substrates 						= new std::vector<double>(0); // 
-	fraction_released_at_death 					= new std::vector<double>(0); 
+	internalized_substrates = new std::vector<double>(0); // 
+	fraction_released_at_death 	= new std::vector<double>(0); 
 	fraction_transferred_when_ingested 	= new std::vector<double>(0); 
 	
 	register_microenvironment( get_default_microenvironment() );
@@ -151,6 +151,7 @@ void Basic_Agent::set_max_ID_in_parallel(int id)    //No "static" keyword is use
 void Basic_Agent::update_position(double dt){ 
 //make sure to update current_voxel_index if you are implementing this function
 };
+
 bool Basic_Agent::assign_position(std::vector<double> new_position)
 {
 	return assign_position(new_position[0], new_position[1], new_position[2]);
@@ -266,7 +267,7 @@ void Basic_Agent::set_internal_uptake_constants( double dt )
 	
 	return; 
 }
-//Jose: number of densities instead of size of p_density_vectors[0].size()
+
 void Basic_Agent::register_microenvironment( Microenvironment* microenvironment_in )
 {
 	microenvironment = microenvironment_in; 	
@@ -316,7 +317,10 @@ void Basic_Agent::release_internalized_substrates( void )
 	
 	// release this amount into the environment 
 	
-	(*pS)(current_voxel_index) += *internalized_substrates; 	
+	//BioFVM-B adaptation
+	
+	for (int d = 0; d < pS->number_of_densities(); ++d)
+		(*pS)(current_voxel_index)[d] += (*internalized_substrates)[d]; 	
 	
 	// zero out the now-removed substrates 
 	
@@ -389,7 +393,7 @@ std::vector<double>& Basic_Agent::nearest_gradient( int substrate_index )
 	return microenvironment->gradient_vector(current_voxel_index)[substrate_index]; 
 }
 
-	// directly access a vector of gradients, one gradient per substrate 
+// directly access a vector of gradients, one gradient per substrate 
 std::vector<gradient>& Basic_Agent::nearest_gradient_vector( void )
 {
 	return microenvironment->gradient_vector(current_voxel_index); 
@@ -496,8 +500,7 @@ void Basic_Agent::set_total_extracellular_substrate_change(std::vector<double> &
 {
 	total_extracellular_substrate_change = ref_vec; 	
 }
-
-//Jose: modified function
+//Jose: modify this function
 void Basic_Agent::simulate_secretion_and_uptake( Microenvironment* pS, double dt )
 {
 	if(!is_active)
@@ -522,15 +525,25 @@ void Basic_Agent::simulate_secretion_and_uptake( Microenvironment* pS, double dt
 		*internalized_substrates -= total_extracellular_substrate_change; // opposite of net extracellular change 	
 	}
 	
-	(*pS)(current_voxel_index) += cell_source_sink_solver_temp1; 
-	(*pS)(current_voxel_index) /= cell_source_sink_solver_temp2; 
+	//(*pS)(current_voxel_index) += cell_source_sink_solver_temp1; 
+	//(*pS)(current_voxel_index) /= cell_source_sink_solver_temp2;
+	int d_size = (*pS).number_of_densities();
+	for(int d = 0; d < d_size; ++d) {
+		(*pS)(current_voxel_index)[d] += cell_source_sink_solver_temp1[d];
+	}
+	for(int d = 0; d < d_size; ++d) {
+		(*pS)(current_voxel_index)[d] /= cell_source_sink_solver_temp2[d];
+	} 
 	
 	/*-------------------------------------------------------------------*/
 	/* Gaurav Saxena added the following 3 statements as present in v1.7 */
 	/*-------------------------------------------------------------------*/
 	
 	// now do net export 
-	(*pS)(current_voxel_index) += cell_source_sink_solver_temp_export2; 
+	//(*pS)(current_voxel_index) += cell_source_sink_solver_temp_export2; 
+	for(int d = 0; d < d_size; ++d) {
+		(*pS)(current_voxel_index)[d] /= cell_source_sink_solver_temp_export2[d];
+	} 
 	if( default_microenvironment_options.track_internalized_substrates_in_each_agent == true ) 
 	{
 		*internalized_substrates -= cell_source_sink_solver_temp_export1; 
