@@ -2492,7 +2492,7 @@ if (this->phenotype.intracellular != NULL) {
 /* fields of Cell data structure when cells		 */
 /* cross sub-domain boundaries.								 */
 /*---------------------------------------------*/
-
+//Jose: MPI_PACK allows parallel writting to the same buffer -> controlled by position?
 void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
 

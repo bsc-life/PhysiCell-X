@@ -1,0 +1,2 @@
+Physicell_cell_container.cpp 
+    * 119:underlying_mesh.resize(x_start, x_end, y_start, y_end, z_start, z_end , dx, dy, dz); it creates a duplicate of Cartesian Mesh

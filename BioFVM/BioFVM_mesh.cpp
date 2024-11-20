@@ -1836,7 +1836,7 @@ int Cartesian_Mesh::nearest_voxel_index( std::vector<double>& position )
 /* Parallel new function that returns a process specific local index 								 */
 /* in which the Basic_Agent resides. 																								 */
 /*-----------------------------------------------------------------------------------*/
-
+//Jose: voy por aqui
 int Cartesian_Mesh::nearest_voxel_local_index( std::vector<double>& position, mpi_Environment &world, mpi_Cartesian &cart_topo )
 {
 	/*----------------------------------------------------*/

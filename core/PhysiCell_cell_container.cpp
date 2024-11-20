@@ -209,7 +209,7 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 
 
 		// process divides / removes
-
+		//Division and dead in sequential! Performance warning
 		for( int i=0; i < cells_ready_to_divide.size(); i++ )
 		{
 			cells_ready_to_divide[i]->divide();
@@ -295,7 +295,6 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 /*----------------------------------------*/
 /* Parallel version of the function above	*/
 /*----------------------------------------*/
-
 void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double mechanics_dt_ , double diffusion_dt_ , mpi_Environment &world, mpi_Cartesian &cart_topo )
 {
 	// secretions and uptakes. Syncing with BioFVM is automated.
@@ -727,7 +726,7 @@ if(world.rank < world.size-1)
 	/* No need to resize() um_mbfl and um_mbfr 																										 */
 
 
-	position_right = 0;																			//Was used in Packing but re-used here, its a data member (remember)
+	position_right = 0;		//Was used in Packing but re-used here, its a data member (remember)
 	position_left = 0; 																			//Was used in Packing but r-used here, its a data member (remember)
 
 	int size_right = size_of_data_recvd_from_right_process;	//For convenience
