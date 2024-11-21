@@ -633,7 +633,7 @@ void standard_update_cell_velocity( Cell* pCell, Phenotype& phenotype, double dt
 	}
 	
 	pCell->state.simple_pressure = 0.0; 
-	
+	pCell->state.neighbors.clear();
 	//First check the neighbors in my current voxel
 	std::vector<Cell*>::iterator neighbor;
 	std::vector<Cell*>::iterator end = pCell->get_container()->agent_grid[pCell->get_current_mechanics_voxel_index()].end();
@@ -670,7 +670,8 @@ void standard_update_cell_velocity( Cell* pCell, Phenotype& phenotype, double dt
 	int z_dim = pCell->get_container()->underlying_mesh.z_coordinates.size();
 	
 	int local_vxl_inex = pCell->get_current_mechanics_voxel_index();
-	int position_voxel = (local_vxl_inex % (x_dim * y_dim)) % x_dim; 
+	//int position_voxel = (local_vxl_inex % (x_dim * y_dim)) % x_dim;  Layout warning!
+	int position_voxel = (local_vxl_inex / (z_dim * y_dim));
 	
 	/* if position_voxel = 0 then voxel is in left sub-domain boundary 					*/
 	/* if position_voxel = x_dim-1, then voxel is in right sub-domain boundary  */

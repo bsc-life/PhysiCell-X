@@ -173,7 +173,7 @@ class Cycle_Data
 	/* data member inverse_index_maps so that it can be printed*/
 	/*=========================================================*/
 	
-	std::vector<std::unordered_map<int,int>> & get_inverse_index_maps();
+	std::vector<std::unordered_map<int,int>> & get_inverse_index_maps(); //Not present in PhysiCell 1.14.0
 };
 
 class Cycle_Model
@@ -322,7 +322,7 @@ class Volume
 	//
 	// parameters that can be set by users 
 	//
-	double cytoplasmic_biomass_change_rate; 
+	double cytoplasmic_biomass_change_rate; //These ones are not in PhysiCell 1.14.0
 	double nuclear_biomass_change_rate; 
 	double fluid_change_rate;
 
