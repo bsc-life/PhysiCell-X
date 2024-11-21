@@ -13,3 +13,5 @@
 *.out
 *.app
 
+#Miscellaneous
+core/doubts.txt
