@@ -517,7 +517,8 @@ void Basic_Agent::simulate_secretion_and_uptake( Microenvironment* pS, double dt
 		total_extracellular_substrate_change.assign( total_extracellular_substrate_change.size() , 1.0 ); // 1
 
 		total_extracellular_substrate_change -= cell_source_sink_solver_temp2; // 1-c2
-		total_extracellular_substrate_change *= (*pS)(current_voxel_index); // (1-c2)*rho 
+		for (int d = 0; d < (*pS).number_of_densities(); ++d)
+			total_extracellular_substrate_change[d] *= (*pS)(current_voxel_index)[d]; // (1-c2)*rho 
 		total_extracellular_substrate_change += cell_source_sink_solver_temp1; // (1-c2)*rho+c1 
 		total_extracellular_substrate_change /= cell_source_sink_solver_temp2; // ((1-c2)*rho+c1)/c2
 		total_extracellular_substrate_change *= pS->voxels(current_voxel_index).volume; // W*((1-c2)*rho+c1)/c2 

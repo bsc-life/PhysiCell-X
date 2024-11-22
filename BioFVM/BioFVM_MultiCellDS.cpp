@@ -712,7 +712,7 @@ void add_BioFVM_substrates_to_open_xml_pugi( pugi::xml_document& xml_dom , std::
 			buffer = new char [data_size]; 
 			for( unsigned int j=0 ; j < M.mesh.voxels.size() ; j++ )
 			{
-				vector_to_list( M.density_vector(j) , buffer , ' ' ); 
+				vector_to_list( M.density_vector(j) , M.number_of_densities() ,buffer , ' ' ); 
 				node = node.append_child( "data_vector"); 
 				attrib = node.append_attribute( "voxel_ID" ); 
 				attrib.set_value( M.mesh.voxels[j].mesh_index ); 
@@ -773,9 +773,9 @@ void add_BioFVM_substrates_to_open_xml_pugi( pugi::xml_document& xml_dom , std::
 		node = node.child( "data_vector" );
 		//Jose: save info in the same indexation as original
 
-		for( unsigned int k=0 ; j < M.mesh.z_coordinates.size() ; k++ ) {
+		for( unsigned int k=0 ; k < M.mesh.z_coordinates.size() ; k++ ) {
 			for( unsigned int j=0 ; j < M.mesh.y_coordinates.size() ; j++ ) {
-				for( unsigned int i=0 ; j < M.mesh.x_coordinates.size() ; i++ ) {
+				for( unsigned int i=0 ; i < M.mesh.x_coordinates.size() ; i++ ) {
 					double* aux = M.density_vector(i,j,k);
 					vector_to_list( aux , M.number_of_densities() , buffer , ' ' ); 
 					node = node.first_child(); 
@@ -1106,9 +1106,9 @@ void add_BioFVM_substrates_to_open_xml_pugi( pugi::xml_document& xml_dom , std::
 			
 			char* buffer; 
 			buffer = new char [data_size]; 
-			for( unsigned int k=0 ; j < M.mesh.z_coordinates.size() ; k++ ) {
+			for( unsigned int k=0 ; k < M.mesh.z_coordinates.size() ; k++ ) {
 				for( unsigned int j=0 ; j < M.mesh.y_coordinates.size() ; j++ ) {
-					for( unsigned int i=0 ; j < M.mesh.x_coordinates.size() ; i++ ) {
+					for( unsigned int i=0 ; i < M.mesh.x_coordinates.size() ; i++ ) {
 						double* aux = M.density_vector(i,j,k);
 						vector_to_list( aux, M.number_of_densities() , buffer , ' ' ); 
 						node = node.append_child( "data_vector"); 
@@ -1203,9 +1203,9 @@ void add_BioFVM_substrates_to_open_xml_pugi( pugi::xml_document& xml_dom , std::
 		buffer = new char [data_size]; 
 		node = node.child( "data_vector" );
 
-		for( unsigned int k=0 ; j < M.mesh.z_coordinates.size() ; k++ ) {
+		for( unsigned int k=0 ; k < M.mesh.z_coordinates.size() ; k++ ) {
 			for( unsigned int j=0 ; j < M.mesh.y_coordinates.size() ; j++ ) {
-				for( unsigned int i=0 ; j < M.mesh.x_coordinates.size() ; i++ ) {
+				for( unsigned int i=0 ; i < M.mesh.x_coordinates.size() ; i++ ) {
 					double* aux = M.density_vector(i,j,k);
 					vector_to_list( aux, M.number_of_densities() , buffer , ' ' ); 
 					node = node.first_child(); 

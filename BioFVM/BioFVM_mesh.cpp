@@ -50,6 +50,7 @@
 #include "BioFVM_mesh.h" 
 #include "../DistPhy/DistPhy_Environment.h"
 #include "../DistPhy/DistPhy_Cartesian.h"
+#include <algorithm>
 
 using namespace DistPhy::mpi; 
 
@@ -361,7 +362,7 @@ void General_Mesh::connect_voxels_global_indices_only(int i,int j, double SA) //
 	
 	if (std::find(connected_voxel_global_indices[i].begin(), connected_voxel_global_indices[i].end(), j) == connected_voxel_global_indices[i].end())
     {
-        connected_voxel_indices[i].push_back(j);
+        connected_voxel_global_indices[i].push_back(j);
     }
 
     // Check if voxel i is already in the list of connected voxels for voxel j
@@ -752,7 +753,7 @@ Cartesian_Mesh::Cartesian_Mesh( int xnodes, int ynodes, int znodes )
 	
 	connected_voxel_indices.resize( voxels.size() ); 
 	
-	int i_jump = y_coordinates.size()*z_coordinate.size(); 
+	int i_jump = y_coordinates.size()*z_coordinates.size(); 
 	int j_jump = z_coordinates.size(); 
 	int k_jump = 1; 
 		

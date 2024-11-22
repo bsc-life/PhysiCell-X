@@ -715,11 +715,16 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D( Microenvironment& M, 
         
         return;
 }*/
-
-void diffusion_decay_solver__constant_coefficients_LOD_3D(Microenvironment &M, double dt, int size, int rank, int *coords, int *dims, MPI_Comm mpi_Cart_comm)
+void diffusion_decay_solver__constant_coefficients_LOD_3D( Microenvironment& M, double dt ) {
+    std::cout << "Diffusion decay solver constant coefficients LOD 3D single node desactivated!" << std::endl;
+    return;
+}
+void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironment &M, double dt, mpi_Environment &world, mpi_Cartesian &cart_topo)
     {
         
         //std::ofstream file(M.timing_csv, std::ios::app);
+        int size = world.size;
+        int rank = world.rank;
         uint granurality = 1;
         if (M.granurality >= 1)
             granurality = M.granurality;
@@ -885,7 +890,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D(Microenvironment &M, d
                     if (rank < (size - 1))
                     {
                         MPI_Request send_req;
-                        MPI_Isend(&(M.thomas_cx[M.mesh.x_coordinates.size() - 1][0]), M.thomas_cx[M.mesh.x_coordinates.size() - 1].size(), MPI_DOUBLE, ser_ctr + 1, 1111, mpi_Cart_comm, &send_req);
+                        MPI_Isend(&(M.thomas_cx[M.mesh.x_coordinates.size() - 1][0]), M.thomas_cx[M.mesh.x_coordinates.size() - 1].size(), MPI_DOUBLE, ser_ctr + 1, 1111, cart_topo.mpi_cart_comm, &send_req);
                     }
                 }
 
@@ -894,14 +899,14 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D(Microenvironment &M, d
 
                     std::vector<double> temp_cx(M.thomas_cx[0].size());
                     MPI_Request recv_req;
-                    MPI_Irecv(&temp_cx[0], temp_cx.size(), MPI_DOUBLE, ser_ctr, 1111, mpi_Cart_comm, &recv_req);
+                    MPI_Irecv(&temp_cx[0], temp_cx.size(), MPI_DOUBLE, ser_ctr, 1111, cart_topo.mpi_cart_comm, &recv_req);
                     MPI_Wait(&recv_req, MPI_STATUS_IGNORE);
 
                     axpy(&M.thomas_denomx[0], M.thomas_constant1, temp_cx); // CHECK IF &temp_cz[0] is OK, axpy() in BioFVM_vector.cpp
                     M.thomas_cx[0] /= M.thomas_denomx[0];                   // the value at  size-1 is not actually used
                 }
 
-                MPI_Barrier(mpi_Cart_comm);
+                MPI_Barrier(cart_topo.mpi_cart_comm);
             }
 
             /*--------------------------------------------------------------------*/
@@ -997,7 +1002,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D(Microenvironment &M, d
                     int x_end = M.mesh.x_size - 1;
                     int offset = step * M.snd_data_size;
                     MPI_Status status;
-                    MPI_Isend(&((*M.p_density_vectors)[x_end * M.thomas_i_jump + offset]), M.snd_data_size, MPI_DOUBLE, rank + 1, step, mpi_Cart_comm, &send_req[step]);
+                    MPI_Isend(&((*M.p_density_vectors)[x_end * M.thomas_i_jump + offset]), M.snd_data_size, MPI_DOUBLE, rank + 1, step, cart_topo.mpi_cart_comm, &send_req[step]);
                 }
             }
             //Last iteration
@@ -1033,7 +1038,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D(Microenvironment &M, d
                     int x_end = M.mesh.x_size - 1;
                     int offset = granurality * M.snd_data_size;
                     MPI_Status status;
-                    MPI_Isend(&((*M.p_density_vectors)[x_end * M.thomas_i_jump + offset]), M.snd_data_size_last, MPI_DOUBLE, rank + 1, granurality, mpi_Cart_comm, &send_req[granurality]);
+                    MPI_Isend(&((*M.p_density_vectors)[x_end * M.thomas_i_jump + offset]), M.snd_data_size_last, MPI_DOUBLE, rank + 1, granurality, cart_topo.mpi_cart_comm, &send_req[granurality]);
                     
                 }
             }
@@ -1045,10 +1050,10 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D(Microenvironment &M, d
                 for (int step = 0; step < granurality; ++step)
                 {
                     int initial_index = step * M.snd_data_size;
-                    MPI_Irecv(&(block3d[initial_index]), M.rcv_data_size, MPI_DOUBLE, rank-1, step, mpi_Cart_comm, &(recv_req[step]));
+                    MPI_Irecv(&(block3d[initial_index]), M.rcv_data_size, MPI_DOUBLE, rank-1, step, cart_topo.mpi_cart_comm, &(recv_req[step]));
                 }
                 if (M.last_iteration)
-                    MPI_Irecv(&(block3d[granurality*M.snd_data_size]), M.rcv_data_size_last, MPI_DOUBLE, rank-1, granurality, mpi_Cart_comm, &(recv_req[granurality]));
+                    MPI_Irecv(&(block3d[granurality*M.snd_data_size]), M.rcv_data_size_last, MPI_DOUBLE, rank-1, granurality, cart_topo.mpi_cart_comm, &(recv_req[granurality]));
                 for (int step = 0; step < granurality; ++step)
                 {
                     int initial_index = step * M.snd_data_size;
@@ -1086,7 +1091,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D(Microenvironment &M, d
                     if (rank < (size - 1))
                     {
                         int x_end = M.mesh.x_size - 1;
-                        MPI_Isend(&((*M.p_density_vectors)[(x_end * M.thomas_i_jump) + initial_index]), M.snd_data_size, MPI_DOUBLE, rank + 1, step, mpi_Cart_comm, &send_req[step]);
+                        MPI_Isend(&((*M.p_density_vectors)[(x_end * M.thomas_i_jump) + initial_index]), M.snd_data_size, MPI_DOUBLE, rank + 1, step, cart_topo.mpi_cart_comm, &send_req[step]);
                     }
                 }
                 if (M.snd_data_size_last > 0)
@@ -1131,7 +1136,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D(Microenvironment &M, d
                     {
                         int x_end = M.mesh.x_size - 1;
                         MPI_Request aux;
-                        MPI_Isend(&((*M.p_density_vectors)[x_end * M.thomas_i_jump + initial_index]), M.snd_data_size_last, MPI_DOUBLE, rank + 1, granurality, mpi_Cart_comm, &send_req[granurality]);
+                        MPI_Isend(&((*M.p_density_vectors)[x_end * M.thomas_i_jump + initial_index]), M.snd_data_size_last, MPI_DOUBLE, rank + 1, granurality, cart_topo.mpi_cart_comm, &send_req[granurality]);
                       
                     }
                 }
@@ -1163,7 +1168,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D(Microenvironment &M, d
                 }
                 if (size > 1) {
                     MPI_Request aux;
-                    MPI_Isend(&((*M.p_density_vectors)[step * M.snd_data_size]), M.snd_data_size, MPI_DOUBLE, rank - 1, step, mpi_Cart_comm, &send_req[step]);
+                    MPI_Isend(&((*M.p_density_vectors)[step * M.snd_data_size]), M.snd_data_size, MPI_DOUBLE, rank - 1, step, cart_topo.mpi_cart_comm, &send_req[step]);
                 }
             }
 
@@ -1188,7 +1193,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D(Microenvironment &M, d
                 }
                 if (size > 1) {
                     MPI_Request aux;
-                    MPI_Isend(&((*M.p_density_vectors)[granurality * M.snd_data_size]), M.snd_data_size_last, MPI_DOUBLE, rank - 1, granurality, mpi_Cart_comm, &send_req[granurality]);
+                    MPI_Isend(&((*M.p_density_vectors)[granurality * M.snd_data_size]), M.snd_data_size_last, MPI_DOUBLE, rank - 1, granurality, cart_topo.mpi_cart_comm, &send_req[granurality]);
                 }
             
             }
@@ -1196,9 +1201,9 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D(Microenvironment &M, d
         else
         {
             for (int step = 0; step < granurality; ++step) {
-                MPI_Irecv(&(block3d[step*M.snd_data_size]), M.rcv_data_size, MPI_DOUBLE, rank+1, step, mpi_Cart_comm, &recv_req[step]);}
+                MPI_Irecv(&(block3d[step*M.snd_data_size]), M.rcv_data_size, MPI_DOUBLE, rank+1, step, cart_topo.mpi_cart_comm, &recv_req[step]);}
             if (M.last_iteration)
-                MPI_Irecv(&(block3d[granurality*M.snd_data_size]), M.rcv_data_size_last, MPI_DOUBLE, rank+1, granurality, mpi_Cart_comm, &recv_req[granurality]);
+                MPI_Irecv(&(block3d[granurality*M.snd_data_size]), M.rcv_data_size_last, MPI_DOUBLE, rank+1, granurality, cart_topo.mpi_cart_comm, &recv_req[granurality]);
             
             for (int step = 0; step < granurality; ++step)
             {
@@ -1231,7 +1236,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D(Microenvironment &M, d
                 if (rank > 0)
                 {
                     MPI_Request aux;
-                    MPI_Isend(&((*M.p_density_vectors)[step * M.snd_data_size]), M.snd_data_size, MPI_DOUBLE, rank - 1, step, mpi_Cart_comm, &send_req[step]);
+                    MPI_Isend(&((*M.p_density_vectors)[step * M.snd_data_size]), M.snd_data_size, MPI_DOUBLE, rank - 1, step, cart_topo.mpi_cart_comm, &send_req[step]);
                 }
             }
             if (M.snd_data_size_last > 0)
@@ -1263,11 +1268,11 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D(Microenvironment &M, d
                 if (rank > 0)
                 {
                     MPI_Request aux;
-                    MPI_Isend(&((*M.p_density_vectors)[granurality * M.snd_data_size]), M.snd_data_size_last, MPI_DOUBLE, rank - 1, granurality, mpi_Cart_comm, &send_req[granurality]);
+                    MPI_Isend(&((*M.p_density_vectors)[granurality * M.snd_data_size]), M.snd_data_size_last, MPI_DOUBLE, rank - 1, granurality, cart_topo.mpi_cart_comm, &send_req[granurality]);
                 }
             }
         }
-        MPI_Barrier(mpi_Cart_comm);
+        MPI_Barrier(cart_topo.mpi_cart_comm);
 
         M.apply_dirichlet_boundaries_conditions(rank, size);
 
@@ -1383,7 +1388,9 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D(Microenvironment &M, d
         return (a * b) / gcd(a, b);
     }
 
-    void diffusion_decay_solver__constant_coefficients_LOD_3D_AVX256D(Microenvironment &M, double dt, int size, int rank, int *coords, int *dims, MPI_Comm mpi_Cart_comm){
+    void diffusion_decay_solver__constant_coefficients_LOD_3D_AVX256D(Microenvironment &M, double dt, mpi_Environment &world, mpi_Cartesian &cart_topo){
+        int size = world.size;
+        int rank = world.rank;
         uint granurality = 1;
         if (M.granurality >= 1)
             granurality = M.granurality;
@@ -1407,8 +1414,8 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D(Microenvironment &M, d
             M.thomas_k_jump = M.mesh.n_substrates;
 
 
-            vector<double> zero(M.mesh.n_substrates, 0.0);
-            vector<double> one(M.mesh.n_substrates, 1.0);
+            std::vector<double> zero(M.mesh.n_substrates, 0.0);
+            std::vector<double> one(M.mesh.n_substrates, 1.0);
             double dt = 0.01;
 
             int step_size = (M.mesh.z_size * M.mesh.y_size) / granurality;
@@ -1535,7 +1542,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D(Microenvironment &M, d
 
                     if (rank < (size - 1))
                     {
-                        MPI_Isend(&(M.thomas_cx[M.mesh.x_size - 1][0]), M.thomas_cx[M.mesh.x_size - 1].size(), MPI_DOUBLE, ser_ctr + 1, 1111, mpi_Cart_comm, &send_req[0]);
+                        MPI_Isend(&(M.thomas_cx[M.mesh.x_size - 1][0]), M.thomas_cx[M.mesh.x_size - 1].size(), MPI_DOUBLE, ser_ctr + 1, 1111, cart_topo.mpi_cart_comm, &send_req[0]);
                     }
                 }
 
@@ -1544,14 +1551,14 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D(Microenvironment &M, d
 
                     std::vector<double> temp_cx(M.thomas_cx[0].size());
 
-                    MPI_Irecv(&temp_cx[0], temp_cx.size(), MPI_DOUBLE, ser_ctr, 1111, mpi_Cart_comm, &recv_req[0]);
+                    MPI_Irecv(&temp_cx[0], temp_cx.size(), MPI_DOUBLE, ser_ctr, 1111, cart_topo.mpi_cart_comm, &recv_req[0]);
                     MPI_Wait(&recv_req[0], MPI_STATUS_IGNORE);
 
                     axpy(&M.thomas_denomx[0], M.thomas_constant1, temp_cx); // CHECK IF &temp_cz[0] is OK, axpy() in BioFVM_vector.cpp
                     M.thomas_cx[0] /= M.thomas_denomx[0];                   // the value at  size-1 is not actually used
                 }
 
-                MPI_Barrier(mpi_Cart_comm);
+                MPI_Barrier(cart_topo.mpi_cart_comm);
             }
 
             /*--------------------------------------------------------------------*/
@@ -2598,7 +2605,8 @@ void diffusion_decay_solver__constant_coefficients_LOD_1D( Microenvironment& M, 
 		for( int i = M.mesh.x_coordinates.size()-2 ; i >= 0 ; i-- )
 		{
 			//naxpy( &(*M.p_density_vectors)[n] , M.thomas_cx[i] , (*M.p_density_vectors)[n+M.thomas_i_jump] ); 
-            (*M.p_density_vectors)[n+d] -= M.thomas_cx[i][d] * (*M.p_density_vectors)[n+M.thomas_i_jump+d];
+            for (int d = 0; d < M.n_subs; ++d)
+                (*M.p_density_vectors)[n+d] -= M.thomas_cx[i][d] * (*M.p_density_vectors)[n+M.thomas_i_jump+d];
 			n -= M.thomas_i_jump; 
 		}
 	}

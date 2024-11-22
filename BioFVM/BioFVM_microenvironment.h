@@ -129,10 +129,11 @@ class Microenvironment
 	int snd_data_size, snd_data_size_last; //Size of the block message
 	int rcv_data_size, rcv_data_size_last;
 	//Tridiagonal variables for vectorization
-	vector<double> gthomas_constant1, gthomas_constant1a, gthomas_constant2, gthomas_constant3, gthomas_constant3a;
-	vector<vector<double>> gthomas_denomx,gthomas_denomy, gthomas_denomz;
-	vector<vector<double>> gthomas_cx, gthomas_cy, gthomas_cz;
+	std::vector<double> gthomas_constant1, gthomas_constant1a, gthomas_constant2, gthomas_constant3, gthomas_constant3a;
+	std::vector<std::vector<double>> gthomas_denomx,gthomas_denomy, gthomas_denomz;
+	std::vector<std::vector<double>> gthomas_cx, gthomas_cy, gthomas_cz;
 	int gvec_size; 
+	bool last_iteration;
 	
 	
 	/*
@@ -162,7 +163,7 @@ class Microenvironment
 	//Diffusion-decay 3D solver blocking parameter
 	int granurality;
 
-	std::vector<double>& p_density_vectors = temporary_density_vectors1; // Jose
+	std::vector<double> *p_density_vectors = &temporary_density_vectors1; // Jose
 	
 	/*! The mesh for the diffusing quantities */ 
 	Cartesian_Mesh mesh;
@@ -199,8 +200,9 @@ class Microenvironment
 /* Make sure this points to the parallel version of 3D Thomas solver EVERYWHERE.												*/	
 /*======================================================================================================*/
 
- void (*diffusion_decay_solver_mpi)(Microenvironment&, double, mpi_Environment&, mpi_Cartesian&); 	
-
+    void (*diffusion_decay_solver_mpi)(Microenvironment&, double, mpi_Environment&, mpi_Cartesian&);
+	//void (*diffusion_decay_solver_mpi)(Microenvironment &, double , int , int , int *, int *, MPI_Comm);	
+			
 	 
 	void (*bulk_supply_rate_function)( Microenvironment* pMicroenvironment, int voxel_index, double* write_destination );
 	void (*bulk_supply_target_densities_function)( Microenvironment* pMicroenvironment, int voxel_index, double* write_destination );
@@ -339,7 +341,9 @@ class Microenvironment
 	/* Parallel friend function for above:
 	/*=================================================================================================*/
 	
-	friend void diffusion_decay_solver__constant_coefficients_LOD_3D( Microenvironment& S, double dt, mpi_Environment &, mpi_Cartesian & );	
+	friend void diffusion_decay_solver__constant_coefficients_LOD_3D( Microenvironment &M, double dt, mpi_Environment &world, mpi_Cartesian &cart_topo);	
+	friend void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironment &M, double dt, mpi_Environment &world, mpi_Cartesian &cart_topo);
+	friend void diffusion_decay_solver__constant_coefficients_LOD_3D_AVX256D(Microenvironment &M, double dt, mpi_Environment &world, mpi_Cartesian &cart_topo);
 	 
 	friend void diffusion_decay_solver__constant_coefficients_LOD_2D( Microenvironment& S, double dt ); 
 	friend void diffusion_decay_solver__constant_coefficients_LOD_1D( Microenvironment& S, double dt ); 
@@ -368,6 +372,10 @@ extern void diffusion_decay_solver__constant_coefficients_explicit_uniform_mesh(
 
 extern void diffusion_decay_solver__variable_coefficients_explicit( Microenvironment& S, double dt ); 
 extern void diffusion_decay_solver__variable_coefficients_explicit_uniform_mesh( Microenvironment& S, double dt ); 
+
+
+extern void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironment &M, double dt, int size, int rank, int *coords, int *dims, MPI_Comm mpi_Cart_comm);
+extern void diffusion_decay_solver__constant_coefficients_LOD_3D_AVX256D(Microenvironment &M, double dt, int size, int rank, int *coords, int *dims, MPI_Comm mpi_Cart_comm);
 
 
 extern void diffusion_decay_solver__constant_coefficients_LOD_3D( Microenvironment& S, double dt ); 

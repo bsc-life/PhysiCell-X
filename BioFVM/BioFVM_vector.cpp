@@ -362,6 +362,26 @@ void csv_to_vector( const char* buffer , std::vector<double>& vect )
 	return; 
 }
 
+void csv_to_vector( const char* buffer , double* vect )
+{
+	int index = 0; 
+	unsigned int i=0;
+	while( i < strlen( buffer )  )
+	{
+		// churn through delimiters, whitespace, etc. to reach the next numeric term
+		while( isdigit( buffer[i] ) == false && buffer[i] != '.' && buffer[i] != '-' && buffer[i] != 'e' && buffer[i] != 'E' )
+		{ i++; } 
+		char* pEnd; 
+		if( i < strlen(buffer) ) // add this extra check in case of a final character, e.g., ']'
+		{
+			vect[index] = ( strtod( buffer+i , &pEnd ) ); 
+			i = pEnd - buffer; 
+			++index;
+		}
+	}			
+	return; 
+}
+
 char* vector_to_csv( const std::vector<double>& vect )
 { 
 	static int datum_size = 16;  // format = %.7e, 1 (sign) + 1 (lead) + 1 (decimal) + 7 (figs) + 2 (e, sign) + 3 (exponent) + 1 (delimiter) = 16
@@ -476,7 +496,7 @@ void vector_to_list( const std::vector<double>& vect , char*& buffer , char deli
 }
 
 //Jose
-void vector_to_list( const std::vector<double>& vect , int size ,char*& buffer , char delim )
+void vector_to_list( double *vect , int size ,char*& buffer , char delim )
 { 
 	// %.7e is approximately the same at matlab longe for single precision. 
 	// If you want better precision, use a binary data format like matlab, or (in the future) HDF 
