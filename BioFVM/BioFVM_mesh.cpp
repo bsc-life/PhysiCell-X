@@ -50,6 +50,7 @@
 #include "BioFVM_mesh.h" 
 #include "../DistPhy/DistPhy_Environment.h"
 #include "../DistPhy/DistPhy_Cartesian.h"
+#include <algorithm>
 
 using namespace DistPhy::mpi; 
 
@@ -65,7 +66,7 @@ const int mesh_max_z_index=5;
 Voxel::Voxel()
 {
 	mesh_index = 0; 
-	volume = 10*10*10;
+	volume = 10*10*10; 
 	center.assign( 3 , 0.0 ); 
 	is_Dirichlet = false;
 }
@@ -305,9 +306,10 @@ void General_Mesh::correct_position_within_subdomain(std::vector<double> &pos, m
 }
 
 
-void General_Mesh::connect_voxels_faces_only(int i,int j, double SA) // done 
+void General_Mesh::connect_voxels_faces_only(int i,int j, double SA)
 {
-	// check to see if the voxels are connected -- implement later!
+	// check to see if the voxels are connected -- implement later! 
+	// Jose: to do this, (i,j) ids required within Voxel_Face class
 
 	// create a new Voxel_Face connecting i to j
 
@@ -331,15 +333,22 @@ void General_Mesh::connect_voxels_faces_only(int i,int j, double SA) // done
 	return; 
 }
 
-void General_Mesh::connect_voxels_indices_only(int i,int j, double SA) // done
+void General_Mesh::connect_voxels_indices_only(int i,int j, double SA)
 {
-	// check to see if the voxels are connected -- implement later!
-	
 	// add j to the list of connected voxels for voxel i 
 	
-	connected_voxel_indices[i].push_back( j ); 
-	connected_voxel_indices[j].push_back( i ); 
+	//connected_voxel_indices[i].push_back( j ); 
+	//connected_voxel_indices[j].push_back( i ); 
+	if (std::find(connected_voxel_indices[i].begin(), connected_voxel_indices[i].end(), j) == connected_voxel_indices[i].end())
+    {
+        connected_voxel_indices[i].push_back(j);
+    }
 
+    // Check if voxel i is already in the list of connected voxels for voxel j
+    if (std::find(connected_voxel_indices[j].begin(), connected_voxel_indices[j].end(), i) == connected_voxel_indices[j].end())
+    {
+        connected_voxel_indices[j].push_back(i);
+    }
 	return;
 }
 
@@ -351,16 +360,24 @@ void General_Mesh::connect_voxels_indices_only(int i,int j, double SA) // done
 void General_Mesh::connect_voxels_global_indices_only(int i,int j, double SA) // done 
 {
 	
-	
-	connected_voxel_global_indices[i].push_back( voxels[j].global_mesh_index); 
-	connected_voxel_global_indices[j].push_back( voxels[i].global_mesh_index); 
+	if (std::find(connected_voxel_global_indices[i].begin(), connected_voxel_global_indices[i].end(), j) == connected_voxel_global_indices[i].end())
+    {
+        connected_voxel_global_indices[i].push_back(j);
+    }
 
+    // Check if voxel i is already in the list of connected voxels for voxel j
+    if (std::find(connected_voxel_global_indices[j].begin(), connected_voxel_global_indices[j].end(), i) == connected_voxel_global_indices[j].end())
+    {
+        connected_voxel_global_indices[j].push_back(i);
+    }
 	return;
 }
 
 void General_Mesh::connect_voxels(int i,int j, double SA)
 {
 	// check to see if the voxels are connected -- implement later!
+	// Jose: to do this, (i,j) ids required within Voxel_Face class
+
 
 	// create a new Voxel_Face connecting i to j
 
@@ -444,7 +461,7 @@ void General_Mesh::write_to_matlab( std::string filename, mpi_Environment &world
     /*----------------------------------------------------------------------------------------*/
 
     int number_of_data_entries = voxels.size();
-		int size_of_each_datum = 3 + 1 ;		//density values are NOT to be taken into account here (see function above) 
+	int size_of_each_datum = 3 + 1 ;		//density values are NOT to be taken into account here (see function above) 
 
     //Possibly we do not need to return anything over here, we can write a separate file at Master
     //All processes call this function - because William Groppe says MPI_File_open is collective operation
@@ -619,15 +636,16 @@ Cartesian_Mesh::Cartesian_Mesh()
 	voxels[0].center[2] = z_coordinates[0]; 
 }
 
+
 void Cartesian_Mesh::create_voxel_faces( void )
 {
 	// make connections 
 	
 	connected_voxel_indices.resize( voxels.size() ); 
 	
-	int i_jump = 1; 
-	int j_jump = x_coordinates.size(); 
-	int k_jump = x_coordinates.size() * y_coordinates.size(); 
+	int i_jump = y_coordinates.size() * z_coordinates.size(); 
+	int j_jump = y_coordinates.size(); 
+	int k_jump = 1; 
 		
 	// x-aligned connections 
 	for( unsigned int k=0 ; k < z_coordinates.size() ; k++ )
@@ -714,11 +732,11 @@ Cartesian_Mesh::Cartesian_Mesh( int xnodes, int ynodes, int znodes )
 	// initializing and connecting voxels 
  
 	int n=0; 
-	for( unsigned int k=0 ; k < z_coordinates.size() ; k++ )
+	for( unsigned int i=0 ; i < x_coordinates.size() ; i++ )
 	{
 		for( unsigned int j=0 ; j < y_coordinates.size() ; j++ )
 		{
-			for( unsigned int i=0 ; i < x_coordinates.size() ; i++ )
+			for( unsigned int k=0 ; k < z_coordinates.size() ; k++ )
 			{
 				voxels[n].center[0] = x_coordinates[i]; 
 				voxels[n].center[1] = y_coordinates[j]; 
@@ -735,9 +753,9 @@ Cartesian_Mesh::Cartesian_Mesh( int xnodes, int ynodes, int znodes )
 	
 	connected_voxel_indices.resize( voxels.size() ); 
 	
-	int i_jump = 1; 
-	int j_jump = x_coordinates.size(); 
-	int k_jump = x_coordinates.size() * y_coordinates.size(); 
+	int i_jump = y_coordinates.size()*z_coordinates.size(); 
+	int j_jump = z_coordinates.size(); 
+	int k_jump = 1; 
 		
 	// x-aligned connections 
 	for( unsigned int k=0 ; k < z_coordinates.size() ; k++ )
@@ -782,25 +800,42 @@ Cartesian_Mesh::Cartesian_Mesh( int xnodes, int ynodes, int znodes )
 
 void Cartesian_Mesh::create_moore_neighborhood()
 {
-	moore_connected_voxel_indices.resize( voxels.size() );
-	for( unsigned int j=0 ; j < y_coordinates.size() ; j++ )
+	//BioFVM-B optimized generation of creating moore neighbours
+	//Loops can be parallelized and collapsed but it has shown downgrades in performance
+	moore_connected_voxel_indices.resize(voxels.size());
+	for (int i = 0; i < x_coordinates.size(); i++)
 	{
-		for( unsigned int i=0 ; i < x_coordinates.size() ; i++ )
+		for (int j = 0; j < y_coordinates.size(); j++)
 		{
-			for( unsigned int k=0 ; k < z_coordinates.size() ; k++ )
+			for (int k = 0; k < z_coordinates.size(); k++)
 			{
-				int center_inex = voxel_index(i,j,k); 
-				for(int ii=-1;ii<=1;ii++)
-					for(int jj=-1;jj<=1;jj++)
-						for(int kk=-1;kk<=1;kk++)
-							if(i+ii>=0 && i+ii<x_coordinates.size() &&
-								j+jj>=0 && j+jj<y_coordinates.size() &&
-								k+kk>=0 && k+kk<z_coordinates.size() &&
-								!(ii==0 && jj==0 && kk==0))
-								{
-									int neighbor_index= voxel_index(i+ii,j+jj,k+kk);
-									moore_connected_voxel_indices[center_inex].push_back( neighbor_index );
-								}
+				int center_inex = voxel_index(i, j, k);
+
+				int size = 0;
+				for (int ii = -1; ii <= 1; ii++)
+					for (int jj = -1; jj <= 1; jj++)
+						for (int kk = -1; kk <= 1; kk++)
+							if (i + ii >= 0 && i + ii < x_coordinates.size() &&
+								j + jj >= 0 && j + jj < y_coordinates.size() &&
+								k + kk >= 0 && k + kk < z_coordinates.size() &&
+								!(ii == 0 && jj == 0 && kk == 0))
+							{
+								++size;
+							}
+				moore_connected_voxel_indices[center_inex].resize(size, 0);
+				int neighbor = 0;
+				for (int ii = -1; ii <= 1; ii++)
+					for (int jj = -1; jj <= 1; jj++)
+						for (int kk = -1; kk <= 1; kk++)
+							if (i + ii >= 0 && i + ii < x_coordinates.size() &&
+								j + jj >= 0 && j + jj < y_coordinates.size() &&
+								k + kk >= 0 && k + kk < z_coordinates.size() &&
+								!(ii == 0 && jj == 0 && kk == 0))
+							{
+								int neighbor_index = voxel_index(i + ii, j + jj, k + kk);
+								moore_connected_voxel_indices[center_inex][neighbor] = neighbor_index;
+								++neighbor;
+							}
 			}
 		}
 	}
@@ -860,9 +895,11 @@ void Cartesian_Mesh::create_moore_neighborhood(mpi_Environment &world, mpi_Carte
 	
 	int x_nodes = (bounding_box[3]-bounding_box[0])/dx;
 	int y_nodes = (bounding_box[4]-bounding_box[1])/dy;
+	int z_nodes = (bounding_box[5]-bounding_box[2])/dz;
 	
-	int global_z_jump = x_nodes * y_nodes;
-	int global_y_jump = x_nodes; 
+	int global_z_jump = 1;
+	int global_y_jump = z_nodes; 
+	int global_x_jump = z_nodes * y_nodes;
 	
 	/* Now build the moore list of global voxel indices for the left sub-domain boundary voxels */
 	
@@ -871,9 +908,9 @@ void Cartesian_Mesh::create_moore_neighborhood(mpi_Environment &world, mpi_Carte
 		
 		int vxl_indx_ctr = 0;
 		
-		for(int k=0; k<z_coordinates.size(); k++)
+		for(int j=0; j<y_coordinates.size(); j++)
 		{
-			for(int j=0; j<y_coordinates.size(); j++)
+			for(int k=0; k<z_coordinates.size(); k++)
 			{
 				int center_inex_local  = voxel_index(0, j, k); 
 				int center_inex_global = voxels[center_inex_local].global_mesh_index;
@@ -883,17 +920,17 @@ void Cartesian_Mesh::create_moore_neighborhood(mpi_Environment &world, mpi_Carte
 				
 				if(j > 0 && j < y_coordinates.size()-1 && k > 0 && k < z_coordinates.size()-1)
 				{
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1); 								 // LEFT-1
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump); 								 // LEFT-1
 				
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_y_jump); // LEFT-1,UP+1
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_y_jump); // LEFT-1,DOWN-1
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_z_jump); // LEFT-1,IN+1	
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_z_jump); // LEFT-1,OUT-1
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_y_jump); // LEFT-1,UP+1
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_y_jump); // LEFT-1,DOWN-1
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_z_jump); // LEFT-1,IN+1	
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_z_jump); // LEFT-1,OUT-1
 				
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_y_jump + global_z_jump); //LEFT-1,UP+1,IN+1
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_y_jump - global_z_jump); //LEFT-1,UP+1,OUT-1
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_y_jump + global_z_jump); //LEFT-1,DOWN-1,IN+1
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_y_jump - global_z_jump); //LEFT-1,DOWN-1,OUT-1
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_y_jump + global_z_jump); //LEFT-1,UP+1,IN+1
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_y_jump - global_z_jump); //LEFT-1,UP+1,OUT-1
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_y_jump + global_z_jump); //LEFT-1,DOWN-1,IN+1
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_y_jump - global_z_jump); //LEFT-1,DOWN-1,OUT-1
 				}
 				
 				/* Now tackle 4 extreme corner voxels : SW, SE, NW, NE */
@@ -901,34 +938,34 @@ void Cartesian_Mesh::create_moore_neighborhood(mpi_Environment &world, mpi_Carte
 				
 				if(j == 0 && k == 0)
 				{
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_y_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_z_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_y_jump + global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_y_jump + global_z_jump);
 				}
 				
 				if(j == y_coordinates.size()-1 && k == 0)
 				{
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1); // LEFT-1
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_y_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_z_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_y_jump + global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump); // LEFT-1
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_y_jump + global_z_jump);
 				}
 				
 				if(j == 0 && k == z_coordinates.size()-1)
 				{
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_y_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_z_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_y_jump - global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_y_jump - global_z_jump);
 				}
 				
 				if(j == y_coordinates.size()-1 && k == z_coordinates.size()-1)
 				{
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_y_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_z_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_y_jump - global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_y_jump - global_z_jump);
 				}
 				
 				/* Now tackle 2 vertical strips and 2 horizontal strips not containing the 4 extreme corner voxels  */
@@ -937,47 +974,47 @@ void Cartesian_Mesh::create_moore_neighborhood(mpi_Environment &world, mpi_Carte
 				/* Front vertical strip */
 				if(k == 0 && j > 0 && j < y_coordinates.size()-1)
 				{
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_y_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_y_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_z_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_z_jump + global_y_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_z_jump - global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_z_jump + global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_z_jump - global_y_jump);
 				}
 				
 				/* Back Vertical strip */
 				if(k == z_coordinates.size()-1 && j > 0 && j < y_coordinates.size()-1)
 				{
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_y_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_y_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_z_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_z_jump + global_y_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_z_jump - global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_z_jump + global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_z_jump - global_y_jump);
 				}
 				
 				/* Bottom horizontal strip */
 				
 				if(j == 0 && k > 0 && k < z_coordinates.size()-1)
 				{
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_z_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_z_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_y_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_y_jump + global_z_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_y_jump - global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_y_jump + global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_y_jump - global_z_jump);
 				}
 				
 				/* Top horizontal strip */
 				
 				if(j == y_coordinates.size()-1 && k > 0 && k < z_coordinates.size()-1)
 				{
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_z_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_z_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_y_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_y_jump + global_z_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_y_jump - global_z_jump);						
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_y_jump + global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_y_jump - global_z_jump);						
 				}
 				
 				vxl_indx_ctr = vxl_indx_ctr + 1;
@@ -991,9 +1028,9 @@ void Cartesian_Mesh::create_moore_neighborhood(mpi_Environment &world, mpi_Carte
 	{
 		int vxl_indx_ctr = 0;
 		
-		for(int k=0; k<z_coordinates.size(); k++)
+		for(int j=0; j<y_coordinates.size(); j++)
 		{
-			for(int j=0; j<y_coordinates.size(); j++)
+			for(int k=0; k<z_coordinates.size(); k++)
 			{
 				int center_inex_local  = voxel_index(x_coordinates.size()-1, j, k); 
 				int center_inex_global = voxels[center_inex_local].global_mesh_index;
@@ -1003,17 +1040,17 @@ void Cartesian_Mesh::create_moore_neighborhood(mpi_Environment &world, mpi_Carte
 				
 				if(j > 0 && j < y_coordinates.size()-1 && k > 0 && k < z_coordinates.size()-1)
 				{
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1); 								 // RIGHT+1
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump); 								 // RIGHT+1
 				
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_y_jump); // RIGHT+1,UP+1
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_y_jump); // RIGHT+1,DOWN-1
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_z_jump); // RIGHT+1,IN+1	
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_z_jump); // RIGHT+1,OUT-1
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_y_jump); // RIGHT+1,UP+1
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_y_jump); // RIGHT+1,DOWN-1
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_z_jump); // RIGHT+1,IN+1	
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_z_jump); // RIGHT+1,OUT-1
 				
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_y_jump + global_z_jump); //RIGHT+1,UP+1,IN+1
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_y_jump - global_z_jump); //RIGHT+1,UP+1,OUT-1
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_y_jump + global_z_jump); //RIGHT+1,DOWN-1,IN+1
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_y_jump - global_z_jump); //RIGHT+1,DOWN-1,OUT-1
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_y_jump + global_z_jump); //RIGHT+1,UP+1,IN+1
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_y_jump - global_z_jump); //RIGHT+1,UP+1,OUT-1
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_y_jump + global_z_jump); //RIGHT+1,DOWN-1,IN+1
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_y_jump - global_z_jump); //RIGHT+1,DOWN-1,OUT-1
 				}
 				
 				/* Now tackle 4 extreme corner voxels : SW, SE, NW, NE */
@@ -1021,34 +1058,34 @@ void Cartesian_Mesh::create_moore_neighborhood(mpi_Environment &world, mpi_Carte
 				
 				if(j == 0 && k == 0)
 				{
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_y_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_z_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_y_jump + global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_y_jump + global_z_jump);
 				}
 				
 				if(j == y_coordinates.size()-1 && k == 0)
 				{
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1); 
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_y_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_z_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_y_jump + global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump); 
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_y_jump + global_z_jump);
 				}
 				
 				if(j == 0 && k == z_coordinates.size()-1)
 				{
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_y_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_z_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_y_jump - global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_y_jump - global_z_jump);
 				}
 				
 				if(j == y_coordinates.size()-1 && k == z_coordinates.size()-1)
 				{
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_y_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_z_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_y_jump - global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_y_jump - global_z_jump);
 				}
 				
 				/* Now tackle 2 vertical strips and 2 horizontal strips not containing the 4 extreme corner voxels  */
@@ -1058,107 +1095,54 @@ void Cartesian_Mesh::create_moore_neighborhood(mpi_Environment &world, mpi_Carte
 				
 				if(k == 0 && j > 0 && j < y_coordinates.size()-1)
 				{
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_y_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_y_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_z_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_z_jump + global_y_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_z_jump - global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_z_jump + global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_z_jump - global_y_jump);
 				}
 				
 				/* Back Vertical strip */
 				
 				if(k == z_coordinates.size()-1 && j > 0 && j < y_coordinates.size()-1)
 				{
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_y_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_y_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_z_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_z_jump + global_y_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_z_jump - global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_z_jump + global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_z_jump - global_y_jump);
 				}
 				
 				/* Bottom horizontal strip */
 				
 				if(j == 0 && k > 0 && k < z_coordinates.size()-1)
 				{
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_z_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_z_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_y_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_y_jump + global_z_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_y_jump - global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_y_jump + global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_y_jump - global_z_jump);
 				}
 				
 				/* Top horizontal strip */
 				
 				if(j == y_coordinates.size()-1 && k > 0 && k < z_coordinates.size()-1)
 				{
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_z_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_z_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_y_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_y_jump + global_z_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_y_jump - global_z_jump);						
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_y_jump + global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_y_jump - global_z_jump);						
 				}
 				
 				vxl_indx_ctr = vxl_indx_ctr + 1;
 			}
 		}	
 	}
-	
-// 	for(int rank_ctr=0; rank_ctr < world.size; rank_ctr++)
-// 	{
-// 		if(world.rank == rank_ctr)
-// 		{
-// 			if(world.rank > 0)
-// 			{
-// 				int ctr = 0;
-// 				for(int k=0; k<z_coordinates.size();k++)
-// 				{
-// 					for(int j=0; j<y_coordinates.size();j++)
-// 					{
-// 						int vxl_inex = voxel_index(0,j,k);
-// 						int glbl_vxl_inex = voxels[vxl_inex].global_mesh_index; 
-// 						std::cout<<"Global Mesh Index="<<glbl_vxl_inex<<std::endl; 
-// 						for(int vec_len=0; vec_len < moore_connected_voxel_global_indices_left[ctr].size(); vec_len++)
-// 							std::cout<<"\t-->"<<moore_connected_voxel_global_indices_left[ctr][vec_len];
-// 						ctr = ctr + 1; 
-// 						std::cout<<std::endl;
-// 					}	
-// 				}
-// 			}
-// 		}
-// 		MPI_Barrier(cart_topo.mpi_cart_comm); 
-//   }
-// 		
-// for(int rank_ctr=0; rank_ctr < world.size; rank_ctr++)
-// 	{
-// 		if(world.rank == rank_ctr)
-// 		{
-// 			if(world.rank < world.size-1)
-// 			{
-// 				int ctr = 0;
-// 				for(int k=0; k<z_coordinates.size();k++)
-// 				{
-// 					for(int j=0; j<y_coordinates.size();j++)
-// 					{
-// 						int vxl_inex = voxel_index(x_coordinates.size()-1,j,k);
-// 						int glbl_vxl_inex = voxels[vxl_inex].global_mesh_index; 
-// 						std::cout<<"Global Mesh Index="<<glbl_vxl_inex<<std::endl; 
-// 						for(int vec_len=0; vec_len < moore_connected_voxel_global_indices_right[ctr].size(); vec_len++)
-// 							std::cout<<"\t-->"<<moore_connected_voxel_global_indices_right[ctr][vec_len];
-// 						ctr = ctr + 1; 
-// 						std::cout<<std::endl;
-// 					}	
-// 				}
-// 			}
-// 		}
-// 		MPI_Barrier(cart_topo.mpi_cart_comm); 
-//   }
-
-
-
 }
 
 unsigned int Cartesian_Mesh::voxel_index( unsigned int i, unsigned int j, unsigned int k )
@@ -1169,26 +1153,28 @@ unsigned int Cartesian_Mesh::voxel_index( unsigned int i, unsigned int j, unsign
  /* size of x/y/z_coordinates is same as local_x/y/z_nodes      */
  /*-------------------------------------------------------------*/
     
- return ( k * y_coordinates.size() * x_coordinates.size() + j * x_coordinates.size() + i) ; //Wrote it in a slightly more readable form ---> Gaurav Saxena
+ return ( i * y_coordinates.size() * z_coordinates.size() + j * z_coordinates.size() + k) ; //New indexation---> Jose 
 }
 
 std::vector<unsigned int> Cartesian_Mesh::cartesian_indices( unsigned int n )
 {
 	std::vector<unsigned int> out(3, -1 ); 
 
+	//Jose: new indexation
 	// figure out i; 
-	unsigned int XY = x_coordinates.size() * y_coordinates.size();
-	out[2] = (unsigned int) floor( n/XY ); 
+	unsigned int YZ = y_coordinates.size() * z_coordinates.size();
+	out[0] = (unsigned int) floor( n/YZ ); 
  
 	// figure out j; 
-	out[1] = (unsigned int) floor(   (n - out[2]*XY) / x_coordinates.size() );
+	out[1] = (unsigned int) floor(   (n - out[0]*YZ) / z_coordinates.size() );
  
 	// figure out k; 
-	out[0] = n - x_coordinates.size()*(   out[1] + y_coordinates.size()*out[2] ); 
+	out[2] = n - z_coordinates.size()*(   out[1] + y_coordinates.size()*out[0] ); 
 
 	return out; 
 }
 
+//Resize in single node execution
 void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , int x_nodes, int y_nodes, int z_nodes )
 {
 	x_coordinates.assign( x_nodes , 0.0 ); 
@@ -1242,12 +1228,12 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
 
 	voxels.assign( x_coordinates.size() * y_coordinates.size() * z_coordinates.size() , template_voxel ); 
 
-	int n=0; 
-	for( unsigned int k=0 ; k < z_coordinates.size() ; k++ )
+	int n=0;
+	for( unsigned int i=0 ; i < x_coordinates.size() ; i++ ) 
 	{
 		for( unsigned int j=0 ; j < y_coordinates.size() ; j++ )
 		{
-			for( unsigned int i=0 ; i < x_coordinates.size() ; i++ )
+			for( unsigned int k=0 ; k < z_coordinates.size() ; k++ )
 			{
 				voxels[n].center[0] = x_coordinates[i]; 
 				voxels[n].center[1] = y_coordinates[j]; 
@@ -1267,9 +1253,9 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
 	
 	for( unsigned int i=0; i < connected_voxel_indices.size() ; i++ )
 	{ connected_voxel_indices[i].clear(); }
-	int i_jump = 1; 
-	int j_jump = x_coordinates.size(); 
-	int k_jump = x_coordinates.size() * y_coordinates.size(); 
+	int i_jump = y_coordinates.size() * z_coordinates.size(); 
+	int j_jump = z_coordinates.size(); 
+	int k_jump = 1; 
 	
 	// x-aligned connections 
 	int count = 0; 
@@ -1365,11 +1351,11 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
 	voxels.assign( x_coordinates.size() * y_coordinates.size() * z_coordinates.size() , template_voxel ); 
 	
 	int n=0; 
-	for( unsigned int k=0 ; k < z_coordinates.size() ; k++ )
+	for( unsigned int i=0 ; i < x_coordinates.size() ; i++ )
 	{
 		for( unsigned int j=0 ; j < y_coordinates.size() ; j++ )
 		{
-			for( unsigned int i=0 ; i < x_coordinates.size() ; i++ )
+			for( unsigned int k=0 ; k < z_coordinates.size() ; k++ )
 			{
 				voxels[n].center[0] = x_coordinates[i]; 
 				voxels[n].center[1] = y_coordinates[j]; 
@@ -1390,9 +1376,9 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
 	for( unsigned int i=0; i < connected_voxel_indices.size() ; i++ )
 	{ connected_voxel_indices[i].clear(); }
 	
-	int i_jump = 1; 
-	int j_jump = x_coordinates.size(); 
-	int k_jump = x_coordinates.size() * y_coordinates.size(); 
+	int i_jump = y_coordinates.size() * z_coordinates.size(); 
+	int j_jump = z_coordinates.size(); 
+	int k_jump = 1; 
 	
 	// x-aligned connections 
 	int count = 0; 
@@ -1472,8 +1458,8 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
     /*-------------------------------------------*/
     
     dx = dx_new;
-		dy = dy_new; 
-		dz = dz_new; 
+	dy = dy_new; 
+	dz = dz_new; 
 
 	double eps = 1e-16; 
     
@@ -1503,6 +1489,8 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
    /* Here I need to insert a perfect divisibility check and message */
    /*----------------------------------------------------------------*/ 
    
+   //TODO: residuals to be allocated in first ranks
+   // if (x_nodes % dims[1] > mpi_rank) ++local_x_nodes;
    if(x_nodes % dims[1] != 0)
    {
    	if(world.rank == 0)
@@ -1520,7 +1508,7 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
 	/*		Assign space to coordinate arrays according to 'local' nodes and NOT 'global' nodes */
 	/*------------------------------------------------------------------------------------------*/
     
-  x_coordinates.assign( local_x_nodes , 0.0 ); 
+    x_coordinates.assign( local_x_nodes , 0.0 ); 
 	y_coordinates.assign( local_y_nodes , 0.0 ); 
 	z_coordinates.assign( local_z_nodes , 0.0 ); 
 
@@ -1637,26 +1625,28 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
     /* The starting global index of the first voxel on each process */
     /* must be calculated to maintain global_mesh_index             */
     /*--------------------------------------------------------------*/
-    
-    local_start_of_global_index = (coords[2] * x_nodes * y_nodes * local_z_nodes) +       //Imagine 3rd plate 'beginning' point (leftmost bottom point)
-                                  (dims[0]-coords[0]-1) * x_nodes * local_y_nodes +       //Imagine going up in 3rd plate
-                                  (coords[1] * local_x_nodes) ;                           //Imagine going right in 3rd plate
-                                          
-	
-	int n=0; 
-	for( int k=0 ; k < z_coordinates.size() ; k++ )
+    //New layout BioFVM-B	
+	//TODO: local_x_nodes could be not equal through all sub-domains
+    //local_start_of_global_index = (coords[1] * z_nodes * y_nodes * local_x_nodes) +       //Imagine 3rd plate 'beginning' point (leftmost bottom point)
+    //                              (dims[0]-coords[0]-1) * z_nodes * local_y_nodes +       //Imagine going up in 3rd plate
+    //                              (coords[2] * local_z_nodes) ;                           //Imagine going right in 3rd plate
+    local_start_of_global_index =  world.rank * z_nodes * y_nodes * local_x_nodes;                                     
+	int n = 0;
+	//#pragma omp parallel for collapse(3)
+	for (int i = 0; i < x_coordinates.size(); i++)
 	{
-        z_index = k * x_nodes * y_nodes; 
-		for( int j=0 ; j < y_coordinates.size() ; j++ )
+		for (int j = 0; j < y_coordinates.size(); j++)
 		{
-            y_index = j * x_nodes; 
-			for( int i=0 ; i < x_coordinates.size() ; i++ )
+			for (int k = 0; k < z_coordinates.size(); k++)
 			{
+				int z_index = k;
+				int y_index = j * z_nodes;  
+				int x_index = i * y_nodes * z_nodes;
 				voxels[n].center[0] = x_coordinates[i]; 
 				voxels[n].center[1] = y_coordinates[j]; 
 				voxels[n].center[2] = z_coordinates[k]; 
 				voxels[n].mesh_index = n;                                                             //This now becomes the local index
-				voxels[n].global_mesh_index = local_start_of_global_index + z_index + y_index + i;    //This is now the global index of the Voxel in the global mesh.
+				voxels[n].global_mesh_index = local_start_of_global_index + z_index + y_index + x_index;    //This is now the global index of the Voxel in the global mesh.
 				voxels[n].volume = dV; 
 				n++; 
 			}
@@ -1688,13 +1678,13 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
   /* (1) Local jump and (2) Global jump.
   /*----------------------------------------------------------------------------------*/
 	
-  int i_jump = 1;                                 //Local x-jump
-	int j_jump = local_x_nodes;                     //Local y-jump
-	int k_jump = local_x_nodes * local_y_nodes;     //Local z-jump
-	
-	int i_global_jump = i_jump;                     //Global x-jump
-  int j_global_jump = x_nodes;                    //Global y-jump
-  int k_global_jump = x_nodes * y_nodes;          //Global z-jump
+	int i_jump = local_y_nodes * local_z_nodes; //Local x-jump
+	int j_jump = local_z_nodes; //Local y-jump
+	int k_jump = 1; //Local z-jump
+
+	int i_global_jump = z_nodes*y_nodes; //Global x-jump
+	int j_global_jump = z_nodes; //Global y-jump
+	int k_global_jump = k_jump; //Global z-jump
 	
 	
 	/*-------------------------------------------------------------------------------*/
@@ -1704,222 +1694,92 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
   /* exist, if the process touches the boundary                                    */
   /*-------------------------------------------------------------------------------*/
 	
-  /*------------------------------------*/
-	/* x-aligned connections inner region */
-  /*------------------------------------*/
-    
-	for( int k=0 ; k < z_coordinates.size() ; k++ )
-	{
-		for( int j=0 ; j < y_coordinates.size() ; j++ )
-		{
-			for( int i=1 ; i < x_coordinates.size()-1 ; i++ )
-			{
-				int n = voxel_index(i,j,k);                             //Returns local index of voxel  
-				connect_voxels_indices_only(n,n+i_jump, dS_yz );        //Guranteed that adjacent local index will be present
-                connect_voxels_global_indices_only(n,n+i_jump,dS_yz);   //Guranteed that global adjacent index will be present (added by Gaurav Saxena)
+	int x_size = x_coordinates.size();
+	int y_size = y_coordinates.size();
+	int z_size = z_coordinates.size();
+
+	//Optimized generation of if connected voxels with 1 dimensional displacement
+	for (int i = 0; i < x_size; ++i) {
+		for (int j = 0; j < y_size; ++j){
+			for (int k = 0; k < z_size; ++k) {
+				int n = voxel_index(i, j, k);
+				//X-neigbours
+				if ( i > 0 and i < x_size - 1){
+					connected_voxel_indices[n].push_back(n + i_jump);
+					connected_voxel_indices[n].push_back(n - i_jump);
+					connected_voxel_global_indices[n].push_back(voxels[n + i_jump].global_mesh_index);
+					connected_voxel_global_indices[n].push_back(voxels[n - i_jump].global_mesh_index);
+				}
+				//Left boundary of each process
+				if (i == 0) {
+					if (voxels[n].center[0] - dx / 2 > x_start){
+						// First connect this to right neighbour then right neighbour to this.
+						connected_voxel_indices[n].push_back(n + i_jump);
+						connected_voxel_global_indices[n].push_back(voxels[n + i_jump].global_mesh_index);
+						connected_voxel_global_indices[n].push_back(voxels[n].global_mesh_index - i_global_jump);}
+					else {
+						connected_voxel_indices[n].push_back(n + i_jump);
+						connected_voxel_global_indices[n].push_back(voxels[n + i_jump].global_mesh_index);}
+				}
+				//Right boundary of each process
+				if (i == x_size -1){
+					if (voxels[n].center[0] + dx / 2 < x_end){ // i.e. it is not a process aligned with right physical boundary
+						connected_voxel_global_indices[n].push_back(voxels[n].global_mesh_index + i_global_jump);} // But there is a neighbour on next process, so use global index
+				}
+				//Y-aligned parts
+				if ( j > 0 and j < y_size - 1){
+					connected_voxel_indices[n].push_back(n + j_jump);
+					connected_voxel_indices[n].push_back(n - j_jump);
+					connected_voxel_global_indices[n].push_back(voxels[n + j_jump].global_mesh_index);
+					connected_voxel_global_indices[n].push_back(voxels[n - j_jump].global_mesh_index);
+				}
+				if (j == 0 ){
+					if (voxels[n].center[1] - dy / 2 > y_start) // i.e. it is not a process aligned with bottom physical boundary
+					{
+						connected_voxel_indices[n].push_back(n + j_jump);
+						connected_voxel_global_indices[n].push_back(voxels[n + j_jump].global_mesh_index);
+						connected_voxel_global_indices[n].push_back(voxels[n].global_mesh_index - j_global_jump); // But there is a neighbour on previous process, so use global index
+					}
+					else // It is the process that is aligned with left physical boundary
+					{
+						connected_voxel_indices[n].push_back(n + j_jump);
+						connected_voxel_global_indices[n].push_back(voxels[n + j_jump].global_mesh_index);
+					}
+				}
+				if (j == y_size -1) {
+						if (voxels[n].center[1] + dy / 2 < y_end)            // i.e. it is not a process aligned with right physical boundary
+					{
+						connected_voxel_global_indices[n].push_back(voxels[n].global_mesh_index + j_global_jump); // But there is a neighbour on next process, so use global index
+					}
+				}
+				//Z-aligned
+				if ( k > 0 and k < z_size - 1){
+					connected_voxel_indices[n].push_back(n + k_jump);
+					connected_voxel_indices[n].push_back(n - k_jump);
+					connected_voxel_global_indices[n].push_back(voxels[n + k_jump].global_mesh_index);
+					connected_voxel_global_indices[n].push_back(voxels[n - k_jump].global_mesh_index);
+				}
+				if (k == 0) {
+					if (voxels[n].center[2] - dz / 2 > z_start) // i.e. it is not a process aligned with bottom physical boundary
+					{
+						connected_voxel_indices[n].push_back(n + k_jump);
+						connected_voxel_global_indices[n].push_back(voxels[n + k_jump].global_mesh_index);
+						connected_voxel_global_indices[n].push_back(voxels[n].global_mesh_index - k_global_jump); // But there is a neighbour on previous process, so use global index
+					}
+					else // It is the process that is aligned with left physical boundary
+					{
+						connected_voxel_indices[n].push_back(n + k_jump);
+						connected_voxel_global_indices[n].push_back(voxels[n + k_jump].global_mesh_index);
+					}
+				}
+				if (k == z_size -1){
+					if (voxels[n].center[2] + dz / 2 < z_end)            // i.e. it is not a process aligned with right physical boundary
+					{
+						connected_voxel_global_indices[n].push_back(voxels[n].global_mesh_index + k_global_jump); // But there is a neighbour on next process, so use global index
+					}
+				}
 			}
 		}
-	}
-	
-	
-	/*-------------------------------------*/
-	/* x-aligned connections left boundary */
-  /* Later: can be checked using process */
-  /* coordinates as well.                */
-  /*-------------------------------------*/
-	
-	 
-	for( int k=0 ; k < z_coordinates.size() ; k++ )
-	{
-		for( int j=0 ; j < y_coordinates.size() ; j++ )
-		{
-                    int n = voxel_index(0,j,k);                                 //Returns local index of voxel on the left boundary (can optimize later, reduce comparisons) 
-                    if(voxels[n].center[0] - dx/2 > x_start)                    //i.e. if true, it is not a process aligned with left physical boundary
-                    {
-                                                                                //First connect this to right neighbour then right neighbour to this. 
-                        connect_voxels_indices_only(n,n+i_jump, dS_yz );        //Guranteed that adjacent local index will be present i.e. Right Neighbour
-                        connect_voxels_global_indices_only(n,n+i_jump,dS_yz);   //Guranteed that global adjacent index will be present i.e. Right neighbour
-                        
-                        connected_voxel_indices[n].push_back(-1);               //There is no local left neighbour (because it is process boundary voxel)
-                        connected_voxel_global_indices[n].push_back(voxels[n].global_mesh_index-i_global_jump); 
-                                                                                //But there is a neighbour on previous process, so use global index
-                                                                                
-                        
-                    }
-                    else                                                        //It is the process that is aligned with left physical boundary
-                    {
-                        connect_voxels_indices_only(n,n+i_jump, dS_yz );        //Guranteed that adjacent right local index will be present
-                        connect_voxels_global_indices_only(n,n+i_jump,dS_yz);   //Guranteed that global adjacent right index will be present 
-                                                                                //No left local OR global voxel is present
-                    }
-        }
-	}
-	
-	/*--------------------------*/
-	/* x-aligned right boundary */
-  /*--------------------------*/
-    
-	/*----------------------------------------------------------------------------------------*/
-	/* Because of loops above, the rightmost voxel is already connected to its left neighbour */
-	/* but its not connected to its right neighbour (if it exists !)                          */
-	/*----------------------------------------------------------------------------------------*/
-
-	 
-	for( int k=0 ; k < z_coordinates.size() ; k++ )
-	{
-		for( int j=0 ; j < y_coordinates.size() ; j++ )
-		{
-                    int n = voxel_index(x_coordinates.size()-1,j,k);                             //Returns local index of voxel 
-                    if(voxels[n].center[0] + dx/2 < x_end)                  //i.e. it is not a process aligned with right physical boundary
-                    {
-                        connected_voxel_indices[n].push_back(-1);           //There is no "local" right neighbour (in general there is never any local right neighbour)
-                        connected_voxel_global_indices[n].push_back(voxels[n].global_mesh_index+i_global_jump); //But there is a neighbour on next process, so use global index
-                    }
-                    else                                                    //It is the process that is aligned with right physical boundary
-                    {
-                                                                            //There is no right local or neighbour across this process. Do nothing. 
-                    }
-        }
-	}
-	
-	/*---------------------------------------------------------------------------------------*/
-  /* After making x-aligned connections, the state is like the following:                  */
-  /* At the left physical boundary there is no entry for local or global left neighbour    */
-  /* At the right physical boundary, there is no entry for local or global right neighbour */
-  /* At non-physical left or right boundaries, local neighbours are -1                     */
-  /* Rest of the entries are all valid entries.                                            */
-  /*---------------------------------------------------------------------------------------*/
-
-    /*----------------------------------*/
-    /* y-aligned connections inner part */
-    /*----------------------------------*/
-	
-	for( int k=0 ; k < z_coordinates.size() ; k++ )
-	{
-		for( int i=0 ; i < x_coordinates.size() ; i++ )
-		{
-			for( int j=1 ; j < y_coordinates.size()-1 ; j++ )
-			{
-				int n = voxel_index(i,j,k); 
-				connect_voxels_indices_only(n,n+j_jump, dS_xz );            //In functions, pass local indexes only 
-                connect_voxels_global_indices_only(n,n+j_jump, dS_xz);      //In functions, pass local indexes only (and NOT global indexes)
-			}
-		}
-	}
-
-	/*---------------------------------------------*/
-  /* y-aligned lower boundary of each sub-domain */
-  /*---------------------------------------------*/
-	
-
-	for( int k=0 ; k < z_coordinates.size() ; k++ )
-	{
-		for( int i=0 ; i < x_coordinates.size() ; i++ )
-		{
-                    int n = voxel_index(i,0,k);                                 //Returns local index of voxel 
-                    if(voxels[n].center[1] - dy/2 > y_start)                    //i.e. it is not a process aligned with bottom physical boundary
-                    {
-                                                                                //First connect this to right neighbour then right neighbour to this. 
-                        connect_voxels_indices_only(n,n+j_jump, dS_xz );        //Guranteed that adjacent local index will be present
-                        connect_voxels_global_indices_only(n,n+j_jump,dS_xz);   //Guranteed that global adjacent index will be present 
-                        
-                        connected_voxel_indices[n].push_back(-1);               //There is no local bottom neighbour (never a bottom "local" neighbour)
-                        connected_voxel_global_indices[n].push_back(voxels[n].global_mesh_index-j_global_jump); //But there is a neighbour on previous process, so use global index
-                    }
-                    else                                                        //It is the process that is aligned with left physical boundary
-                    {
-                        connect_voxels_indices_only(n,n+j_jump, dS_xz );        //Guranteed that there is a local top neighbour
-                        connect_voxels_global_indices_only(n,n+j_jump,dS_xz);   //Guranteed that there is global top neighbour 
-                                                                                //No downward local OR global voxel is present, so don't enter anything in list
-                    }
-        }
-	}
-	
-	/*---------------------------------------------*/
-	/* y-aligned upper boundary of each sub-domain */
-    /*---------------------------------------------*/
-	
-	
-	for( int k=0 ; k < z_coordinates.size() ; k++ )
-	{
-		for( int i=0 ; i < x_coordinates.size() ; i++ )
-		{
-                    int n = voxel_index(i,y_coordinates.size()-1,k);        //Returns local index of voxel 
-                    if(voxels[n].center[1] + dy/2 < y_end)                  //i.e. it is not a process aligned with top physical boundary
-                    {
-                        connected_voxel_indices[n].push_back(-1);           //There is no local right neighbour
-                        connected_voxel_global_indices[n].push_back(voxels[n].global_mesh_index+j_global_jump); //But there is a neighbour on next process, so use global index
-                    }
-                    else                                                    //It is the process that is aligned with right physical boundary
-                    {
-                                                                            //There is no right local or global neighbour across this process. Do nothing. 
-                    }
-        }
-	}
-	
-	/*-----------------------------------------*/
-    /* Z-aligned connections inner connections */
-    /*-----------------------------------------*/
-    
-	for( int j=0 ; j < y_coordinates.size() ; j++ )
-	{
-		for( int i=0 ; i < x_coordinates.size() ; i++ )
-		{
-			for( int k=1 ; k < z_coordinates.size()-1 ; k++ )
-			{
-				int n = voxel_index(i,j,k); 
-				connect_voxels_indices_only(n,n+k_jump, dS_xy );
-                connect_voxels_global_indices_only(n, n+k_jump, dS_xy);
-			}
-		}
-	}
-	
-	/*-----------------------------*/
-    /* Z-aligned front connections */
-    /*-----------------------------*/
-	
-	for( int j=0 ; j < y_coordinates.size() ; j++ )
-	{
-		for( int i=0 ; i < x_coordinates.size() ; i++ )
-		{
-                    int n = voxel_index(i,j,0);                                 //Returns local index of voxel 
-                    if(voxels[n].center[2] - dz/2 > z_start)                    //i.e. it is not a process aligned with front physical boundary
-                    {
-                                                                            
-                        connect_voxels_indices_only(n,n+k_jump, dS_xy );        //Guranteed that adjacent local immediate back neighbour is present
-                        connect_voxels_global_indices_only(n,n+k_jump,dS_xy);   //Guranteed that global local immediate back neighbour ispresent 
-                        
-                        connected_voxel_indices[n].push_back(-1);               //There is no local front neighbour
-                        connected_voxel_global_indices[n].push_back(voxels[n].global_mesh_index-k_global_jump); //But there is a global neighbour on previous process, so use global index
-                    }
-                    else                                                        //It is the process that is aligned with left physical boundary
-                    {
-                        connect_voxels_indices_only(n,n+k_jump, dS_xy );        //Guranteed that adjacent immediate local back neighbour is present
-                        connect_voxels_global_indices_only(n,n+k_jump,dS_xy);   //Guranteed that adjacent immediate global back neighbour is present 
-                                                                                //No front immediate neighbour is present
-                    }
-        }
-	}
-	
-	/*-------------------------------------*/
-	/* z-aligned back boundary connections */
-    /*-------------------------------------*/
-	
-	for( int j=0 ; j < y_coordinates.size() ; j++ )
-	{
-		for( int i=0 ; i < x_coordinates.size() ; i++ )
-		{
-                    int n = voxel_index(i,j,z_coordinates.size()-1);        //Returns local index of voxel 
-                    if(voxels[n].center[2] + dz/2 < z_end)                  //i.e. it is not a process aligned with back physical boundary
-                    {
-                        connected_voxel_indices[n].push_back(-1);           //There is no local immediate back neighbour
-                        connected_voxel_global_indices[n].push_back(voxels[n].global_mesh_index+k_global_jump); //But there is a neighbour on next process, so use global index
-                    }
-                    else                                                    //It is the process that is aligned with back physical boundary
-                    {
-                                                                             
-                    }
-        }
 	}
 	
 	/*----------------------------------------------------------------------------------------*/
@@ -1954,7 +1814,7 @@ void Cartesian_Mesh::resize_uniform( double x_start, double x_end, double y_star
 
 int Cartesian_Mesh::nearest_voxel_index( std::vector<double>& position )
 {
-	unsigned int i = (unsigned int) floor( (position[0]-bounding_box[0])/dx ); 
+	unsigned int i = (unsigned int) floor( (position[0]-local_bounding_box[0])/dx ); 
 	unsigned int j = (unsigned int) floor( (position[1]-bounding_box[1])/dy ); 
 	unsigned int k = (unsigned int) floor( (position[2]-bounding_box[2])/dz ); 
 
@@ -1969,17 +1829,37 @@ int Cartesian_Mesh::nearest_voxel_index( std::vector<double>& position )
 	if( k >= z_coordinates.size() ){ k = z_coordinates.size()-1; }
 	if( k < 0 ){ k = 0; }
 
-	return ( k*y_coordinates.size() + j )*x_coordinates.size() + i; 
+	return ( i*y_coordinates.size() + j )*z_coordinates.size() + k; 
+}
+
+int Cartesian_Mesh::nearest_lcl_voxel_index( std::vector<double>& position )
+{
+	unsigned int i = (unsigned int) floor( (position[0]-local_bounding_box[0])/dx ); 
+	unsigned int j = (unsigned int) floor( (position[1]-local_bounding_box[1])/dy ); 
+	unsigned int k = (unsigned int) floor( (position[2]-local_bounding_box[2])/dz ); 
+
+	//  add some bounds checking -- truncate to inside the computational domain   
+
+	if( i >= x_coordinates.size() ){ i = x_coordinates.size()-1; }
+	if( i < 0 ){ i = 0; }
+
+	if( j >= y_coordinates.size() ){ j = y_coordinates.size()-1; }
+	if( j < 0 ){ j = 0; }
+
+	if( k >= z_coordinates.size() ){ k = z_coordinates.size()-1; }
+	if( k < 0 ){ k = 0; }
+
+	return ( i*y_coordinates.size() + j )*z_coordinates.size() + k; 
 }
 
 /*-----------------------------------------------------------------------------------*/
 /* Parallel new function that returns a process specific local index 								 */
 /* in which the Basic_Agent resides. 																								 */
 /*-----------------------------------------------------------------------------------*/
-
+//Jose: voy por aqui
 int Cartesian_Mesh::nearest_voxel_local_index( std::vector<double>& position, mpi_Environment &world, mpi_Cartesian &cart_topo )
 {
-		/*----------------------------------------------------*/
+	/*----------------------------------------------------*/
     /* Routine should return the local index of the voxel */
     /* of the process having rank world.rank that contains*/
     /* the Basic_Agent. The local index is needed because */
@@ -1993,14 +1873,14 @@ int Cartesian_Mesh::nearest_voxel_local_index( std::vector<double>& position, mp
     /*----------------------------------------------------*/
     
     int x_vox = (int) floor( (position[0]-bounding_box[0])/dx ); 
-		int y_vox = (int) floor( (position[1]-bounding_box[1])/dy ); 
-		int z_vox = (int) floor( (position[2]-bounding_box[2])/dz );
+	int y_vox = (int) floor( (position[1]-bounding_box[1])/dy ); 
+	int z_vox = (int) floor( (position[2]-bounding_box[2])/dz );
     
     /*----------------------------------------------------*/
     /* Global Voxels in each directions                   */
     /*----------------------------------------------------*/
     
-    int global_num_x_voxels = (bounding_box[3]-bounding_box[0])/dx;
+    int global_num_x_voxels = (bounding_box[3]-bounding_box[0])/dx; 
     int global_num_y_voxels = (bounding_box[4]-bounding_box[1])/dy;
     int global_num_z_voxels = (bounding_box[5]-bounding_box[2])/dz;
     
@@ -2008,7 +1888,8 @@ int Cartesian_Mesh::nearest_voxel_local_index( std::vector<double>& position, mp
     /* Local Voxels in each directions                    */
     /*----------------------------------------------------*/
     
-    int local_num_x_voxels = (bounding_box[3]-bounding_box[0])/(cart_topo.mpi_dims[1] * dx);
+	//TODO. adjust local_x_voxels with residuals from mpi_dim division
+    int local_num_x_voxels = (bounding_box[3]-bounding_box[0])/(cart_topo.mpi_dims[1] * dx); //Not true when not perfectly divisible
     int local_num_y_voxels = (bounding_box[4]-bounding_box[1])/(cart_topo.mpi_dims[0] * dy);
     int local_num_z_voxels = (bounding_box[5]-bounding_box[2])/(cart_topo.mpi_dims[2] * dz);
     
@@ -2064,9 +1945,12 @@ int Cartesian_Mesh::nearest_voxel_local_index( std::vector<double>& position, mp
     /* and the voxel that contains the Basic_Agent.                  */
     /*---------------------------------------------------------------*/
     
-    int process_local_index_of_voxel_containing_basic_agent = diff_z_coord * local_num_x_voxels * local_num_y_voxels + \
+    //int process_local_index_of_voxel_containing_basic_agent = diff_z_coord * local_num_x_voxels * local_num_y_voxels + \
                                                               diff_y_coord * local_num_x_voxels + \
                                                               diff_x_coord;
+	int process_local_index_of_voxel_containing_basic_agent = diff_x_coord * local_num_y_voxels * local_num_z_voxels + \
+                                                              diff_y_coord * local_num_z_voxels + \
+                                                              diff_z_coord;
                                                               
     // std::cout<<"position[0]="<<position[0]<<" Local Voxel Index="<< \
 		// process_local_index_of_voxel_containing_basic_agent<<std::endl;  
@@ -2168,7 +2052,7 @@ void Cartesian_Mesh::read_from_matlab( std::string filename )
 	bounding_box[4] = -9e99; 
 	bounding_box[5] = -9e99; 
  
-        size_t result;
+    size_t result;
 	for( unsigned int i=0; i < number_of_data_entries ; i++ )
 	{
 		result = fread( (char*) &( voxels[i].center[0] ) , sizeof(double) , 1 , fp ); 

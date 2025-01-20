@@ -64,6 +64,8 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D( Microenvironment& M, 
 /*=============================================================================================================*/
 
 void diffusion_decay_solver__constant_coefficients_LOD_3D( Microenvironment& M, double dt, mpi_Environment &world, mpi_Cartesian &cart_topo);
+void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironment &M, double dt, mpi_Environment &world, mpi_Cartesian &cart_topo);
+void diffusion_decay_solver__constant_coefficients_LOD_3D_AVX256D( Microenvironment &M, double dt, mpi_Environment &world, mpi_Cartesian &cart_topo);
 
 
 // /*! diffusion-decay solver: 2D LOD implicit (stable method). D and r uniform */  

@@ -16,4 +16,9 @@
 # Downloaded libraries
 addons/PhysiBoSS/MaBoSS-env-2.0/
 addons/PhysiBoSS/MaBoSS-env-2.0
+#Miscellaneous
+core/doubts.txt
+
+#Resutls
+output/
 

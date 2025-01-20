@@ -45,7 +45,7 @@
 #                                                                           #
 #############################################################################
 */
-
+//PhysiCell-B integration checked
 #ifndef __BioFVM_agent_container_h__
 #define __BioFVM_agent_container_h__
 

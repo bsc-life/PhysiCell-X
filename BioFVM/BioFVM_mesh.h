@@ -130,12 +130,7 @@ class General_Mesh
 	// [xmin ymin zmin xmax ymax zmax ]
 	std::vector<double> bounding_box; 
 	
-	/*---------------------------------------------------------------------------------*/
-	/* Adding a new vector of doubles, which would contain local sub-domain boundaries */
-	/* Added by Gaurav Saxena, allocate space in General_Mesh()												 */
-	/*---------------------------------------------------------------------------------*/
-	
-	std::vector<double> local_bounding_box; 
+	std::vector<double> local_bounding_box; //Sub-domain boundaries
 	
 	std::vector<Voxel> voxels; 
 	std::vector<Voxel_Face> voxel_faces; 
@@ -164,11 +159,11 @@ class General_Mesh
 	/* boundaries. Remember it can change the x-coordinates in the "position" vector.			 */
 	/*=====================================================================================*/
 	
-  void correct_position_within_subdomain(std::vector<double> &pos, mpi_Environment &world, mpi_Cartesian &cart_topo);
+    void correct_position_within_subdomain(std::vector<double> &pos, mpi_Environment &world, mpi_Cartesian &cart_topo);
   
-  /* In parallel scenario, return the local_bounding_box vector */
+    /* In parallel scenario, return the local_bounding_box vector */
   
-  std::vector<double> get_subdomain_limits();
+    std::vector<double> get_subdomain_limits();
 
 	/* the following help manage the voxel faces */ 
 	// returns the index of the voxel face connecting from voxels[i] to voxels[j] 
@@ -257,6 +252,15 @@ class Cartesian_Mesh : public General_Mesh
 	double dS_xy;
 	double dS_yz; 
 	double dS_xz;
+
+	int x_size;
+	int y_size;
+	int z_size;
+	int n_substrates; 
+
+	double local_x_start;
+	double local_y_start;
+	double local_z_start;
 	
 	Cartesian_Mesh(); // done 
 	
@@ -277,6 +281,8 @@ class Cartesian_Mesh : public General_Mesh
 	void resize_uniform( double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double dx ); 
 	
 	int nearest_voxel_index( std::vector<double>& position ); 
+	
+	int nearest_lcl_voxel_index( std::vector<double>& position );
 	
 	/*-----------------------------------------------------------------------------------*/
   /* Parallel prototype of a new function which returns a process specific local index */

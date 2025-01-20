@@ -821,9 +821,28 @@ Motility::Motility()
 	
 	chemotaxis_index = 0; 
 	chemotaxis_direction = 1;
-	
+	//Jose Falta un sync_to_current_microenvironment()
 	return; 
 }
+
+/* Esto falta en concreto
+void Motility::sync_to_current_microenvironment( void )
+{
+	Microenvironment* pMicroenvironment = get_default_microenvironment(); 
+	if( pMicroenvironment )
+	{ sync_to_microenvironment( pMicroenvironment ); } 
+	else
+	{ chemotactic_sensitivities.resize( 1 , 0.0 ); }
+
+	return; 
+}
+
+double& Motility::chemotactic_sensitivity( std::string name )
+{
+	int n = microenvironment.find_density_index(name); 
+	return chemotactic_sensitivities[n]; 
+}
+*/
 
 Secretion::Secretion()
 {
@@ -844,11 +863,6 @@ void Secretion::sync_to_current_microenvironment( void )
 		secretion_rates.resize( 0 , 0.0 ); 
 		uptake_rates.resize( 0 , 0.0 ); 
 		saturation_densities.resize( 0 , 0.0 );
-		
-		/*-----------------------------------------------------------------*/
-		/* Gaurav Saxena added the next statement as it is present in v1.7 */ 
-		/*-----------------------------------------------------------------*/
-		
 		net_export_rates.resize( 0, 0.0 );
 	}
 	return; 
@@ -861,11 +875,6 @@ void Secretion::sync_to_microenvironment( Microenvironment* pNew_Microenvironmen
 	secretion_rates.resize( pMicroenvironment->number_of_densities() , 0.0 ); 
 	uptake_rates.resize( pMicroenvironment->number_of_densities() , 0.0 ); 
 	saturation_densities.resize( pMicroenvironment->number_of_densities() , 0.0 ); 
-	
-	/*----------------------------------------------------------------------*/
-	/* Gaurav Saxena added the following statement as it is present in v1.7 */
-	/*----------------------------------------------------------------------*/
-
 	net_export_rates.resize( pMicroenvironment->number_of_densities() , 0.0 );
 	
 	
