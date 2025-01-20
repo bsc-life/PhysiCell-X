@@ -585,8 +585,8 @@ void Cell_Container::pack_moore_info(mpi_Environment &world, mpi_Cartesian &cart
 		{
 			for(int j=0; j<y_dim; j++)
 			{
-				int local_vxl_inex 		 			= underlying_mesh.voxel_index(0, j, k);
-				int global_mesh_index 			= underlying_mesh.voxels[local_vxl_inex].global_mesh_index;
+				int local_vxl_inex = underlying_mesh.voxel_index(0, j, k);
+				int global_mesh_index = underlying_mesh.voxels[local_vxl_inex].global_mesh_index;
 				int no_of_cells_in_vxl 			= agent_grid[local_vxl_inex].size();
 				std::vector<double> centers = underlying_mesh.voxels[local_vxl_inex].center;
 				double max_i_dist						= max_cell_interactive_distance_in_voxel[local_vxl_inex];

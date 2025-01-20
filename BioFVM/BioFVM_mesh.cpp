@@ -899,6 +899,7 @@ void Cartesian_Mesh::create_moore_neighborhood(mpi_Environment &world, mpi_Carte
 	
 	int global_z_jump = 1;
 	int global_y_jump = z_nodes; 
+	int global_x_jump = z_nodes * y_nodes;
 	
 	/* Now build the moore list of global voxel indices for the left sub-domain boundary voxels */
 	
@@ -907,9 +908,9 @@ void Cartesian_Mesh::create_moore_neighborhood(mpi_Environment &world, mpi_Carte
 		
 		int vxl_indx_ctr = 0;
 		
-		for(int k=0; k<z_coordinates.size(); k++)
+		for(int j=0; j<y_coordinates.size(); j++)
 		{
-			for(int j=0; j<y_coordinates.size(); j++)
+			for(int k=0; k<z_coordinates.size(); k++)
 			{
 				int center_inex_local  = voxel_index(0, j, k); 
 				int center_inex_global = voxels[center_inex_local].global_mesh_index;
@@ -919,17 +920,17 @@ void Cartesian_Mesh::create_moore_neighborhood(mpi_Environment &world, mpi_Carte
 				
 				if(j > 0 && j < y_coordinates.size()-1 && k > 0 && k < z_coordinates.size()-1)
 				{
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1); 								 // LEFT-1
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump); 								 // LEFT-1
 				
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_y_jump); // LEFT-1,UP+1
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_y_jump); // LEFT-1,DOWN-1
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_z_jump); // LEFT-1,IN+1	
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_z_jump); // LEFT-1,OUT-1
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_y_jump); // LEFT-1,UP+1
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_y_jump); // LEFT-1,DOWN-1
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_z_jump); // LEFT-1,IN+1	
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_z_jump); // LEFT-1,OUT-1
 				
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_y_jump + global_z_jump); //LEFT-1,UP+1,IN+1
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_y_jump - global_z_jump); //LEFT-1,UP+1,OUT-1
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_y_jump + global_z_jump); //LEFT-1,DOWN-1,IN+1
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_y_jump - global_z_jump); //LEFT-1,DOWN-1,OUT-1
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_y_jump + global_z_jump); //LEFT-1,UP+1,IN+1
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_y_jump - global_z_jump); //LEFT-1,UP+1,OUT-1
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_y_jump + global_z_jump); //LEFT-1,DOWN-1,IN+1
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_y_jump - global_z_jump); //LEFT-1,DOWN-1,OUT-1
 				}
 				
 				/* Now tackle 4 extreme corner voxels : SW, SE, NW, NE */
@@ -937,34 +938,34 @@ void Cartesian_Mesh::create_moore_neighborhood(mpi_Environment &world, mpi_Carte
 				
 				if(j == 0 && k == 0)
 				{
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_y_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_z_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_y_jump + global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_y_jump + global_z_jump);
 				}
 				
 				if(j == y_coordinates.size()-1 && k == 0)
 				{
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1); // LEFT-1
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_y_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_z_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_y_jump + global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump); // LEFT-1
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_y_jump + global_z_jump);
 				}
 				
 				if(j == 0 && k == z_coordinates.size()-1)
 				{
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_y_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_z_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_y_jump - global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_y_jump - global_z_jump);
 				}
 				
 				if(j == y_coordinates.size()-1 && k == z_coordinates.size()-1)
 				{
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_y_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_z_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_y_jump - global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_y_jump - global_z_jump);
 				}
 				
 				/* Now tackle 2 vertical strips and 2 horizontal strips not containing the 4 extreme corner voxels  */
@@ -973,47 +974,47 @@ void Cartesian_Mesh::create_moore_neighborhood(mpi_Environment &world, mpi_Carte
 				/* Front vertical strip */
 				if(k == 0 && j > 0 && j < y_coordinates.size()-1)
 				{
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_y_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_y_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_z_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_z_jump + global_y_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_z_jump - global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_z_jump + global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_z_jump - global_y_jump);
 				}
 				
 				/* Back Vertical strip */
 				if(k == z_coordinates.size()-1 && j > 0 && j < y_coordinates.size()-1)
 				{
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_y_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_y_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_z_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_z_jump + global_y_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_z_jump - global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_z_jump + global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_z_jump - global_y_jump);
 				}
 				
 				/* Bottom horizontal strip */
 				
 				if(j == 0 && k > 0 && k < z_coordinates.size()-1)
 				{
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_z_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_z_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_y_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_y_jump + global_z_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_y_jump - global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_y_jump + global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_y_jump - global_z_jump);
 				}
 				
 				/* Top horizontal strip */
 				
 				if(j == y_coordinates.size()-1 && k > 0 && k < z_coordinates.size()-1)
 				{
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 + global_z_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_z_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_y_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_y_jump + global_z_jump);
-					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-1 - global_y_jump - global_z_jump);						
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump + global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_y_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_y_jump + global_z_jump);
+					moore_connected_voxel_global_indices_left[vxl_indx_ctr].push_back(center_inex_global-global_x_jump - global_y_jump - global_z_jump);						
 				}
 				
 				vxl_indx_ctr = vxl_indx_ctr + 1;
@@ -1027,9 +1028,9 @@ void Cartesian_Mesh::create_moore_neighborhood(mpi_Environment &world, mpi_Carte
 	{
 		int vxl_indx_ctr = 0;
 		
-		for(int k=0; k<z_coordinates.size(); k++)
+		for(int j=0; j<y_coordinates.size(); j++)
 		{
-			for(int j=0; j<y_coordinates.size(); j++)
+			for(int k=0; k<z_coordinates.size(); k++)
 			{
 				int center_inex_local  = voxel_index(x_coordinates.size()-1, j, k); 
 				int center_inex_global = voxels[center_inex_local].global_mesh_index;
@@ -1039,17 +1040,17 @@ void Cartesian_Mesh::create_moore_neighborhood(mpi_Environment &world, mpi_Carte
 				
 				if(j > 0 && j < y_coordinates.size()-1 && k > 0 && k < z_coordinates.size()-1)
 				{
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1); 								 // RIGHT+1
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump); 								 // RIGHT+1
 				
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_y_jump); // RIGHT+1,UP+1
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_y_jump); // RIGHT+1,DOWN-1
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_z_jump); // RIGHT+1,IN+1	
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_z_jump); // RIGHT+1,OUT-1
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_y_jump); // RIGHT+1,UP+1
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_y_jump); // RIGHT+1,DOWN-1
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_z_jump); // RIGHT+1,IN+1	
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_z_jump); // RIGHT+1,OUT-1
 				
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_y_jump + global_z_jump); //RIGHT+1,UP+1,IN+1
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_y_jump - global_z_jump); //RIGHT+1,UP+1,OUT-1
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_y_jump + global_z_jump); //RIGHT+1,DOWN-1,IN+1
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_y_jump - global_z_jump); //RIGHT+1,DOWN-1,OUT-1
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_y_jump + global_z_jump); //RIGHT+1,UP+1,IN+1
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_y_jump - global_z_jump); //RIGHT+1,UP+1,OUT-1
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_y_jump + global_z_jump); //RIGHT+1,DOWN-1,IN+1
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_y_jump - global_z_jump); //RIGHT+1,DOWN-1,OUT-1
 				}
 				
 				/* Now tackle 4 extreme corner voxels : SW, SE, NW, NE */
@@ -1057,34 +1058,34 @@ void Cartesian_Mesh::create_moore_neighborhood(mpi_Environment &world, mpi_Carte
 				
 				if(j == 0 && k == 0)
 				{
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_y_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_z_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_y_jump + global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_y_jump + global_z_jump);
 				}
 				
 				if(j == y_coordinates.size()-1 && k == 0)
 				{
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1); 
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_y_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_z_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_y_jump + global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump); 
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_y_jump + global_z_jump);
 				}
 				
 				if(j == 0 && k == z_coordinates.size()-1)
 				{
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_y_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_z_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_y_jump - global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_y_jump - global_z_jump);
 				}
 				
 				if(j == y_coordinates.size()-1 && k == z_coordinates.size()-1)
 				{
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_y_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_z_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_y_jump - global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_y_jump - global_z_jump);
 				}
 				
 				/* Now tackle 2 vertical strips and 2 horizontal strips not containing the 4 extreme corner voxels  */
@@ -1094,48 +1095,48 @@ void Cartesian_Mesh::create_moore_neighborhood(mpi_Environment &world, mpi_Carte
 				
 				if(k == 0 && j > 0 && j < y_coordinates.size()-1)
 				{
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_y_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_y_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_z_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_z_jump + global_y_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_z_jump - global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_z_jump + global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_z_jump - global_y_jump);
 				}
 				
 				/* Back Vertical strip */
 				
 				if(k == z_coordinates.size()-1 && j > 0 && j < y_coordinates.size()-1)
 				{
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_y_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_y_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_z_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_z_jump + global_y_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_z_jump - global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_z_jump + global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_z_jump - global_y_jump);
 				}
 				
 				/* Bottom horizontal strip */
 				
 				if(j == 0 && k > 0 && k < z_coordinates.size()-1)
 				{
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_z_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_z_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_y_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_y_jump + global_z_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_y_jump - global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_y_jump + global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_y_jump - global_z_jump);
 				}
 				
 				/* Top horizontal strip */
 				
 				if(j == y_coordinates.size()-1 && k > 0 && k < z_coordinates.size()-1)
 				{
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 + global_z_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_z_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_y_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_y_jump + global_z_jump);
-					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+1 - global_y_jump - global_z_jump);						
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump + global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_y_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_y_jump + global_z_jump);
+					moore_connected_voxel_global_indices_right[vxl_indx_ctr].push_back(center_inex_global+global_x_jump - global_y_jump - global_z_jump);						
 				}
 				
 				vxl_indx_ctr = vxl_indx_ctr + 1;
@@ -1626,12 +1627,12 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
     /*--------------------------------------------------------------*/
     //New layout BioFVM-B	
 	//TODO: local_x_nodes could be not equal through all sub-domains
-    local_start_of_global_index = (coords[1] * z_nodes * y_nodes * local_x_nodes) +       //Imagine 3rd plate 'beginning' point (leftmost bottom point)
-                                  (dims[0]-coords[0]-1) * z_nodes * local_y_nodes +       //Imagine going up in 3rd plate
-                                  (coords[2] * local_z_nodes) ;                           //Imagine going right in 3rd plate
-                                          
-	
-	#pragma omp parallel for collapse(3)
+    //local_start_of_global_index = (coords[1] * z_nodes * y_nodes * local_x_nodes) +       //Imagine 3rd plate 'beginning' point (leftmost bottom point)
+    //                              (dims[0]-coords[0]-1) * z_nodes * local_y_nodes +       //Imagine going up in 3rd plate
+    //                              (coords[2] * local_z_nodes) ;                           //Imagine going right in 3rd plate
+    local_start_of_global_index =  world.rank * z_nodes * y_nodes * local_x_nodes;                                     
+	int n = 0;
+	//#pragma omp parallel for collapse(3)
 	for (int i = 0; i < x_coordinates.size(); i++)
 	{
 		for (int j = 0; j < y_coordinates.size(); j++)
@@ -1641,15 +1642,13 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
 				int z_index = k;
 				int y_index = j * z_nodes;  
 				int x_index = i * y_nodes * z_nodes;
-				BioFVM::Voxel aux;
-				aux = template_voxel;
-				aux.center[0] = x_coordinates[i];
-				aux.center[1] = y_coordinates[j];
-				aux.center[2] = z_coordinates[k];
-				aux.mesh_index = z_index + y_index + x_index;
-				aux.global_mesh_index = local_start_of_global_index + aux.mesh_index; 
-				aux.volume = dV;               
-				voxels[x_index + y_index + z_index] = aux;
+				voxels[n].center[0] = x_coordinates[i]; 
+				voxels[n].center[1] = y_coordinates[j]; 
+				voxels[n].center[2] = z_coordinates[k]; 
+				voxels[n].mesh_index = n;                                                             //This now becomes the local index
+				voxels[n].global_mesh_index = local_start_of_global_index + z_index + y_index + x_index;    //This is now the global index of the Voxel in the global mesh.
+				voxels[n].volume = dV; 
+				n++; 
 			}
 		}
 	}
@@ -1815,9 +1814,29 @@ void Cartesian_Mesh::resize_uniform( double x_start, double x_end, double y_star
 
 int Cartesian_Mesh::nearest_voxel_index( std::vector<double>& position )
 {
-	unsigned int i = (unsigned int) floor( (position[0]-bounding_box[0])/dx ); 
+	unsigned int i = (unsigned int) floor( (position[0]-local_bounding_box[0])/dx ); 
 	unsigned int j = (unsigned int) floor( (position[1]-bounding_box[1])/dy ); 
 	unsigned int k = (unsigned int) floor( (position[2]-bounding_box[2])/dz ); 
+
+	//  add some bounds checking -- truncate to inside the computational domain   
+
+	if( i >= x_coordinates.size() ){ i = x_coordinates.size()-1; }
+	if( i < 0 ){ i = 0; }
+
+	if( j >= y_coordinates.size() ){ j = y_coordinates.size()-1; }
+	if( j < 0 ){ j = 0; }
+
+	if( k >= z_coordinates.size() ){ k = z_coordinates.size()-1; }
+	if( k < 0 ){ k = 0; }
+
+	return ( i*y_coordinates.size() + j )*z_coordinates.size() + k; 
+}
+
+int Cartesian_Mesh::nearest_lcl_voxel_index( std::vector<double>& position )
+{
+	unsigned int i = (unsigned int) floor( (position[0]-local_bounding_box[0])/dx ); 
+	unsigned int j = (unsigned int) floor( (position[1]-local_bounding_box[1])/dy ); 
+	unsigned int k = (unsigned int) floor( (position[2]-local_bounding_box[2])/dz ); 
 
 	//  add some bounds checking -- truncate to inside the computational domain   
 
@@ -1926,9 +1945,12 @@ int Cartesian_Mesh::nearest_voxel_local_index( std::vector<double>& position, mp
     /* and the voxel that contains the Basic_Agent.                  */
     /*---------------------------------------------------------------*/
     
-    int process_local_index_of_voxel_containing_basic_agent = diff_z_coord * local_num_x_voxels * local_num_y_voxels + \
+    //int process_local_index_of_voxel_containing_basic_agent = diff_z_coord * local_num_x_voxels * local_num_y_voxels + \
                                                               diff_y_coord * local_num_x_voxels + \
                                                               diff_x_coord;
+	int process_local_index_of_voxel_containing_basic_agent = diff_x_coord * local_num_y_voxels * local_num_z_voxels + \
+                                                              diff_y_coord * local_num_z_voxels + \
+                                                              diff_z_coord;
                                                               
     // std::cout<<"position[0]="<<position[0]<<" Local Voxel Index="<< \
 		// process_local_index_of_voxel_containing_basic_agent<<std::endl;  

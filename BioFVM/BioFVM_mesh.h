@@ -282,6 +282,8 @@ class Cartesian_Mesh : public General_Mesh
 	
 	int nearest_voxel_index( std::vector<double>& position ); 
 	
+	int nearest_lcl_voxel_index( std::vector<double>& position );
+	
 	/*-----------------------------------------------------------------------------------*/
   /* Parallel prototype of a new function which returns a process specific local index */
   /* in which the Basic_Agent resides. 																								 */

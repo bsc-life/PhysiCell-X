@@ -543,7 +543,7 @@ void Basic_Agent::simulate_secretion_and_uptake( Microenvironment* pS, double dt
 	// now do net export 
 	//(*pS)(current_voxel_index) += cell_source_sink_solver_temp_export2; 
 	for(int d = 0; d < d_size; ++d) {
-		(*pS)(current_voxel_index)[d] /= cell_source_sink_solver_temp_export2[d];
+		(*pS)(current_voxel_index)[d] += cell_source_sink_solver_temp_export2[d];
 	} 
 	if( default_microenvironment_options.track_internalized_substrates_in_each_agent == true ) 
 	{

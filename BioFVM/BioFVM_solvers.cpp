@@ -1059,7 +1059,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
                     int initial_index = step * M.snd_data_size;
                     MPI_Wait(&recv_req[step], MPI_STATUS_IGNORE);
                     #pragma omp parallel for
-                    for (int index = initial_index; index < initial_index + M.thomas_k_jump; index += M.thomas_k_jump)
+                    for (int index = initial_index; index < initial_index + M.snd_data_size; index += M.thomas_k_jump)
                     {
                         // axpy(&(*(*M.p_density_vectors))[n], M.thomas_constant1, block3d[k][j]);
                         int index_dec = index;
@@ -1333,7 +1333,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
 
                 int index = i * M.thomas_i_jump + j * M.thomas_j_jump;
                 //(*(*M.p_density_vectors))[n] /= M.thomas_denomz[0];
-                for (int d = 0; d < M.thomas_j_jump; d++)
+                for (int d = 0; d < M.thomas_k_jump; d++)
                 {
                     (*M.p_density_vectors)[index + d] /= M.thomas_denomz[0][d];
                 }

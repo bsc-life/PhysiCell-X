@@ -132,14 +132,14 @@ Microenvironment::Microenvironment()
 	diffusion_decay_solver = empty_diffusion_solver;
 	diffusion_decay_solver = diffusion_decay_solver__constant_coefficients_LOD_3D;
 
-	diffusion_decay_solver_mpi = diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING;
+	//diffusion_decay_solver_mpi = diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING;
 
 	/*------------------------------------------------------------------------------*/
 	/* Added this statment such that the new function pointer points to the new			*/
 	/* parallel prototype of the 3-D solver function. 															*/
 	/*------------------------------------------------------------------------------*/
 
-	diffusion_decay_solver_mpi = diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING; 
+	diffusion_decay_solver_mpi = diffusion_decay_solver__constant_coefficients_LOD_3D_AVX256D; 
 
 	mesh.resize(1,1,1); 
 	

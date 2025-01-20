@@ -883,6 +883,7 @@ void Cell::set_previous_velocity(double xV, double yV, double zV)
 
 bool Cell::assign_position(double x, double y, double z)
 {
+	
 	position[0]=x;
 	position[1]=y;
 	position[2]=z;
@@ -912,7 +913,7 @@ bool Cell::assign_position(double x, double y, double z)
 
 		return false;
 	}
-
+	
 	return true;
 }
 
@@ -922,6 +923,7 @@ bool Cell::assign_position(double x, double y, double z)
 
 bool Cell::assign_position(double x, double y, double z, mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
+	//std::cout << "Cell moves from " << "(" << position[0] << "," << position[1] << "," << position[2] << ") to (" << x << "," << y << "," << z << ")"  << std::endl;
 	position[0]=x;
 	position[1]=y;
 	position[2]=z;

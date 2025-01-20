@@ -76,6 +76,76 @@ double mechanics_dt = 0.1;
 double phenotype_dt = 6.0;
 double intracellular_dt = 0.01;
 
+const double PhysiCell_constants::pi=3.1415926535897932384626433832795;
+	
+//const double PhysiCell_constants::cell_removal_threclearshold_volume = 20;
+const int PhysiCell_constants::keep_pushed_out_cells_in_outer_voxel=1;
+const int PhysiCell_constants::solid_boundary = 2;
+const int PhysiCell_constants::default_boundary_condition_for_pushed_out_agents = keep_pushed_out_cells_in_outer_voxel;		
+
+const int PhysiCell_constants::deterministic_necrosis = 0;
+const int PhysiCell_constants::stochastic_necrosis = 1;
+
+const int PhysiCell_constants::mesh_min_x_index=0;
+const int PhysiCell_constants::mesh_min_y_index=1;
+const int PhysiCell_constants::mesh_min_z_index=2;
+const int PhysiCell_constants::mesh_max_x_index=3;
+const int PhysiCell_constants::mesh_max_y_index=4;
+const int PhysiCell_constants::mesh_max_z_index=5;			
+
+const int PhysiCell_constants::mesh_lx_face_index=0;
+const int PhysiCell_constants::mesh_ly_face_index=1;
+const int PhysiCell_constants::mesh_lz_face_index=2;
+const int PhysiCell_constants::mesh_ux_face_index=3;
+const int PhysiCell_constants::mesh_uy_face_index=4;
+const int PhysiCell_constants::mesh_uz_face_index=5;
+
+
+const int PhysiCell_constants::advanced_Ki67_cycle_model= 0;
+const int PhysiCell_constants::basic_Ki67_cycle_model=1;
+const int PhysiCell_constants::flow_cytometry_cycle_model=2;
+const int PhysiCell_constants::live_apoptotic_cycle_model=3;
+const int PhysiCell_constants::total_cells_cycle_model=4;
+const int PhysiCell_constants::live_cells_cycle_model = 5; 
+const int PhysiCell_constants::flow_cytometry_separated_cycle_model = 6; 
+const int PhysiCell_constants::cycling_quiescent_model = 7; 
+
+const int PhysiCell_constants::apoptosis_death_model = 100; 
+const int PhysiCell_constants::necrosis_death_model = 101; 
+const int PhysiCell_constants::autophagy_death_model = 102; 
+const int PhysiCell_constants::custom_cycle_model=9999; 
+
+const int PhysiCell_constants::Ki67_positive_premitotic=0; 
+const int PhysiCell_constants::Ki67_positive_postmitotic=1; 
+const int PhysiCell_constants::Ki67_positive=2; 
+const int PhysiCell_constants::Ki67_negative=3; 
+const int PhysiCell_constants::G0G1_phase=4;
+const int PhysiCell_constants::G0_phase=5;
+const int PhysiCell_constants::G1_phase=6; 
+const int PhysiCell_constants::G1a_phase=7; 
+const int PhysiCell_constants::G1b_phase=8;
+const int PhysiCell_constants::G1c_phase=9;
+const int PhysiCell_constants::S_phase=10;
+const int PhysiCell_constants::G2M_phase=11;
+const int PhysiCell_constants::G2_phase=12;
+const int PhysiCell_constants::M_phase=13;
+const int PhysiCell_constants::live=14;
+
+const int PhysiCell_constants::G1pm_phase = 15;
+const int PhysiCell_constants::G1ps_phase = 16; 
+
+const int PhysiCell_constants::cycling = 17; 
+const int PhysiCell_constants::quiescent = 18; 
+
+
+const int PhysiCell_constants::custom_phase = 9999;
+// death phases
+const int PhysiCell_constants::apoptotic=100;
+const int PhysiCell_constants::necrotic_swelling=101;
+const int PhysiCell_constants::necrotic_lysed=102;
+const int PhysiCell_constants::necrotic=103; 
+const int PhysiCell_constants::debris=104; 
+
 std::unordered_map<std::string,int> cycle_model_codes = 
 {
 	{ "Ki67 (advanced)", PhysiCell_constants::advanced_Ki67_cycle_model}, 
