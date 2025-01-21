@@ -88,7 +88,7 @@ class Basic_Agent
 	std::vector<double> total_extracellular_substrate_change; 
 	
  public:
-  bool is_active; //Now this is public and not protected
+    bool is_active; 
 	std::vector<double> * secretion_rates; 
 	std::vector<double> * saturation_densities; 
 	std::vector<double> * uptake_rates;
