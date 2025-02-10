@@ -6,3 +6,8 @@ PhysiCell_phenotype.h hay algunas clases que tienen parametros nuevos.
 
 PhysiCell_standard_models::standard_update_cell_velocity
     * agent_grid is updated in any moment??
+
+PhysiCell_cell::fuse_cell
+    * Will it be necessary an MPI version?? How it is used and when?
+Physicell_cell_container:: in update all cells 
+    We can create a parallel version of standard_cell_cell_interaction

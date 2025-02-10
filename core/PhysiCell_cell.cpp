@@ -98,6 +98,10 @@ std::unordered_map<std::string,Cell_Definition*> cell_definitions_by_name;
 std::unordered_map<int,Cell_Definition*> cell_definitions_by_type;
 std::vector<Cell_Definition*> cell_definitions_by_index;
 
+
+std::unordered_map<std::string,int> cell_definition_indices_by_name; 
+std::unordered_map<int,int> cell_definition_indices_by_type;
+
 // function pointer on how to choose cell orientation at division
 // in case you want the legacy method 
 std::vector<double> (*cell_division_orientation)(void) = UniformOnUnitSphere; // LegacyRandomOnUnitSphere;
@@ -163,12 +167,12 @@ Cell_Definition::Cell_Definition()
 
 	functions.set_orientation = NULL;
 
-	/*---------------------------------------------------------*/
-	/* Gaurav Saxena added this line as it was present in v1.7 */
-	/*---------------------------------------------------------*/
-
-	cell_definitions_by_index.push_back( this );
-
+	// new March 2022 : make sure Cell_Interactions and Cell_Transformations 
+	// 					are appropriately sized. Same on motiltiy. 
+	phenotype.cell_interactions.sync_to_cell_definitions(); 
+	phenotype.cell_transformations.sync_to_cell_definitions(); 
+	phenotype.motility.sync_to_current_microenvironment(); 
+	cell_definitions_by_index.push_back( this ); 
 	return;
 }
 
@@ -233,6 +237,13 @@ Cell_State::Cell_State()
 	simple_pressure = 0.0;
 	
 	attached_cells.clear();
+
+	number_of_nuclei = 1; 
+
+	damage = 0.0; 
+	total_attack_time = 0.0; 
+
+	contact_with_basement_membrane = false; 
 
 	return;
 }
@@ -690,6 +701,11 @@ Cell* Cell::divide( )
 // #ifdef ADDON_PHYSIDFBA
 // 	child->fba_model = this->fba_model;
 // #endif
+	// changes for new phenotyp March 2022
+	state.damage = 0.0; 
+	state.total_attack_time = 0; 
+	child->state.damage = 0.0; 
+	child->state.total_attack_time = 0.0; 
 
 	return child;
 }
@@ -864,6 +880,12 @@ Cell* Cell::divide(int p_ID, mpi_Environment &world, mpi_Cartesian &cart_topo)
 // 	child->fba_model = this->fba_model;
 // #endif
 
+	// changes for new phenotyp March 2022
+	state.damage = 0.0; 
+	state.total_attack_time = 0; 
+	child->state.damage = 0.0; 
+	child->state.total_attack_time = 0.0;
+	
 	return child;
 }
 
@@ -1369,7 +1391,7 @@ void Cell::update_voxel_in_container(mpi_Environment &world, mpi_Cartesian &cart
 
 void Cell::copy_data(Cell* copy_me)
 {
-	// phenotype=copyMe-> phenotype; //it is taken care in set_phenotype
+	// phenotype=copyMe->phenotype; //it is taken care in set_phenotype
 	type = copy_me->type;
 	type_name = copy_me->type_name;
 
@@ -2076,6 +2098,495 @@ void Cell::ingest_cell( Cell* pCell_to_eat )
 	return; 
 }
 
+void Cell::attack_cell( Interactive_Cell_Info* pCell_to_attack , double dt )
+{
+	if( pCell_to_attack->dead == true )
+	{ return; } 
+
+	// make this thread safe 
+	#pragma omp critical
+	{ 
+		pCell_to_attack->attacked = true;
+		pCell_to_attack->damage_suffered += phenotype.cell_interactions.damage_rate * dt; 
+		pCell_to_attack->time_attacked += dt; 
+	}
+	return; 
+}
+
+void Cell::was_attacked(double damage_suffered, double time_attacked) {
+	#pragma omp critical
+	{ 
+		state.damage += damage_suffered; 
+		state.total_attack_time += time_attacked;
+	}
+}
+
+void Cell::fuse_cell( Interacting_Cell_Info* pCell_to_fuse, mpi_Environment &world, mpi_Cartesian &cart_topo) 
+{
+	// don't ingest a cell that's already fused 
+	if( pCell_to_fuse->phenotype_volume < 1e-15 )
+	{ return; } 
+
+	// make this thread safe 
+	#pragma omp critical
+	{
+		bool volume_was_zero = false; 
+		if( pCell_to_fuse->phenotype_volume < 1e-15 )
+		{
+			volume_was_zero = true; 
+			std::cout << this << " " << this->type_name << " fuses " 
+			<< pCell_to_fuse << " " << pCell_to_fuse->type_name << std::endl; 
+		}
+
+		// set new position at center of volume 
+			// x_new = (vol_B * x_B + vol_S * x_S ) / (vol_B + vol_S )
+
+		std::vector<double> new_position = position; // x_B
+		new_position *= phenotype.volume.total; // vol_B * x_B 
+		double total_volume = phenotype.volume.total; 
+		total_volume += pCell_to_fuse->phenotype_volume ;  
+
+		axpy( &new_position , pCell_to_fuse->phenotype_volume , pCell_to_fuse->position ); // vol_B*x_B + vol_S*x_S
+		new_position /= total_volume; // (vol_B*x_B+vol_S*x_S)/(vol_B+vol_S);
+
+		static double xL = get_default_microenvironment()->mesh.bounding_box[0];		 
+		static double xU = get_default_microenvironment()->mesh.bounding_box[3]; 
+
+		static double yL = get_default_microenvironment()->mesh.bounding_box[1];		 
+		static double yU = get_default_microenvironment()->mesh.bounding_box[4]; 
+
+		static double zL = get_default_microenvironment()->mesh.bounding_box[2];		 
+		static double zU = get_default_microenvironment()->mesh.bounding_box[5]; 
+
+		if( new_position[0] < xL || new_position[0] > xU || 
+		    new_position[1] < yL || new_position[1] > yU || 
+			new_position[2] < zL || new_position[2] > zU )
+		{
+			std::cout << "cell fusion at " << new_position << " violates domain bounds" << std::endl; 
+			std::cout << get_default_microenvironment()->mesh.bounding_box << std::endl << std::endl; 
+		}
+		position = new_position; 
+		update_voxel_in_container(world, cart_topo);
+
+		// set number of nuclei 
+
+		state.number_of_nuclei += pCell_to_fuse->state.number_of_nuclei; 
+
+		// absorb all the volume(s)
+
+		// absorb fluid volume (all into the cytoplasm) 
+		phenotype.volume.cytoplasmic_fluid += pCell_to_fuse->cytoplasmic_fluid; 
+
+		phenotype.volume.nuclear_fluid += pCell_to_fuse->nuclear_fluid; 
+
+		// absorb nuclear and cyto solid volume (into the cytoplasm) 
+		phenotype.volume.cytoplasmic_solid += pCell_to_fuse->cytoplasmic_solid; 
+
+		phenotype.volume.nuclear_solid += pCell_to_fuse->nuclear_solid; 
+
+		// consistency calculations 
+
+		phenotype.volume.fluid = phenotype.volume.nuclear_fluid + 
+			phenotype.volume.cytoplasmic_fluid;  
+
+		phenotype.volume.solid = phenotype.volume.cytoplasmic_solid + 
+			phenotype.volume.nuclear_solid; 
+
+		phenotype.volume.nuclear = phenotype.volume.nuclear_fluid + 
+			phenotype.volume.nuclear_solid; 
+
+		phenotype.volume.cytoplasmic = phenotype.volume.cytoplasmic_fluid + 
+			phenotype.volume.cytoplasmic_solid;  
+
+		phenotype.volume.total = phenotype.volume.nuclear + 
+			phenotype.volume.cytoplasmic; 
+
+		phenotype.volume.fluid_fraction = phenotype.volume.fluid / 
+			(  phenotype.volume.total + 1e-16 ); 
+
+		phenotype.volume.cytoplasmic_to_nuclear_ratio = phenotype.volume.cytoplasmic_solid / 
+			( phenotype.volume.nuclear_solid + 1e-16 );
+
+		// update corresponding BioFVM parameters (self-consistency) 
+		set_total_volume( phenotype.volume.total ); 
+
+		// absorb the internalized substrates 
+
+		*internalized_substrates += *(pCell_to_fuse->internalized_substrates); 
+
+		// set target volume(s)
+
+		phenotype.volume.target_solid_cytoplasmic += pCell_to_fuse->target_solid_cytoplasmic;
+		phenotype.volume.target_solid_nuclear += pCell_to_fuse->phenotype.volume.target_solid_nuclear;
+
+		// trigger removal from the simulation 
+		// pCell_to_eat->die(); // I don't think this is safe if it's in an OpenMP loop 
+
+		// flag it for removal 
+		// pCell_to_eat->flag_for_removal(); 
+		// mark it as dead 
+		pCell_to_fuse->dead = true;
+		pCell_to_fuse->fused = true; 
+
+	}
+
+	return; 
+}
+
+void Cell::was_fused() {
+
+	if( phenotype.death.dead == true )
+	{ return; } 
+
+	// absorb fluid volume (all into the cytoplasm) 
+		phenotype.volume.cytoplasmic_fluid = 0.0; 
+
+		phenotype.volume.nuclear_fluid = 0.0; 
+
+		// absorb nuclear and cyto solid volume (into the cytoplasm) 
+		phenotype.volume.cytoplasmic_solid = 0.0; 
+
+		phenotype.volume.nuclear_solid = 0.0; 
+
+		// consistency calculations 
+
+		phenotype.volume.fluid = 0.0; 
+
+		phenotype.volume.solid = 0.0; 
+
+		phenotype.volume.nuclear = 0.0; 
+
+		phenotype.volume.cytoplasmic = 0.0; 
+
+		phenotype.volume.total = 0.0; 
+
+		phenotype.volume.fluid_fraction = 0.0; 
+
+		// update corresponding BioFVM parameters (self-consistency) 
+		set_total_volume( 0.0 ); 
+
+		//Delete internalized substrates
+		static int n_substrates = internalized_substrates->size(); 
+		internalized_substrates->assign( n_substrates , 0.0 ); 	
+
+		phenotype.death.dead = true; 
+
+		phenotype.secretion.set_all_secretion_to_zero( );  
+		phenotype.secretion.set_all_uptake_to_zero( ); 
+
+		// deactivate all custom function 
+		functions.custom_cell_rule = NULL; 
+		functions.update_phenotype = NULL; 
+		functions.contact_function = NULL; 
+		functions.volume_update_function = NULL; 
+
+		// remove all adhesions 
+		// pCell_to_eat->remove_all_attached_cells();
+
+		// set cell as unmovable and non-secreting 
+		is_movable = false; 
+		is_active = false; 
+
+		// things that have their own thread safety 
+		flag_for_removal();
+		remove_all_attached_cells();
+}
+
+void Cell::ingest_cell( Interacting_Cell_Info* pCell_to_eat )
+{
+	// don't ingest a cell that's already ingested 
+	if( pCell_to_eat->phenotype_volume < 1e-15)
+	{ return; } 
+		
+	// make this thread safe 
+	#pragma omp critical
+	{
+		bool volume_was_zero = false; 
+		if( pCell_to_eat->phenotype.volume.total < 1e-15 )
+		{
+			volume_was_zero = true; 
+			std::cout << this << " " << this->type_name << " ingests " 
+			<< pCell_to_eat << " " << pCell_to_eat->type_name << std::endl; 
+		}
+		// absorb all the volume(s)
+
+		// absorb fluid volume (all into the cytoplasm) 
+		phenotype.volume.cytoplasmic_fluid += pCell_to_eat->cytoplasmatic_fluid + pCell_to_eat->nuclear_fluid; 
+		
+		// absorb nuclear and cyto solid volume (into the cytoplasm) 
+		phenotype.volume.cytoplasmic_solid += pCell_to_eat->cytoplasmic_solid; 
+		
+		phenotype.volume.cytoplasmic_solid += pCell_to_eat->nuclear_solid; 
+		
+		// consistency calculations 
+		
+		phenotype.volume.fluid = phenotype.volume.nuclear_fluid + 
+			phenotype.volume.cytoplasmic_fluid; 
+		
+		phenotype.volume.solid = phenotype.volume.cytoplasmic_solid + 
+			phenotype.volume.nuclear_solid;  
+		
+		phenotype.volume.cytoplasmic = phenotype.volume.cytoplasmic_solid + 
+			phenotype.volume.cytoplasmic_fluid; 
+		
+		phenotype.volume.total = phenotype.volume.nuclear + 
+			phenotype.volume.cytoplasmic; 
+
+		phenotype.volume.fluid_fraction = phenotype.volume.fluid / 
+			(  phenotype.volume.total + 1e-16 ); 
+
+		phenotype.volume.cytoplasmic_to_nuclear_ratio = phenotype.volume.cytoplasmic_solid / 
+			( phenotype.volume.nuclear_solid + 1e-16 );
+			
+		// update corresponding BioFVM parameters (self-consistency) 
+		set_total_volume( phenotype.volume.total ); 
+		
+		// absorb the internalized substrates 
+		
+		// multiply by the fraction that is supposed to be ingested (for each substrate) 
+		*(pCell_to_eat->internalized_substrates) *= 
+			*(pCell_to_eat->fraction_transferred_when_ingested); // 
+		
+		*internalized_substrates += *(pCell_to_eat->internalized_substrates); 
+		
+		// trigger removal from the simulation 
+		// pCell_to_eat->die(); // I don't think this is safe if it's in an OpenMP loop 
+		
+		// flag it for removal 
+		// pCell_to_eat->flag_for_removal(); 
+		// mark it as dead 
+		pCell_to_eat->dead = true; 
+		pCell_to_eat->ingested = true;
+	
+	}
+	
+	return; 
+}
+
+void Cell:was_ingested(){
+	// absorb fluid volume (all into the cytoplasm) 
+	#pragma omp critical
+	{
+		phenotype.volume.cytoplasmic_fluid = 0.0; 
+		
+		// absorb nuclear and cyto solid volume (into the cytoplasm) 
+		pCell_to_eat->phenotype.volume.cytoplasmic_solid = 0.0; 
+		
+		phenotype.volume.nuclear_solid = 0.0; 
+		
+		// consistency calculations 
+		
+
+		phenotype.volume.fluid = 0.0; 
+		
+		phenotype.volume.solid = 0.0; 
+		
+		// no change to nuclear volume (initially) 
+		phenotype.volume.nuclear = 0.0; 
+		phenotype.volume.nuclear_fluid = 0.0; 
+		
+		phenotype.volume.cytoplasmic = 0.0; 
+		
+		phenotype.volume.total = 0.0; 
+
+		phenotype.volume.fluid_fraction = 0.0; 
+
+			
+		// update corresponding BioFVM parameters (self-consistency) 
+
+		set_total_volume( 0.0 ); 
+		
+		// absorb the internalized substrates 
+		static int n_substrates = internalized_substrates->size(); 
+		pCell_to_eat->internalized_substrates->assign( n_substrates , 0.0 ); 	
+		
+		// trigger removal from the simulation 
+		// pCell_to_eat->die(); // I don't think this is safe if it's in an OpenMP loop 
+		
+		// flag it for removal 
+		// pCell_to_eat->flag_for_removal(); 
+		// mark it as dead 
+		phenotype.death.dead = true; 
+		// set secretion and uptake to zero 
+		phenotype.secretion.set_all_secretion_to_zero( );  
+		phenotype.secretion.set_all_uptake_to_zero( ); 
+		
+		// deactivate all custom function 
+		functions.custom_cell_rule = NULL; 
+		functions.update_phenotype = NULL; 
+		functions.contact_function = NULL; 
+
+		// remove all adhesions 
+		// pCell_to_eat->remove_all_attached_cells();
+		
+		// set cell as unmovable and non-secreting 
+		is_movable = false; 
+		is_active = false; 
+	}
+
+	// things that have their own thread safety 
+	flag_for_removal();
+	remove_all_attached_cells();
+}
+
+void Cell::attack_cell( Cell* pCell_to_attack , double dt )
+{
+	if( pCell_to_attack->phenotype.death.dead == true )
+	{ return; } 
+
+	// make this thread safe 
+	#pragma omp critical
+	{ 
+		pCell_to_attack->state.damage += phenotype.cell_interactions.damage_rate * dt; 
+		pCell_to_attack->state.total_attack_time += dt; 
+	}
+	return; 
+}
+
+void Cell::fuse_cell( Cell* pCell_to_fuse )
+{
+	// don't ingest a cell that's already fused 
+	if( pCell_to_fuse->phenotype.volume.total < 1e-15 || this == pCell_to_fuse )
+	{ return; } 
+
+	// make this thread safe 
+	#pragma omp critical
+	{
+		bool volume_was_zero = false; 
+		if( pCell_to_fuse->phenotype.volume.total < 1e-15 )
+		{
+			volume_was_zero = true; 
+			std::cout << this << " " << this->type_name << " fuses " 
+			<< pCell_to_fuse << " " << pCell_to_fuse->type_name << std::endl; 
+		}
+
+		// set new position at center of volume 
+			// x_new = (vol_B * x_B + vol_S * x_S ) / (vol_B + vol_S )
+
+		std::vector<double> new_position = position; // x_B
+		new_position *= phenotype.volume.total; // vol_B * x_B 
+		double total_volume = phenotype.volume.total; 
+		total_volume += pCell_to_fuse->phenotype.volume.total ;  
+
+		axpy( &new_position , pCell_to_fuse->phenotype.volume.total , pCell_to_fuse->position ); // vol_B*x_B + vol_S*x_S
+		new_position /= total_volume; // (vol_B*x_B+vol_S*x_S)/(vol_B+vol_S);
+
+		static double xL = get_default_microenvironment()->mesh.bounding_box[0];		 
+		static double xU = get_default_microenvironment()->mesh.bounding_box[3]; 
+
+		static double yL = get_default_microenvironment()->mesh.bounding_box[1];		 
+		static double yU = get_default_microenvironment()->mesh.bounding_box[4]; 
+
+		static double zL = get_default_microenvironment()->mesh.bounding_box[2];		 
+		static double zU = get_default_microenvironment()->mesh.bounding_box[5]; 
+
+		if( new_position[0] < xL || new_position[0] > xU || 
+		    new_position[1] < yL || new_position[1] > yU || 
+			new_position[2] < zL || new_position[2] > zU )
+		{
+			std::cout << "cell fusion at " << new_position << " violates domain bounds" << std::endl; 
+			std::cout << get_default_microenvironment()->mesh.bounding_box << std::endl << std::endl; 
+		}
+		position = new_position; 
+		update_voxel_in_container();
+
+		// set number of nuclei 
+
+		state.number_of_nuclei += pCell_to_fuse->state.number_of_nuclei; 
+
+		// absorb all the volume(s)
+
+		// absorb fluid volume (all into the cytoplasm) 
+		phenotype.volume.cytoplasmic_fluid += pCell_to_fuse->phenotype.volume.cytoplasmic_fluid; 
+		pCell_to_fuse->phenotype.volume.cytoplasmic_fluid = 0.0; 
+
+		phenotype.volume.nuclear_fluid += pCell_to_fuse->phenotype.volume.nuclear_fluid; 
+		pCell_to_fuse->phenotype.volume.nuclear_fluid = 0.0; 
+
+		// absorb nuclear and cyto solid volume (into the cytoplasm) 
+		phenotype.volume.cytoplasmic_solid += pCell_to_fuse->phenotype.volume.cytoplasmic_solid; 
+		pCell_to_fuse->phenotype.volume.cytoplasmic_solid = 0.0; 
+
+		phenotype.volume.nuclear_solid += pCell_to_fuse->phenotype.volume.nuclear_solid; 
+		pCell_to_fuse->phenotype.volume.nuclear_solid = 0.0; 
+
+		// consistency calculations 
+
+		phenotype.volume.fluid = phenotype.volume.nuclear_fluid + 
+			phenotype.volume.cytoplasmic_fluid; 
+		pCell_to_fuse->phenotype.volume.fluid = 0.0; 
+
+		phenotype.volume.solid = phenotype.volume.cytoplasmic_solid + 
+			phenotype.volume.nuclear_solid; 
+		pCell_to_fuse->phenotype.volume.solid = 0.0; 
+
+		phenotype.volume.nuclear = phenotype.volume.nuclear_fluid + 
+			phenotype.volume.nuclear_solid; 
+		pCell_to_fuse->phenotype.volume.nuclear = 0.0; 
+
+		phenotype.volume.cytoplasmic = phenotype.volume.cytoplasmic_fluid + 
+			phenotype.volume.cytoplasmic_solid; 
+		pCell_to_fuse->phenotype.volume.cytoplasmic = 0.0; 
+
+		phenotype.volume.total = phenotype.volume.nuclear + 
+			phenotype.volume.cytoplasmic; 
+		pCell_to_fuse->phenotype.volume.total = 0.0; 
+
+		phenotype.volume.fluid_fraction = phenotype.volume.fluid / 
+			(  phenotype.volume.total + 1e-16 ); 
+		pCell_to_fuse->phenotype.volume.fluid_fraction = 0.0; 
+
+		phenotype.volume.cytoplasmic_to_nuclear_ratio = phenotype.volume.cytoplasmic_solid / 
+			( phenotype.volume.nuclear_solid + 1e-16 );
+
+		// update corresponding BioFVM parameters (self-consistency) 
+		set_total_volume( phenotype.volume.total ); 
+		pCell_to_fuse->set_total_volume( 0.0 ); 
+
+		// absorb the internalized substrates 
+
+		*internalized_substrates += *(pCell_to_fuse->internalized_substrates); 
+		static int n_substrates = internalized_substrates->size(); 
+		pCell_to_fuse->internalized_substrates->assign( n_substrates , 0.0 ); 	
+
+		// set target volume(s)
+
+		phenotype.volume.target_solid_cytoplasmic += pCell_to_fuse->phenotype.volume.target_solid_cytoplasmic;
+		phenotype.volume.target_solid_nuclear += pCell_to_fuse->phenotype.volume.target_solid_nuclear;
+
+		// trigger removal from the simulation 
+		// pCell_to_eat->die(); // I don't think this is safe if it's in an OpenMP loop 
+
+		// flag it for removal 
+		// pCell_to_eat->flag_for_removal(); 
+		// mark it as dead 
+		pCell_to_fuse->phenotype.death.dead = true; 
+		// set secretion and uptake to zero 
+		pCell_to_fuse->phenotype.secretion.set_all_secretion_to_zero( );  
+		pCell_to_fuse->phenotype.secretion.set_all_uptake_to_zero( ); 
+
+		// deactivate all custom function 
+		pCell_to_fuse->functions.custom_cell_rule = NULL; 
+		pCell_to_fuse->functions.update_phenotype = NULL; 
+		pCell_to_fuse->functions.contact_function = NULL; 
+		pCell_to_fuse->functions.volume_update_function = NULL; 
+
+		// remove all adhesions 
+		// pCell_to_eat->remove_all_attached_cells();
+
+		// set cell as unmovable and non-secreting 
+		pCell_to_fuse->is_movable = false; 
+		pCell_to_fuse->is_active = false; 
+
+	}
+
+	// things that have their own thread safety 
+	pCell_to_fuse->flag_for_removal();
+	pCell_to_fuse->remove_all_attached_cells();
+
+	return; 
+}
+
 void Cell::lyse_cell( void )
 {
 	// don't lyse a cell that's already lysed 
@@ -2116,7 +2627,7 @@ void Cell::lyse_cell( void )
 /* Added by Gaurav Saxena to print 'most' of	 */
 /* the fields of the Cell data structure,			 */
 /* useful when comparing cell fields after 		 */
-/* pack_and_send() function. 									 */
+/* pack_and_send() function. 					*/
 /*---------------------------------------------*/
 void Cell::print_cell(mpi_Environment &world)
 {
@@ -2495,7 +3006,7 @@ if (this->phenotype.intracellular != NULL) {
 /* fields of Cell data structure when cells		 */
 /* cross sub-domain boundaries.								 */
 /*---------------------------------------------*/
-//Jose: MPI_PACK allows parallel writting to the same buffer -> controlled by position?
+
 void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
 
@@ -2535,10 +3046,10 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 	/* All 10 members below are now in the Cell_Container class */
 	/*----------------------------------------------------------*/
 
-	position_left 			 		= 0;					//Must be initialized to 0
-	position_right 			 		= 0;					//Must be initialized to 0
-	no_cells_cross_left  		= 0;					//Must be initialized to 0
-	no_cells_cross_right		= 0;					//Must be initialized to 0
+	position_left 			= 0;					//Must be initialized to 0
+	position_right 			= 0;					//Must be initialized to 0
+	no_cells_cross_left  	= 0;					//Must be initialized to 0
+	no_cells_cross_right	= 0;					//Must be initialized to 0
 	no_of_cells_from_right 	= 0;
 	no_of_cells_from_left 	= 0;
 
@@ -5836,6 +6347,43 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 
 bool cell_definitions_by_name_constructed = false;
 
+void prebuild_cell_definition_index_maps( void )
+{
+	// look in config file 
+	extern pugi::xml_node physicell_config_root; 
+	// find the start of cell definitions 
+	pugi::xml_node node = physicell_config_root.child( "cell_definitions" ); 
+
+	// find the first cell definition 
+	node = node.child( "cell_definition" ); 
+
+	// We won't declare and build the cell definitions just yet. 
+	// All we want to do is know in advance the IDs and names 
+	// of all cell definitions, so we can appropriately size 
+	// Cell_Interactions and Cell_Transformations in the phenotype 
+	// when we set up the cell definitions. 
+
+	int n = 0; 
+	while( node )
+	{
+		int ID = node.attribute( "ID" ).as_int();  
+		std::string type_name = node.attribute( "name" ).value();   
+
+		std::cout << "Pre-processing type " << ID << " named " << type_name << std::endl; 
+
+//		cell_definitions_by_name[ type_name ] = pCD; 
+//		cell_definitions_by_type[ pCD->type ] = pCD; 
+
+		cell_definition_indices_by_name[ type_name ] = n; 
+		cell_definition_indices_by_type[ ID ] = n; 
+
+		node = node.next_sibling( "cell_definition" ); 
+		n++; 
+	}	
+
+	return; 
+}
+
 void build_cell_definitions_maps( void )
 {
 //	cell_definitions_by_name.
@@ -5846,6 +6394,9 @@ void build_cell_definitions_maps( void )
 		Cell_Definition* pCD = cell_definitions_by_index[n];
 		cell_definitions_by_name[ pCD->name ] = pCD;
 		cell_definitions_by_type[ pCD->type ] = pCD;
+
+		cell_definition_indices_by_name[ pCD->name ] = n; 
+		cell_definition_indices_by_type[ pCD->type ] = n; 
 	}
 
 	cell_definitions_by_name_constructed = true;
@@ -6119,7 +6670,7 @@ Cell_Definition* initialize_cell_definition_from_pugixml( pugi::xml_node cd_node
 	// if we found something to inherit from, then do it! 
 	if( pParent != NULL )
 	{
-		std::cout << "\tInheriting from type " << pParent->name << " ... " << std::endl; 
+		std::cout << "\tCopying from type " << pParent->name << " ... " << std::endl; 
 		*pCD = *pParent; 
 		
 		// but recover the name and ID (type)
@@ -6147,6 +6698,11 @@ Cell_Definition* initialize_cell_definition_from_pugixml( pugi::xml_node cd_node
 	// pCD->phenotype.secretion.sync_to_current_microenvironment();
 	pCD->phenotype.secretion.sync_to_microenvironment( (pCD->pMicroenvironment) ); 
 	pCD->phenotype.molecular.sync_to_microenvironment( (pCD->pMicroenvironment) );
+
+	// make sure that interactions and transfomations are correctly sized 
+	// this requires that prebuild_cell_definition_index_maps was already run 
+	pCD->phenotype.cell_interactions.sync_to_cell_definitions(); 
+	pCD->phenotype.cell_transformations.sync_to_cell_definitions(); 
 	
 	// set the reference phenotype 
 	pCD->parameters.pReference_live_phenotype = &(pCD->phenotype); 
@@ -6931,6 +7487,8 @@ void initialize_cell_definitions_from_pugixml( pugi::xml_node root )
 		}
 	}
 	
+	prebuild_cell_definition_index_maps(); 
+
 	pugi::xml_node node = root.child( "cell_definitions" ); 
 	
 	node = node.child( "cell_definition" ); 
@@ -7101,6 +7659,10 @@ std::vector<Cell*> find_nearby_interacting_cells( Cell* pCell )
 	
 	return neighbors; 
 }
+
+
+int find_cell_definition_index( std::string search_string );
+int find_cell_definition_index( int search_type );  
 
 
 

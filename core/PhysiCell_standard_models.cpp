@@ -889,12 +889,14 @@ void initialize_default_cell_definition( void )
 	
 	cell_defaults.phenotype.secretion.sync_to_current_microenvironment();
 	
+	
 	// set up the default parameters 
 		
 	cell_defaults.type = 0; 
 	cell_defaults.name = "breast epithelium"; 
 
 	cell_defaults.parameters.pReference_live_phenotype = &(cell_defaults.phenotype); 
+	
 	
 	// set up the default custom data 
 		// the default Custom_Cell_Data constructor should take care of this
@@ -1254,5 +1256,220 @@ double distance_to_domain_edge(Cell* pCell, Phenotype& phenotype, double dummy)
 	pCell->displacement = {0,0,0};
 	return 9e99; 
 }	
+
+void standard_cell_cell_interactions( Cell* pCell, Phenotype& phenotype, double dt )
+{
+	if( phenotype.death.dead == true )
+	{ return; }
+
+	Cell* pC = NULL; 
+	int type = -1; 
+	double probability = 0.0; 
+
+	// std::cout << "testing against " << pCell->state.neighbors.size() << " cells " << std::endl; 
+
+	bool attacked = false; 
+	for( int n=0; n < pCell->state.neighbors.size(); n++ )
+	{
+		pC = pCell->state.neighbors[n]; 
+		type = pC->type; 
+		if( pC->phenotype.death.dead == true )
+		{
+			// dead phagocytosis 
+			probability = phenotype.cell_interactions.dead_phagocytosis_rate * dt; 
+			if( UniformRandom() <= probability ) 
+			{ pCell->ingest_cell(pC); } 
+		}
+		else
+		{
+			// live phagocytosis
+			probability = phenotype.cell_interactions.live_phagocytosis_rates[type] * dt;  
+			if( UniformRandom() <= probability ) 
+			{ pCell->ingest_cell(pC); } 
+
+			// attack 
+
+			// assume you can only attack one cell at a time 
+			probability = phenotype.cell_interactions.attack_rates[type] * dt;  
+			if( UniformRandom() <= probability && attacked == false ) 
+			{
+				pCell->attack_cell(pC,dt); 
+				attacked = true;
+			} 
+
+			// fusion 
+			probability = phenotype.cell_interactions.fusion_rates[type] * dt;  
+			if( UniformRandom() <= probability ) 
+			{ pCell->fuse_cell(pC); } 
+		}
+
+
+
+	}
+//	std::cout << std::endl; 
+
+}
+
+//MPI parallel version
+void standard_cell_cell_interactions( Cell* pCell, Phenotype& phenotype, double dt , mpi_Environment &world, mpi_Cartesian &cart_topo )
+{
+	if( phenotype.death.dead == true )
+	{ return; }
+
+	Cell* pC = NULL; 
+	int type = -1; 
+	double probability = 0.0; 
+
+	// std::cout << "testing against " << pCell->state.neighbors.size() << " cells " << std::endl; 
+
+	bool attacked = false; 
+	for( int n=0; n < pCell->state.neighbors.size(); n++ )
+	{
+		pC = pCell->state.neighbors[n]; 
+		type = pC->type; 
+		if( pC->phenotype.death.dead == true )
+		{
+			// dead phagocytosis 
+			probability = phenotype.cell_interactions.dead_phagocytosis_rate * dt; 
+			if( UniformRandom() <= probability ) 
+			{ pCell->ingest_cell(pC); } 
+		}
+		else
+		{
+			// live phagocytosis
+			probability = phenotype.cell_interactions.live_phagocytosis_rates[type] * dt;  
+			if( UniformRandom() <= probability ) 
+			{ pCell->ingest_cell(pC); } 
+
+			// attack 
+
+			// assume you can only attack one cell at a time 
+			probability = phenotype.cell_interactions.attack_rates[type] * dt;  
+			if( UniformRandom() <= probability && attacked == false ) 
+			{
+				pCell->attack_cell(pC,dt); 
+				attacked = true;
+			} 
+
+			// fusion 
+			probability = phenotype.cell_interactions.fusion_rates[type] * dt;  
+			if( UniformRandom() <= probability ) 
+			{ pCell->fuse_cell(pC); } 
+		}
+
 	
+
+	}
+//	std::cout << std::endl; 
+	
+	
+	int x_dim = pCell->get_container()->underlying_mesh.x_coordinates.size(); 
+	int y_dim = pCell->get_container()->underlying_mesh.y_coordinates.size();
+	int z_dim = pCell->get_container()->underlying_mesh.z_coordinates.size();
+	
+	int local_vxl_inex = pCell->get_current_mechanics_voxel_index();
+	//int position_voxel = (local_vxl_inex % (x_dim * y_dim)) % x_dim;  Layout warning!
+	int position_voxel = (local_vxl_inex / (z_dim * y_dim));
+
+
+	if (position_voxel == 0) { //Left edge
+		if (world.rank > 0) { //Not first rank 
+			//Acceder a los vecinos en un u_map
+			//Por cada vecino:
+				//check ingest, attack, fuse
+			int yx_index = local_vxl_inex %(y_dim*z_dim);
+			std::vector<int> moore_list = pCell->get_container()->underlying_mesh.moore_connected_voxel_global_indices_left[yx_index];
+			for(int i=0; i<moore_list.size(); i++)
+			{
+				Interacting_Cell_Info &ivi = pCell->get_container()->um_ivfl.at(moore_list[i]);
+					
+				for(int cell_ctr=0; cell_ctr<ivi.cells.size(); cell_ctr++) {
+					//pCell->add_potentials(mvi.cells[cell_ctr], world, cart_topo); 
+					Interacting_Cell_Info * pC = &mvi.cells[cell_ctr]; 
+					int type = pC->type; 
+					if( pC->phenotype.death.dead == true )
+					{
+						// dead phagocytosis 
+						probability = phenotype.cell_interactions.dead_phagocytosis_rate * dt; 
+						if( UniformRandom() <= probability ) 
+						{ pCell->ingest_cell(pC); } 
+					}
+					else
+					{
+						// live phagocytosis
+						probability = phenotype.cell_interactions.live_phagocytosis_rates[type] * dt;  
+						if( UniformRandom() <= probability ) 
+						{ pCell->ingest_cell(pC); } 
+
+						// attack 
+
+						// assume you can only attack one cell at a time 
+						probability = phenotype.cell_interactions.attack_rates[type] * dt;  
+						if( UniformRandom() <= probability && attacked == false ) 
+						{
+							pCell->attack_cell(pC,dt); 
+							attacked = true;
+						} 
+
+						// fusion 
+						probability = phenotype.cell_interactions.fusion_rates[type] * dt;  
+						if( UniformRandom() <= probability ) 
+						{ pCell->fuse_cell(pC); } 
+					}
+				}
+				
+			}
+		}
+	}
+	if(position_voxel == (x_dim-1)) { //Right edge
+		if(world.rank < world.size-1) { //
+			//Acceder a los vecinos en un u_map
+			//Por cada vecino:
+				//check ingest, attack, fuse
+			int yx_index = local_vxl_inex %(y_dim*z_dim);
+			std::vector<int> moore_list = pCell->get_container()->underlying_mesh.moore_connected_voxel_global_indices_right[yx_index];
+			for(int i=0; i<moore_list.size(); i++)
+			{
+				Interacting_Cell_Info &ivi = pCell->get_container()->um_ivfr.at(moore_list[i]);
+					
+				for(int cell_ctr=0; cell_ctr<ivi.cells.size(); cell_ctr++) {
+					//pCell->add_potentials(mvi.cells[cell_ctr], world, cart_topo); 
+					Interacting_Cell_Info * pC = &ivi.cells[cell_ctr]; 
+					int type = pC->type; 
+					if( pC->phenotype.death.dead == true )
+					{
+						// dead phagocytosis 
+						probability = phenotype.cell_interactions.dead_phagocytosis_rate * dt; 
+						if( UniformRandom() <= probability ) 
+						{ pCell->ingest_cell(pC); } 
+					}
+					else
+					{
+						// live phagocytosis
+						probability = phenotype.cell_interactions.live_phagocytosis_rates[type] * dt;  
+						if( UniformRandom() <= probability ) 
+						{ pCell->ingest_cell(pC); } 
+
+						// attack 
+
+						// assume you can only attack one cell at a time 
+						probability = phenotype.cell_interactions.attack_rates[type] * dt;  
+						if( UniformRandom() <= probability && attacked == false ) 
+						{
+							pCell->attack_cell(pC,dt); 
+							attacked = true;
+						} 
+
+						// fusion 
+						probability = phenotype.cell_interactions.fusion_rates[type] * dt;  
+						if( UniformRandom() <= probability ) 
+						{ pCell->fuse_cell(pC); } 
+					}
+				}
+			}
+		}
+	}
+}
+
+
 };

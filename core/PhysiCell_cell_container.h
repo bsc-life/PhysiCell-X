@@ -102,7 +102,7 @@ public:
 	double cell_cell_adhesion_strength;
 };
 
-class Moore_Voxel_Info
+class Moore_Voxel_Info 
 {
 public:
 	int global_mesh_index;
@@ -110,6 +110,48 @@ public:
 	std::vector<double> center;
 	double max_cell_interactive_distance_in_voxel;
 	std::vector<Moore_Cell_Info> moore_cells;
+};
+
+class Interacting_Cell_Info
+{
+public:
+	int ID;
+	int type;
+	bool dead;
+	std::vector<double> position;
+	//Attack info
+	bool attacked = false;
+	double damage_suffered = 0;
+	double time_attacked = 0;
+	//Fuse info
+	//IN
+	int number_of_nuclei;
+	double phenotype_volume;
+	double cytoplasmatic_fluid;
+	double nuclear_fluid;
+	double cytoplasmic_solid;
+	double nuclear_solid;
+	std::vector<double> internalized_substrates;
+	double target_solid_cytoplasmic;
+	double target_solid_nuclear;
+	//OUT
+	bool fused = false;
+
+	//Ingest
+	//IN
+	std::vector<double> fraction_transferred_when_ingested;
+	//OUT
+	bool ingested = false;
+};
+
+class Interacting_Voxel
+{
+public:
+	int global_mesh_index;  //used to id in u_map
+	int no_of_cells_in_vxl; //necessary to unpack info
+	//std::vector<double> center;
+	//double max_cell_interactive_distance_in_voxel;
+	std::vector<Interactive_Cell_Info> cells; 
 };
 
 
@@ -196,7 +238,7 @@ class Cell_Container : public BioFVM::Agent_Container
     /* Parallel prototype of function above*/
     /*-------------------------------------*/
     
-  void update_all_cells(double t, mpi_Environment &world, mpi_Cartesian &cart_topo); 
+    void update_all_cells(double t, mpi_Environment &world, mpi_Cartesian &cart_topo); 
 	
 	void update_all_cells(double t, double dt);
 	void update_all_cells(double t, double phenotype_dt, double mechanics_dt);
@@ -217,6 +259,8 @@ class Cell_Container : public BioFVM::Agent_Container
 	void flag_cell_for_division( Cell* pCell ); 
 	void flag_cell_for_removal( Cell* pCell ); 
 	bool contain_any_cell(int voxel_index);
+
+	Cell* find_cell(int local_voxel, int cell_id);
 	
 	/*-----------------------------------------------------------------*/
 	/* Added by Gaurav Saxena, a new function which would 'byte' pack	 */
@@ -239,6 +283,8 @@ class Cell_Container : public BioFVM::Agent_Container
 	/*------------------------------------------------------------------------*/
 	
 	void pack_moore_info(mpi_Environment &world, mpi_Cartesian &cart_topo);
+
+	void cell_cell_interaction_with_border(std::vector<Interacting_Voxel> *iv);
 	
 	/*-----------------------------------------------------------------------------------------------------*/
 	/* Added by Gaurav Saxena - mbfr is a vector that contains info of boundary voxels in adjacent process */
@@ -250,7 +296,19 @@ class Cell_Container : public BioFVM::Agent_Container
 	
 	std::unordered_map<int, Moore_Voxel_Info> um_mbfl; //um_mbfl[globa_mesh_index]=Moore_Voxel_Info[index]
 	std::unordered_map<int, Moore_Voxel_Info> um_mbfr; //um_mbfr[globa_mesh_index]=Moore_Voxel_Info[index]
+
+	/*-----------------------------------------------------------------------------------------------------*/
+	/* Internal cell information communication for cell cell interactions								   */
+	/* It is required read information and return result to neighbours processes 						   */													 */
+	/*-----------------------------------------------------------------------------------------------------*/
+
+	void pack_cell_interact_info(mpi_Environment &world, mpi_Cartesian &cart_topo);
+
+	std::vector<Interacting_Voxel> ivfr;		//Voxels From Right (mbfr from right process)
+	std::vector<Interacting_Voxel> ivfl; 	//Voxels Boundary From Left 	(mbfl from left process)
 	
+	std::unordered_map<int, Interacting_Voxel> um_ivfl; //um_mbfl[globa_mesh_index]=Moore_Voxel_Info[index]
+	std::unordered_map<int, Interacting_Voxel> um_ivfr; //um_mbfr[globa_mesh_index]=Moore_Voxel_Info[index]
 };
 
 int find_escaping_face_index(Cell* agent);
