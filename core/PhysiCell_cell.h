@@ -294,12 +294,12 @@ class Cell : public Basic_Agent
 	
 	void ingest_cell( Cell* pCell_to_eat ); // for use in predation, e.g., immune cells 
 	void attack_cell( Cell* pCell_to_attack , double dt ); 
-	void fuse_cell( Cell* pCell_to_fuse ); // done 
+	void fuse_cell( Cell* pCell_to_fuse); // done 
 
 	//MPI versions
 	void ingest_cell( Interacting_Cell_Info * pCell_to_eat ); // for use in predation, e.g., immune cells 
 	void attack_cell( Interacting_Cell_Info * pCell_to_attack , double dt ); //done
-	void fuse_cell( Interacting_Cell_Info * pCell_to_fuse ); // done 
+	void fuse_cell( Interacting_Cell_Info * pCell_to_fuse, mpi_Environment &world, mpi_Cartesian &cart_topo ); // done 
 
 	void was_fused();//done
 	void was_attacked(double damage_suffered, double time_attacked); //done
@@ -309,6 +309,7 @@ class Cell : public Basic_Agent
 	void detach_cell( Cell* pRemoveMe ); // done 
 	void remove_all_attached_cells( void ); // done 
 
+	void remove_self_from_all_neighbors( void );
 	// I want to eventually deprecate this, by ensuring that 
 	// critical BioFVM and PhysiCell data elements are synced when they are needed 
 	

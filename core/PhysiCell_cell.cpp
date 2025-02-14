@@ -533,7 +533,8 @@ Cell::~Cell()
 		{
 			// release any attached cells (as of 1.7.2 release)
 			this->remove_all_attached_cells(); 
-			
+			// new Dec 5, 2024: 
+			this->remove_self_from_all_neighbors(); 
 			// released internalized substrates (as of 1.5.x releases)
 			this->release_internalized_substrates(); 
 
@@ -1489,6 +1490,7 @@ void Cell::add_potentials(Cell* other_agent)
 		temp_a *= effective_adhesion;
 
 		temp_r -= temp_a;
+		state.neighbors.push_back(other_agent);
 	}
 	/////////////////////////////////////////////////////////////////
 	if( fabs(temp_r) < 1e-16 )
@@ -1499,8 +1501,6 @@ void Cell::add_potentials(Cell* other_agent)
 	//	velocity[i] += displacement[i] * temp_r;
 	// }
 	axpy( &velocity , temp_r , displacement );
-	
-	state.neighbors.push_back(other_agent); // new 1.8.0
 
 	return;
 }
@@ -1755,6 +1755,8 @@ void delete_cell( int index )
 	
 	// released internalized substrates (as of 1.5.x releases)
 	pDeleteMe->release_internalized_substrates(); 
+
+	pDeleteMe->remove_self_from_all_neighbors(); 			
 
 	// performance goal: don't delete in the middle -- very expensive reallocation
 	// alternative: copy last element to index position, then shrink vector by 1 at the end O(constant)
@@ -2098,7 +2100,7 @@ void Cell::ingest_cell( Cell* pCell_to_eat )
 	return; 
 }
 
-void Cell::attack_cell( Interactive_Cell_Info* pCell_to_attack , double dt )
+void Cell::attack_cell( Interacting_Cell_Info* pCell_to_attack , double dt )
 {
 	if( pCell_to_attack->dead == true )
 	{ return; } 
@@ -2135,7 +2137,7 @@ void Cell::fuse_cell( Interacting_Cell_Info* pCell_to_fuse, mpi_Environment &wor
 		{
 			volume_was_zero = true; 
 			std::cout << this << " " << this->type_name << " fuses " 
-			<< pCell_to_fuse << " " << pCell_to_fuse->type_name << std::endl; 
+			<< pCell_to_fuse << " " << pCell_to_fuse->type << std::endl; 
 		}
 
 		// set new position at center of volume 
@@ -2170,7 +2172,7 @@ void Cell::fuse_cell( Interacting_Cell_Info* pCell_to_fuse, mpi_Environment &wor
 
 		// set number of nuclei 
 
-		state.number_of_nuclei += pCell_to_fuse->state.number_of_nuclei; 
+		state.number_of_nuclei += pCell_to_fuse->number_of_nuclei; 
 
 		// absorb all the volume(s)
 
@@ -2212,12 +2214,12 @@ void Cell::fuse_cell( Interacting_Cell_Info* pCell_to_fuse, mpi_Environment &wor
 
 		// absorb the internalized substrates 
 
-		*internalized_substrates += *(pCell_to_fuse->internalized_substrates); 
+		*internalized_substrates += pCell_to_fuse->internalized_substrates; 
 
 		// set target volume(s)
 
 		phenotype.volume.target_solid_cytoplasmic += pCell_to_fuse->target_solid_cytoplasmic;
-		phenotype.volume.target_solid_nuclear += pCell_to_fuse->phenotype.volume.target_solid_nuclear;
+		phenotype.volume.target_solid_nuclear += pCell_to_fuse->target_solid_nuclear;
 
 		// trigger removal from the simulation 
 		// pCell_to_eat->die(); // I don't think this is safe if it's in an OpenMP loop 
@@ -2302,16 +2304,16 @@ void Cell::ingest_cell( Interacting_Cell_Info* pCell_to_eat )
 	#pragma omp critical
 	{
 		bool volume_was_zero = false; 
-		if( pCell_to_eat->phenotype.volume.total < 1e-15 )
+		if( pCell_to_eat->phenotype_volume < 1e-15 )
 		{
 			volume_was_zero = true; 
 			std::cout << this << " " << this->type_name << " ingests " 
-			<< pCell_to_eat << " " << pCell_to_eat->type_name << std::endl; 
+			<< pCell_to_eat << " " << pCell_to_eat->type << std::endl; 
 		}
 		// absorb all the volume(s)
 
 		// absorb fluid volume (all into the cytoplasm) 
-		phenotype.volume.cytoplasmic_fluid += pCell_to_eat->cytoplasmatic_fluid + pCell_to_eat->nuclear_fluid; 
+		phenotype.volume.cytoplasmic_fluid += pCell_to_eat->cytoplasmic_fluid + pCell_to_eat->nuclear_fluid; 
 		
 		// absorb nuclear and cyto solid volume (into the cytoplasm) 
 		phenotype.volume.cytoplasmic_solid += pCell_to_eat->cytoplasmic_solid; 
@@ -2344,10 +2346,10 @@ void Cell::ingest_cell( Interacting_Cell_Info* pCell_to_eat )
 		// absorb the internalized substrates 
 		
 		// multiply by the fraction that is supposed to be ingested (for each substrate) 
-		*(pCell_to_eat->internalized_substrates) *= 
-			*(pCell_to_eat->fraction_transferred_when_ingested); // 
+		pCell_to_eat->internalized_substrates *= 
+			pCell_to_eat->fraction_transferred_when_ingested; // 
 		
-		*internalized_substrates += *(pCell_to_eat->internalized_substrates); 
+		*internalized_substrates += pCell_to_eat->internalized_substrates; 
 		
 		// trigger removal from the simulation 
 		// pCell_to_eat->die(); // I don't think this is safe if it's in an OpenMP loop 
@@ -2363,14 +2365,14 @@ void Cell::ingest_cell( Interacting_Cell_Info* pCell_to_eat )
 	return; 
 }
 
-void Cell:was_ingested(){
+void Cell::was_ingested(){
 	// absorb fluid volume (all into the cytoplasm) 
 	#pragma omp critical
 	{
 		phenotype.volume.cytoplasmic_fluid = 0.0; 
 		
 		// absorb nuclear and cyto solid volume (into the cytoplasm) 
-		pCell_to_eat->phenotype.volume.cytoplasmic_solid = 0.0; 
+		phenotype.volume.cytoplasmic_solid = 0.0; 
 		
 		phenotype.volume.nuclear_solid = 0.0; 
 		
@@ -2398,7 +2400,7 @@ void Cell:was_ingested(){
 		
 		// absorb the internalized substrates 
 		static int n_substrates = internalized_substrates->size(); 
-		pCell_to_eat->internalized_substrates->assign( n_substrates , 0.0 ); 	
+		internalized_substrates->assign( n_substrates , 0.0 ); 	
 		
 		// trigger removal from the simulation 
 		// pCell_to_eat->die(); // I don't think this is safe if it's in an OpenMP loop 
@@ -4803,6 +4805,36 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 		// 	// std::cout<<"Buffer size for cells going to right: "	<< snd_buf_right.size() << std::endl;
 		// }
 		
+}
+
+void Cell::remove_self_from_all_neighbors( void )
+{
+	Cell* pCell = this; 
+	// go through all neighbors (pN) of this (pC)
+
+	for( int j = 0 ; j < pCell->state.neighbors.size(); j++ )
+	{
+	 	Cell* pN = pCell->state.neighbors[j]; 
+
+		// for each pN, remove pC from list of neighbors 
+			// find pC in neighbors 
+
+
+			auto SearchResult = std::find( 
+				pN->state.neighbors.begin(),pN->state.neighbors.end(),pCell );  		
+
+			// if pC is indeed found, remove it  
+			// erase pC from neighbors 
+			if( SearchResult != pN->state.neighbors.end() )
+			{
+				// if the target is found, set the appropriate rate 
+				pN->state.neighbors.erase( SearchResult ); 
+			}
+			else
+			{ /* future error message */  }
+	}
+
+	return; 
 }
 
 void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)

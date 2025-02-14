@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --nodes=4
-#SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=112
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=2
+#SBATCH --cpus-per-task=56
 #SBATCH --qos=gp_debug
 #SBATCH -t 02:00:00
 #SBATCH --account=bsc08
@@ -20,10 +20,10 @@ module load gcc/13.2.0 openmpi/4.1.5-gcc ddt
 
 
 
-#srun ./heterogeneity.exe
-#mpirun -n 2 ./heterogeneity.exe
+srun ./heterogeneity.exe
+#ddt --connect mpirun -n 2 ./heterogeneity.exe
 #ddt --connect mpirun -n 4 ./heterogeneity.exe
 #srun ./capVoxels 2000 1
-srun --nodes=4 --ntasks-per-node=1 --cpus-per-task=112 ./heterogeneity.exe
+#srun --nodes=4 --ntasks-per-node=1 --cpus-per-task=112 ./heterogeneity.exe
 #./dirichlet_test $voxels 1> ./dirichlet/${voxels}_112_th.log 2>  ./dirichlet/${voxels}_112_th.log
 

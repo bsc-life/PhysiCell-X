@@ -850,12 +850,6 @@ void Motility::sync_to_microenvironment( Microenvironment* pNew_Microenvironment
 	return; 
 }
 
-double& Motility::chemotactic_sensitivity( std::string name )
-{
-	int n = microenvironment.find_density_index(name); 
-	return chemotactic_sensitivities[n]; 
-}
-
 Secretion::Secretion()
 {
 	pMicroenvironment = get_default_microenvironment(); 

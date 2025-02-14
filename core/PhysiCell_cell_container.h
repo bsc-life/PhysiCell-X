@@ -127,7 +127,7 @@ public:
 	//IN
 	int number_of_nuclei;
 	double phenotype_volume;
-	double cytoplasmatic_fluid;
+	double cytoplasmic_fluid;
 	double nuclear_fluid;
 	double cytoplasmic_solid;
 	double nuclear_solid;
@@ -151,7 +151,7 @@ public:
 	int no_of_cells_in_vxl; //necessary to unpack info
 	//std::vector<double> center;
 	//double max_cell_interactive_distance_in_voxel;
-	std::vector<Interactive_Cell_Info> cells; 
+	std::vector<Interacting_Cell_Info> cells; 
 };
 
 
@@ -283,8 +283,6 @@ class Cell_Container : public BioFVM::Agent_Container
 	/*------------------------------------------------------------------------*/
 	
 	void pack_moore_info(mpi_Environment &world, mpi_Cartesian &cart_topo);
-
-	void cell_cell_interaction_with_border(std::vector<Interacting_Voxel> *iv);
 	
 	/*-----------------------------------------------------------------------------------------------------*/
 	/* Added by Gaurav Saxena - mbfr is a vector that contains info of boundary voxels in adjacent process */
@@ -299,11 +297,13 @@ class Cell_Container : public BioFVM::Agent_Container
 
 	/*-----------------------------------------------------------------------------------------------------*/
 	/* Internal cell information communication for cell cell interactions								   */
-	/* It is required read information and return result to neighbours processes 						   */													 */
+	/* It is required read information and return result to neighbours processes 						   */													 
 	/*-----------------------------------------------------------------------------------------------------*/
 
 	void pack_cell_interact_info(mpi_Environment &world, mpi_Cartesian &cart_topo);
-
+	void unpack_cell_interact_info(mpi_Environment &world, mpi_Cartesian &cart_topo);
+	void cell_cell_interaction_with_border(std::vector<Interacting_Voxel> *iv);
+	
 	std::vector<Interacting_Voxel> ivfr;		//Voxels From Right (mbfr from right process)
 	std::vector<Interacting_Voxel> ivfl; 	//Voxels Boundary From Left 	(mbfl from left process)
 	

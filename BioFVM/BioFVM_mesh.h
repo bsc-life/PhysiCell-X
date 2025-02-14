@@ -256,7 +256,8 @@ class Cartesian_Mesh : public General_Mesh
 	int x_size;
 	int y_size;
 	int z_size;
-	int n_substrates; 
+
+	int n_substrates;
 
 	double local_x_start;
 	double local_y_start;

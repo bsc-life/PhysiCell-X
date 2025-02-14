@@ -156,6 +156,8 @@ void evaluate_interactions( Cell* pCell, Phenotype& phenotype, double dt );
 
 // automated cell phagocytosis, attack, and fusion 
 void standard_cell_cell_interactions( Cell* pCell, Phenotype& phenotype, double dt );
+
+void standard_cell_cell_interactions( Cell* pCell, Phenotype& phenotype, double dt,  mpi_Environment &world, mpi_Cartesian &cart_topo);
 };
 
 #endif 

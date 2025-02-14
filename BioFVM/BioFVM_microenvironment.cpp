@@ -2690,7 +2690,12 @@ void initialize_microenvironment( mpi_Environment &world, mpi_Cartesian &cart_to
 		
 		}		
 	}
-	
+
+	//set underlying mesh values
+	microenvironment.mesh.x_size = microenvironment.mesh.x_coordinates.size();
+	microenvironment.mesh.y_size = microenvironment.mesh.y_coordinates.size();
+	microenvironment.mesh.z_size = microenvironment.mesh.z_coordinates.size();
+	microenvironment.mesh.n_substrates = microenvironment.number_of_densities();
 /*
 	if( default_microenvironment_options.outer_Dirichlet_conditions == true ) 
 	{

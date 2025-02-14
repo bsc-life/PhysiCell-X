@@ -1694,9 +1694,11 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
   /* exist, if the process touches the boundary                                    */
   /*-------------------------------------------------------------------------------*/
 	
-	int x_size = x_coordinates.size();
-	int y_size = y_coordinates.size();
-	int z_size = z_coordinates.size();
+	x_size = x_coordinates.size();
+	y_size = y_coordinates.size();
+	z_size = z_coordinates.size();
+
+	n_substrates = -44;
 
 	//Optimized generation of if connected voxels with 1 dimensional displacement
 	for (int i = 0; i < x_size; ++i) {

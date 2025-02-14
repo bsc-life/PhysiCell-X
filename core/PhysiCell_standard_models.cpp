@@ -1332,14 +1332,18 @@ void standard_cell_cell_interactions( Cell* pCell, Phenotype& phenotype, double 
 			// dead phagocytosis 
 			probability = phenotype.cell_interactions.dead_phagocytosis_rate * dt; 
 			if( UniformRandom() <= probability ) 
-			{ pCell->ingest_cell(pC); } 
+			{ pCell->ingest_cell(pC); 
+			  std::cout << "		Rank " << world.rank << " Cell with ID " << pC->ID << " is ingested " << std::endl;
+			} 
 		}
 		else
 		{
 			// live phagocytosis
 			probability = phenotype.cell_interactions.live_phagocytosis_rates[type] * dt;  
 			if( UniformRandom() <= probability ) 
-			{ pCell->ingest_cell(pC); } 
+			{ pCell->ingest_cell(pC); 
+			  std::cout << "		Rank " << world.rank << " Cell with ID " << pC->ID << " is ingested " << std::endl;
+			} 
 
 			// attack 
 
@@ -1349,12 +1353,15 @@ void standard_cell_cell_interactions( Cell* pCell, Phenotype& phenotype, double 
 			{
 				pCell->attack_cell(pC,dt); 
 				attacked = true;
+				std::cout << "		Rank " << world.rank << " Cell with ID " << pC->ID << " is attacked" << std::endl;
 			} 
 
 			// fusion 
 			probability = phenotype.cell_interactions.fusion_rates[type] * dt;  
 			if( UniformRandom() <= probability ) 
-			{ pCell->fuse_cell(pC); } 
+			{ pCell->fuse_cell(pC); 
+			  std::cout << "		Rank " << world.rank << " Cell with ID " << pC->ID << " is fused " << std::endl;
+			} 
 		}
 
 	
@@ -1381,25 +1388,29 @@ void standard_cell_cell_interactions( Cell* pCell, Phenotype& phenotype, double 
 			std::vector<int> moore_list = pCell->get_container()->underlying_mesh.moore_connected_voxel_global_indices_left[yx_index];
 			for(int i=0; i<moore_list.size(); i++)
 			{
-				Interacting_Cell_Info &ivi = pCell->get_container()->um_ivfl.at(moore_list[i]);
+				Interacting_Voxel &ivi = pCell->get_container()->um_ivfl.at(moore_list[i]);
 					
 				for(int cell_ctr=0; cell_ctr<ivi.cells.size(); cell_ctr++) {
 					//pCell->add_potentials(mvi.cells[cell_ctr], world, cart_topo); 
-					Interacting_Cell_Info * pC = &mvi.cells[cell_ctr]; 
+					Interacting_Cell_Info * pC = &ivi.cells[cell_ctr]; 
 					int type = pC->type; 
-					if( pC->phenotype.death.dead == true )
+					if( pC->dead == true )
 					{
 						// dead phagocytosis 
 						probability = phenotype.cell_interactions.dead_phagocytosis_rate * dt; 
 						if( UniformRandom() <= probability ) 
-						{ pCell->ingest_cell(pC); } 
+						{ pCell->ingest_cell(pC); 
+						  std::cout << "		Rank " << world.rank << " remote Cell with ID " << pC->ID << " is ingested " << std::endl;
+						} 
 					}
 					else
 					{
 						// live phagocytosis
 						probability = phenotype.cell_interactions.live_phagocytosis_rates[type] * dt;  
 						if( UniformRandom() <= probability ) 
-						{ pCell->ingest_cell(pC); } 
+						{ pCell->ingest_cell(pC); 
+						  std::cout << "		Rank " << world.rank << " remote Cell with ID " << pC->ID << " is ingested " << std::endl;
+						} 
 
 						// attack 
 
@@ -1409,12 +1420,15 @@ void standard_cell_cell_interactions( Cell* pCell, Phenotype& phenotype, double 
 						{
 							pCell->attack_cell(pC,dt); 
 							attacked = true;
+							std::cout << "		Rank " << world.rank << " remote Cell with ID " << pC->ID << " is attacked " << std::endl;
 						} 
 
 						// fusion 
 						probability = phenotype.cell_interactions.fusion_rates[type] * dt;  
 						if( UniformRandom() <= probability ) 
-						{ pCell->fuse_cell(pC); } 
+						{ pCell->fuse_cell(pC, world, cart_topo); 
+						  std::cout << "		Rank " << world.rank << " remote Cell with ID " << pC->ID << " is fused " << std::endl;
+						} 
 					}
 				}
 				
@@ -1430,25 +1444,31 @@ void standard_cell_cell_interactions( Cell* pCell, Phenotype& phenotype, double 
 			std::vector<int> moore_list = pCell->get_container()->underlying_mesh.moore_connected_voxel_global_indices_right[yx_index];
 			for(int i=0; i<moore_list.size(); i++)
 			{
-				Interacting_Cell_Info &ivi = pCell->get_container()->um_ivfr.at(moore_list[i]);
+				Interacting_Voxel &ivi = pCell->get_container()->um_ivfr.at(moore_list[i]);
 					
 				for(int cell_ctr=0; cell_ctr<ivi.cells.size(); cell_ctr++) {
 					//pCell->add_potentials(mvi.cells[cell_ctr], world, cart_topo); 
 					Interacting_Cell_Info * pC = &ivi.cells[cell_ctr]; 
 					int type = pC->type; 
-					if( pC->phenotype.death.dead == true )
+					if( pC->dead == true )
 					{
 						// dead phagocytosis 
 						probability = phenotype.cell_interactions.dead_phagocytosis_rate * dt; 
 						if( UniformRandom() <= probability ) 
-						{ pCell->ingest_cell(pC); } 
+						{ 
+						  pCell->ingest_cell(pC); 
+						  std::cout << "		Rank " << world.rank << " remote Cell with ID " << pC->ID << " is ingested " << std::endl;
+						} 
 					}
 					else
 					{
 						// live phagocytosis
 						probability = phenotype.cell_interactions.live_phagocytosis_rates[type] * dt;  
 						if( UniformRandom() <= probability ) 
-						{ pCell->ingest_cell(pC); } 
+						{ 
+						  pCell->ingest_cell(pC); 
+						  std::cout << "		Rank " << world.rank << " remote Cell with ID " << pC->ID << " is ingested " << std::endl;
+						} 
 
 						// attack 
 
@@ -1458,12 +1478,16 @@ void standard_cell_cell_interactions( Cell* pCell, Phenotype& phenotype, double 
 						{
 							pCell->attack_cell(pC,dt); 
 							attacked = true;
+							std::cout << "		Rank " << world.rank << " remote Cell with ID " << pC->ID << " is attacked" << std::endl;
 						} 
 
 						// fusion 
 						probability = phenotype.cell_interactions.fusion_rates[type] * dt;  
 						if( UniformRandom() <= probability ) 
-						{ pCell->fuse_cell(pC); } 
+						{ 
+							pCell->fuse_cell(pC, world, cart_topo); 
+						  	std::cout << "		Rank " << world.rank << " remote Cell with ID " << pC->ID << " is fused " << std::endl;
+						} 
 					}
 				}
 			}
