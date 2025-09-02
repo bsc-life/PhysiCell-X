@@ -936,6 +936,11 @@ void initialize_default_cell_definition( void )
 	cell_defaults.phenotype.cycle.sync_to_cycle_model( cell_defaults.functions.cycle_model ); 
 	
 	// set molecular defaults 
+	cell_defaults.phenotype.cell_interactions.sync_to_cell_definitions(); 
+	cell_defaults.phenotype.cell_transformations.sync_to_cell_definitions(); 
+	cell_defaults.phenotype.cycle.asymmetric_division.sync_to_cell_definitions();
+	cell_defaults.phenotype.motility.sync_to_current_microenvironment(); 
+	cell_defaults.phenotype.mechanics.sync_to_cell_definitions(); 
 	
 	return; 	
 }
@@ -1078,6 +1083,49 @@ void chemotaxis_function( Cell* pCell, Phenotype& phenotype , double dt )
 	// normalize 
 	normalize( &( phenotype.motility.migration_bias_direction ) );
 	
+	return;
+}
+
+void advanced_chemotaxis_function_normalized( Cell* pCell, Phenotype& phenotype , double dt )
+{
+	// We'll work directly on the migration bias direction 
+	std::vector<double>* pVec = &(phenotype.motility.migration_bias_direction);  
+	// reset to zero. use memset to be faster??
+	pVec->assign( 3, 0.0 ); 
+	
+	// a place to put each gradient prior to normalizing it 
+	std::vector<double> temp(3,0.0); 
+
+	// weighted combination of the gradients 
+	for( int i=0; i < phenotype.motility.chemotactic_sensitivities.size(); i++ )
+	{
+		// get and normalize ith gradient 
+		temp = pCell->nearest_gradient(i); 
+		normalize( &temp ); 
+		axpy( pVec , phenotype.motility.chemotactic_sensitivities[i] , temp ); 
+	}
+	// normalize that 
+	normalize( pVec ); 
+	
+	return;
+}
+
+void advanced_chemotaxis_function( Cell* pCell, Phenotype& phenotype , double dt )
+{
+	// We'll work directly on the migration bias direction 
+	std::vector<double>* pVec = &(phenotype.motility.migration_bias_direction);  
+	// reset to zero. use memset to be faster??
+	pVec->assign( 3, 0.0 ); 
+
+	// weighted combination of the gradients 
+	for( int i=0; i < phenotype.motility.chemotactic_sensitivities.size(); i++ )
+	{
+		// get and normalize ith gradient 
+		axpy( pVec , phenotype.motility.chemotactic_sensitivities[i] , pCell->nearest_gradient(i) ); 
+	}
+	// normalize that 
+	normalize( pVec ); 
+
 	return;
 }
 
@@ -1276,7 +1324,7 @@ void standard_cell_cell_interactions( Cell* pCell, Phenotype& phenotype, double 
 		if( pC->phenotype.death.dead == true )
 		{
 			// dead phagocytosis 
-			probability = phenotype.cell_interactions.dead_phagocytosis_rate * dt; 
+			probability = 0; //phenotype.cell_interactions.dead_phagocytosis_rate * dt; 
 			if( UniformRandom() <= probability ) 
 			{ pCell->ingest_cell(pC); } 
 		}
@@ -1310,6 +1358,54 @@ void standard_cell_cell_interactions( Cell* pCell, Phenotype& phenotype, double 
 
 }
 
+void standard_cell_transformations( Cell* pCell, Phenotype& phenotype, double dt )
+{
+	if( phenotype.death.dead == true )
+	{ return; }
+
+	double probability = 0.0; 
+	for( int i=0 ; i < phenotype.cell_transformations.transformation_rates.size() ; i++ )
+	{
+		probability = phenotype.cell_transformations.transformation_rates[i] * dt;  
+		if( UniformRandom() <= probability ) 
+		{
+			// std::cout << "Transforming from " << pCell->type_name << " to " << cell_definitions_by_index[i]->name << std::endl; 
+			pCell->convert_to_cell_definition( *cell_definitions_by_index[i] ); 
+			return; 
+		} 
+	}
+
+}
+
+void standard_asymmetric_division_function( Cell* pCell_parent, Cell* pCell_daughter )
+{
+	Cell_Definition* pCD_parent = cell_definitions_by_name[pCell_parent->type_name];
+	double total = pCell_parent->phenotype.cycle.asymmetric_division.probabilities_total();
+	if (total > 1.0)
+	{
+		double sym_div_prob = pCell_parent->phenotype.cycle.asymmetric_division.asymmetric_division_probabilities[pCell_parent->type] + 1.0 - total;
+		if (sym_div_prob < 0.0)
+		{ 
+			throw std::runtime_error("Error: Asymmetric division probabilities for " + pCD_parent->name + " sum to greater than 1.0 and cannot be normalized.");
+		}
+		pCell_parent->phenotype.cycle.asymmetric_division.asymmetric_division_probabilities[pCell_parent->type] = sym_div_prob;
+		pCell_daughter->phenotype.cycle.asymmetric_division.asymmetric_division_probabilities[pCell_daughter->type] = sym_div_prob;
+	}
+	double r = UniformRandom();
+	for( int i=0; i < pCD_parent->phenotype.cycle.asymmetric_division.asymmetric_division_probabilities.size(); i++ )
+	{
+		if( r <= pCell_parent->phenotype.cycle.asymmetric_division.asymmetric_division_probabilities[i] )
+		{
+			if (i != pCell_daughter->type) // only convert if the daughter is not already the correct type
+			{ pCell_daughter->convert_to_cell_definition( *cell_definitions_by_index[i] ); }
+			return;
+		}
+		r -= pCell_parent->phenotype.cycle.asymmetric_division.asymmetric_division_probabilities[i];
+	}
+	// if we're here, then do not do asym div
+	return;
+}
+
 //MPI parallel version
 void standard_cell_cell_interactions( Cell* pCell, Phenotype& phenotype, double dt , mpi_Environment &world, mpi_Cartesian &cart_topo )
 {
@@ -1330,7 +1426,7 @@ void standard_cell_cell_interactions( Cell* pCell, Phenotype& phenotype, double 
 		if( pC->phenotype.death.dead == true )
 		{
 			// dead phagocytosis 
-			probability = phenotype.cell_interactions.dead_phagocytosis_rate * dt; 
+			probability = 0; // phenotype.cell_interactions.dead_phagocytosis_rate * dt; 
 			if( UniformRandom() <= probability ) 
 			{ pCell->ingest_cell(pC); 
 			  std::cout << "		Rank " << world.rank << " Cell with ID " << pC->ID << " is ingested " << std::endl;
@@ -1397,7 +1493,7 @@ void standard_cell_cell_interactions( Cell* pCell, Phenotype& phenotype, double 
 					if( pC->dead == true )
 					{
 						// dead phagocytosis 
-						probability = phenotype.cell_interactions.dead_phagocytosis_rate * dt; 
+						probability = 0; //phenotype.cell_interactions.dead_phagocytosis_rate * dt; 
 						if( UniformRandom() <= probability ) 
 						{ pCell->ingest_cell(pC); 
 						  std::cout << "		Rank " << world.rank << " remote Cell with ID " << pC->ID << " is ingested " << std::endl;
@@ -1453,7 +1549,7 @@ void standard_cell_cell_interactions( Cell* pCell, Phenotype& phenotype, double 
 					if( pC->dead == true )
 					{
 						// dead phagocytosis 
-						probability = phenotype.cell_interactions.dead_phagocytosis_rate * dt; 
+						probability = 0; // phenotype.cell_interactions.dead_phagocytosis_rate * dt; 
 						if( UniformRandom() <= probability ) 
 						{ 
 						  pCell->ingest_cell(pC); 
@@ -1494,6 +1590,92 @@ void standard_cell_cell_interactions( Cell* pCell, Phenotype& phenotype, double 
 		}
 	}
 }
+
+	void dynamic_attachments( Cell* pCell , Phenotype& phenotype, double dt )
+	{
+		// check for detachments 
+		double detachment_probability = phenotype.mechanics.detachment_rate * dt; 
+		for( int j=0; j < pCell->state.attached_cells.size(); j++ )
+		{
+			Cell* pTest = pCell->state.attached_cells[j]; 
+			if( UniformRandom() <= detachment_probability )
+			{ detach_cells( pCell , pTest ); }
+		}
+
+		// check if I have max number of attachments 
+		if( pCell->state.attached_cells.size() >= phenotype.mechanics.maximum_number_of_attachments )
+		{ return; }
+
+		// check for new attachments; 
+		double attachment_probability = phenotype.mechanics.attachment_rate * dt; 
+		bool done = false; 
+		int j = 0; 
+		while( done == false && j < pCell->state.neighbors.size() )
+		{
+			Cell* pTest = pCell->state.neighbors[j]; 
+			if (phenotype.cell_interactions.pAttackTarget==pTest || pTest->phenotype.cell_interactions.pAttackTarget==pCell) // do not let attackers detach randomly
+			{ continue; }
+			if( pTest->state.number_of_attached_cells() < pTest->phenotype.mechanics.maximum_number_of_attachments )
+			{
+				// std::string search_string = "adhesive affinity to " + pTest->type_name; 
+				// double affinity = get_single_behavior( pCell , search_string );
+				double affinity = phenotype.mechanics.cell_adhesion_affinity(pTest->type_name); 
+
+				double prob = attachment_probability * affinity; 
+				if( UniformRandom() <= prob )
+				{
+					// attempt the attachment. testing for prior connection is already automated 
+					attach_cells( pCell, pTest ); 
+					if( pCell->state.attached_cells.size() >= phenotype.mechanics.maximum_number_of_attachments )
+					{ done = true; }
+				}
+			}
+			j++; 
+		}
+		return; 
+	}
+
+	void dynamic_spring_attachments( Cell* pCell , Phenotype& phenotype, double dt )
+	{
+		// check for detachments 
+		double detachment_probability = phenotype.mechanics.detachment_rate * dt; 
+		for( int j=0; j < pCell->state.spring_attachments.size(); j++ )
+		{
+			Cell* pTest = pCell->state.spring_attachments[j]; 
+			if( UniformRandom() <= detachment_probability )
+			{ detach_cells_as_spring( pCell , pTest ); }
+		}
+
+		// check if I have max number of attachments 
+		if( pCell->state.spring_attachments.size() >= phenotype.mechanics.maximum_number_of_attachments )
+		{ return; }
+
+		// check for new attachments; 
+		double attachment_probability = phenotype.mechanics.attachment_rate * dt; 
+		bool done = false; 
+		int j = 0; 
+		while( done == false && j < pCell->state.neighbors.size() )
+		{
+			Cell* pTest = pCell->state.neighbors[j]; 
+			if( pTest->state.spring_attachments.size() < pTest->phenotype.mechanics.maximum_number_of_attachments )
+			{
+				// std::string search_string = "adhesive affinity to " + pTest->type_name; 
+				// double affinity = get_single_behavior( pCell , search_string );
+				double affinity = phenotype.mechanics.cell_adhesion_affinity(pTest->type_name); 
+
+				double prob = attachment_probability * affinity; 
+				if( UniformRandom() <= prob )
+				{
+					// attempt the attachment. testing for prior connection is already automated 
+					attach_cells_as_spring( pCell, pTest ); 
+					if( pCell->state.spring_attachments.size() >= phenotype.mechanics.maximum_number_of_attachments )
+					{ done = true; }
+				}
+			}
+			j++; 
+		}
+		return; 
+	}
 
 
 };

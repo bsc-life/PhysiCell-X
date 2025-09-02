@@ -78,6 +78,7 @@
 #include "../modules/PhysiCell_settings.h"
 
 #include "./PhysiCell_standard_models.h"
+#include "./PhysiCell_rules.h"
 
 #include <unordered_map>
 
@@ -124,6 +125,8 @@ class Cell_Definition
  public: 
 	int type; 
 	std::string name; 
+
+	bool is_movable;
  
 	Microenvironment* pMicroenvironment; 
 	
@@ -143,7 +146,8 @@ class Cell_State
 {
  private:
  public:
-	std::vector<Cell*> attached_cells; 
+	std::vector<Cell*> attached_cells;
+	std::vector<Cell*> spring_attachments;  
 
 	std::vector<Cell*> neighbors; 
 	std::vector<double> orientation;
@@ -154,7 +158,7 @@ class Cell_State
 	
 	int number_of_nuclei; 
 
-	double damage; 
+	//double damage; 
 	double total_attack_time; 
 	bool contact_with_basement_membrane; // not implemented yet 
 
@@ -205,6 +209,12 @@ class Cell : public Basic_Agent
 	
 	bool crossed_to_left_subdomain; 
 	bool crossed_to_right_subdomain;
+
+	void print_parameters(std::ofstream& outFile);
+
+	void unpack(std::vector<char>& rcv_buffer, int& len_buffer, int& position);
+	void pack(std::vector<char>& rcv_buffer, int& len_buffer, int& position);
+	void initialize_random(); //testing purposes only
 	
 	void flag_for_division( void ); // done 
 	void flag_for_removal( void ); // done 
@@ -310,6 +320,10 @@ class Cell : public Basic_Agent
 	void remove_all_attached_cells( void ); // done 
 
 	void remove_self_from_all_neighbors( void );
+
+	void attach_cell_as_spring( Cell* pAddMe ); 
+	void detach_cell_as_spring( Cell* pRemoveMe ); 
+	void remove_all_spring_attachments( void ); 
 	// I want to eventually deprecate this, by ensuring that 
 	// critical BioFVM and PhysiCell data elements are synced when they are needed 
 	
@@ -330,7 +344,7 @@ class Cell : public Basic_Agent
 	void print_cell(mpi_Environment &world); 
 };
 
-Cell* create_cell( void );  
+Cell* create_cell( Cell* (*custom_instantiate)() = NULL);  
 Cell* create_cell( Cell_Definition& cd ); 
 
 
@@ -399,6 +413,8 @@ extern std::vector<double> (*cell_division_orientation)(void);
 void attach_cells( Cell* pCell_1, Cell* pCell_2 );
 void detach_cells( Cell* pCell_1 , Cell* pCell_2 );
 
+void attach_cells_as_spring( Cell* pCell_1, Cell* pCell_2 );
+void detach_cells_as_spring( Cell* pCell_1 , Cell* pCell_2 );
 
 std::vector<Cell*> find_nearby_cells( Cell* pCell ); // new in 1.8.0
 std::vector<Cell*> find_nearby_interacting_cells( Cell* pCell ); // new in 1.8.0

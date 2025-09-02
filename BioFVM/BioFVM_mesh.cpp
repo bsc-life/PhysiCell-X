@@ -1593,7 +1593,7 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
 	/* Voxel volume and various surface areas */
   /*----------------------------------------*/
     
-  dV = dx*dy*dz; 
+    dV = dx*dy*dz; 
 	dS = dx*dy; 
 
 	dS_xy = dx*dy; 
@@ -1698,7 +1698,7 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
 	y_size = y_coordinates.size();
 	z_size = z_coordinates.size();
 
-	n_substrates = -44;
+	n_substrates = 1;
 
 	//Optimized generation of if connected voxels with 1 dimensional displacement
 	for (int i = 0; i < x_size; ++i) {

@@ -33,7 +33,7 @@
 #                                                                             #
 # BSD 3-Clause License (see https://opensource.org/licenses/BSD-3-Clause)     #
 #                                                                             #
-# Copyright (c) 2015-2018, Paul Macklin and the PhysiCell Project             #
+# Copyright (c) 2015-2025, Paul Macklin and the PhysiCell Project             #
 # All rights reserved.                                                        #
 #                                                                             #
 # Redistribution and use in source and binary forms, with or without          #
@@ -74,9 +74,6 @@ namespace PhysiCell{
 
 int writePov(std::vector<Cell*> all_cells, double timepoint, double scale)
 {
-	/*----------------------------------------------------------------*/
-	/* Gaurav Saxena added these 2 static variables as present in v1.7*/
-	/*----------------------------------------------------------------*/
 	static int TUMOR_TYPE=0; 
 	static int VESSEL_TYPE=1; 
 	

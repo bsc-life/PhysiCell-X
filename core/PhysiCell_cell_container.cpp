@@ -185,11 +185,31 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 	static double phenotype_dt_tolerance = 0.001 * phenotype_dt_;
 	static double mechanics_dt_tolerance = 0.001 * mechanics_dt_;
 
-	if( fabs(time_since_last_cycle-phenotype_dt_ ) < phenotype_dt_tolerance || !initialzed)
+	// intracellular update. called for every diffusion_dt, but actually depends on the intracellular_dt of each cell (as it can be noisy)
+
+	#pragma omp parallel for 
+	for( int i=0; i < (*all_cells).size(); i++ )
+	{
+		if( (*all_cells)[i]->is_out_of_domain == false && initialzed ) {
+
+			if( (*all_cells)[i]->phenotype.intracellular != NULL  && (*all_cells)[i]->phenotype.intracellular->need_update())
+			{
+				if ((*all_cells)[i]->functions.pre_update_intracellular != NULL)
+					(*all_cells)[i]->functions.pre_update_intracellular( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
+
+				(*all_cells)[i]->phenotype.intracellular->update( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
+
+				if ((*all_cells)[i]->functions.post_update_intracellular != NULL)
+					(*all_cells)[i]->functions.post_update_intracellular( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
+			}
+		}
+	}
+
+	if( time_since_last_cycle > phenotype_dt_ - 0.5 * diffusion_dt_ || !initialzed)
 	{
 		// Reset the max_radius in each voxel. It will be filled in set_total_volume
 		// It might be better if we calculate it before mechanics each time
-		std::fill(max_cell_interactive_distance_in_voxel.begin(), max_cell_interactive_distance_in_voxel.end(), 0.0);
+		std::fill(max_cell_interactive_distance_in_voxel.begin(), max_cell_interactive_distance_in_voxel.end(), 0.0); //Jose: to be removed
 
 		if(!initialzed)
 		{
@@ -229,7 +249,7 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 	double time_since_last_mechanics= t- last_mechanics_time;
 
 	// if( time_since_last_mechanics>= mechanics_dt || !initialzed)
-	if( fabs(time_since_last_mechanics - mechanics_dt_) < mechanics_dt_tolerance || !initialzed)
+	if( time_since_last_mechanics > mechanics_dt_ - 0.5 * diffusion_dt_ || !initialzed)
 	{
 		if(!initialzed)
 		{
@@ -261,7 +281,6 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 			// new March 2022: 
 			// run standard interactions (phagocytosis, attack, fusion) here 
 
-			standard_cell_cell_interactions(pC,pC->phenotype,time_since_last_mechanics);
 			if( pC->functions.custom_cell_rule && pC->is_out_of_domain == false )
 			{ pC->functions.custom_cell_rule( pC,pC->phenotype,time_since_last_mechanics ); }
 		}
@@ -273,6 +292,56 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 			Cell* pC = (*all_cells)[i]; 
 			if( pC->functions.update_velocity && pC->is_out_of_domain == false && pC->is_movable )
 			{ pC->functions.update_velocity( pC,pC->phenotype,time_since_last_mechanics ); }
+		}
+
+		// new March 2023: 
+		// dynamic spring attachments, followed by built-in springs
+
+		if( PhysiCell_settings.disable_automated_spring_adhesions == false )
+		{
+			#pragma omp parallel for 
+			for( int i=0; i < (*all_cells).size(); i++ )
+			{
+				Cell* pC = (*all_cells)[i]; 
+				dynamic_spring_attachments(pC,pC->phenotype,time_since_last_mechanics); 
+			}		
+			#pragma omp parallel for 
+			for( int i=0; i < (*all_cells).size(); i++ )
+			{
+				Cell* pC = (*all_cells)[i]; 
+				if( pC->is_movable )
+				{
+					for( int j=0; j < pC->state.spring_attachments.size(); j++ )
+					{
+						Cell* pC1 = pC->state.spring_attachments[j]; 
+						// standard_elastic_contact_function_confluent_rest_length(pC,pC->phenotype,pC1,pC1->phenotype,time_since_last_mechanics);  
+						standard_elastic_contact_function(pC,pC->phenotype,pC1,pC1->phenotype,time_since_last_mechanics);  
+					}
+				}
+			}	
+		}
+
+		// new March 2022: 
+		// run standard interactions (phagocytosis, attack, fusion) here 
+		#pragma omp parallel for 
+		for( int i=0; i < (*all_cells).size(); i++ )
+		{
+			Cell* pC = (*all_cells)[i]; 
+			standard_cell_cell_interactions(pC,pC->phenotype,time_since_last_mechanics); 
+		}
+		// super-critical to performance! clear the "dummy" cells from phagocytosis / fusion
+		// otherwise, comptuational cost increases at polynomial rate VERY fast, as O(10,000) 
+		// dummy cells of size zero are left ot interact mechanically, etc. 
+		if( cells_ready_to_die.size() > 0 )
+		{
+			/*
+			std::cout << "\tClearing dummy cells from phagocytosis and fusion events ... " << std::endl; 
+			std::cout << "\t\tClearing " << cells_ready_to_die.size() << " cells ... " << std::endl; 
+			// there might be a lot of "dummy" cells ready for removal. Let's do it. 		
+			*/
+			for( int i=0; i < cells_ready_to_die.size(); i++ )
+			{ cells_ready_to_die[i]->die(); }
+			cells_ready_to_die.clear();
 		}
 		
 		// Calculate new positions
@@ -323,11 +392,29 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 	static double phenotype_dt_tolerance = 0.001 * phenotype_dt_;
 	static double mechanics_dt_tolerance = 0.001 * mechanics_dt_;
 
-	if( fabs(time_since_last_cycle-phenotype_dt_ ) < phenotype_dt_tolerance || !initialzed)
+	#pragma omp parallel for 
+	for( int i=0; i < (*all_cells).size(); i++ ) 
+	{
+		if( (*all_cells)[i]->is_out_of_domain == false && initialzed ) {
+
+			if( (*all_cells)[i]->phenotype.intracellular != NULL  && (*all_cells)[i]->phenotype.intracellular->need_update())
+			{
+				if ((*all_cells)[i]->functions.pre_update_intracellular != NULL)
+					(*all_cells)[i]->functions.pre_update_intracellular( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
+
+				(*all_cells)[i]->phenotype.intracellular->update( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
+
+				if ((*all_cells)[i]->functions.post_update_intracellular != NULL)
+					(*all_cells)[i]->functions.post_update_intracellular( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
+			}
+		}
+	}
+
+	if( time_since_last_cycle > phenotype_dt_ - 0.5 * diffusion_dt_ || !initialzed )
 	{
 		// Reset the max_radius in each voxel. It will be filled in set_total_volume
 		// It might be better if we calculate it before mechanics each time
-		std::fill(max_cell_interactive_distance_in_voxel.begin(), max_cell_interactive_distance_in_voxel.end(), 0.0);
+		//std::fill(max_cell_interactive_distance_in_voxel.begin(), max_cell_interactive_distance_in_voxel.end(), 0.0);
 
 		if(!initialzed)
 		{
@@ -395,7 +482,7 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 	double time_since_last_mechanics= t- last_mechanics_time;
 
 	// if( time_since_last_mechanics>= mechanics_dt || !initialzed)
-	if( fabs(time_since_last_mechanics - mechanics_dt_) < mechanics_dt_tolerance || !initialzed)
+	if( time_since_last_mechanics > mechanics_dt_ - 0.5 * diffusion_dt_ || !initialzed )
 	{
 		if(!initialzed)
 		{
@@ -434,14 +521,13 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 		/* in the parallel loop where velocity was updated, serial version is used 						*/
 		/*------------------------------------------------------------------------------------*/
 		
+		#pragma omp parallel for 
 		for( int i=0; i < (*all_cells).size(); i++ )
 		{
 			Cell* pC = (*all_cells)[i]; 
-			// PhysiCell new March 2022:
-			// 		PhysiCell-X new January 2025
-			// 		run standard interactions (phagocytosis, attack, fusion) here 
-			
-			if (pC->position.size() != 3) std::cout << "Cell ID "  << pC->ID << " is not okay "<< std::endl;
+						
+			if( pC->functions.custom_cell_rule && pC->is_out_of_domain == false )
+			{ pC->functions.custom_cell_rule( pC,pC->phenotype,time_since_last_mechanics ); }
 		}
 
 		
@@ -468,6 +554,34 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 			/* Compute new positions																												 */
 			/*-------------------------------------------------------------------------------*/
 
+		// new March 2023: 
+		// dynamic spring attachments, followed by built-in springs
+
+		if( PhysiCell_settings.disable_automated_spring_adhesions == false ) //Jose: need to be parallelized
+		{
+			#pragma omp parallel for 
+			for( int i=0; i < (*all_cells).size(); i++ )
+			{
+				Cell* pC = (*all_cells)[i]; 
+				dynamic_spring_attachments(pC,pC->phenotype,time_since_last_mechanics); 
+			}		
+			#pragma omp parallel for 
+			for( int i=0; i < (*all_cells).size(); i++ ) //Jose: need to be parallelized
+			{
+				Cell* pC = (*all_cells)[i]; 
+				if( pC->is_movable )
+				{
+					for( int j=0; j < pC->state.spring_attachments.size(); j++ )
+					{
+						Cell* pC1 = pC->state.spring_attachments[j]; 
+						// standard_elastic_contact_function_confluent_rest_length(pC,pC->phenotype,pC1,pC1->phenotype,time_since_last_mechanics);  
+						standard_elastic_contact_function(pC,pC->phenotype,pC1,pC1->phenotype,time_since_last_mechanics);  
+					}
+
+				}
+			}	
+		}
+
 		pack_cell_interact_info(world, cart_topo);
 		//#pragma omp parallel for 
 		for( int i=0; i < (*all_cells).size(); i++ )
@@ -477,13 +591,23 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 			// 		PhysiCell-X new January 2025
 			// 		run standard interactions (phagocytosis, attack, fusion) here 
 			standard_cell_cell_interactions(pC,pC->phenotype,time_since_last_mechanics, world, cart_topo);
-
-			if( pC->functions.custom_cell_rule && pC->is_out_of_domain == false )
-				{ 
-					pC->functions.custom_cell_rule( pC,pC->phenotype,time_since_last_mechanics ); 
-				}
 		}
 		unpack_cell_interact_info(world, cart_topo);
+
+		// super-critical to performance! clear the "dummy" cells from phagocytosis / fusion
+		// otherwise, comptuational cost increases at polynomial rate VERY fast, as O(10,000) 
+		// dummy cells of size zero are left ot interact mechanically, etc. 
+		if( cells_ready_to_die.size() > 0 )
+		{
+			/*
+			std::cout << "\tClearing dummy cells from phagocytosis and fusion events ... " << std::endl; 
+			std::cout << "\t\tClearing " << cells_ready_to_die.size() << " cells ... " << std::endl; 
+			// there might be a lot of "dummy" cells ready for removal. Let's do it. 		
+			*/
+			for( int i=0; i < cells_ready_to_die.size(); i++ )
+			{ cells_ready_to_die[i]->die(); }
+			cells_ready_to_die.clear();
+		}
 
 		#pragma omp parallel for
 		for( int i=0; i < (*all_cells).size(); i++ )
@@ -1362,15 +1486,23 @@ void Cell_Container::add_agent_to_outer_voxel(Cell* agent)
 
 void Cell_Container::remove_agent_from_voxel(Cell* agent, int voxel_index)
 {
+	if (voxel_index < 0)
+	{
+		return; 
+	}
 	int delete_index = 0;
 	while( agent_grid[voxel_index][ delete_index ] != agent )
 	{
 		delete_index++;
 	}
 	// move last item to index location
-	agent_grid[agent->get_current_mechanics_voxel_index()][delete_index] = agent_grid[agent->get_current_mechanics_voxel_index()][agent_grid[agent->get_current_mechanics_voxel_index()].size()-1 ];
+	//agent_grid[agent->get_current_mechanics_voxel_index()][delete_index] = agent_grid[agent->get_current_mechanics_voxel_index()][agent_grid[agent->get_current_mechanics_voxel_index()].size()-1 ];
 	// shrink the vector
-	agent_grid[agent->get_current_mechanics_voxel_index()].pop_back();
+	//agent_grid[agent->get_current_mechanics_voxel_index()].pop_back();
+	// move last item to index location
+    agent_grid[voxel_index][delete_index] = agent_grid[voxel_index][agent_grid[voxel_index].size()-1 ];
+    // shrink the vector
+    agent_grid[voxel_index].pop_back();
 	return;
 }
 
@@ -1428,6 +1560,7 @@ void Cell_Container::flag_cell_for_removal( Cell* pCell )
 
 Cell_Container* create_cell_container_for_microenvironment( BioFVM::Microenvironment& m , double mechanics_voxel_size )
 {
+	//done
 	Cell_Container* cell_container = new Cell_Container;
 	cell_container->initialize( m.mesh.bounding_box[0], m.mesh.bounding_box[3],
 		m.mesh.bounding_box[1], m.mesh.bounding_box[4],
@@ -1449,7 +1582,7 @@ Cell_Container* create_cell_container_for_microenvironment( BioFVM::Microenviron
 /*------------------------------------------------------------------*/
 
 Cell_Container* create_cell_container_for_microenvironment( BioFVM::Microenvironment& m , double mechanics_voxel_size, mpi_Environment &world, mpi_Cartesian &cart_topo )
-{
+{   
 	Cell_Container* cell_container = new Cell_Container;
 	cell_container->initialize( m.mesh.bounding_box[0], m.mesh.bounding_box[3],
 		m.mesh.bounding_box[1], m.mesh.bounding_box[4],

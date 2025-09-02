@@ -2233,7 +2233,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
                 // axpy(&(*(*M.p_density_vectors))[n], M.thomas_constant1, (*(*M.p_density_vectors))[n - M.thomas_k_jump]);
                 for (int d = 0; d < M.mesh.n_substrates; d++)
                 {
-                    (*M.p_density_vectors)[index_inc + d] += (*M.p_density_vectors)[d] * (*M.p_density_vectors)[index + d];
+                    (*M.p_density_vectors)[index_inc + d] += M.thomas_constant1[d] * (*M.p_density_vectors)[index + d]; //Jose:esta linea esta mal
                 }
                 //(*(*M.p_density_vectors))[n] /= M.thomas_denomz[k];
                 for (int d = 0; d < M.mesh.n_substrates; d++)

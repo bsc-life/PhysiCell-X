@@ -453,6 +453,10 @@ class Microenvironment_Options
 	/*========================================*/
 	
 	std::vector<double> initial_condition_vector; 
+
+	bool initial_condition_from_file_enabled;
+	std::string initial_condition_file_type;
+	std::string initial_condition_file;
 	
 	bool simulate_2D; 
 	std::vector<double> X_range; 
@@ -477,6 +481,10 @@ void initialize_microenvironment( void );
 /* Parallel prototype of initialize_microenvironment() */
 /*===================================================*/
 void initialize_microenvironment( mpi_Environment &world, mpi_Cartesian &cart_topo );
+
+void load_initial_conditions_from_matlab( std::string filename ); //Not done
+void load_initial_conditions_from_csv( std::string filename ); //Not done
+void get_row_from_substrate_initial_condition_csv(std::vector<int> &voxel_set, const std::string line, const std::vector<int> substrate_indices, const bool header_provided);//not done
 
 };
 

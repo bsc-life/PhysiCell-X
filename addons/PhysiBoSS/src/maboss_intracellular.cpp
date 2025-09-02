@@ -1,5 +1,6 @@
 #include "maboss_intracellular.h"
 #include <mpi.h>
+#include "../core/MPI_helper.h"
 
 MaBoSSIntracellular::MaBoSSIntracellular() : Intracellular()
 {
@@ -114,30 +115,8 @@ MaBoSSIntracellular::MaBoSSIntracellular(std::vector<char>& buffer, int& len_buf
 	this->maboss.set_parameters(this->parameters);
 		
 	MPI_Unpack(&buffer[0], len_buffer, &position, &(this->next_physiboss_run), 1, MPI_DOUBLE, MPI_COMM_WORLD);
-	
-	MPI_Unpack(&buffer[0], len_buffer, &position, &(temp_double), 1, MPI_DOUBLE, MPI_COMM_WORLD);
-	this->maboss.set_time_to_update(temp_double);
 
-	MPI_Unpack(&buffer[0], len_buffer, &position, &temp_int, 1, MPI_INT, MPI_COMM_WORLD);
-
-	std::vector<Node*> t_nodes = this->maboss.getNetwork()->getNodes();
-
-	for (unsigned int i=0; i < temp_int; i++) {
-		int t_node = 0;
-		MPI_Unpack(&buffer[0], len_buffer, &position, &t_node, 1, MPI_INT, MPI_COMM_WORLD);
-		
-		this->maboss.state.setNodeState(t_nodes[i], t_node == 1?true:false);
-	}
-	
-	MPI_Unpack(&buffer[0], len_buffer, &position, &temp_int, 1, MPI_INT, MPI_COMM_WORLD);
-
-	SymbolTable* symbol_table = this->maboss.getNetwork()->getSymbolTable();
-	
-	for (unsigned int i=0; i < temp_int; i++) {
-		double t_parameter = 0;
-		MPI_Unpack(&buffer[0], len_buffer, &position, &t_parameter, 1, MPI_DOUBLE, MPI_COMM_WORLD);
-		symbol_table->setSymbolValue(symbol_table->getSymbol(symbol_table->getSymbolsNames()[i]), t_parameter);
-	}
+	this->maboss.unpack(buffer, len_buffer, position);
 	
 }
 
@@ -149,152 +128,230 @@ void MaBoSSIntracellular::pack(std::vector<char>& buffer, int& len_buffer, int& 
 	std::string temp_str;
 	int len_str = 0;   		//This was unsigned int, Gaurav Saxena changed it to simple int. 
 	
-	temp_str = this->bnd_filename;
-	len_str = temp_str.length();
-	len_buffer = position + sizeof(len_str) + len_str; 
-	buffer.resize(len_buffer);
-	MPI_Pack(&len_str, 1, MPI_INT, &buffer[0], len_buffer, &position, MPI_COMM_WORLD); 
-	MPI_Pack(&temp_str[0], len_str, MPI_CHAR, &buffer[0], len_buffer, &position, MPI_COMM_WORLD);
+	//pack  bnd_filename
+	pack_buff(this->bnd_filename, buffer, len_buffer, position);
 
-	temp_str = this->cfg_filename;
-	len_str = temp_str.length();
-	len_buffer = position + sizeof(len_str) + len_str; 
-	buffer.resize(len_buffer);
-	MPI_Pack(&len_str, 1, MPI_INT, &buffer[0], len_buffer, &position, MPI_COMM_WORLD); 
-	MPI_Pack(&temp_str[0], len_str, MPI_CHAR, &buffer[0], len_buffer, &position, MPI_COMM_WORLD);
+	//pack cfg_filename
+	pack_buff(this->cfg_filename, buffer, len_buffer, position);
 
-	len_buffer = position + sizeof(double);		
-	buffer.resize(len_buffer);
-	MPI_Pack(&(this->time_step), 1, MPI_DOUBLE, &buffer[0], len_buffer, &position, MPI_COMM_WORLD);
+	//pack time_step
+	pack_buff(this->time_step, buffer, len_buffer, position);
 	
-	len_buffer = position + sizeof(int);		
-	buffer.resize(len_buffer);
-	temp_int = (this->discrete_time == true) ? 1 : 0;
-	// 	temp_int = 1; 
-	// else
-	// 	temp_int = 0; 
-	MPI_Pack(&temp_int, 1, MPI_INT, &buffer[0], len_buffer, &position, MPI_COMM_WORLD);
+	//pack discrete_time
+	pack_buff(this->discrete_time, buffer, len_buffer, position);
 
-	len_buffer = position + sizeof(double);		
-	buffer.resize(len_buffer);
-	MPI_Pack(&(this->time_tick), 1, MPI_DOUBLE, &buffer[0], len_buffer, &position, MPI_COMM_WORLD);
+	//pack time_tick
+	pack_buff(this->time_tick, buffer, len_buffer, position);
 
-	len_buffer = position + sizeof(double);		
-	buffer.resize(len_buffer);
-	MPI_Pack(&(this->scaling), 1, MPI_DOUBLE, &buffer[0], len_buffer, &position, MPI_COMM_WORLD);
+	//pack scaling
+	pack_buff(this->scaling, buffer, len_buffer, position);
 
-	len_buffer = position + sizeof(double);		
-	buffer.resize(len_buffer);
-	MPI_Pack(&(this->time_stochasticity), 1, MPI_DOUBLE, &buffer[0], len_buffer, &position, MPI_COMM_WORLD);
+	//pack time_stochasticity
+	pack_buff(this->time_stochasticity, buffer, len_buffer, position);
+
+	// pack inherit_state
+	pack_buff(this->inherit_state, buffer, len_buffer, position);
+
+	// pack inherit nodes
+	
+	temp_int = static_cast<int>(this->inherit_nodes.size());
+	pack_buff(temp_int, buffer, len_buffer, position);
+
+	// inherit nodes
+	for (auto t_inherited: this->inherit_nodes) {
+		
+		pack_buff(t_inherited.first, buffer, len_buffer, position);
+
+		pack_buff(t_inherited.second, buffer, len_buffer, position);
+
+	}
+
+	// pack start_time
+	pack_buff(this->start_time, buffer, len_buffer, position);
 
 	// Mutations
-	len_buffer = position + sizeof(int);		
-	buffer.resize(len_buffer);
-	temp_int = this->mutations.size();
-	MPI_Pack(&(temp_int), 1, MPI_INT, &buffer[0], len_buffer, &position, MPI_COMM_WORLD);
+	temp_int = static_cast<int>(this->mutations.size());
+	pack_buff(temp_int, buffer, len_buffer, position);
 
+	//mutations
 	for (auto t_mutation: this->mutations) {
-		
-		temp_str = t_mutation.first;
-		len_str = temp_str.length();
-		len_buffer = position + sizeof(len_str) + len_str; 
-		buffer.resize(len_buffer);
-		MPI_Pack(&len_str, 1, MPI_INT, &buffer[0], len_buffer, &position, MPI_COMM_WORLD); 
-		MPI_Pack(&temp_str[0], len_str, MPI_CHAR, &buffer[0], len_buffer, &position, MPI_COMM_WORLD);
+	
+		pack_buff(t_mutation.first, buffer, len_buffer, position);
 
-		len_buffer = position + sizeof(double);		
-		buffer.resize(len_buffer);
-		MPI_Pack(&(t_mutation.second), 1, MPI_DOUBLE, &buffer[0], len_buffer, &position, MPI_COMM_WORLD);
+		pack_buff(t_mutation.second, buffer, len_buffer, position);
 
 	}
 	
 	// Initial values
-	len_buffer = position + sizeof(int);		
-	buffer.resize(len_buffer);
-	temp_int = this->initial_values.size();
-	MPI_Pack(&(temp_int), 1, MPI_INT, &buffer[0], len_buffer, &position, MPI_COMM_WORLD);
+
+	temp_int = static_cast<int>(this->initial_values.size());
+	pack_buff(temp_int, buffer, len_buffer, position);
 
 	for (auto t_initial_value: this->initial_values) {
 		
-		temp_str = t_initial_value.first;
-		len_str = temp_str.length();
-		len_buffer = position + sizeof(len_str) + len_str; 
-		buffer.resize(len_buffer);
-		MPI_Pack(&len_str, 1, MPI_INT, &buffer[0], len_buffer, &position, MPI_COMM_WORLD); 
-		MPI_Pack(&temp_str[0], len_str, MPI_CHAR, &buffer[0], len_buffer, &position, MPI_COMM_WORLD);
+		pack_buff(t_initial_value.first, buffer, len_buffer, position);
 
-		len_buffer = position + sizeof(double);		
-		buffer.resize(len_buffer);
-		MPI_Pack(&(t_initial_value.second), 1, MPI_DOUBLE, &buffer[0], len_buffer, &position, MPI_COMM_WORLD);
-
+		pack_buff(t_initial_value.second, buffer, len_buffer, position);
 	}
 	
 	// Parameters
-	len_buffer = position + sizeof(int);		
-	buffer.resize(len_buffer);
-	temp_int = this->parameters.size();
-	MPI_Pack(&(temp_int), 1, MPI_INT, &buffer[0], len_buffer, &position, MPI_COMM_WORLD);
+
+	temp_int = static_cast<int>(this->parameters.size());
+	pack_buff(temp_int, buffer, len_buffer, position);
 
 	for (auto t_parameter: this->parameters) {
-		
-		temp_str = t_parameter.first;
-		len_str = temp_str.length();
-		len_buffer = position + sizeof(len_str) + len_str; 
-		buffer.resize(len_buffer);
-		MPI_Pack(&len_str, 1, MPI_INT, &buffer[0], len_buffer, &position, MPI_COMM_WORLD); 
-		MPI_Pack(&temp_str[0], len_str, MPI_CHAR, &buffer[0], len_buffer, &position, MPI_COMM_WORLD);
+		pack_buff(t_parameter.first, buffer, len_buffer, position);
 
-		len_buffer = position + sizeof(double);		
-		buffer.resize(len_buffer);
-		MPI_Pack(&(t_parameter.second), 1, MPI_DOUBLE, &buffer[0], len_buffer, &position, MPI_COMM_WORLD);
-
+		pack_buff(t_parameter.second, buffer, len_buffer, position);
 	}
+
+	//pack listofinputs
+
+	temp_int = static_cast<int>(this->listOfInputs.size());
+	pack_buff(temp_int, buffer, len_buffer, position);
+
+	for (auto t_input: this->listOfInputs) {
+
+		pack_buff(t_input.first, buffer, len_buffer, position);
+		
+		t_input.second.pack(buffer, len_buffer, position); //class MaBoSS input
+	}
+
+	//pack indices of inputs
+	
+	pack_buff(indicesOfInputs, buffer, len_buffer, position);
+
+	//pack lists of outputs
+	temp_int = static_cast<int>(this->listOfOutputs.size());
+	pack_buff(temp_int, buffer, len_buffer, position);
+
+	for (auto t_output: this->listOfOutputs) {
+		pack_buff(t_output.first, buffer, len_buffer, position);
+		
+		t_output.second.pack(buffer, len_buffer, position); //class MaBoSS output
+	}
+
+	//pack indices of outputs
+	pack_buff(indicesOfOutputs, buffer, len_buffer, position);
 	
 	// Next run
-	len_buffer = position + sizeof(double);		
-	buffer.resize(len_buffer);
-	MPI_Pack(&(this->next_physiboss_run), 1, MPI_DOUBLE, &buffer[0], len_buffer, &position, MPI_COMM_WORLD);
+	pack_buff(this->next_physiboss_run, buffer, len_buffer, position);
 
-	// MaBoSS's time to update
-	len_buffer = position + sizeof(double);		
-	buffer.resize(len_buffer);
-	temp_double = this->maboss.get_time_to_update();
-	MPI_Pack(&(temp_double), 1, MPI_DOUBLE, &buffer[0], len_buffer, &position, MPI_COMM_WORLD);
-	// this->maboss.set_time_to_update(time_to_update);
+	//pack maboss that is from the class MaboSSNetwork
+	maboss.pack(buffer, len_buffer, position);
 	
-	// This is the part which might only need to be sent : 
-	// The present state of the model
-	// This will be improved by sending vectors of unsigned long long
-	std::vector<Node*> t_nodes = this->maboss.getNetwork()->getNodes();
-	len_buffer = position + sizeof(int);		
-	buffer.resize(len_buffer);
-	temp_int = t_nodes.size();
-	MPI_Pack(&(temp_int), 1, MPI_INT, &buffer[0], len_buffer, &position, MPI_COMM_WORLD);
+}
 
-	for (unsigned int i=0; i < t_nodes.size(); i++) {
-		len_buffer = position + sizeof(int);		
-		buffer.resize(len_buffer);
-		temp_int = this->maboss.state.getNodeState(t_nodes[i]) == true ? 1 : 0;
-		MPI_Pack(&(temp_int), 1, MPI_INT, &buffer[0], len_buffer, &position, MPI_COMM_WORLD);
-	}
-	
-	/* Now this is an additional Data Structure which is being packed */
-	/* corresponding unpacking code is also added 										*/
-	
-	// The present parameter table
-	SymbolTable* symbol_table = this->maboss.getNetwork()->getSymbolTable();
-	len_buffer = position + sizeof(int);
-	buffer.resize(len_buffer);
-	temp_int = symbol_table->getSymbolCount();
-	MPI_Pack(&(temp_int), 1, MPI_INT, &buffer[0], len_buffer, &position, MPI_COMM_WORLD);
+void MaBoSSIntracellular::unpack(const std::vector<char>& buffer, int len_buffer, int& position)
+{
+    int temp_int;
+    double temp_double;
+    std::string temp_str;
 
-	for (unsigned int i=0; i < symbol_table->getSymbolCount(); i++) {
-		len_buffer = position + sizeof(double);		
-		buffer.resize(len_buffer);
-		temp_double = symbol_table->getSymbolValue(symbol_table->getSymbol(symbol_table->getSymbolsNames()[i]));
-		MPI_Pack(&(temp_double), 1, MPI_DOUBLE, &buffer[0], len_buffer, &position, MPI_COMM_WORLD);
-	}
-	
+    // Unpack bnd_filename
+    unpack_buff(this->bnd_filename, buffer, len_buffer, position);
+
+    // Unpack cfg_filename
+    unpack_buff(this->cfg_filename, buffer, len_buffer, position);
+
+    // Unpack time_step
+    unpack_buff(this->time_step, buffer, len_buffer, position);
+
+    // Unpack discrete_time
+    unpack_buff(this->discrete_time, buffer, len_buffer, position);
+
+    // Unpack time_tick
+    unpack_buff(this->time_tick, buffer, len_buffer, position);
+
+    // Unpack scaling
+    unpack_buff(this->scaling, buffer, len_buffer, position);
+
+    // Unpack time_stochasticity
+    unpack_buff(this->time_stochasticity, buffer, len_buffer, position);
+
+    // Unpack inherit_state
+    unpack_buff(this->inherit_state, buffer, len_buffer, position);
+
+    // Unpack size of inherit_nodes
+    unpack_buff(temp_int, buffer, len_buffer, position);
+    this->inherit_nodes.clear();
+    for (int i = 0; i < temp_int; ++i) {
+        std::string key;
+        bool value;
+        unpack_buff(key, buffer, len_buffer, position);
+        unpack_buff(value, buffer, len_buffer, position);
+        this->inherit_nodes[key] = value;
+    }
+
+    // Unpack start_time
+    unpack_buff(this->start_time, buffer, len_buffer, position);
+
+    // Unpack mutations
+    unpack_buff(temp_int, buffer, len_buffer, position);
+    this->mutations.clear();
+    for (int i = 0; i < temp_int; ++i) {
+        std::string key;
+        int value;
+        unpack_buff(key, buffer, len_buffer, position);
+        unpack_buff(value, buffer, len_buffer, position);
+        this->mutations[key] = value;
+    }
+
+    // Unpack initial_values
+    unpack_buff(temp_int, buffer, len_buffer, position);
+    this->initial_values.clear();
+    for (int i = 0; i < temp_int; ++i) {
+        std::string key;
+        double value;
+        unpack_buff(key, buffer, len_buffer, position);
+        unpack_buff(value, buffer, len_buffer, position);
+        this->initial_values[key] = value;
+    }
+
+    // Unpack parameters
+    unpack_buff(temp_int, buffer, len_buffer, position);
+    this->parameters.clear();
+    for (int i = 0; i < temp_int; ++i) {
+        std::string key;
+        double value;
+        unpack_buff(key, buffer, len_buffer, position);
+        unpack_buff(value, buffer, len_buffer, position);
+        this->parameters[key] = value;
+    }
+
+    // Unpack listOfInputs
+    unpack_buff(temp_int, buffer, len_buffer, position);
+    this->listOfInputs.clear();
+    for (int i = 0; i < temp_int; ++i) {
+        std::string key;
+        MaBoSSInput input;
+        unpack_buff(key, buffer, len_buffer, position);
+        input.unpack(buffer, len_buffer, position);
+        this->listOfInputs[key] = input;
+    }
+
+    // Unpack indicesOfInputs
+    unpack_buff(this->indicesOfInputs, buffer, len_buffer, position);
+
+    // Unpack listOfOutputs
+    unpack_buff(temp_int, buffer, len_buffer, position);
+    this->listOfOutputs.clear();
+    for (int i = 0; i < temp_int; ++i) {
+        std::string key;
+        MaBoSSOutput output;
+        unpack_buff(key, buffer, len_buffer, position);
+        output.unpack(buffer, len_buffer, position);
+        this->listOfOutputs[key] = output;
+    }
+
+    // Unpack indicesOfOutputs
+    unpack_buff(this->indicesOfOutputs, buffer, len_buffer, position);
+
+    // Unpack next_physiboss_run
+    unpack_buff(this->next_physiboss_run, buffer, len_buffer, position);
+
+    // Unpack maboss
+    this->maboss.unpack(buffer, len_buffer, position); //todo
 }
 
 void MaBoSSIntracellular::initialize_intracellular_from_pugixml(pugi::xml_node& node)

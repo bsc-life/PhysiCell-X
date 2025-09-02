@@ -11,28 +11,35 @@
 
 static std::string PhysiBoSS_Version = "2.0.0"; 
 
-class MaBoSSIntracellular : public PhysiCell::Intracellular {
+class MaBoSSIntracellular : public PhysiCell::Intracellular { //UPDATED
  private:
  public:
 
 	static long counter;
 	
-	std::string bnd_filename;
-	std::string cfg_filename;
+	std::string bnd_filename; //packed
+	std::string cfg_filename; //packed
 	
-	double time_step = 12;
-	bool discrete_time = false;
-	double time_tick = 0.5;
-	double scaling = 1.0;
-	double time_stochasticity = 0.0;
+	double time_step = 12; //packed
+	bool discrete_time = false; //packed
+	double time_tick = 0.5; //packed
+	double scaling = 1.0; //packed
+	double time_stochasticity = 0.0; //packed
+	bool inherit_state = false; //new
+	std::map<std::string, bool> inherit_nodes; //new
+	double start_time = 0.0; //new
 	
-	std::map<std::string, double> initial_values;
-	std::map<std::string, double> mutations;
-	std::map<std::string, double> parameters;
+	std::map<std::string, double> initial_values; //packed
+	std::map<std::string, double> mutations; //packed
+	std::map<std::string, double> parameters; //packed
 	
-	MaBoSSNetwork maboss;
+	std::map<std::string, MaBoSSInput> listOfInputs; //new
+	std::vector<int> indicesOfInputs; //new
+	std::map<std::string, MaBoSSOutput> listOfOutputs; //new
+	std::vector<int> indicesOfOutputs; //new
+	MaBoSSNetwork maboss; //packed
 
-	double next_physiboss_run = 0;
+	double next_physiboss_run = 0; //packed
 
 	MaBoSSIntracellular();
 	

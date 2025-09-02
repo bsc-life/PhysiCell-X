@@ -17,7 +17,8 @@
  *	\author Gaelle Letort, Institut Curie
  *	\author Gerard Pradas, BSC-CNS
  */
-class MaBoSSNetwork
+class MaBoSSNetwork //Jose Luis: 1)Detectar si la clase networjk, runConfig, SthocasticSimulationEngine y NetworkState son de la lib maboss
+//2) Aqhi hay variables que no se empaquetan aun: meter en maboss_intracellular o aqui? Yo diria aqui
 {
 	private:
 		/** \brief MaBoSS instances: network */
@@ -145,6 +146,9 @@ class MaBoSSNetwork
 
 		void set_state(NetworkState _state) { state = NetworkState(_state.getState()); }	
 		NetworkState get_maboss_state() { return state;}
+
+		//MPI support
+		void pack(std::vector<char>& buffer, int& len_buffer, int& position);
 };
 
 #endif

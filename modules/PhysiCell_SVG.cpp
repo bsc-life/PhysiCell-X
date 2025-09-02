@@ -33,7 +33,7 @@
 #                                                                             #
 # BSD 3-Clause License (see https://opensource.org/licenses/BSD-3-Clause)     #
 #                                                                             #
-# Copyright (c) 2015-2018, Paul Macklin and the PhysiCell Project             #
+# Copyright (c) 2015-2025, Paul Macklin and the PhysiCell Project             #
 # All rights reserved.                                                        #
 #                                                                             #
 # Redistribution and use in source and binary forms, with or without          #
@@ -69,19 +69,19 @@
 
 bool Write_SVG_start( std::ostream& os, double width, double height )
 {
- os << "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>" << std::endl 				//54+1=55 bytes	
-    << "<!-- Created with PhysiCell (http://PhysiCell.MathCancer.org/) -->" << std::endl; //65+1=66 bytes
+ os << "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>" << std::endl 
+    << "<!-- Created with PhysiCell (http://PhysiCell.MathCancer.org/) -->" << std::endl; 
 
- os << "<svg " << std::endl //5+1=6 bytes
-    << " xmlns:dc=\"http://purl.org/dc/elements/1.1/\" " << std::endl	//45+1=46 bytes
-    << " xmlns:cc=\"http://creativecommons.org/ns#\" " << std::endl		//43+1=44 bytes
-    << " xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\" " << std::endl	//57+1=58
-    << " xmlns:svg=\"http://www.w3.org/2000/svg\" " << std::endl	//40+1=41
-    << " xmlns=\"http://www.w3.org/2000/svg\" " << std::endl			//36+1=37
-    << " version=\"1.1\" " << std::endl	//15+1=16
-    << " width=\"" << width << "\" " << std::endl	//8+8+2+1=19 bytes
-    << " height=\"" << height << "\" " << std::endl //9+8+2+1=20 bytes
-    << " id=\"svg2\">" << std::endl;	//11+1=12 bytes
+ os << "<svg " << std::endl
+    << " xmlns:dc=\"http://purl.org/dc/elements/1.1/\" " << std::endl
+    << " xmlns:cc=\"http://creativecommons.org/ns#\" " << std::endl
+    << " xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\" " << std::endl
+    << " xmlns:svg=\"http://www.w3.org/2000/svg\" " << std::endl
+    << " xmlns=\"http://www.w3.org/2000/svg\" " << std::endl
+    << " version=\"1.1\" " << std::endl
+    << " width=\"" << width << "\" " << std::endl
+    << " height=\"" << height << "\" " << std::endl
+    << " id=\"svg2\">" << std::endl;
 	
 	return true; 
 }
@@ -267,3 +267,15 @@ bool Write_SVG_line( std::ostream& os , double start_x, double start_y, double e
     << "stroke=\"" << stroke_color << "\" stroke-width=\"" << thickness << "\"/>" << std::endl; 
  return true; 
 }
+
+void Write_SVG_text(std::ostream& os, const char* str , double position_x, double position_y, double font_size , const char* color , const char* font, double rotation)
+{
+    double text_width = font_size * strlen(str) / 2.0;  // estimate the width of the text
+    double text_height = font_size / 2.0;  // estimate the height of the text
+
+    double center_x = position_x + text_width / 2.0;
+    double center_y = position_y + text_height / 2.0;
+
+    os << "<text x=\"" << position_x << "\" y=\"" << position_y << "\" font-size=\"" << font_size << "\" fill=\"" << color << "\" font-family=\"" << font << "\" transform=\"rotate(" << rotation << " " << center_x << " " << center_y << ")\">" << str << "</text>\n";
+}
+

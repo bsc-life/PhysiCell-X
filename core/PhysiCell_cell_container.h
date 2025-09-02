@@ -100,6 +100,9 @@ public:
 	double cell_cell_repulsion_strength;
 	double relative_maximum_adhesion_distance;
 	double cell_cell_adhesion_strength;
+	//jose to be included
+	int type;
+	std::vector<double> cell_adhesion_affinities;
 };
 
 class Moore_Voxel_Info 
@@ -220,7 +223,7 @@ class Cell_Container : public BioFVM::Agent_Container
     /*-------------------------------------*/
     /* Parallel prototype of function above*/
     /*-------------------------------------*/
-  void initialize(double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double voxel_size, mpi_Environment &world, mpi_Cartesian &cart_topo);
+    void initialize(double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double voxel_size, mpi_Environment &world, mpi_Cartesian &cart_topo);
     
 	void initialize(double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double dx, double dy, double dz);
     

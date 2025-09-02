@@ -1362,6 +1362,7 @@ void add_BioFVM_agents_to_open_xml_pugi( pugi::xml_document& xml_dom, std::strin
 		// next, create a matlab structure and save it!
 		
 		// order: ID,x,y,z,volume,radius, 
+		/*
 		int number_of_data_entries = all_basic_agents.size(); 
 		int size_of_each_datum = 1 + 3 + 1 + 3*M.number_of_densities(); // ID, x,y,z, volume,  src,sink,saturation (multiple) 
 
@@ -1392,7 +1393,7 @@ void add_BioFVM_agents_to_open_xml_pugi( pugi::xml_document& xml_dom, std::strin
 			
 		}
 
-		fclose( fp ); 
+		fclose( fp ); */
 		
 		return; 
 	}

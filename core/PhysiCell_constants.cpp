@@ -75,32 +75,7 @@ double diffusion_dt = 0.01;
 double mechanics_dt = 0.1;
 double phenotype_dt = 6.0;
 double intracellular_dt = 0.01;
-
-const double PhysiCell_constants::pi=3.1415926535897932384626433832795;
 	
-//const double PhysiCell_constants::cell_removal_threclearshold_volume = 20;
-const int PhysiCell_constants::keep_pushed_out_cells_in_outer_voxel=1;
-const int PhysiCell_constants::solid_boundary = 2;
-const int PhysiCell_constants::default_boundary_condition_for_pushed_out_agents = keep_pushed_out_cells_in_outer_voxel;		
-
-const int PhysiCell_constants::deterministic_necrosis = 0;
-const int PhysiCell_constants::stochastic_necrosis = 1;
-
-const int PhysiCell_constants::mesh_min_x_index=0;
-const int PhysiCell_constants::mesh_min_y_index=1;
-const int PhysiCell_constants::mesh_min_z_index=2;
-const int PhysiCell_constants::mesh_max_x_index=3;
-const int PhysiCell_constants::mesh_max_y_index=4;
-const int PhysiCell_constants::mesh_max_z_index=5;			
-
-const int PhysiCell_constants::mesh_lx_face_index=0;
-const int PhysiCell_constants::mesh_ly_face_index=1;
-const int PhysiCell_constants::mesh_lz_face_index=2;
-const int PhysiCell_constants::mesh_ux_face_index=3;
-const int PhysiCell_constants::mesh_uy_face_index=4;
-const int PhysiCell_constants::mesh_uz_face_index=5;
-
-
 const int PhysiCell_constants::advanced_Ki67_cycle_model= 0;
 const int PhysiCell_constants::basic_Ki67_cycle_model=1;
 const int PhysiCell_constants::flow_cytometry_cycle_model=2;
