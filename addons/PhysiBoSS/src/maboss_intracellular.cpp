@@ -581,6 +581,7 @@ void MaBoSSIntracellular::pack(std::vector<char>& buffer, int& len_buffer, int& 
 
 		pack_buff(t_mutation.second, buffer, len_buffer, position);
 
+		pack_buff(t_initial_value.second, buffer, len_buffer, position);
 	}
 	
 	

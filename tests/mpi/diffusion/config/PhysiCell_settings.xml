@@ -74,12 +74,21 @@
 
 <PhysiCell_settings version="devel-version">
 	<domain>
+<<<<<<< HEAD
 		<x_min>-5000</x_min>
 		<x_max>5000</x_max>
 		<y_min>-5000</y_min>
 		<y_max>5000</y_max>
 		<z_min>-5000</z_min>
 		<z_max>5000</z_max>
+=======
+		<x_min>-400</x_min>
+		<x_max>400</x_max>
+		<y_min>-400</y_min>
+		<y_max>400</y_max>
+		<z_min>-400</z_min>
+		<z_max>400</z_max>
+>>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
 		<dx>20</dx>
 		<dy>20</dy>
 		<dz>20</dz>
@@ -87,7 +96,11 @@
 	</domain>
 	
 	<overall>
+<<<<<<< HEAD
 		<max_time units="min">10000</max_time> <!-- 5 days * 24 h * 60 min -->
+=======
+		<max_time units="min">720</max_time> <!-- 5 days * 24 h * 60 min -->
+>>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
 		<time_units>min</time_units>
 		<space_units>micron</space_units>
 	

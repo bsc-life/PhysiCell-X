@@ -77,93 +77,12 @@
 +		Biology, pp. 266-279. Springer, Cham, 2021. 																 +
 =================================================================================*/
 
-#include "./custom.h"
+#include "./heterogeneity.h"
 #include "../../../../modules/PhysiCell_settings.h"
 #include "../../../../DistPhy/DistPhy_Utils.h"
 #include "../../../../DistPhy/DistPhy_Collective.h"
 
 using namespace DistPhy::mpi;
-<<<<<<< HEAD
-
-void phenotype_function( Cell* pCell, Phenotype& phenotype, double dt )
-{ return; }
-
-void custom_function( Cell* pCell, Phenotype& phenotype , double dt )
-{ return; } 
-
-void contact_function( Cell* pMe, Phenotype& phenoMe , Cell* pOther, Phenotype& phenoOther , double dt )
-{ return; } 
-
-void create_cell_types( void )
-{
-	// set the random seed 
-	if (parameters.ints.find_index("random_seed") != -1)
-	{
-		SeedRandom(parameters.ints("random_seed"));
-	}
-	
-	/* 
-	   Put any modifications to default cell definition here if you 
-	   want to have "inherited" by other cell types. 
-	   
-	   This is a good place to set default functions. 
-	*/ 
-	
-	initialize_default_cell_definition(); 
-	cell_defaults.phenotype.secretion.sync_to_microenvironment( &microenvironment ); 
-	
-	cell_defaults.functions.volume_update_function = standard_volume_update_function;
-	cell_defaults.functions.update_velocity = standard_update_cell_velocity;
-
-	cell_defaults.functions.update_migration_bias = NULL; 
-	cell_defaults.functions.update_phenotype = NULL; // update_cell_and_death_parameters_O2_based; 
-	cell_defaults.functions.custom_cell_rule = NULL; 
-	cell_defaults.functions.contact_function = NULL; 
-	
-	cell_defaults.functions.add_cell_basement_membrane_interactions = NULL; 
-	cell_defaults.functions.calculate_distance_to_membrane = NULL; 
-	
-	/*
-	   This parses the cell definitions in the XML config file. 
-	*/
-	
-	initialize_cell_definitions_from_pugixml(); 
-
-	/*
-	   This builds the map of cell definitions and summarizes the setup. 
-	*/
-		
-	build_cell_definitions_maps(); 
-
-	/*
-	   This intializes cell signal and response dictionaries 
-	*/
-
-	setup_signal_behavior_dictionaries(); 	
-
-	/* 
-	   Put any modifications to individual cell definitions here. 
-	   
-	   This is a good place to set custom functions. 
-	*/ 
-	
-	cell_defaults.functions.update_phenotype = phenotype_function; 
-	cell_defaults.functions.custom_cell_rule = custom_function; 
-	cell_defaults.functions.contact_function = contact_function; 
-
-	Cell_Definition* pCD = find_cell_definition( "cancer cell"); 
-	pCD->functions.update_phenotype = tumor_cell_phenotype_with_oncoprotein; 
-
-	pCD->parameters.o2_proliferation_saturation = 38; 
-	pCD->parameters.o2_reference = 38; 
-
-	/*
-	   This builds the map of cell definitions and summarizes the setup. 
-	*/
-		
-	//display_cell_definitions( std::cout ); 
-	
-=======
 void bacteria_phenotype( Cell* pCell, Phenotype& phenotype, double dt )
 {
 	// find my cell definition 
@@ -329,7 +248,6 @@ void setup_microenvironment( void )
 	
 	initialize_microenvironment(); 	
 
->>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
 	return; 
 }
 
@@ -354,8 +272,6 @@ void setup_microenvironment(mpi_Environment &world, mpi_Cartesian &cart_topo)
 	return; 
 }	
 
-<<<<<<< HEAD
-=======
 
 void setup_tissue( void )
 {
@@ -473,7 +389,6 @@ void setup_tissue( void )
 /* Miguel Ponce-de-Leon's function for generating positions of cells */
 /*-------------------------------------------------------------------*/
 
->>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
 std::vector<std::vector<double>> create_cell_sphere_positions(double cell_radius, double sphere_radius)
 {
 	std::vector<std::vector<double>> cells;
@@ -482,17 +397,7 @@ std::vector<std::vector<double>> create_cell_sphere_positions(double cell_radius
   double y_spacing= cell_radius*2;
   double z_spacing= cell_radius*sqrt(3);
 	
-<<<<<<< HEAD
-	//Attempt to generate very small number of cells
-	 //double x_spacing= 10;
-	 //double y_spacing= 10;
-	 //double z_spacing= 10;
-
 	std::vector<double> tempPoint(3,0.0);
-	// std::vector<double> cylinder_center(3,0.0);
-=======
-	std::vector<double> tempPoint(3,0.0);
->>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
 
 	for(double z=-sphere_radius;z<sphere_radius;z+=z_spacing, zc++)
 	{
@@ -511,15 +416,10 @@ std::vector<std::vector<double>> create_cell_sphere_positions(double cell_radius
 		}
 	}
 	return cells;
-<<<<<<< HEAD
-}
-
-=======
 
 }
 
 
->>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
 /*------------------------------------------------------------------------*/
 /* Parallel version of setup_tissue(), replacing this function completely */
 /* by Miguel's version of setup_tissue and then parallelizing             */
@@ -527,15 +427,8 @@ std::vector<std::vector<double>> create_cell_sphere_positions(double cell_radius
 
 void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
-<<<<<<< HEAD
-  
-	Cell* pC;
-
-	// Place a cluster of tumor cells at the center
-=======
   // Place a cluster of tumor cells at the center
    
->>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
 	double cell_radius = cell_defaults.phenotype.geometry.radius; 
 	double cell_spacing = 0.95 * 2.0 * cell_radius; 
 	
@@ -578,19 +471,6 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 	double x = 0.0; 
 	double x_outer = tumor_radius; 
 	double y = 0.0; 
-<<<<<<< HEAD
-
-	Cell_Definition* pCD = find_cell_definition( "cancer cell"); 
-	
-	
-	for( int i=0; i < mc.my_no_of_cell_IDs; i++ )
-	{
-		
-		//pCell = create_cell(mc.my_cell_IDs[i]); // tumor cell --> This has to be replaced by create_cell(mc.my_cell_IDs[i])
-		pCell = create_cell((*pCD), mc.my_cell_IDs[i]);	
-		pCell->assign_position(mc.my_cell_coords[3*i],mc.my_cell_coords[3*i+1],mc.my_cell_coords[3*i+2],world, cart_topo); //pCell->assign_position( positions[i] );
-				
-=======
 	
 	double p_mean = parameters.doubles( "oncoprotein_mean" ); 
 	double p_sd 	= parameters.doubles( "oncoprotein_sd" ); 
@@ -673,7 +553,6 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 		std::cout << "mean: " << mean << std::endl; 
 		std::cout << "standard deviation: " << standard_deviation << std::endl; 
 		std::cout << "[min max]: [" << global_min << " " << global_max << "]" << std::endl << std::endl;
->>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
 	} 
 	
 	return; 

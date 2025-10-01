@@ -89,8 +89,12 @@
 #include <cmath>
 #include <omp.h>
 #include <fstream>
+<<<<<<< HEAD
 #include <string>
 #include <chrono>
+=======
+#include <string> 
+>>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
 
 /*=============================*/
 /* Include ./DistPhy/DistPhy.h */
@@ -98,7 +102,11 @@
 
 #include "../../../modules/PhysiCell_standard_modules.h" 
 
+<<<<<<< HEAD
 #include "./custom_modules/custom.h"
+=======
+#include "./custom_modules/heterogeneity.h"
+>>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
 
 
 using namespace BioFVM;
@@ -125,10 +133,15 @@ int main( int argc, char* argv[] )
     cart_topo.Find_Cartesian_Coordinates(world);   //Find Cartesian Topology coordinates of each process
     cart_topo.Find_Left_Right_Neighbours(world); 	 //Finds left/right immediate neighbour processes ranks and stores in X_LEFT/X_RIGHT
     
+<<<<<<< HEAD
+=======
+    bool XML_status = false;
+>>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
     
 /*====================================================================================*/    
 /* Call parallel version of load_ function, all processes must load the complete file */
 /*====================================================================================*/    
+<<<<<<< HEAD
 	bool XML_status = false;
 
 	if( argc > 1 )
@@ -136,18 +149,35 @@ int main( int argc, char* argv[] )
         XML_status = load_PhysiCell_config_file( argv[1], world ); 
         
   	}
+=======
+
+    
+	if( argc > 1 )
+	{ 
+        XML_status = load_PhysiCell_config_file( argv[1], world ); //Jose: por aqui
+        
+  }
+>>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
 	else
 	{ 
         XML_status = load_PhysiCell_config_file( "./config/PhysiCell_settings.xml", world ); 
         
+<<<<<<< HEAD
   	}
+=======
+  }
+>>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
     
 	if( !XML_status )
 	{ 
         exit(-1); 
+<<<<<<< HEAD
   	}
     
 	
+=======
+  }
+>>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
 
 	//Setting OpenMP threads, this takes precedence over OMP_NUM_THREADS so be careful
 	omp_set_num_threads(PhysiCell_settings.omp_num_threads);
@@ -162,10 +192,17 @@ int main( int argc, char* argv[] )
 /* Objects of both mpi_Environment and mpi_Cartesian are needed in setup microenvironment(...) 		*/
 /* These objects are passed to initialize_microenvironment(...) which calls resize_uniform(...)   */
 /*================================================================================================*/
+<<<<<<< HEAD
 
 	initialize_microenvironment( world, cart_topo );
 
 	
+=======
+	
+	setup_microenvironment(world, cart_topo); //Jose: por aqui
+
+	//PhysiCell setup
+>>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
  	
 	//Set mechanics voxel size, must be >= Diffusion voxel size
 	double mechanics_voxel_size = 20;
@@ -178,7 +215,11 @@ int main( int argc, char* argv[] )
 	
 	create_cell_types();
     
+<<<<<<< HEAD
 	setup_tissue(microenvironment, world, cart_topo);      //ADD N NUMBER OF CELLS TO all_cells
+=======
+	setup_tissue(microenvironment, world, cart_topo);      //Custom parallel function 
+>>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
 	
 	/* Users typically start modifying here. START USERMODS */ 
 	
@@ -200,6 +241,7 @@ int main( int argc, char* argv[] )
 	//save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo );  //Jose: por aqui
 	save_PhysiCell_to_MultiCellDS_v2( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo );
 
+<<<<<<< HEAD
 	try 
 	{		
 		while( PhysiCell_globals.current_time < PhysiCell_settings.max_time + 0.1*diffusion_dt )
@@ -233,6 +275,9 @@ int main( int argc, char* argv[] )
 	std::cout << std::endl << "Total simulation runtime: " << std::endl; 
 	BioFVM::display_stopwatch_value( std::cout , BioFVM::runtime_stopwatch_value() ); 
 
+=======
+	
+>>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
 	//Gracefully shut-down MPI 
   	world.Finalize(); 
 

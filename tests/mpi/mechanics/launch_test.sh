@@ -20,6 +20,12 @@ module load gcc/13.2.0 openmpi/4.1.5-gcc ddt
 
 #export UCX_TLS=rc,t
 
+<<<<<<< HEAD
 srun ./mechanics $1
 #ddt --connect mpirun -n 2 ./cell_snd 100
 #ddt --connect mpirun -n 2 ./mechanics
+=======
+srun ./cell_snd $1
+#ddt --connect mpirun -n 2 ./cell_snd 100
+#ddt --connect mpirun -n 2 ./cell_snd
+>>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
