@@ -82,7 +82,15 @@ namespace PhysiCell{
 
 double Hill_response_function( double s, double half_max , double hill_power ); // done
 double linear_response_function( double s, double s_min , double s_max ); // done 
+double decreasing_linear_response_function( double s, double s_min , double s_max );
 
+double multivariate_Hill_response_function( std::vector<double> signals, std::vector<double> half_maxes , std::vector<double> hill_powers ); 
+double multivariate_linear_response_function( std::vector<double> signals, std::vector<double> min_thresholds , std::vector<double> max_thresholds ); 
+
+std::vector<double> linear_response_to_Hill_parameters( double s0, double s1 ); 
+std::vector<double> Hill_response_to_linear_parameters( double half_max , double Hill_power ); 
+
+double interpolate_behavior( double base_value , double max_changed_value, double response ); 
 /*
 void setup_signal_response( void ); 
 extern std::map<std::string,int> signal_to_int; 
@@ -162,7 +170,7 @@ void signal_response_custom( Cell* pCell, Phenotype& phenotype, double dt );
 */	
 
 class Integrated_Signal
-{
+{ //done
  private:
  public: 
 	double base_activity; 

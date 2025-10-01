@@ -52,6 +52,7 @@
 #include <iostream>
 #include <omp.h>
 #include <immintrin.h>
+#include <cstdint>
 
 namespace BioFVM{
 
@@ -94,637 +95,16 @@ void diffusion_decay_solver__constant_coefficients_explicit_uniform_mesh( Microe
 	return; 
 }
 
-
-
-/*--------------------------------------------------------------------------------------*/
-/* Parallel version of the 3-D Thomas Solver, uses X-decomposition i.e. the X-direction */
-/* of BioFVM going from left to right is divided into slices, each slice given to 1 MPI */
-/* process. 
-/*--------------------------------------------------------------------------------------*/
-//BioFVM-B: version of 2023
-/*
-void diffusion_decay_solver__constant_coefficients_LOD_3D( Microenvironment& M, double dt, mpi_Environment &world, mpi_Cartesian &cart_topo)
-{
-        int granurality = 64;
-        int size = world.Size();
-        int rank = world.Rank();
-	    MPI_Request send_req[granurality+1];
-        MPI_Request recv_req[granurality+1];
-        double t_strt_set, t_end_set;
-        double t_strt_x, t_end_x;
-        double t_strt_y, t_end_y;
-        double t_strt_z, t_end_z;
-
-        if (M.mesh.uniform_mesh == false || M.mesh.Cartesian_mesh == false)
-        {
-            std::cout << "Error: This algorithm is written for uniform Cartesian meshes. Try: other solvers!" << std::endl
-                      << std::endl;
-            return;
-        }
-
-        if (!M.diffusion_solver_setup_done)
-        {
-    
-            M.thomas_denomx.resize(M.mesh.x_coordinates.size(), M.zero); // sizeof(x_coordinates) = local_x_nodes, denomx is the main diagonal elements
-            M.thomas_cx.resize(M.mesh.x_coordinates.size(), M.zero);     // Both b and c of tridiagonal matrix are equal, hence just one array needed
-
-            M.thomas_denomy.resize(M.mesh.y_coordinates.size(), M.zero);
-            M.thomas_cy.resize(M.mesh.y_coordinates.size(), M.zero);
-
-            M.thomas_denomz.resize(M.mesh.z_coordinates.size(), M.zero);
-            M.thomas_cz.resize(M.mesh.z_coordinates.size(), M.zero);
-
-            M.thomas_i_jump = M.number_of_densities() * M.mesh.z_coordinates.size() * M.mesh.y_coordinates.size();
-            M.thomas_j_jump = M.number_of_densities() * M.mesh.z_coordinates.size();
-            M.thomas_k_jump = M.number_of_densities(); 
-
-            M.thomas_constant1 = M.diffusion_coefficients; // dt*D/dx^2
-            M.thomas_constant1a = M.zero;                  // -dt*D/dx^2;
-            M.thomas_constant2 = M.decay_rates;            // (1/3)* dt*lambda
-            M.thomas_constant3 = M.one;                    // 1 + 2*constant1 + constant2;
-            M.thomas_constant3a = M.one;                   // 1 + constant1 + constant2;
-
-            M.thomas_constant1 *= dt;
-            M.thomas_constant1 /= M.mesh.dx;
-            M.thomas_constant1 /= M.mesh.dx;
-
-            M.thomas_constant1a = M.thomas_constant1;
-            M.thomas_constant1a *= -1.0;
-
-            M.thomas_constant2 *= dt;
-            M.thomas_constant2 /= 3.0; // for the LOD splitting of the source, division by 3 is for 3-D
-
-            M.thomas_constant3 += M.thomas_constant1;
-            M.thomas_constant3 += M.thomas_constant1;
-            M.thomas_constant3 += M.thomas_constant2;
-
-            M.thomas_constant3a += M.thomas_constant1;
-            M.thomas_constant3a += M.thomas_constant2;
-
-            // Thomas solver coefficients
-
-            M.thomas_cx.assign(M.mesh.x_coordinates.size(), M.thomas_constant1a);    // Fill b and c elements with -D * dt/dx^2
-            M.thomas_denomx.assign(M.mesh.x_coordinates.size(), M.thomas_constant3); // Fill diagonal elements with (1 + 1/3 * lambda * dt + 2*D*dt/dx^2)
-
-            if (rank == 0)
-                M.thomas_denomx[0] = M.thomas_constant3a; // First diagonal element is   (1 + 1/3 * lambda * dt + 1*D*dt/dx^2)
-
-            if (rank == (size - 1))
-                M.thomas_denomx[M.mesh.x_coordinates.size() - 1] = M.thomas_constant3a; // Last diagonal element  is   (1 + 1/3 * lambda * dt + 1*D*dt/dx^2)
-
-            if (rank == 0)
-                if (M.mesh.x_coordinates.size() == 1) // This is an extreme case, won't exist, still if it does
-                {                                     // then this must be at rank 0
-                    M.thomas_denomx[0] = M.one;
-                    M.thomas_denomx[0] += M.thomas_constant2;
-                }
-            if (rank == 0)
-                M.thomas_cx[0] /= M.thomas_denomx[0]; // The first c element of tridiagonal matrix is div by first diagonal el.
-
-            // axpy(1st, 2nd, 3rd) => 1st = 1st + 2nd * 3rd
-            // the value at  size-1 is not actually used
-            // Since value of size-1 is not used, it means it is the value after the last Diagonal element
-            // cout << "Rank " << rank << endl;
-            for (int ser_ctr = 0; ser_ctr <= size - 1; ser_ctr++)
-            {
-                if (rank == ser_ctr)
-                {
-                    if (rank == 0 && rank <= size - 1) // If size=1, then this process does not send data
-                    {
-
-                        for (int i = 1; i <= M.mesh.x_coordinates.size() - 1; i++)
-                        {
-                            axpy(&M.thomas_denomx[i], M.thomas_constant1, M.thomas_cx[i - 1]);
-                            M.thomas_cx[i] /= M.thomas_denomx[i]; // the value at  size-1 is not actually used
-                        }
-                    }
-                    else
-                    {
-                        for (int i = 1; i <= M.mesh.x_coordinates.size() - 1; i++)
-                        {
-                            axpy(&M.thomas_denomx[i], M.thomas_constant1, M.thomas_cx[i - 1]);
-                            M.thomas_cx[i] /= M.thomas_denomx[i]; // the value at  size-1 is not actually used
-                        }
-                    }
-
-                    if (rank < (size - 1))
-                    {
-                        MPI_Isend(&(M.thomas_cx[M.mesh.x_coordinates.size() - 1][0]), M.thomas_cx[M.mesh.x_coordinates.size() - 1].size(), MPI_DOUBLE, ser_ctr + 1, 1111, mpi_Cart_comm, &send_req[0]);
-                    }
-                }
-
-                if (rank == (ser_ctr + 1) && (ser_ctr + 1) <= (size - 1))
-                {
-
-                    std::vector<double> temp_cx(M.thomas_cx[0].size());
-
-                    MPI_Irecv(&temp_cx[0], temp_cx.size(), MPI_DOUBLE, ser_ctr, 1111, mpi_Cart_comm, &recv_req[0]);
-                    MPI_Wait(&recv_req[0], MPI_STATUS_IGNORE);
-
-                    axpy(&M.thomas_denomx[0], M.thomas_constant1, temp_cx); // CHECK IF &temp_cz[0] is OK, axpy() in BioFVM_vector.cpp
-                    M.thomas_cx[0] /= M.thomas_denomx[0];                   // the value at  size-1 is not actually used
-                }
-
-                MPI_Barrier(mpi_Cart_comm);
-            }
-
-            M.thomas_cy.assign(M.mesh.y_coordinates.size(), M.thomas_constant1a);
-            M.thomas_denomy.assign(M.mesh.y_coordinates.size(), M.thomas_constant3);
-            M.thomas_denomy[0] = M.thomas_constant3a;
-            M.thomas_denomy[M.mesh.y_coordinates.size() - 1] = M.thomas_constant3a;
-            if (M.mesh.y_coordinates.size() == 1)
-            {
-                M.thomas_denomy[0] = M.one;
-                M.thomas_denomy[0] += M.thomas_constant2;
-            }
-            M.thomas_cy[0] /= M.thomas_denomy[0];
-            for (int i = 1; i <= M.mesh.y_coordinates.size() - 1; i++)
-            {
-                axpy(&M.thomas_denomy[i], M.thomas_constant1, M.thomas_cy[i - 1]);
-                M.thomas_cy[i] /= M.thomas_denomy[i]; // the value at  size-1 is not actually used
-            }
-
-            M.thomas_cz.assign(M.mesh.z_coordinates.size(), M.thomas_constant1a);
-            M.thomas_denomz.assign(M.mesh.z_coordinates.size(), M.thomas_constant3);
-            M.thomas_denomz[0] = M.thomas_constant3a;
-            M.thomas_denomz[M.mesh.z_coordinates.size() - 1] = M.thomas_constant3a;
-            if (M.mesh.z_coordinates.size() == 1)
-            {
-                M.thomas_denomz[0] = M.one;
-                M.thomas_denomz[0] += M.thomas_constant2;
-            }
-            M.thomas_cz[0] /= M.thomas_denomz[0];
-            for (int i = 1; i <= M.mesh.z_coordinates.size() - 1; i++)
-            {
-                axpy(&M.thomas_denomz[i], M.thomas_constant1, M.thomas_cz[i - 1]);
-                M.thomas_cz[i] /= M.thomas_denomz[i]; // the value at  size-1 is not actually used
-            }
-
-            M.diffusion_solver_setup_done = true;
-        }
-
-        M.apply_dirichlet_conditions(rank, size);
-
-        int y_size = M.mesh.y_coordinates.size();
-        int z_size = M.mesh.z_coordinates.size();
-        int p_size = M.number_of_densities(); 
-
-        int step_size = (z_size * y_size) / granurality;
-
-        int snd_data_size = step_size * p_size; // Number of data elements to be sent
-        int rcv_data_size = step_size * p_size; // All p_density_vectors elements have same size, use anyone
-
-        int snd_data_size_last = ((z_size * y_size) % granurality) * p_size; // Number of data elements to be sent
-        int rcv_data_size_last = ((z_size * y_size) % granurality) * p_size;
-        bool last_iteration = ((z_size * y_size) % granurality) > 0;
-
-        std::vector<double> block3d(z_size * y_size * p_size);
-
-        if (rank == 0)
-        {
-            for (int step = 0; step < granurality; ++step)
-            {
-                int initial_index = step * snd_data_size;
-                #pragma omp parallel for
-                for (int index = initial_index; index < initial_index + snd_data_size; index += p_size)
-                {
-                    int index_dec = index; 
-                    for (int d = 0; d < M.thomas_denomx[0].size(); d++)
-                    {
-                        M.p_density_vectors[index + d] /= M.thomas_denomx[0][d];
-                    }
-
-                    for (int i = 1; i < M.mesh.x_coordinates.size(); i++)
-                    {
-                        
-                        int index_inc = index_dec + M.thomas_i_jump;
-                        // axpy(&(*M.p_density_vectors)[n], M.thomas_constant1, (*M.p_density_vectors)[n - M.thomas_i_jump]);
-                        for (int d = 0; d < M.thomas_k_jump; d++)
-                        {
-                            M.p_density_vectors[index_inc + d] += M.thomas_constant1[d] * M.p_density_vectors[index_dec + d];
-                        }
-
-                        //(*M.p_density_vectors)[n] /= M.thomas_denomx[i];
-                        for (int d = 0; d < M.thomas_denomx[i].size(); d++)
-                        {
-                            M.p_density_vectors[index_inc + d] /= M.thomas_denomx[i][d];
-                        }
-                        index_dec = index_inc;
-                    }
-                }
-
-                if (size > 1) {
-                    int x_end = M.mesh.x_coordinates.size() - 1;
-                    int offset = step * snd_data_size;
-                    MPI_Status status;
-                    MPI_Isend(&(M.p_density_vectors[x_end * M.thomas_i_jump + offset]), snd_data_size, MPI_DOUBLE, rank + 1, step, mpi_Cart_comm, &send_req[step]);
-                }
-            }
-            //Last iteration
-            if (last_iteration) {
-                int initial_index = granurality * snd_data_size;
-                #pragma omp parallel for
-                for (int index = initial_index; index < initial_index + snd_data_size_last; index += p_size)
-                {
-                    int index_dec = index; 
-                    for (int d = 0; d < M.thomas_denomx[0].size(); d++)
-                    {
-                        M.p_density_vectors[index + d] /= M.thomas_denomx[0][d];
-                    }
-
-                    for (int i = 1; i < M.mesh.x_coordinates.size(); i++)
-                    {
-                        int index_inc = index_dec + M.thomas_i_jump;
-                        // axpy(&(*M.p_density_vectors)[n], M.thomas_constant1, (*M.p_density_vectors)[n - M.thomas_i_jump]);
-                        for (int d = 0; d < M.thomas_k_jump; d++)
-                        {
-                            M.p_density_vectors[index_inc + d] += M.thomas_constant1[d] * M.p_density_vectors[index_dec + d];
-                        }
-
-                        //(*M.p_density_vectors)[n] /= M.thomas_denomx[i];
-                        for (int d = 0; d < M.thomas_denomx[i].size(); d++)
-                        {
-                            M.p_density_vectors[index_inc + d] /= M.thomas_denomx[i][d];
-                        }
-                        index_dec = index_inc;
-                    }
-                }
-
-                if (size > 1) {
-                    int x_end = M.mesh.x_coordinates.size() - 1;
-                    int offset = granurality * snd_data_size;
-                    MPI_Status status;
-                    MPI_Isend(&(M.p_density_vectors[x_end * M.thomas_i_jump + offset]), snd_data_size_last, MPI_DOUBLE, rank + 1, granurality, mpi_Cart_comm, &send_req[granurality]);
-                    
-                }
-            }
-        }
-        else
-        {
-            if (rank >= 1 && rank <= (size - 1))
-            {
-                for (int step = 0; step < granurality; ++step)
-                {
-                    int initial_index = step * snd_data_size;
-                    MPI_Irecv(&(block3d[initial_index]), rcv_data_size, MPI_DOUBLE, rank-1, step, mpi_Cart_comm, &(recv_req[step]));
-                }
-                if (last_iteration)
-                    MPI_Irecv(&(block3d[granurality*snd_data_size]), rcv_data_size_last, MPI_DOUBLE, rank-1, granurality, mpi_Cart_comm, &(recv_req[granurality]));
-                for (int step = 0; step < granurality; ++step)
-                {
-                    int initial_index = step * snd_data_size;
-                    MPI_Wait(&recv_req[step], MPI_STATUS_IGNORE);
-                    #pragma omp parallel for
-                    for (int index = initial_index; index < initial_index + snd_data_size; index += p_size)
-                    {
-                        // axpy(&(*M.p_density_vectors)[n], M.thomas_constant1, block3d[k][j]);
-                        int index_dec = index;
-                        for (int d = 0; d < M.thomas_k_jump; d++)
-                        {
-                            M.p_density_vectors[index + d] += M.thomas_constant1[d] * block3d[index + d];
-                        }
-
-                        //(*M.p_density_vectors)[n] /= M.thomas_denomx[0];
-                        for (int d = 0; d < M.thomas_denomx[0].size(); d++)
-                        {
-                            M.p_density_vectors[index + d] /= M.thomas_denomx[0][d];
-                        }
-
-                        for (int i = 1; i < M.mesh.x_coordinates.size(); i++)
-                        {
-
-                            int index_inc = index_dec + M.thomas_i_jump;
-                            // axpy(&(*M.p_density_vectors)[n], M.thomas_constant1, (*M.p_density_vectors)[n - M.thomas_i_jump]);
-                            for (int d = 0; d < M.thomas_k_jump; d++)
-                            {
-                                M.p_density_vectors[index_inc + d] += M.thomas_constant1[d] * M.p_density_vectors[index_dec + d];
-                            }
-                            //(*M.p_density_vectors)[n] /= M.thomas_denomx[i];
-                            for (int d = 0; d < M.thomas_denomx[i].size(); d++)
-                            {
-                                M.p_density_vectors[index_inc + d] /= M.thomas_denomx[i][d];
-                            }
-
-                            index_dec = index_inc;
-                        }
-                        
-                    }
-                    if (rank < (size - 1))
-                    {
-                        int x_end = M.mesh.x_coordinates.size() - 1;
-                        MPI_Isend(&(M.p_density_vectors[x_end * M.thomas_i_jump + initial_index]), snd_data_size, MPI_DOUBLE, rank + 1, step, mpi_Cart_comm, &send_req[step]);
-                    }
-                }
-                if (last_iteration)
-                {
-                    int initial_index = granurality * snd_data_size;
-                    MPI_Wait(&recv_req[granurality], MPI_STATUS_IGNORE); //Need to change
-                    #pragma omp parallel for
-                    for (int index = initial_index; index < initial_index + snd_data_size_last; index += p_size)
-                    {
-                        // axpy(&(*M.p_density_vectors)[n], M.thomas_constant1, block3d[k][j]);
-                        int index_dec = index;
-                        for (int d = 0; d < M.thomas_k_jump; d++)
-                        {
-                            M.p_density_vectors[index + d] += M.thomas_constant1[d] * block3d[index + d];
-                        }
-
-                        //(*M.p_density_vectors)[n] /= M.thomas_denomx[0];
-                        for (int d = 0; d < M.thomas_denomx[0].size(); d++)
-                        {
-                            M.p_density_vectors[index + d] /= M.thomas_denomx[0][d];
-                        }
-
-                        for (int i = 1; i < M.mesh.x_coordinates.size(); i++)
-                        {
-
-                            int index_inc = index_dec + M.thomas_i_jump;
-                            // axpy(&(*M.p_density_vectors)[n], M.thomas_constant1, (*M.p_density_vectors)[n - M.thomas_i_jump]);
-                            for (int d = 0; d < M.thomas_k_jump; d++)
-                            {
-                                M.p_density_vectors[index_inc + d] += M.thomas_constant1[d] * M.p_density_vectors[index_dec + d];
-                            }
-                            //(*M.p_density_vectors)[n] /= M.thomas_denomx[i];
-                            for (int d = 0; d < M.thomas_denomx[i].size(); d++)
-                            {
-                                M.p_density_vectors[index_inc + d] /= M.thomas_denomx[i][d];
-                            }
-
-                            index_dec = index_inc;
-                        }
-                        
-                    }
-                    // End of computation region
-                    if (rank < (size - 1))
-                    {
-                        int x_end = M.mesh.x_coordinates.size() - 1;
-                        MPI_Request aux;
-                        MPI_Isend(&(M.p_density_vectors[x_end * M.thomas_i_jump + initial_index]), snd_data_size_last, MPI_DOUBLE, rank + 1, granurality, mpi_Cart_comm, &send_req[granurality]);
-                      
-                    }
-                }
-            }
-        }
-        
-        //-----------------------------------------------------------------------------------//
-        //                         CODE FOR BACK SUBSITUTION                                 //
-        //-----------------------------------------------------------------------------------//
-        
-
-        if (rank == (size - 1))
-        {
-            for (int step = 0; step < granurality; ++step)
-            {
-                int initial_index = ((M.mesh.x_coordinates.size() - 1)*M.thomas_i_jump) + (step * snd_data_size);
-                #pragma omp parallel for
-
-                for (int index = initial_index; index < initial_index + snd_data_size; index += p_size)
-                {
-                    int index_aux = index;
-                    //int index = j * M.thomas_j_jump + k * M.thomas_k_jump + (M.mesh.x_coordinates.size() - 1) * M.thomas_i_jump;
-                    for (int i = M.mesh.x_coordinates.size() - 2; i >= 0; i--)
-                    {
-
-                        int index_dec = index_aux - M.thomas_i_jump;
-                        // naxpy(&(*M.p_density_vectors)[n], M.thomas_cx[i], (*M.p_density_vectors)[n + M.thomas_i_jump]);
-                        for (int d = 0; d < M.thomas_k_jump; d++)
-                        {
-                            M.p_density_vectors[index_dec + d] -= M.thomas_cx[i][d] * M.p_density_vectors[index_aux + d];
-                        }
-                        index_aux = index_dec;
-                    }
-                }
-                if (size > 1) {
-                    MPI_Request aux;
-                    MPI_Isend(&(M.p_density_vectors[step * snd_data_size]), snd_data_size, MPI_DOUBLE, rank - 1, step, mpi_Cart_comm, &send_req[step]);
-                }
-            }
-
-            //Last iteration
-            if (last_iteration) {
-                int initial_index = ((M.mesh.x_coordinates.size() - 1)*M.thomas_i_jump) + (granurality * snd_data_size);
-                #pragma omp parallel for
-                for (int index = initial_index; index < initial_index + snd_data_size_last; index += p_size)
-                {
-                    int index_aux = index;
-                    for (int i = M.mesh.x_coordinates.size() - 2; i >= 0; i--)
-                    {
-
-                        int index_dec = index_aux - M.thomas_i_jump;
-                        // naxpy(&(*M.p_density_vectors)[n], M.thomas_cx[i], (*M.p_density_vectors)[n + M.thomas_i_jump]);
-                        for (int d = 0; d < M.thomas_k_jump; d++)
-                        {
-                            M.p_density_vectors[index_dec + d] -= M.thomas_cx[i][d] * M.p_density_vectors[index_aux + d];
-                        }
-                        index_aux = index_dec;
-                    }
-                }
-                if (size > 1) {
-                    MPI_Request aux;
-                    MPI_Isend(&(M.p_density_vectors[granurality * snd_data_size]), snd_data_size_last, MPI_DOUBLE, rank - 1, granurality, mpi_Cart_comm, &send_req[granurality]);
-                }
-            
-            }
-        }
-        else
-        {
-            MPI_Request status[granurality]; 
-            MPI_Request status_last;
-            for (int step = 0; step < granurality; ++step)
-            {
-                MPI_Irecv(&(block3d[step*snd_data_size]), rcv_data_size, MPI_DOUBLE, rank+1, step, mpi_Cart_comm, &recv_req[step]);
-            }
-            if (last_iteration)
-                MPI_Irecv(&(block3d[granurality*snd_data_size]), rcv_data_size_last, MPI_DOUBLE, rank+1, granurality, mpi_Cart_comm, &recv_req[granurality]);
-
-            
-            for (int step = 0; step < granurality; ++step)
-            {
-                int initial_index = ((M.mesh.x_coordinates.size() - 1)*M.thomas_i_jump) + (step * snd_data_size);
-                int index_3d_initial = (step * snd_data_size);
-                MPI_Wait(&recv_req[step], MPI_STATUS_IGNORE);
-                #pragma omp parallel for
-                for (int offset = 0; offset < snd_data_size; offset += p_size)
-                {
-                    int index_aux = initial_index + offset;
-                    int index_3d = index_3d_initial + offset;
-                    for (int d = 0; d < M.thomas_k_jump; d++)
-                    {
-                        M.p_density_vectors[index_aux + d] -= M.thomas_cx[M.mesh.x_coordinates.size() - 1][d] * block3d[index_3d + d];
-                    }
-
-                    for (int i = M.mesh.x_coordinates.size() - 2; i >= 0; i--)
-                    {
-
-                        int index_dec = index_aux - M.thomas_i_jump;
-                        // naxpy(&(*M.p_density_vectors)[n], M.thomas_cx[i], (*M.p_density_vectors)[n + M.thomas_i_jump]);
-                        for (int d = 0; d < M.thomas_k_jump; d++)
-                        {
-                            M.p_density_vectors[index_dec + d] -= M.thomas_cx[i][d] * M.p_density_vectors[index_aux + d];
-                        }
-                        index_aux = index_dec;
-                        
-                    }
-                }
-                if (rank > 0)
-                {
-                    MPI_Request aux;
-                    MPI_Isend(&(M.p_density_vectors[step * snd_data_size]), snd_data_size, MPI_DOUBLE, rank - 1, step, mpi_Cart_comm, &send_req[step]);
-                }
-            }
-            if (last_iteration)
-            {
-                int initial_index = ((M.mesh.x_coordinates.size() - 1)*M.thomas_i_jump) + (granurality * snd_data_size);
-                int index_3d_initial = (granurality * snd_data_size);
-                MPI_Wait(&recv_req[granurality], MPI_STATUS_IGNORE);
-                #pragma omp parallel for
-                for (int offset = 0; offset < snd_data_size_last; offset += p_size)
-                {
-                    int index_aux = initial_index + offset;
-                    //int index = j * M.thomas_j_jump + k * M.thomas_k_jump + (M.mesh.x_coordinates.size() - 1) * M.thomas_i_jump;
-                    int index_3d = index_3d_initial + offset;
-                    // naxpy(&(*M.p_density_vectors)[n], M.thomas_cx[M.mesh.x_coordinates.size() - 1], block3d[k][j]);
-                    for (int d = 0; d < M.thomas_k_jump; d++)
-                    {
-                        M.p_density_vectors[index_aux + d] -= M.thomas_cx[M.mesh.x_coordinates.size() - 1][d] * block3d[index_3d + d];
-                    }
-
-                    for (int i = M.mesh.x_coordinates.size() - 2; i >= 0; i--)
-                    {
-
-                        int index_dec = index_aux - M.thomas_i_jump;
-                        // naxpy(&(*M.p_density_vectors)[n], M.thomas_cx[i], (*M.p_density_vectors)[n + M.thomas_i_jump]);
-                        for (int d = 0; d < M.thomas_k_jump; d++)
-                        {
-                            M.p_density_vectors[index_dec + d] -= M.thomas_cx[i][d] * M.p_density_vectors[index_aux + d];
-                        }
-                        index_aux = index_dec;
-                        
-                    }
-                }
-                if (rank > 0)
-                {
-                    MPI_Request aux;
-                    MPI_Isend(&(M.p_density_vectors[granurality * snd_data_size]), snd_data_size_last, MPI_DOUBLE, rank - 1, granurality, mpi_Cart_comm, &send_req[granurality]);
-                }
-            }
-        }
-        MPI_Barrier(mpi_Cart_comm);
-
-        M.apply_dirichlet_conditions(rank, size);
-
-#pragma omp parallel for collapse(2)
-        for (int k = 0; k < M.mesh.z_coordinates.size(); k++)
-        {
-            for (int i = 0; i < M.mesh.x_coordinates.size(); i++)
-            {
-
-                int index = i * M.thomas_i_jump + k * M.thomas_k_jump;
-                //(*M.p_density_vectors)[n] /= M.thomas_denomy[0];
-                for (int d = 0; d < M.thomas_denomy[0].size(); d++)
-                {
-                    M.p_density_vectors[index + d] /= M.thomas_denomy[0][d];
-                }
-
-                for (int j = 1; j < M.mesh.y_coordinates.size(); j++)
-                {
-
-                    int index_inc = index + M.thomas_j_jump;
-                    // axpy(&(*M.p_density_vectors)[n], M.thomas_constant1, (*M.p_density_vectors)[n - M.thomas_j_jump]);
-                    for (int d = 0; d < M.thomas_k_jump; d++)
-                    {
-                        M.p_density_vectors[index_inc + d] += M.thomas_constant1[d] * M.p_density_vectors[index + d];
-                    }
-                    //(*M.p_density_vectors)[n] /= M.thomas_denomy[j];
-                    for (int d = 0; d < M.thomas_denomy[j].size(); d++)
-                    {
-                        M.p_density_vectors[index_inc + d] /= M.thomas_denomy[j][d];
-                    }
-                    index = index_inc;
-                }
-
-                // back substitution
-
-                index = i * M.thomas_i_jump + k * M.thomas_k_jump + (M.thomas_j_jump * (M.mesh.y_coordinates.size() - 1));
-                for (int j = M.mesh.y_coordinates.size() - 2; j >= 0; j--)
-                {
-
-                    int index_dec = index - M.thomas_j_jump;
-                    // naxpy(&(*M.p_density_vectors)[n], M.thomas_cy[j], (*M.p_density_vectors)[n + M.thomas_j_jump]);
-                    for (int d = 0; d < M.thomas_k_jump; d++)
-                    {
-                        M.p_density_vectors[index_dec + d] -= M.thomas_cy[j][d] * M.p_density_vectors[index + d];
-                    }
-                    index = index_dec;
-                }
-            }
-        }
-
-        M.apply_dirichlet_conditions(rank, size);
-
-#pragma omp parallel for collapse(2)
-        for (int j = 0; j < M.mesh.y_coordinates.size(); j++)
-        {
-
-            for (int i = 0; i < M.mesh.x_coordinates.size(); i++)
-            {
-
-                int index = i * M.thomas_i_jump + j * M.thomas_j_jump;
-                //(*M.p_density_vectors)[n] /= M.thomas_denomz[0];
-                for (int d = 0; d < M.thomas_denomz[0].size(); d++)
-                {
-                    M.p_density_vectors[index + d] /= M.thomas_denomz[0][d];
-                }
-
-                // should be an empty loop if mesh.z_coordinates.size() < 2
-                for (int k = 1; k < M.mesh.z_coordinates.size(); k++)
-                {
-
-                    int index_inc = index + M.thomas_k_jump;
-                    // axpy(&(*M.p_density_vectors)[n], M.thomas_constant1, (*M.p_density_vectors)[n - M.thomas_k_jump]);
-                    for (int d = 0; d < M.thomas_k_jump; d++)
-                    {
-                        M.p_density_vectors[index_inc + d] += M.thomas_constant1[d] * M.p_density_vectors[index + d];
-                    }
-                    //(*M.p_density_vectors)[n] /= M.thomas_denomz[k];
-                    for (int d = 0; d < M.thomas_denomz[k].size(); d++)
-                    {
-                        M.p_density_vectors[index_inc + d] /= M.thomas_denomz[k][d];
-                    }
-
-                    index = index_inc;
-                }
-
-                index = i * M.thomas_i_jump + j * M.thomas_j_jump + (M.thomas_k_jump * (M.mesh.z_coordinates.size() - 1));
-                for (int k = M.mesh.z_coordinates.size() - 2; k >= 0; k--)
-                {
-
-                    int index_dec = index - M.thomas_k_jump;
-                    // naxpy(&(*M.p_density_vectors)[n], M.thomas_cz[k], (*M.p_density_vectors)[n + M.thomas_k_jump]);
-                    for (int d = 0; d < M.thomas_k_jump; d++)
-                    {
-                        M.p_density_vectors[index_dec + d] -= M.thomas_cz[k][d] * M.p_density_vectors[index + d];
-                    }
-                    index = index_dec;
-                }
-            }
-        }
-		
-        M.apply_dirichlet_conditions(rank, size);
-        
-        
-        return;
-}*/
 void diffusion_decay_solver__constant_coefficients_LOD_3D( Microenvironment& M, double dt ) {
     std::cout << "Diffusion decay solver constant coefficients LOD 3D single node desactivated!" << std::endl;
     return;
 }
 void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironment &M, double dt, mpi_Environment &world, mpi_Cartesian &cart_topo)
-    {
+{
         
         //std::ofstream file(M.timing_csv, std::ios::app);
-        int size = world.size;
-        int rank = world.rank;
+        uint32_t size = world.size;
+        uint32_t rank = world.rank;
         uint granurality = 1;
         if (M.granurality >= 1)
             granurality = M.granurality;
@@ -754,11 +134,11 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
             M.thomas_j_jump = M.mesh.z_size * M.mesh.n_substrates;
             M.thomas_k_jump = M.mesh.n_substrates;
 
-            int y_size = M.mesh.y_coordinates.size();
-            int z_size = M.mesh.z_coordinates.size();
-            int p_size = M.number_of_densities(); 
+            uint32_t y_size = M.mesh.y_coordinates.size();
+            uint32_t z_size = M.mesh.z_coordinates.size();
+            uint32_t p_size = M.number_of_densities(); 
 
-            int step_size = (z_size * y_size) / granurality;
+            uint32_t step_size = (z_size * y_size) / granurality;
 
             M.snd_data_size = step_size * p_size; // Number of data elements to be sent
             M.rcv_data_size = step_size * p_size; // All p_density_vectors elements have same size, use anyone
@@ -865,14 +245,14 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
             // the value at  size-1 is not actually used
             // Since value of size-1 is not used, it means it is the value after the last Diagonal element
             // cout << "Rank " << rank << endl;
-            for (int ser_ctr = 0; ser_ctr <= size - 1; ser_ctr++)
+            for (uint32_t ser_ctr = 0; ser_ctr <= size - 1; ser_ctr++)
             {
                 if (rank == ser_ctr)
                 {
                     if (rank == 0 && rank <= size - 1) // If size=1, then this process does not send data
                     {
 
-                        for (int i = 1; i <= M.mesh.x_coordinates.size() - 1; i++)
+                        for (uint32_t i = 1; i <= M.mesh.x_coordinates.size() - 1; i++)
                         {
                             axpy(&M.thomas_denomx[i], M.thomas_constant1, M.thomas_cx[i - 1]);
                             M.thomas_cx[i] /= M.thomas_denomx[i]; // the value at  size-1 is not actually used
@@ -880,7 +260,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
                     }
                     else
                     {
-                        for (int i = 1; i <= M.mesh.x_coordinates.size() - 1; i++)
+                        for (uint32_t i = 1; i <= M.mesh.x_coordinates.size() - 1; i++)
                         {
                             axpy(&M.thomas_denomx[i], M.thomas_constant1, M.thomas_cx[i - 1]);
                             M.thomas_cx[i] /= M.thomas_denomx[i]; // the value at  size-1 is not actually used
@@ -926,7 +306,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
                 M.thomas_denomy[0] += M.thomas_constant2;
             }
             M.thomas_cy[0] /= M.thomas_denomy[0];
-            for (int i = 1; i <= M.mesh.y_coordinates.size() - 1; i++)
+            for (uint32_t i = 1; i <= M.mesh.y_coordinates.size() - 1; i++)
             {
                 axpy(&M.thomas_denomy[i], M.thomas_constant1, M.thomas_cy[i - 1]);
                 M.thomas_cy[i] /= M.thomas_denomy[i]; // the value at  size-1 is not actually used
@@ -942,17 +322,21 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
                 M.thomas_denomz[0] += M.thomas_constant2;
             }
             M.thomas_cz[0] /= M.thomas_denomz[0];
-            for (int i = 1; i <= M.mesh.z_coordinates.size() - 1; i++)
+            for (uint32_t i = 1; i <= M.mesh.z_coordinates.size() - 1; i++)
             {
                 axpy(&M.thomas_denomz[i], M.thomas_constant1, M.thomas_cz[i - 1]);
                 M.thomas_cz[i] /= M.thomas_denomz[i]; // the value at  size-1 is not actually used
             }
 
+            if (world.rank == 0) { //Print message size and number of messages
+                std::cout << "  Diffusion messages:" << granurality * (world.size-1) * 2;
+                std::cout << " | Size in " << ((double)(M.thomas_i_jump * 8))/(1024.0*1024.0) <<" MB" << std::endl;   
+            }
             M.diffusion_solver_setup_done = true;
             //if (rank == 0) file << "X-diffusion,Y-diffusion,Z-diffusion,Apply Dirichlet" << std::endl;
         }
 
-        int n_req = granurality;
+        uint32_t n_req = granurality;
         if (M.last_iteration > 0) n_req+=1;
         MPI_Request send_req[n_req];
         MPI_Request recv_req[n_req];
@@ -967,30 +351,30 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
         
         if (rank == 0)
         {
-            for (int step = 0; step < granurality; ++step)
+            for (uint32_t step = 0; step < granurality; ++step)
             {
-                int initial_index = step * M.snd_data_size;
+                uint32_t initial_index = step * M.snd_data_size;
                 #pragma omp parallel for
-                for (int index = initial_index; index < initial_index + M.snd_data_size; index += M.mesh.n_substrates)
+                for (uint32_t index = initial_index; index < initial_index + M.snd_data_size; index += M.mesh.n_substrates)
                 {
-                    int index_dec = index; 
-                    for (int d = 0; d < M.thomas_k_jump; d++)
+                    uint32_t index_dec = index; 
+                    for (uint32_t d = 0; d < M.thomas_k_jump; d++)
                     {
                         (*M.p_density_vectors)[index + d] /= M.thomas_denomx[0][d];
                     }
 
-                    for (int i = 1; i < M.mesh.x_size; i++)
+                    for (uint32_t i = 1; i < M.mesh.x_size; i++)
                     {
                         
-                        int index_inc = index_dec + M.thomas_i_jump;
+                        uint32_t index_inc = index_dec + M.thomas_i_jump;
                         // axpy(&(*M.p_density_vectors)[n], M.thomas_constant1, (*M.p_density_vectors)[n - M.thomas_i_jump]);
-                        for (int d = 0; d < M.thomas_k_jump; d++)
+                        for (uint32_t d = 0; d < M.thomas_k_jump; d++)
                         {
                             (*M.p_density_vectors)[index_inc + d] += M.thomas_constant1[d] * (*M.p_density_vectors)[index_dec + d];
                         }
 
                         //(*M.p_density_vectors)[n] /= M.thomas_denomx[i];
-                        for (int d = 0; d < M.thomas_k_jump; d++)
+                        for (uint32_t d = 0; d < M.thomas_k_jump; d++)
                         {
                             (*M.p_density_vectors)[index_inc + d] /= M.thomas_denomx[i][d];
                         }
@@ -999,34 +383,33 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
                 }
 
                 if (size > 1) {
-                    int x_end = M.mesh.x_size - 1;
-                    int offset = step * M.snd_data_size;
-                    MPI_Status status;
+                    uint32_t x_end = M.mesh.x_size - 1;
+                    uint32_t offset = step * M.snd_data_size;
                     MPI_Isend(&((*M.p_density_vectors)[x_end * M.thomas_i_jump + offset]), M.snd_data_size, MPI_DOUBLE, rank + 1, step, cart_topo.mpi_cart_comm, &send_req[step]);
                 }
             }
             //Last iteration
             if (M.snd_data_size_last > 0) {
-                int initial_index = granurality * M.snd_data_size;
+                uint32_t initial_index = granurality * M.snd_data_size;
                 #pragma omp parallel for
-                for (int index = initial_index; index < initial_index + M.snd_data_size_last; index += M.thomas_k_jump)
+                for (uint32_t index = initial_index; index < initial_index + M.snd_data_size_last; index += M.thomas_k_jump)
                 {
-                    int index_dec = index; 
-                    for (int d = 0; d < M.thomas_k_jump; d++)
+                    uint32_t index_dec = index; 
+                    for (uint32_t d = 0; d < M.thomas_k_jump; d++)
                     {
                         (*M.p_density_vectors)[index + d] /= M.thomas_denomx[0][d];
                     }
 
-                    for (int i = 1; i < M.mesh.x_size; i++)
+                    for (uint32_t i = 1; i < M.mesh.x_size; i++)
                     {
-                        int index_inc = index_dec + M.thomas_i_jump;
+                        uint32_t index_inc = index_dec + M.thomas_i_jump;
                         // axpy(&(*(*M.p_density_vectors))[n], M.thomas_constant1, (*(*M.p_density_vectors))[n - M.thomas_i_jump]);
-                        for (int d = 0; d < M.thomas_k_jump; d++)
+                        for (uint32_t d = 0; d < M.thomas_k_jump; d++)
                         {
                             (*M.p_density_vectors)[index_inc + d] += M.thomas_constant1[d] * (*M.p_density_vectors)[index_dec + d];
                         }
                         //(*(*M.p_density_vectors))[n] /= M.thomas_denomx[i];
-                        for (int d = 0; d < M.thomas_k_jump; d++)
+                        for (uint32_t d = 0; d < M.thomas_k_jump; d++)
                         {
                             (*M.p_density_vectors)[index_inc + d] /= M.thomas_denomx[i][d];
                         }
@@ -1035,9 +418,8 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
                 }
 
                 if (size > 1) {
-                    int x_end = M.mesh.x_size - 1;
-                    int offset = granurality * M.snd_data_size;
-                    MPI_Status status;
+                    uint32_t x_end = M.mesh.x_size - 1;
+                    uint32_t offset = granurality * M.snd_data_size;
                     MPI_Isend(&((*M.p_density_vectors)[x_end * M.thomas_i_jump + offset]), M.snd_data_size_last, MPI_DOUBLE, rank + 1, granurality, cart_topo.mpi_cart_comm, &send_req[granurality]);
                     
                 }
@@ -1047,41 +429,53 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
         {
             if (rank >= 1 && rank <= (size - 1))
             {
-                for (int step = 0; step < granurality; ++step)
+                for (uint32_t step = 0; step < granurality; ++step)
                 {
-                    int initial_index = step * M.snd_data_size;
+                    uint32_t initial_index = step * M.snd_data_size;
                     MPI_Irecv(&(block3d[initial_index]), M.rcv_data_size, MPI_DOUBLE, rank-1, step, cart_topo.mpi_cart_comm, &(recv_req[step]));
                 }
                 if (M.last_iteration)
                     MPI_Irecv(&(block3d[granurality*M.snd_data_size]), M.rcv_data_size_last, MPI_DOUBLE, rank-1, granurality, cart_topo.mpi_cart_comm, &(recv_req[granurality]));
-                for (int step = 0; step < granurality; ++step)
+                
+                for (uint32_t step = 0; step < granurality; ++step)
                 {
-                    int initial_index = step * M.snd_data_size;
-                    MPI_Wait(&recv_req[step], MPI_STATUS_IGNORE);
+                    uint32_t initial_index = step * M.snd_data_size;
+                    //MPI_Wait(&recv_req[step], MPI_STATUS_IGNORE);
+                    MPI_Status status;
+                    MPI_Wait(&recv_req[step], &status);
+
+                    int received_count = 0;
+                    MPI_Get_count(&status, MPI_DOUBLE, &received_count);
+
+                    if (received_count != (int)M.rcv_data_size) {
+                        std::fprintf(stderr, "RANK %d: TRUNCATION? step=%u expected=%zu received=%d source=%d tag=%d\n",
+                                    rank, step, M.rcv_data_size, received_count, status.MPI_SOURCE, status.MPI_TAG);
+                    }
+
                     #pragma omp parallel for
-                    for (int index = initial_index; index < initial_index + M.snd_data_size; index += M.thomas_k_jump)
+                    for (uint32_t index = initial_index; index < initial_index + M.snd_data_size; index += M.thomas_k_jump)
                     {
                         // axpy(&(*(*M.p_density_vectors))[n], M.thomas_constant1, block3d[k][j]);
-                        int index_dec = index;
-                        for (int d = 0; d < M.thomas_k_jump; d++)
+                        uint32_t index_dec = index;
+                        for (uint32_t d = 0; d < M.thomas_k_jump; d++)
                         {
                             (*M.p_density_vectors)[index + d] += M.thomas_constant1[d] * block3d[index + d];
                         }
                         //(*(*M.p_density_vectors))[n] /= M.thomas_denomx[0];
-                        for (int d = 0; d < M.mesh.n_substrates; d++)
+                        for (uint32_t d = 0; d < M.mesh.n_substrates; d++)
                         {
                             (*M.p_density_vectors)[index + d] /= M.thomas_denomx[0][d];
                         }
-                        for (int i = 1; i < M.mesh.x_size; i++)
+                        for (uint32_t i = 1; i < M.mesh.x_size; i++)
                         {
-                            int index_inc = index_dec + M.thomas_i_jump;
+                            uint32_t index_inc = index_dec + M.thomas_i_jump;
                             // axpy(&(*(*M.p_density_vectors))[n], M.thomas_constant1, (*(*M.p_density_vectors))[n - M.thomas_i_jump]);
-                            for (int d = 0; d < M.thomas_k_jump; d++)
+                            for (uint32_t d = 0; d < M.thomas_k_jump; d++)
                             {
                                 (*M.p_density_vectors)[index_inc + d] += M.thomas_constant1[d] * (*M.p_density_vectors)[index_dec + d];
                             }
                             //(*(*M.p_density_vectors))[n] /= M.thomas_denomx[i];
-                            for (int d = 0; d < M.thomas_k_jump; d++)
+                            for (uint32_t d = 0; d < M.thomas_k_jump; d++)
                             {
                                 (*M.p_density_vectors)[index_inc + d] /= M.thomas_denomx[i][d];
                             }
@@ -1090,39 +484,39 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
                     }
                     if (rank < (size - 1))
                     {
-                        int x_end = M.mesh.x_size - 1;
+                        uint32_t x_end = M.mesh.x_size - 1;
                         MPI_Isend(&((*M.p_density_vectors)[(x_end * M.thomas_i_jump) + initial_index]), M.snd_data_size, MPI_DOUBLE, rank + 1, step, cart_topo.mpi_cart_comm, &send_req[step]);
                     }
                 }
                 if (M.snd_data_size_last > 0)
                 {
-                    int initial_index = granurality * M.snd_data_size;
+                    uint32_t initial_index = granurality * M.snd_data_size;
                     MPI_Wait(&recv_req[granurality], MPI_STATUS_IGNORE); 
                     #pragma omp parallel for
-                    for (int index = initial_index; index < initial_index + M.snd_data_size_last; index += M.thomas_k_jump)
+                    for (uint32_t index = initial_index; index < initial_index + M.snd_data_size_last; index += M.thomas_k_jump)
                     {
                         // axpy(&(*(*M.p_density_vectors))[n], M.thomas_constant1, block3d[k][j]);
-                        int index_dec = index;
-                        for (int d = 0; d < M.thomas_k_jump; d++)
+                        uint32_t index_dec = index;
+                        for (uint32_t d = 0; d < M.thomas_k_jump; d++)
                         {
                             (*M.p_density_vectors)[index + d] += M.thomas_constant1[d] * block3d[index + d];
                         }
                         //(*(*M.p_density_vectors))[n] /= M.thomas_denomx[0];
-                        for (int d = 0; d < M.thomas_k_jump; d++)
+                        for (uint32_t d = 0; d < M.thomas_k_jump; d++)
                         {
                             (*M.p_density_vectors)[index + d] /= M.thomas_denomx[0][d];
                         }
 
-                        for (int i = 1; i < M.mesh.x_size; i++)
+                        for (uint32_t i = 1; i < M.mesh.x_size; i++)
                         {
-                            int index_inc = index_dec + M.thomas_i_jump;
+                            uint32_t index_inc = index_dec + M.thomas_i_jump;
                             // axpy(&(*(*M.p_density_vectors))[n], M.thomas_constant1, (*(*M.p_density_vectors))[n - M.thomas_i_jump]);
-                            for (int d = 0; d < M.thomas_k_jump; d++)
+                            for (uint32_t d = 0; d < M.thomas_k_jump; d++)
                             {
                                 (*M.p_density_vectors)[index_inc + d] += M.thomas_constant1[d] * (*M.p_density_vectors)[index_dec + d];
                             }
                             //(*(*M.p_density_vectors))[n] /= M.thomas_denomx[i];
-                            for (int d = 0; d < M.thomas_k_jump; d++)
+                            for (uint32_t d = 0; d < M.thomas_k_jump; d++)
                             {
                                 (*M.p_density_vectors)[index_inc + d] /= M.thomas_denomx[i][d];
                             }
@@ -1134,7 +528,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
                     // End of computation region
                     if (rank < (size - 1))
                     {
-                        int x_end = M.mesh.x_size - 1;
+                        uint32_t x_end = M.mesh.x_size - 1;
                         MPI_Request aux;
                         MPI_Isend(&((*M.p_density_vectors)[x_end * M.thomas_i_jump + initial_index]), M.snd_data_size_last, MPI_DOUBLE, rank + 1, granurality, cart_topo.mpi_cart_comm, &send_req[granurality]);
                       
@@ -1142,24 +536,25 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
                 }
             }
         }
+        MPI_Barrier(cart_topo.mpi_cart_comm);
         /*-----------------------------------------------------------------------------------*/
         /*                         CODE FOR BACK SUBSITUTION                                 */
         /*-----------------------------------------------------------------------------------*/
         if (rank == (size - 1))
         {
-            for (int step = 0; step < granurality; ++step)
+            for (uint32_t step = 0; step < granurality; ++step)
             {
-                int initial_index = ((M.mesh.x_size - 1)*M.thomas_i_jump) + (step * M.snd_data_size);
+                uint32_t initial_index = ((M.mesh.x_size - 1)*M.thomas_i_jump) + (step * M.snd_data_size);
                 #pragma omp parallel for
-                for (int index = initial_index; index < initial_index + M.snd_data_size; index += M.mesh.n_substrates)
+                for (uint32_t index = initial_index; index < initial_index + M.snd_data_size; index += M.mesh.n_substrates)
                 {
-                    int index_aux = index;
-                    for (int i = M.mesh.x_size - 2; i >= 0; i--)
+                    uint32_t index_aux = index;
+                    for (int32_t i = M.mesh.x_size - 2; i >= 0; i--)
                     {
 
-                        int index_dec = index_aux - M.thomas_i_jump;
+                        uint32_t index_dec = index_aux - M.thomas_i_jump;
                         // naxpy(&(*(*M.p_density_vectors))[n], M.thomas_cx[i], (*(*M.p_density_vectors))[n + M.thomas_i_jump]);
-                        for (int d = 0; d < M.thomas_k_jump; d++)
+                        for (uint32_t d = 0; d < M.thomas_k_jump; d++)
                         {
                             (*M.p_density_vectors)[index_dec + d] -= M.thomas_cx[i][d] * (*M.p_density_vectors)[index_aux + d];
                         }
@@ -1167,24 +562,23 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
                     }
                 }
                 if (size > 1) {
-                    MPI_Request aux;
-                    MPI_Isend(&((*M.p_density_vectors)[step * M.snd_data_size]), M.snd_data_size, MPI_DOUBLE, rank - 1, step, cart_topo.mpi_cart_comm, &send_req[step]);
+                    MPI_Isend(&((*M.p_density_vectors)[step * M.snd_data_size]), M.snd_data_size, MPI_DOUBLE, rank - 1, step + granurality, cart_topo.mpi_cart_comm, &send_req[step]);
                 }
             }
 
             //Last iteration
             if (M.snd_data_size_last > 0) {
-                int initial_index = ((M.mesh.x_size - 1)*M.thomas_i_jump) + (granurality * M.snd_data_size);
+                uint32_t initial_index = ((M.mesh.x_size - 1)*M.thomas_i_jump) + (granurality * M.snd_data_size);
                 #pragma omp parallel for
-                for (int index = initial_index; index < initial_index + M.snd_data_size_last; index += M.mesh.n_substrates)
+                for (uint32_t index = initial_index; index < initial_index + M.snd_data_size_last; index += M.mesh.n_substrates)
                 {
-                    int index_aux = index;
-                    for (int i = M.mesh.x_coordinates.size() - 2; i >= 0; i--)
+                    uint32_t index_aux = index;
+                    for (int32_t i = M.mesh.x_coordinates.size() - 2; i >= 0; i--)
                     {
 
-                        int index_dec = index_aux - M.thomas_i_jump;
+                        uint32_t index_dec = index_aux - M.thomas_i_jump;
                         // naxpy(&(*(*M.p_density_vectors))[n], M.thomas_cx[i], (*(*M.p_density_vectors))[n + M.thomas_i_jump]);
-                        for (int d = 0; d < M.thomas_k_jump; d++)
+                        for (uint32_t d = 0; d < M.thomas_k_jump; d++)
                         {
                             (*M.p_density_vectors)[index_dec + d] -= M.thomas_cx[i][d] * (*M.p_density_vectors)[index_aux + d];
                         }
@@ -1193,39 +587,49 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
                 }
                 if (size > 1) {
                     MPI_Request aux;
-                    MPI_Isend(&((*M.p_density_vectors)[granurality * M.snd_data_size]), M.snd_data_size_last, MPI_DOUBLE, rank - 1, granurality, cart_topo.mpi_cart_comm, &send_req[granurality]);
+                    MPI_Isend(&((*M.p_density_vectors)[granurality * M.snd_data_size]), M.snd_data_size_last, MPI_DOUBLE, rank - 1, granurality + granurality, cart_topo.mpi_cart_comm, &send_req[granurality]);
                 }
             
             }
         }
         else
         {
-            for (int step = 0; step < granurality; ++step) {
-                MPI_Irecv(&(block3d[step*M.snd_data_size]), M.rcv_data_size, MPI_DOUBLE, rank+1, step, cart_topo.mpi_cart_comm, &recv_req[step]);}
+            for (uint32_t step = 0; step < granurality; ++step) {
+                MPI_Irecv(&(block3d[step*M.snd_data_size]), M.rcv_data_size, MPI_DOUBLE, rank+1, step + granurality, cart_topo.mpi_cart_comm, &recv_req[step]);}
             if (M.last_iteration)
-                MPI_Irecv(&(block3d[granurality*M.snd_data_size]), M.rcv_data_size_last, MPI_DOUBLE, rank+1, granurality, cart_topo.mpi_cart_comm, &recv_req[granurality]);
+                MPI_Irecv(&(block3d[granurality*M.snd_data_size]), M.rcv_data_size_last, MPI_DOUBLE, rank+1, granurality + granurality, cart_topo.mpi_cart_comm, &recv_req[granurality]);
             
-            for (int step = 0; step < granurality; ++step)
+            for (uint32_t step = 0; step < granurality; ++step)
             {
-                int initial_index = ((M.mesh.x_size - 1)*M.thomas_i_jump) + (step * M.snd_data_size);
-                int index_3d_initial = (step * M.snd_data_size);
-                MPI_Wait(&recv_req[step], MPI_STATUS_IGNORE);
+                uint32_t initial_index = ((M.mesh.x_size - 1)*M.thomas_i_jump) + (step * M.snd_data_size);
+                uint32_t index_3d_initial = (step * M.snd_data_size);
+                //MPI_Wait(&recv_req[step], MPI_STATUS_IGNORE);
+                MPI_Status status;
+                MPI_Wait(&recv_req[step], &status);
+
+                int received_count = 0;
+                MPI_Get_count(&status, MPI_DOUBLE, &received_count);
+
+                if (received_count != (int)M.rcv_data_size) {
+                    std::fprintf(stderr, "RANK %d: TRUNCATION? step=%u expected=%zu received=%d source=%d tag=%d\n",
+                                rank, step, M.rcv_data_size, received_count, status.MPI_SOURCE, status.MPI_TAG);
+                }
                 #pragma omp parallel for
-                for (int offset = 0; offset < M.snd_data_size; offset += M.mesh.n_substrates)
+                for (uint32_t offset = 0; offset < M.snd_data_size; offset += M.mesh.n_substrates)
                 {
-                    int index_aux = initial_index + offset;
-                    int index_3d = index_3d_initial + offset;
-                    for (int d = 0; d < M.thomas_k_jump; d++)
+                    uint32_t index_aux = initial_index + offset;
+                    uint32_t index_3d = index_3d_initial + offset;
+                    for (uint32_t d = 0; d < M.thomas_k_jump; d++)
                     {
                         (*M.p_density_vectors)[index_aux + d] -= M.thomas_cx[M.mesh.x_size - 1][d] * block3d[index_3d + d];
                     }
 
-                    for (int i = M.mesh.x_size - 2; i >= 0; i--)
+                    for (int32_t i = M.mesh.x_size - 2; i >= 0; i--)
                     {
 
-                        int index_dec = index_aux - M.thomas_i_jump;
+                        uint32_t index_dec = index_aux - M.thomas_i_jump;
                         // naxpy(&(*(*M.p_density_vectors))[n], M.thomas_cx[i], (*(*M.p_density_vectors))[n + M.thomas_i_jump]);
-                        for (int d = 0; d < M.thomas_k_jump; d++)
+                        for (uint32_t d = 0; d < M.thomas_k_jump; d++)
                         {
                             (*M.p_density_vectors)[index_dec + d] -= M.thomas_cx[i][d] * (*M.p_density_vectors)[index_aux + d];
                         }
@@ -1236,29 +640,30 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
                 if (rank > 0)
                 {
                     MPI_Request aux;
-                    MPI_Isend(&((*M.p_density_vectors)[step * M.snd_data_size]), M.snd_data_size, MPI_DOUBLE, rank - 1, step, cart_topo.mpi_cart_comm, &send_req[step]);
+                    //MPI_Isend(&((*M.p_density_vectors)[step * M.snd_data_size]), M.snd_data_size, MPI_DOUBLE, rank - 1, step, cart_topo.mpi_cart_comm, &send_req[step]);
+                    MPI_Send(&((*M.p_density_vectors)[step * M.snd_data_size]), M.snd_data_size, MPI_DOUBLE, rank - 1, step + granurality, cart_topo.mpi_cart_comm);
                 }
             }
             if (M.snd_data_size_last > 0)
             {
-                int initial_index = ((M.mesh.x_size - 1)*M.thomas_i_jump) + (granurality * M.snd_data_size);
-                int index_3d_initial = (granurality * M.snd_data_size);
+                uint32_t initial_index = ((M.mesh.x_size - 1)*M.thomas_i_jump) + (granurality * M.snd_data_size);
+                uint32_t index_3d_initial = (granurality * M.snd_data_size);
                 MPI_Wait(&recv_req[granurality], MPI_STATUS_IGNORE);
                 #pragma omp parallel for
-                for (int offset = 0; offset < M.snd_data_size_last; offset += M.mesh.n_substrates)
+                for (uint32_t offset = 0; offset < M.snd_data_size_last; offset += M.mesh.n_substrates)
                 {
-                    int index_aux = initial_index + offset;
-                    int index_3d = index_3d_initial + offset;
+                    uint32_t index_aux = initial_index + offset;
+                    uint32_t index_3d = index_3d_initial + offset;
                     //naxpy(&(*(*M.p_density_vectors))[n], M.thomas_cx[M.mesh.x_coordinates.size() - 1], block3d[k][j]);
-                    for (int d = 0; d < M.thomas_k_jump; d++)
+                    for (uint32_t d = 0; d < M.thomas_k_jump; d++)
                     {
                         (*M.p_density_vectors)[index_aux + d] -= M.thomas_cx[M.mesh.x_size - 1][d] * block3d[index_3d + d];
                     }
-                    for (int i = M.mesh.x_size - 2; i >= 0; i--)
+                    for (int32_t i = M.mesh.x_size - 2; i >= 0; i--)
                     {
-                        int index_dec = index_aux - M.thomas_i_jump;
+                        uint32_t index_dec = index_aux - M.thomas_i_jump;
                         // naxpy(&(*(*M.p_density_vectors))[n], M.thomas_cx[i], (*(*M.p_density_vectors))[n + M.thomas_i_jump]);
-                        for (int d = 0; d < M.thomas_k_jump; d++)
+                        for (uint32_t d = 0; d < M.thomas_k_jump; d++)
                         {
                             (*M.p_density_vectors)[index_dec + d] -= M.thomas_cx[i][d] * (*M.p_density_vectors)[index_aux + d];
                         }
@@ -1268,7 +673,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
                 if (rank > 0)
                 {
                     MPI_Request aux;
-                    MPI_Isend(&((*M.p_density_vectors)[granurality * M.snd_data_size]), M.snd_data_size_last, MPI_DOUBLE, rank - 1, granurality, cart_topo.mpi_cart_comm, &send_req[granurality]);
+                    MPI_Isend(&((*M.p_density_vectors)[granurality * M.snd_data_size]), M.snd_data_size_last, MPI_DOUBLE, rank - 1, granurality + granurality, cart_topo.mpi_cart_comm, &send_req[granurality]);
                 }
             }
         }
@@ -1277,29 +682,29 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
         M.apply_dirichlet_boundaries_conditions(rank, size);
 
         #pragma omp parallel for collapse(2)
-        for (int i = 0; i < M.mesh.x_size; i++)
+        for (uint32_t i = 0; i < M.mesh.x_size; i++)
         {
-            for (int k = 0; k < M.mesh.z_size; k++)
+            for (uint32_t k = 0; k < M.mesh.z_size; k++)
             {
 
-                int index = i * M.thomas_i_jump + k * M.thomas_k_jump;
+                uint32_t index = i * M.thomas_i_jump + k * M.thomas_k_jump;
                 //(*(*M.p_density_vectors))[n] /= M.thomas_denomy[0];
-                for (int d = 0; d < M.thomas_k_jump; d++)
+                for (uint32_t d = 0; d < M.thomas_k_jump; d++)
                 {
                     (*M.p_density_vectors)[index + d] /= M.thomas_denomy[0][d];
                 }
 
-                for (int j = 1; j < M.mesh.y_size; j++)
+                for (uint32_t j = 1; j < M.mesh.y_size; j++)
                 {
 
-                    int index_inc = index + M.thomas_j_jump;
+                    uint32_t index_inc = index + M.thomas_j_jump;
                     // axpy(&(*(*M.p_density_vectors))[n], M.thomas_constant1, (*(*M.p_density_vectors))[n - M.thomas_j_jump]);
-                    for (int d = 0; d < M.thomas_k_jump; d++)
+                    for (uint32_t d = 0; d < M.thomas_k_jump; d++)
                     {
                         (*M.p_density_vectors)[index_inc + d] += M.thomas_constant1[d] * (*M.p_density_vectors)[index + d];
                     }
                     //(*(*M.p_density_vectors))[n] /= M.thomas_denomy[j];
-                    for (int d = 0; d < M.thomas_k_jump; d++)
+                    for (uint32_t d = 0; d < M.thomas_k_jump; d++)
                     {
                         (*M.p_density_vectors)[index_inc + d] /= M.thomas_denomy[j][d];
                     }
@@ -1309,12 +714,12 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
                 // back substitution
 
                 index = i * M.thomas_i_jump + k * M.thomas_k_jump + (M.thomas_j_jump * (M.mesh.y_size - 1));
-                for (int j = M.mesh.y_size - 2; j >= 0; j--)
+                for (int32_t j = M.mesh.y_size - 2; j >= 0; j--)
                 {
 
-                    int index_dec = index - M.thomas_j_jump;
+                    uint32_t index_dec = index - M.thomas_j_jump;
                     // naxpy(&(*(*M.p_density_vectors))[n], M.thomas_cy[j], (*(*M.p_density_vectors))[n + M.thomas_j_jump]);
-                    for (int d = 0; d < M.thomas_k_jump; d++)
+                    for (uint32_t d = 0; d < M.thomas_k_jump; d++)
                     {
                         (*M.p_density_vectors)[index_dec + d] -= M.thomas_cy[j][d] * (*M.p_density_vectors)[index + d];
                     }
@@ -1326,43 +731,43 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
         M.apply_dirichlet_boundaries_conditions(rank, size);
 
         #pragma omp parallel for collapse(2)
-        for (int i = 0; i < M.mesh.x_size; i++)
+        for (uint32_t i = 0; i < M.mesh.x_size; i++)
         {
-           for (int j = 0; j < M.mesh.y_size; j++)
+           for (uint32_t j = 0; j < M.mesh.y_size; j++)
             {
 
-                int index = i * M.thomas_i_jump + j * M.thomas_j_jump;
+                uint32_t index = i * M.thomas_i_jump + j * M.thomas_j_jump;
                 //(*(*M.p_density_vectors))[n] /= M.thomas_denomz[0];
-                for (int d = 0; d < M.thomas_k_jump; d++)
+                for (uint32_t d = 0; d < M.thomas_k_jump; d++)
                 {
                     (*M.p_density_vectors)[index + d] /= M.thomas_denomz[0][d];
                 }
 
                 // should be an empty loop if mesh.z_coordinates.size() < 2
-                for (int k = 1; k < M.mesh.z_size; k++)
+                for (uint32_t k = 1; k < M.mesh.z_size; k++)
                 {
-                    int index_inc = index + M.thomas_k_jump;
+                    uint32_t index_inc = index + M.thomas_k_jump;
                     // axpy(&(*(*M.p_density_vectors))[n], M.thomas_constant1, (*(*M.p_density_vectors))[n - M.thomas_k_jump]);
-                    for (int d = 0; d < M.thomas_k_jump; d++)
+                    for (uint32_t d = 0; d < M.thomas_k_jump; d++)
                     {
                         (*M.p_density_vectors)[index_inc + d] += M.thomas_constant1[d] * (*M.p_density_vectors)[index + d];
                     }
                     //(*(*M.p_density_vectors))[n] /= M.thomas_denomz[k];
-                    for (int d = 0; d < M.thomas_k_jump; d++)
+                    for (uint32_t d = 0; d < M.thomas_k_jump; d++)
                     {
                         (*M.p_density_vectors)[index_inc + d] /= M.thomas_denomz[k][d];
                     }
 
                     index = index_inc;
                 }
-                // for parallelization need to break forward elimination and back substitution into
+                // for parallelization need to break forward elimination and back substitution uint32_to
                 // should be an empty loop if mesh.z_coordinates.size() < 2
                 index = i * M.thomas_i_jump + j * M.thomas_j_jump + (M.thomas_k_jump * (M.mesh.z_size - 1));
-                for (int k = M.mesh.z_coordinates.size() - 2; k >= 0; k--)
+                for (int32_t k = M.mesh.z_coordinates.size() - 2; k >= 0; k--)
                 {
-                    int index_dec = index - M.thomas_k_jump;
+                    uint32_t index_dec = index - M.thomas_k_jump;
                     // naxpy(&(*(*M.p_density_vectors))[n], M.thomas_cz[k], (*(*M.p_density_vectors))[n + M.thomas_k_jump]);
-                    for (int d = 0; d < M.thomas_k_jump; d++)
+                    for (uint32_t d = 0; d < M.thomas_k_jump; d++)
                     {
                         (*M.p_density_vectors)[index_dec + d] -= M.thomas_cz[k][d] * (*M.p_density_vectors)[index + d];
                     }
@@ -2233,7 +1638,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
                 // axpy(&(*(*M.p_density_vectors))[n], M.thomas_constant1, (*(*M.p_density_vectors))[n - M.thomas_k_jump]);
                 for (int d = 0; d < M.mesh.n_substrates; d++)
                 {
-                    (*M.p_density_vectors)[index_inc + d] += (*M.p_density_vectors)[d] * (*M.p_density_vectors)[index + d];
+                    (*M.p_density_vectors)[index_inc + d] += M.thomas_constant1[d] * (*M.p_density_vectors)[index + d]; //Jose:esta linea esta mal
                 }
                 //(*(*M.p_density_vectors))[n] /= M.thomas_denomz[k];
                 for (int d = 0; d < M.mesh.n_substrates; d++)

@@ -33,7 +33,7 @@
 #                                                                             #
 # BSD 3-Clause License (see https://opensource.org/licenses/BSD-3-Clause)     #
 #                                                                             #
-# Copyright (c) 2015-2018, Paul Macklin and the PhysiCell Project             #
+# Copyright (c) 2015-2025, Paul Macklin and the PhysiCell Project             #
 # All rights reserved.                                                        #
 #                                                                             #
 # Redistribution and use in source and binary forms, with or without          #
@@ -70,13 +70,14 @@
 
 #include "./PhysiCell_settings.h"
 
+#include <iostream>
+#include <fstream>
+#include <unistd.h>
+
 namespace PhysiCell{
 
 int writePov(std::vector<Cell*> all_cells, double timepoint, double scale)
 {
-	/*----------------------------------------------------------------*/
-	/* Gaurav Saxena added these 2 static variables as present in v1.7*/
-	/*----------------------------------------------------------------*/
 	static int TUMOR_TYPE=0; 
 	static int VESSEL_TYPE=1; 
 	
@@ -173,6 +174,15 @@ void display_simulation_status( std::ostream& os )
 /* Parallel version of the function above */
 /*----------------------------------------*/
 
+double getProcessMemoryGB() {
+    std::ifstream statm("/proc/self/statm");
+    long rssPages = 0;
+    statm >> rssPages >> rssPages; // second value is RSS (resident set size)
+    long pageSize = sysconf(_SC_PAGESIZE); // in bytes
+    double memUsedGB = (rssPages * pageSize) / (1024.0 * 1024.0 * 1024.0);
+    return memUsedGB;
+}
+
 void display_simulation_status( std::ostream& os, mpi_Environment &world, mpi_Cartesian &cart_topo )
 {
 	if(IOProcessor(world))
@@ -187,21 +197,47 @@ void display_simulation_status( std::ostream& os, mpi_Environment &world, mpi_Ca
 	int global_cells; 
 	MPI_Reduce(&local_cells, &global_cells, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm); 
 	
+	double global_total, global_time_diff, global_time_mech, global_time_pheno, global_time_intracell;
+	double local_ram = getProcessMemoryGB();
+	double global_ram = 0.0;
+	
+	MPI_Reduce(&time_diff, &global_time_diff, 1, MPI_DOUBLE, MPI_MAX, 0, cart_topo.mpi_cart_comm);
+	MPI_Reduce(&time_diff, &global_time_diff, 1, MPI_DOUBLE, MPI_MAX, 0, cart_topo.mpi_cart_comm);
+	MPI_Reduce(&time_mechs, &global_time_mech, 1, MPI_DOUBLE, MPI_MAX, 0, cart_topo.mpi_cart_comm);
+	MPI_Reduce(&time_pheno, &global_time_pheno, 1, MPI_DOUBLE, MPI_MAX, 0, cart_topo.mpi_cart_comm);
+	MPI_Reduce(&time_intracell, &global_time_intracell, 1, MPI_DOUBLE, MPI_MAX, 0, cart_topo.mpi_cart_comm);
+
 	if(IOProcessor(world))
 	{	
+
 		os << "total agents: " << global_cells << std::endl; 
 	
 		os << "interval wall time: ";
 		BioFVM::TOC();
 		BioFVM::display_stopwatch_value( os , BioFVM::stopwatch_value() ); 
-		os << std::endl; 
+		os <<  " | "  << global_ram << "GB "  << std::endl; 
 		BioFVM::TIC(); 
-	
+
+		double global_total= global_time_diff + global_time_mech + global_time_pheno + global_time_intracell;
+		os << "time scales: ";
+		os << " diff " << (global_time_diff/ global_total) * 100 << "% | ";
+		os << " mechs " << (global_time_mech/ global_total) * 100 << "% | ";
+		os << " pheno " << (global_time_pheno/ global_total) * 100 << "% | ";
+		os << " intracell " << (global_time_intracell/ global_total) * 100 << "%  " << std::endl;
+		
+		
+
+		
 		os << "total wall time: "; 
 		BioFVM::RUNTIME_TOC();
 		BioFVM::display_stopwatch_value( os , BioFVM::runtime_stopwatch_value() ); 
 		os << std::endl << std::endl;
 	} 
+
+	time_diff = 0.0;
+	time_mechs = 0.0;
+	time_pheno = 0.0;
+	time_intracell = 0.0;
 	
 	return;
 }

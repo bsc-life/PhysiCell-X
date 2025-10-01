@@ -6,6 +6,7 @@
 #include "RunConfig.h"
 #include "utils.h"
 #include "../../../core/PhysiCell_utilities.h"
+#include "../../../core/MPI_helper.h"
 
 /**
  *	\class MaBoSSNetwork
@@ -17,8 +18,7 @@
  *	\author Gaelle Letort, Institut Curie
  *	\author Gerard Pradas, BSC-CNS
  */
-class MaBoSSNetwork
-{
+class MaBoSSNetwork {
 	private:
 		/** \brief MaBoSS instances: network */
 		Network* network;
@@ -145,6 +145,43 @@ class MaBoSSNetwork
 
 		void set_state(NetworkState _state) { state = NetworkState(_state.getState()); }	
 		NetworkState get_maboss_state() { return state;}
+
+		//MPI support
+		void pack(std::vector<char>& buffer, int& len_buffer, int& position);
+		void unpack(std::vector<char>& buffer, int& len_buffer, int& position);
+		void print_state_after_unpack() const;
+
+		void inherit_state(NetworkState mother, bool inherit_state, std::map<std::string, bool>& inherit_nodes) {
+			NetworkState new_state;
+			if (inherit_state){
+				// If we inherit, we start from the state of the mother cell
+				new_state = mother;
+			} else {
+				// Else we start from the state of the daughter cell
+				new_state = state;
+			}
+
+			// Then we look at individual inheritance
+			for (auto& inherit_node: inherit_nodes) {
+					
+				Node* node = network->getNode(inherit_node.first);
+
+				// If we inherit from the model, we just do it
+				if (inherit_node.second) {
+					new_state.setNodeState(node,mother.getNodeState(node));
+				
+				} else {
+					if (inherit_state){
+					// Else if we don't inherit this node, but inherit_state is true, it means we exclude this node from the global inheritance
+					// So we take the value in state instead
+						new_state.setNodeState(node, state.getNodeState(node));
+					}
+				}
+			}
+
+			// Finally we set the state
+			set_state(new_state);
+		}
 };
 
 #endif
