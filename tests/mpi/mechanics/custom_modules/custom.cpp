@@ -83,6 +83,10 @@
 #include "../../../../DistPhy/DistPhy_Collective.h"
 
 using namespace DistPhy::mpi;
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> baebf87fcc8c1f9e3d062743f566b02ec2acfbbb
 
 void phenotype_function( Cell* pCell, Phenotype& phenotype, double dt )
 { return; }
@@ -162,6 +166,176 @@ void create_cell_types( void )
 		
 	//display_cell_definitions( std::cout ); 
 	
+<<<<<<< HEAD
+=======
+=======
+void bacteria_phenotype( Cell* pCell, Phenotype& phenotype, double dt )
+{
+	// find my cell definition 
+	static Cell_Definition* pCD = find_cell_definition( pCell->type_name ); 
+
+	// sample resource, quorum, and toxin 
+
+	static int nR = microenvironment.find_density_index( "resource" ); 
+	static int nDebris = microenvironment.find_density_index( "debris" ); 
+	static int nQuorum = microenvironment.find_density_index( "quorum" );
+	static int nToxin = microenvironment.find_density_index( "toxin" ); 
+
+	// if dead: stop exporting quorum factor. 
+	// also, replace phenotype function 
+	if( phenotype.death.dead == true )
+	{
+		phenotype.secretion.net_export_rates[nQuorum] = 0; 
+		phenotype.secretion.net_export_rates[nToxin] = 0; 
+
+		phenotype.secretion.net_export_rates[nDebris] = phenotype.volume.total; 
+		
+		pCell->functions.update_phenotype = NULL; 
+		return; 
+	}
+
+	double * samples = pCell->nearest_density_vector(); 
+	double R = samples[nR];
+	double Q = samples[nQuorum]; 
+	double Tox = samples[nToxin]; 
+
+	// resource increases cycle entry 
+	double base_val = pCD->phenotype.cycle.data.exit_rate(0); 
+	double max_val = base_val * 10.0; 
+	static double min_cycle_resource = pCD->custom_data["cycling_entry_threshold_resource"]; // 0.15 
+	phenotype.cycle.data.exit_rate(0) = max_val * linear_response_function( R, min_cycle_resource, 1 );
+
+	// resource decreses necrosis
+
+	max_val = 0.0028;  
+	static int nNecrosis = phenotype.death.find_death_model_index( PhysiCell_constants::necrosis_death_model );
+	static double saturation_necrosis_resource = pCD->custom_data["necrosis_saturation_resource"]; //0.075
+	static double threshold_necrosis_resource = pCD->custom_data["necrosis_threshold_resource"]; // 0.15
+	phenotype.death.rates[nNecrosis] = max_val * 
+		decreasing_linear_response_function( R, saturation_necrosis_resource, threshold_necrosis_resource );
+
+	// resource decreases motile speed  
+
+	double signal = R; 
+	base_val = pCD->phenotype.motility.migration_speed; 
+	double max_response = 0.0; 
+	static double motility_resource_halfmax = 
+		pCD->custom_data["migration_speed_halfmax"]; // 0.25 // parameters.doubles("bacteria_motility_resource_halfmax");
+	double hill = Hill_response_function( signal, motility_resource_halfmax , 1.5);  
+	phenotype.motility.migration_speed = base_val + (max_response-base_val)*hill;
+
+	// quorum and resource increases motility bias 
+	signal = Q+R; 
+	base_val = pCD->phenotype.motility.migration_speed; 
+	max_response = 1.0; 
+	static double bias_halfmax = pCD->custom_data["migration_bias_halfmax"]; 
+		// 0.5 //  parameters.doubles("bacteria_migration_bias_halfmax");
+	hill = Hill_response_function( signal, bias_halfmax , 1.5);  
+	phenotype.motility.migration_bias = base_val + (max_response-base_val)*hill; 
+
+	// damage increases death 
+	static int nApoptosis = phenotype.death.find_death_model_index( PhysiCell_constants::apoptosis_death_model );
+
+	signal = pCell->phenotype.cell_integrity.damage;
+	base_val = pCD->phenotype.death.rates[nApoptosis]; 
+
+	static double damage_halfmax = pCD->custom_data["damage_halfmax"]; 
+	static double relative_max_damage_death = pCD->custom_data["relative_max_damage_death"]; 
+	max_response = base_val * relative_max_damage_death; 
+
+		// 36 // parameters.doubles("bacteria_damage_halfmax");
+	hill = Hill_response_function( signal , damage_halfmax , 1.5 ); 
+	phenotype.death.rates[nApoptosis] = base_val + (max_response-base_val)*hill; 
+
+	return; 
+}
+
+void create_cell_types( void )
+{
+	// Use the same random seed so that future experiments have the 
+	// same initial histogram of oncoprotein, even if threading means 
+	// that future division and other events are still not identical 
+	// for all runs 
+	
+	SeedRandom( parameters.ints( "random_seed" ) ); 
+	
+	// Housekeeping 
+	
+	initialize_default_cell_definition();
+	cell_defaults.phenotype.secretion.sync_to_microenvironment( &microenvironment ); 
+	
+	// Turn the default cycle model to live, 
+	// so it's easier to turn-off proliferation
+	
+	cell_defaults.phenotype.cycle.sync_to_cycle_model( live ); 
+	
+	// Make sure we're ready for 2D <---- This is changed to 3-D in PhysiCell-X
+	// in setup_microenvironment(...) as PhysiCell-X works ONLY in 3-D
+	
+	cell_defaults.functions.set_orientation = up_orientation;  
+	cell_defaults.phenotype.geometry.polarity = 1.0; 
+	cell_defaults.phenotype.motility.restrict_to_2D = true; 
+	
+	// Use default proliferation and death 
+	
+	int cycle_start_index = live.find_phase_index( PhysiCell_constants::live ); 
+	int cycle_end_index = live.find_phase_index( PhysiCell_constants::live ); 
+	
+	int apoptosis_index = cell_defaults.phenotype.death.find_death_model_index( PhysiCell_constants::apoptosis_death_model ); 
+	
+	cell_defaults.parameters.o2_proliferation_saturation = 38.0;  
+	cell_defaults.parameters.o2_reference = 38.0; 
+
+	initialize_cell_definitions_from_pugixml(); 
+	
+	// Set default uptake and secretion 
+	
+	static int oxygen_ID = microenvironment.find_density_index( "oxygen" ); 
+
+	// Oxygen
+	 
+	cell_defaults.phenotype.secretion.secretion_rates[oxygen_ID] = 0; 
+	cell_defaults.phenotype.secretion.uptake_rates[oxygen_ID] = 10; 
+	cell_defaults.phenotype.secretion.saturation_densities[oxygen_ID] = 38; 
+
+	// Set the default cell type to no phenotype updates 
+	
+	cell_defaults.functions.update_phenotype = tumor_cell_phenotype_with_oncoprotein; 
+	cell_defaults.name = "cancer cell"; 
+	cell_defaults.type = 0; 
+	
+	// Add custom data 
+	
+	cell_defaults.custom_data.add_variable( "oncoprotein" , "dimensionless", 1.0 ); 
+	
+	build_cell_definitions_maps(); //Uncommenting it
+	
+	// display_cell_definitions( std::cout ); <------ will print using all processes, thus disabled
+	
+	/*---------------------------------------------------------------------------------------*/
+	/* display_cell_definitions(...) has been disabled above as the printing will be done by */
+	/* ALL processes. If you want to print (for checking, testing etc.) then create a new 	 */
+	/* version of void create_cell_types(mpi_Environment &world, mpi_Cartesian &cart_topo)	 */
+	/* and then use the IOProcessor(world) function to print using ONLY the root process  	 */
+	/*---------------------------------------------------------------------------------------*/
+
+	return; 
+}
+
+void setup_microenvironment( void )
+{
+	
+	// Make sure not override and go back to 2D <--- ONLY valid for PhysiCell and NOT PhysiCell-X 
+	if( default_microenvironment_options.simulate_2D == true )
+	{
+		std::cout << "Warning: overriding XML config option and setting to 3D!" << std::endl; 
+		default_microenvironment_options.simulate_2D = false; 
+	}
+	
+	initialize_microenvironment(); 	
+
+>>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
+>>>>>>> baebf87fcc8c1f9e3d062743f566b02ec2acfbbb
 	return; 
 }
 
@@ -186,6 +360,129 @@ void setup_microenvironment(mpi_Environment &world, mpi_Cartesian &cart_topo)
 	return; 
 }	
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+
+void setup_tissue( void )
+{
+	// place a cluster of tumor cells at the center 
+	
+	double cell_radius = cell_defaults.phenotype.geometry.radius; 
+	double cell_spacing = 0.95 * 2.0 * cell_radius; 
+	
+	double tumor_radius = parameters.doubles( "tumor_radius" ); // 250.0; 
+	
+	// Parameter<double> temp; 
+	
+	int i = parameters.doubles.find_index( "tumor_radius" ); 
+	
+	Cell* pCell = NULL; 
+	
+	double x = 0.0; 
+	double x_outer = tumor_radius; 
+	double y = 0.0; 
+	
+	double p_mean = parameters.doubles( "oncoprotein_mean" ); 
+	double p_sd = parameters.doubles( "oncoprotein_sd" ); 
+	double p_min = parameters.doubles( "oncoprotein_min" ); 
+	double p_max = parameters.doubles( "oncoprotein_max" ); 
+	
+	int n = 0; 
+	while( y < tumor_radius )
+	{
+		x = 0.0; 
+		if( n % 2 == 1 )
+		{ x = 0.5*cell_spacing; }
+		x_outer = sqrt( tumor_radius*tumor_radius - y*y ); 
+		
+		while( x < x_outer )
+		{
+			pCell = create_cell(); // tumor cell 
+			pCell->assign_position( x , y , 0.0 );
+			pCell->custom_data[0] = NormalRandom( p_mean, p_sd );
+			if( pCell->custom_data[0] < p_min )
+			{ pCell->custom_data[0] = p_min; }
+			if( pCell->custom_data[0] > p_max )
+			{ pCell->custom_data[0] = p_max; }
+			
+			if( fabs( y ) > 0.01 )
+			{
+				pCell = create_cell(); // tumor cell 
+				pCell->assign_position( x , -y , 0.0 );
+				pCell->custom_data[0] = NormalRandom( p_mean, p_sd );
+				if( pCell->custom_data[0] < p_min )
+				{ pCell->custom_data[0] = p_min; }
+				if( pCell->custom_data[0] > p_max )
+				{ pCell->custom_data[0] = p_max; }				
+			}
+			
+			if( fabs( x ) > 0.01 )
+			{ 
+				pCell = create_cell(); // tumor cell 
+				pCell->assign_position( -x , y , 0.0 );
+				pCell->custom_data[0] = NormalRandom( p_mean, p_sd );
+				if( pCell->custom_data[0] < p_min )
+				{ pCell->custom_data[0] = p_min; }
+				if( pCell->custom_data[0] > p_max )
+				{ pCell->custom_data[0] = p_max; }
+		
+				if( fabs( y ) > 0.01 )
+				{
+					pCell = create_cell(); // tumor cell 
+					pCell->assign_position( -x , -y , 0.0 );
+					pCell->custom_data[0] = NormalRandom( p_mean, p_sd );
+					if( pCell->custom_data[0] < p_min )
+					{ pCell->custom_data[0] = p_min; }
+					if( pCell->custom_data[0] > p_max )
+					{ pCell->custom_data[0] = p_max; }
+				}
+			}
+			x += cell_spacing; 
+			
+		}
+		
+		y += cell_spacing * sqrt(3.0)/2.0; 
+		n++; 
+	}
+	
+	double sum = 0.0; 
+	double min = 9e9; 
+	double max = -9e9; 
+	for( int i=0; i < all_cells->size() ; i++ )
+	{
+		double r = (*all_cells)[i]->custom_data[0]; 
+		sum += r;
+		if( r < min )
+		{ min = r; } 
+		if( r > max )
+		{ max = r; }
+	}
+	double mean = sum / ( all_cells->size() + 1e-15 ); 
+	// compute standard deviation 
+	sum = 0.0; 
+	for( int i=0; i < all_cells->size(); i++ )
+	{
+		sum +=  ( (*all_cells)[i]->custom_data[0] - mean )*( (*all_cells)[i]->custom_data[0] - mean ); 
+	}
+	double standard_deviation = sqrt( sum / ( all_cells->size() - 1.0 + 1e-15 ) ); 
+	
+	std::cout << std::endl << "Oncoprotein summary: " << std::endl
+			  << "===================" << std::endl; 
+	std::cout << "mean: " << mean << std::endl; 
+	std::cout << "standard deviation: " << standard_deviation << std::endl; 
+	std::cout << "[min max]: [" << min << " " << max << "]" << std::endl << std::endl; 
+	
+	return; 
+}
+
+/*-------------------------------------------------------------------*/
+/* Miguel Ponce-de-Leon's function for generating positions of cells */
+/*-------------------------------------------------------------------*/
+
+>>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
+>>>>>>> baebf87fcc8c1f9e3d062743f566b02ec2acfbbb
 std::vector<std::vector<double>> create_cell_sphere_positions(double cell_radius, double sphere_radius)
 {
 	std::vector<std::vector<double>> cells;
@@ -194,6 +491,10 @@ std::vector<std::vector<double>> create_cell_sphere_positions(double cell_radius
   double y_spacing= cell_radius*2;
   double z_spacing= cell_radius*sqrt(3);
 	
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> baebf87fcc8c1f9e3d062743f566b02ec2acfbbb
 	//Attempt to generate very small number of cells
 	 //double x_spacing= 10;
 	 //double y_spacing= 10;
@@ -201,6 +502,12 @@ std::vector<std::vector<double>> create_cell_sphere_positions(double cell_radius
 
 	std::vector<double> tempPoint(3,0.0);
 	// std::vector<double> cylinder_center(3,0.0);
+<<<<<<< HEAD
+=======
+=======
+	std::vector<double> tempPoint(3,0.0);
+>>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
+>>>>>>> baebf87fcc8c1f9e3d062743f566b02ec2acfbbb
 
 	for(double z=-sphere_radius;z<sphere_radius;z+=z_spacing, zc++)
 	{
@@ -219,8 +526,20 @@ std::vector<std::vector<double>> create_cell_sphere_positions(double cell_radius
 		}
 	}
 	return cells;
+<<<<<<< HEAD
 }
 
+=======
+<<<<<<< HEAD
+}
+
+=======
+
+}
+
+
+>>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
+>>>>>>> baebf87fcc8c1f9e3d062743f566b02ec2acfbbb
 /*------------------------------------------------------------------------*/
 /* Parallel version of setup_tissue(), replacing this function completely */
 /* by Miguel's version of setup_tissue and then parallelizing             */
@@ -228,10 +547,21 @@ std::vector<std::vector<double>> create_cell_sphere_positions(double cell_radius
 
 void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> baebf87fcc8c1f9e3d062743f566b02ec2acfbbb
   
 	Cell* pC;
 
 	// Place a cluster of tumor cells at the center
+<<<<<<< HEAD
+=======
+=======
+  // Place a cluster of tumor cells at the center
+   
+>>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
+>>>>>>> baebf87fcc8c1f9e3d062743f566b02ec2acfbbb
 	double cell_radius = cell_defaults.phenotype.geometry.radius; 
 	double cell_spacing = 0.95 * 2.0 * cell_radius; 
 	
@@ -274,6 +604,10 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 	double x = 0.0; 
 	double x_outer = tumor_radius; 
 	double y = 0.0; 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> baebf87fcc8c1f9e3d062743f566b02ec2acfbbb
 
 	Cell_Definition* pCD = find_cell_definition( "cancer cell"); 
 	
@@ -285,6 +619,93 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 		pCell = create_cell((*pCD), mc.my_cell_IDs[i]);	
 		pCell->assign_position(mc.my_cell_coords[3*i],mc.my_cell_coords[3*i+1],mc.my_cell_coords[3*i+2],world, cart_topo); //pCell->assign_position( positions[i] );
 				
+<<<<<<< HEAD
+=======
+=======
+	
+	double p_mean = parameters.doubles( "oncoprotein_mean" ); 
+	double p_sd 	= parameters.doubles( "oncoprotein_sd" ); 
+	double p_min 	= parameters.doubles( "oncoprotein_min" ); 
+	double p_max 	= parameters.doubles( "oncoprotein_max" ); 
+	
+
+		for( int i=0; i < mc.my_no_of_cell_IDs; i++ )
+		{
+		  
+			pCell = create_cell(mc.my_cell_IDs[i]); // tumor cell --> This has to be replaced by create_cell(mc.my_cell_IDs[i])
+	  	  		
+			pCell->assign_position(mc.my_cell_coords[3*i],mc.my_cell_coords[3*i+1],mc.my_cell_coords[3*i+2],world, cart_topo); //pCell->assign_position( positions[i] );
+				 	
+		 	pCell->custom_data[0] = NormalRandom( p_mean, p_sd );
+		
+
+			if( pCell->custom_data[0] < p_min )
+			{ 
+				pCell->custom_data[0] = p_min; 
+			}
+			if( pCell->custom_data[0] > p_max )
+			{ 
+				pCell->custom_data[0] = p_max; 
+			}
+		} 
+ 
+	
+	
+	double local_sum = 0.0, global_sum = 0.0; 
+	double local_min = 9e9, global_min = 0.0; 
+	double local_max = -9e9, global_max = 0.0; 
+	int local_cells, global_cells; 
+
+/*------------------------------------------------------------------------------------------------------*/
+/* The global_min/max are only for display purposes. We can just calculate local_min then do MPI_Reduce */
+/* at the root process to display it. Since the mean is needed by all processes to calculate squared 	  */
+/* sum of differences, I should do MPI_Allreduce(). Right now everything is globally distributed			  */
+/* later we can decide to use MPI_Reduce selectively. 																									*/
+/*------------------------------------------------------------------------------------------------------*/	
+	
+	for( int i=0; i < all_cells->size() ; i++ )
+	{
+		double r = (*all_cells)[i]->custom_data[0]; 
+		local_sum += r;
+		if( r < local_min )
+		{ 
+			local_min = r; 
+		} 
+		if( r > local_max )
+		{ 
+			local_max = r; 
+		}
+	}
+	
+	local_cells 	= mc.my_no_of_cell_IDs; 											//or all_cells->size()
+	
+	global_sum 		= distribute_global_sum(local_sum, cart_topo);
+	global_cells 	= distribute_global_sum(local_cells, cart_topo); 
+	global_max		= distribute_global_max(local_max, cart_topo); 
+	global_min	  = distribute_global_min(local_min, cart_topo); 
+	 
+	double mean = global_sum / ( global_cells + 1e-15 ); 
+	
+	// Compute standard deviation 
+	
+	local_sum = 0.0;
+	 
+	for( int i=0; i < all_cells->size(); i++ )
+	{
+		local_sum +=  ( (*all_cells)[i]->custom_data[0] - mean )*( (*all_cells)[i]->custom_data[0] - mean ); 
+	}
+	global_sum = distribute_global_sum(local_sum, cart_topo);
+		
+	double standard_deviation = sqrt( global_sum / ( global_cells - 1.0 + 1e-15 ) ); 
+	
+	if(IOProcessor(world))
+	{
+		std::cout << std::endl << "Oncoprotein summary: " << std::endl<< "===================" << std::endl; 
+		std::cout << "mean: " << mean << std::endl; 
+		std::cout << "standard deviation: " << standard_deviation << std::endl; 
+		std::cout << "[min max]: [" << global_min << " " << global_max << "]" << std::endl << std::endl;
+>>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
+>>>>>>> baebf87fcc8c1f9e3d062743f566b02ec2acfbbb
 	} 
 	
 	return; 

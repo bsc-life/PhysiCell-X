@@ -581,7 +581,23 @@ void MaBoSSIntracellular::pack(std::vector<char>& buffer, int& len_buffer, int& 
 
 		pack_buff(t_mutation.second, buffer, len_buffer, position);
 
+		pack_buff(t_initial_value.second, buffer, len_buffer, position);
 	}
+
+	// Mutations
+	temp_int = static_cast<int>(this->mutations.size());
+	pack_buff(temp_int, buffer, len_buffer, position);
+
+	//mutations
+	for (auto t_mutation: this->mutations) {
+	
+		pack_buff(t_mutation.first, buffer, len_buffer, position);
+
+		pack_buff(t_mutation.second, buffer, len_buffer, position);
+
+		pack_buff(t_initial_value.second, buffer, len_buffer, position);
+	}
+	
 	
 	
 	// Parameters
