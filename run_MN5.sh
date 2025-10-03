@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH --nodes=1
-#SBATCH --ntasks-per-node=2
-#SBATCH --cpus-per-task=56
-#SBATCH --qos=gp_debug
-#SBATCH -t 02:00:00
-#SBATCH --account=bsc08
+#SBATCH --nodes=4
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=112
+#SBATCH --qos=gp_resa
+#SBATCH -t 12:00:00
+#SBATCH --account=cns119
 #SBATCH -o output-%j
 #SBATCH -e error-%j
 #SBATCH --exclusive
@@ -20,7 +20,8 @@ module load gcc/13.2.0 openmpi/4.1.5-gcc ddt
 
 
 
-srun ./heterogeneity.exe
+#ddt --connect mpirun -n 2  ./heterogeneity.exe ./config/og.xml
+srun --nodes=4 --ntasks-per-node=1 --cpus-per-task=112 ./heterogeneity.exe ./config/real_tumour.xml
 #ddt --connect mpirun -n 2 ./heterogeneity.exe
 #ddt --connect mpirun -n 4 ./heterogeneity.exe
 #srun ./capVoxels 2000 1

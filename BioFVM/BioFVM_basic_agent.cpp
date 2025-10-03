@@ -213,6 +213,11 @@ void Basic_Agent::update_voxel_index(mpi_Environment &world, mpi_Cartesian &cart
 	//get_microenvironment()->mesh.correct_position_within_subdomain(position, world, cart_topo); 
 	
 	current_voxel_index= microenvironment->nearest_voxel_local_index( position, world, cart_topo );
+
+	if (current_voxel_index < 0) {
+		//std::cout << "	Error " << current_voxel_index << std::endl;
+		current_voxel_index= microenvironment->nearest_voxel_local_index( position, world, cart_topo );
+	}
 }
 
 

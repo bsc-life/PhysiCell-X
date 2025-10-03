@@ -80,6 +80,11 @@ namespace PhysiCell{
 
 std::vector<Cell*> *all_cells;
 
+double time_intracell = 0.0;
+double time_pheno = 0.0;
+double time_mechs = 0.0;
+double time_diff = 0.0;
+
 Cell_Container::Cell_Container()
 {
 	all_cells = (std::vector<Cell*> *) &all_basic_agents;
@@ -185,11 +190,31 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 	static double phenotype_dt_tolerance = 0.001 * phenotype_dt_;
 	static double mechanics_dt_tolerance = 0.001 * mechanics_dt_;
 
-	if( fabs(time_since_last_cycle-phenotype_dt_ ) < phenotype_dt_tolerance || !initialzed)
+	// intracellular update. called for every diffusion_dt, but actually depends on the intracellular_dt of each cell (as it can be noisy)
+
+	#pragma omp parallel for 
+	for( int i=0; i < (*all_cells).size(); i++ )
+	{
+		if( (*all_cells)[i]->is_out_of_domain == false && initialzed ) {
+
+			if( (*all_cells)[i]->phenotype.intracellular != NULL  && (*all_cells)[i]->phenotype.intracellular->need_update())
+			{
+				if ((*all_cells)[i]->functions.pre_update_intracellular != NULL)
+					(*all_cells)[i]->functions.pre_update_intracellular( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
+
+				(*all_cells)[i]->phenotype.intracellular->update( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
+
+				if ((*all_cells)[i]->functions.post_update_intracellular != NULL)
+					(*all_cells)[i]->functions.post_update_intracellular( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
+			}
+		}
+	}
+
+	if( time_since_last_cycle > phenotype_dt_ - 0.5 * diffusion_dt_ || !initialzed)
 	{
 		// Reset the max_radius in each voxel. It will be filled in set_total_volume
 		// It might be better if we calculate it before mechanics each time
-		std::fill(max_cell_interactive_distance_in_voxel.begin(), max_cell_interactive_distance_in_voxel.end(), 0.0);
+		std::fill(max_cell_interactive_distance_in_voxel.begin(), max_cell_interactive_distance_in_voxel.end(), 0.0); //Jose: to be removed
 
 		if(!initialzed)
 		{
@@ -229,7 +254,7 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 	double time_since_last_mechanics= t- last_mechanics_time;
 
 	// if( time_since_last_mechanics>= mechanics_dt || !initialzed)
-	if( fabs(time_since_last_mechanics - mechanics_dt_) < mechanics_dt_tolerance || !initialzed)
+	if( time_since_last_mechanics > mechanics_dt_ - 0.5 * diffusion_dt_ || !initialzed)
 	{
 		if(!initialzed)
 		{
@@ -261,7 +286,6 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 			// new March 2022: 
 			// run standard interactions (phagocytosis, attack, fusion) here 
 
-			standard_cell_cell_interactions(pC,pC->phenotype,time_since_last_mechanics);
 			if( pC->functions.custom_cell_rule && pC->is_out_of_domain == false )
 			{ pC->functions.custom_cell_rule( pC,pC->phenotype,time_since_last_mechanics ); }
 		}
@@ -273,6 +297,56 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 			Cell* pC = (*all_cells)[i]; 
 			if( pC->functions.update_velocity && pC->is_out_of_domain == false && pC->is_movable )
 			{ pC->functions.update_velocity( pC,pC->phenotype,time_since_last_mechanics ); }
+		}
+
+		// new March 2023: 
+		// dynamic spring attachments, followed by built-in springs
+
+		if( PhysiCell_settings.disable_automated_spring_adhesions == false )
+		{
+			#pragma omp parallel for 
+			for( int i=0; i < (*all_cells).size(); i++ )
+			{
+				Cell* pC = (*all_cells)[i]; 
+				dynamic_spring_attachments(pC,pC->phenotype,time_since_last_mechanics); 
+			}		
+			#pragma omp parallel for 
+			for( int i=0; i < (*all_cells).size(); i++ )
+			{
+				Cell* pC = (*all_cells)[i]; 
+				if( pC->is_movable )
+				{
+					for( int j=0; j < pC->state.spring_attachments.size(); j++ )
+					{
+						Cell* pC1 = pC->state.spring_attachments[j]; 
+						// standard_elastic_contact_function_confluent_rest_length(pC,pC->phenotype,pC1,pC1->phenotype,time_since_last_mechanics);  
+						standard_elastic_contact_function(pC,pC->phenotype,pC1,pC1->phenotype,time_since_last_mechanics);  
+					}
+				}
+			}	
+		}
+
+		// new March 2022: 
+		// run standard interactions (phagocytosis, attack, fusion) here 
+		#pragma omp parallel for 
+		for( int i=0; i < (*all_cells).size(); i++ )
+		{
+			Cell* pC = (*all_cells)[i]; 
+			standard_cell_cell_interactions(pC,pC->phenotype,time_since_last_mechanics); 
+		}
+		// super-critical to performance! clear the "dummy" cells from phagocytosis / fusion
+		// otherwise, comptuational cost increases at polynomial rate VERY fast, as O(10,000) 
+		// dummy cells of size zero are left ot interact mechanically, etc. 
+		if( cells_ready_to_die.size() > 0 )
+		{
+			/*
+			std::cout << "\tClearing dummy cells from phagocytosis and fusion events ... " << std::endl; 
+			std::cout << "\t\tClearing " << cells_ready_to_die.size() << " cells ... " << std::endl; 
+			// there might be a lot of "dummy" cells ready for removal. Let's do it. 		
+			*/
+			for( int i=0; i < cells_ready_to_die.size(); i++ )
+			{ cells_ready_to_die[i]->die(); }
+			cells_ready_to_die.clear();
 		}
 		
 		// Calculate new positions
@@ -306,7 +380,7 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 	/*===============================================================================*/
 	/* Nothing to be parallelized in phenotype.secretion.advance(...) function below */
 	/*===============================================================================*/
-	
+	auto start = std::chrono::high_resolution_clock::now();
 	#pragma omp parallel for
 	for( int i=0; i < (*all_cells).size(); i++ )
 	{
@@ -316,6 +390,9 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 			pC->phenotype.secretion.advance( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
 		}
 	}
+	auto end = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double, std::micro> duration = end - start;
+	time_diff += duration.count();
 
 	//if it is the time for running cell cycle, do it!
 	double time_since_last_cycle= t- last_cell_cycle_time;
@@ -323,11 +400,33 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 	static double phenotype_dt_tolerance = 0.001 * phenotype_dt_;
 	static double mechanics_dt_tolerance = 0.001 * mechanics_dt_;
 
-	if( fabs(time_since_last_cycle-phenotype_dt_ ) < phenotype_dt_tolerance || !initialzed)
+	start = std::chrono::high_resolution_clock::now();
+	#pragma omp parallel for 
+	for( int i=0; i < (*all_cells).size(); i++ ) 
+	{
+		if( (*all_cells)[i]->is_out_of_domain == false && initialzed ) {
+
+			if( (*all_cells)[i]->phenotype.intracellular != NULL  && (*all_cells)[i]->phenotype.intracellular->need_update())
+			{
+				if ((*all_cells)[i]->functions.pre_update_intracellular != NULL)
+					(*all_cells)[i]->functions.pre_update_intracellular( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
+
+				(*all_cells)[i]->phenotype.intracellular->update( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
+
+				if ((*all_cells)[i]->functions.post_update_intracellular != NULL)
+					(*all_cells)[i]->functions.post_update_intracellular( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
+			}
+		}
+	}
+	end = std::chrono::high_resolution_clock::now();
+	duration = end - start;
+	time_intracell += duration.count();
+
+	if( time_since_last_cycle > phenotype_dt_ - 0.5 * diffusion_dt_ || !initialzed )
 	{
 		// Reset the max_radius in each voxel. It will be filled in set_total_volume
 		// It might be better if we calculate it before mechanics each time
-		std::fill(max_cell_interactive_distance_in_voxel.begin(), max_cell_interactive_distance_in_voxel.end(), 0.0);
+		//std::fill(max_cell_interactive_distance_in_voxel.begin(), max_cell_interactive_distance_in_voxel.end(), 0.0);
 
 		if(!initialzed)
 		{
@@ -340,7 +439,7 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 		/*========================================================================*/
 		/* Nothing to be parallelized in advance_bundled_phenotype_functions(...) */
 		/*========================================================================*/
-
+		start = std::chrono::high_resolution_clock::now();
 		#pragma omp parallel for
 		for( int i=0; i < (*all_cells).size(); i++ )
 		{
@@ -390,100 +489,50 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 		cells_ready_to_die.clear();
 		cells_ready_to_divide.clear();
 		last_cell_cycle_time= t;
+
+		end = std::chrono::high_resolution_clock::now();
+		duration = end - start;
+		time_pheno += duration.count();
 	}
 
 	double time_since_last_mechanics= t- last_mechanics_time;
 
 	// if( time_since_last_mechanics>= mechanics_dt || !initialzed)
-	if( fabs(time_since_last_mechanics - mechanics_dt_) < mechanics_dt_tolerance || !initialzed)
+	if( time_since_last_mechanics > mechanics_dt_ - 0.5 * diffusion_dt_ || !initialzed )
 	{
 		if(!initialzed)
 		{
 			time_since_last_mechanics = mechanics_dt_;
 		}
-
+		start = std::chrono::high_resolution_clock::now();
 		// new February 2018
 		// if we need gradients, compute them
 		if( default_microenvironment_options.calculate_gradients )
 		{
 			microenvironment.compute_all_gradient_vectors();
 		}
-		// end of new in Feb 2018
 
-		/*------------------------------------------------------------------------------------*/
-		/* v1.8 introduces computing interactions, it is better/correct to compute these first*/
-		/* than computing the velocity first 																									*/
-		/* evalute_interactions() is like a dummy function in PhysiCell_standard_models.cpp 	*/
-		/* and calls the contact_function() through the contact_function function pointer 		*/
-		/* All processing is between cells attached to this cell and hence parallelization 		*/
-		/* of evaluate_interactions() and contact_function() is NOT needed 										*/
-		/*------------------------------------------------------------------------------------*/
-		
-		#pragma omp parallel for 
-		for( int i=0; i < (*all_cells).size(); i++ )
-		{
-			Cell* pC = (*all_cells)[i]; 
-			if( pC->functions.contact_function && pC->is_out_of_domain == false )
-				{ 
-					evaluate_interactions( pC,pC->phenotype,time_since_last_mechanics ); 
-				}
-		}
-		
-		/*------------------------------------------------------------------------------------*/
-		/* Perform custom computations now (this was earlier done AFTER velocity update)			*/
-		/* in the parallel loop where velocity was updated, serial version is used 						*/
-		/*------------------------------------------------------------------------------------*/
-		
-		for( int i=0; i < (*all_cells).size(); i++ )
-		{
-			Cell* pC = (*all_cells)[i]; 
-			// PhysiCell new March 2022:
-			// 		PhysiCell-X new January 2025
-			// 		run standard interactions (phagocytosis, attack, fusion) here 
-			
-			if (pC->position.size() != 3) std::cout << "Cell ID "  << pC->ID << " is not okay "<< std::endl;
-		}
-
-		
-		/*------------------------------------------------------------------------------------*/
-		/* Perform velocity computations now, first call pack_moore_info(), custom_cell_rule	*/
-		/* computations have been moved outside the parallel velocity compute loop. 					*/
-		/*------------------------------------------------------------------------------------*/
+		update_cell_potentials(time_since_last_mechanics,  world, cart_topo);
 	
-		pack_moore_info(world, cart_topo);
-		#pragma omp parallel for
-		for( int i=0; i < (*all_cells).size(); i++ )
+		//std::cout << "\t\t[Rank " << world.rank << " ] Update potentials: " << duration.count() << " ms"<< std::endl;
+
+		evaluate_cell_cell_interactions(time_since_last_mechanics,  world, cart_topo); 
+		//std::cout << "\t\t[Rank " << world.rank << " ] Cell Cell interactions: " << duration.count() << " ms"<< std::endl;
+		
+		// super-critical to performance! clear the "dummy" cells from phagocytosis / fusion
+		// otherwise, comptuational cost increases at polynomial rate VERY fast, as O(10,000) 
+		// dummy cells of size zero are left ot interact mechanically, etc. 
+		if( cells_ready_to_die.size() > 0 )
 		{
-			/*-------------------------------------------------------------------------------*/
-			/* For parallel version, use update_velocity_parallel instead of update_velocity */
-			/*-------------------------------------------------------------------------------*/			
-			Cell* pC = (*all_cells)[i];
-			if(pC->functions.update_velocity_parallel && pC->is_out_of_domain == false && pC->is_movable)
-			{
-				pC->functions.update_velocity_parallel( pC, pC->phenotype, time_since_last_mechanics, world, cart_topo);
-			}
+			/*
+			std::cout << "\tClearing dummy cells from phagocytosis and fusion events ... " << std::endl; 
+			std::cout << "\t\tClearing " << cells_ready_to_die.size() << " cells ... " << std::endl; 
+			// there might be a lot of "dummy" cells ready for removal. Let's do it. 		
+			*/
+			for( int i=0; i < cells_ready_to_die.size(); i++ )
+			{ cells_ready_to_die[i]->die(); }
+			cells_ready_to_die.clear();
 		}
-
-			/*-------------------------------------------------------------------------------*/
-			/* Compute new positions																												 */
-			/*-------------------------------------------------------------------------------*/
-
-		pack_cell_interact_info(world, cart_topo);
-		//#pragma omp parallel for 
-		for( int i=0; i < (*all_cells).size(); i++ )
-		{
-			Cell* pC = (*all_cells)[i]; 
-			// PhysiCell new March 2022:
-			// 		PhysiCell-X new January 2025
-			// 		run standard interactions (phagocytosis, attack, fusion) here 
-			standard_cell_cell_interactions(pC,pC->phenotype,time_since_last_mechanics, world, cart_topo);
-
-			if( pC->functions.custom_cell_rule && pC->is_out_of_domain == false )
-				{ 
-					pC->functions.custom_cell_rule( pC,pC->phenotype,time_since_last_mechanics ); 
-				}
-		}
-		unpack_cell_interact_info(world, cart_topo);
 
 		#pragma omp parallel for
 		for( int i=0; i < (*all_cells).size(); i++ )
@@ -525,10 +574,11 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
     		i = i - 1;
     	}
 
-
+		
+		//std::cout << "Rank: " << world.rank << " pre send " << corrupted << " corrupted cells " << std::endl; 
 
     //Checking for uniqueness ends
-
+		//std::cout << "\t\t[Rank " << world.rank << " ][" << no_cells_cross_left << " || " << no_cells_cross_right <<" ] " << std::endl; 
 		cart_topo.Send_and_Receive_Cells(no_cells_cross_left,  position_left,  snd_buf_left,
        															 no_cells_cross_right, position_right, snd_buf_right,
        															 no_of_cells_from_left,  rcv_buf_left,
@@ -537,6 +587,10 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
        															);
 
     unpack(world, cart_topo);
+
+
+	
+	//std::cout << "Rank: " << world.rank << " post unpack " << corrupted << " corrupted cells " << std::endl; 
     
     /*=======================DELETE LATER===============================================*/
     //Checking for uniqueness of IDs - later delete
@@ -569,6 +623,9 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 			if(!(*all_cells)[i]->is_out_of_domain && (*all_cells)[i]->is_movable)
 				(*all_cells)[i]->update_voxel_in_container(world, cart_topo);					//Changed to parallel version
 		last_mechanics_time=t;
+		end = std::chrono::high_resolution_clock::now();
+		duration = end - start;
+		time_mechs += duration.count();
 	}
 
 	initialzed=true;
@@ -628,7 +685,7 @@ void Cell_Container::pack_moore_info(mpi_Environment &world, mpi_Cartesian &cart
 				{
 					Cell *pCell = agent_grid[local_vxl_inex][vec_len];
 
-					len_snd_buf_left = len_snd_buf_left + 1 * sizeof(int) + 8 * sizeof(double);
+					len_snd_buf_left = len_snd_buf_left + 2 * sizeof(int) + 8 * sizeof(double);
 					snd_buf_left.resize(len_snd_buf_left);
 
 					MPI_Pack(&pCell->ID, 																							 			 1, MPI_INT, 		&snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
@@ -638,6 +695,7 @@ void Cell_Container::pack_moore_info(mpi_Environment &world, mpi_Cartesian &cart
 					MPI_Pack(&pCell->phenotype.mechanics.cell_cell_repulsion_strength, 			 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
 					MPI_Pack(&pCell->phenotype.mechanics.relative_maximum_adhesion_distance, 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
 					MPI_Pack(&pCell->phenotype.mechanics.cell_cell_adhesion_strength, 			 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->type, 											 1, MPI_INT, 		&snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
 				}
 			}
 		}
@@ -672,7 +730,7 @@ if(world.rank < world.size-1)
 				{
 					Cell *pCell = agent_grid[local_vxl_inex][vec_len];
 
-					len_snd_buf_right = len_snd_buf_right + 1 * sizeof(int) + 8 * sizeof(double);
+					len_snd_buf_right = len_snd_buf_right + 2 * sizeof(int) + 8 * sizeof(double);
 					snd_buf_right.resize(len_snd_buf_right);
 
 					MPI_Pack(&pCell->ID, 																							 			 1, MPI_INT, 		&snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
@@ -682,6 +740,7 @@ if(world.rank < world.size-1)
 					MPI_Pack(&pCell->phenotype.mechanics.cell_cell_repulsion_strength, 			 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
 					MPI_Pack(&pCell->phenotype.mechanics.relative_maximum_adhesion_distance, 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
 					MPI_Pack(&pCell->phenotype.mechanics.cell_cell_adhesion_strength, 			 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->type, 											 1, MPI_INT, 		&snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
 				}
 			}
 		}
@@ -788,6 +847,7 @@ if(world.rank < world.size-1)
 				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &mbfr[vxl_ctr].moore_cells[cell_ctr].cell_cell_repulsion_strength, 			1, MPI_DOUBLE, MPI_COMM_WORLD);
 				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &mbfr[vxl_ctr].moore_cells[cell_ctr].relative_maximum_adhesion_distance, 1, MPI_DOUBLE, MPI_COMM_WORLD);
 				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &mbfr[vxl_ctr].moore_cells[cell_ctr].cell_cell_adhesion_strength, 				1, MPI_DOUBLE, MPI_COMM_WORLD);
+				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &mbfr[vxl_ctr].moore_cells[cell_ctr].type, 				1, MPI_INT, 	 MPI_COMM_WORLD);
 			}
 
 			  um_mbfr[mbfr[vxl_ctr].global_mesh_index]=mbfr[vxl_ctr];
@@ -825,6 +885,7 @@ if(world.rank < world.size-1)
 				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &mbfl[vxl_ctr].moore_cells[cell_ctr].cell_cell_repulsion_strength, 				1, MPI_DOUBLE, MPI_COMM_WORLD);
 				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &mbfl[vxl_ctr].moore_cells[cell_ctr].relative_maximum_adhesion_distance, 	1, MPI_DOUBLE, MPI_COMM_WORLD);
 				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &mbfl[vxl_ctr].moore_cells[cell_ctr].cell_cell_adhesion_strength, 				1, MPI_DOUBLE, MPI_COMM_WORLD);
+				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &mbfl[vxl_ctr].moore_cells[cell_ctr].type, 				1, MPI_INT, 	 MPI_COMM_WORLD);
 			}
 
 			  um_mbfl[mbfl[vxl_ctr].global_mesh_index]=mbfl[vxl_ctr];
@@ -1362,15 +1423,23 @@ void Cell_Container::add_agent_to_outer_voxel(Cell* agent)
 
 void Cell_Container::remove_agent_from_voxel(Cell* agent, int voxel_index)
 {
+	if (voxel_index < 0)
+	{
+		return; 
+	}
 	int delete_index = 0;
 	while( agent_grid[voxel_index][ delete_index ] != agent )
 	{
 		delete_index++;
 	}
 	// move last item to index location
-	agent_grid[agent->get_current_mechanics_voxel_index()][delete_index] = agent_grid[agent->get_current_mechanics_voxel_index()][agent_grid[agent->get_current_mechanics_voxel_index()].size()-1 ];
+	//agent_grid[agent->get_current_mechanics_voxel_index()][delete_index] = agent_grid[agent->get_current_mechanics_voxel_index()][agent_grid[agent->get_current_mechanics_voxel_index()].size()-1 ];
 	// shrink the vector
-	agent_grid[agent->get_current_mechanics_voxel_index()].pop_back();
+	//agent_grid[agent->get_current_mechanics_voxel_index()].pop_back();
+	// move last item to index location
+    agent_grid[voxel_index][delete_index] = agent_grid[voxel_index][agent_grid[voxel_index].size()-1 ];
+    // shrink the vector
+    agent_grid[voxel_index].pop_back();
 	return;
 }
 
@@ -1428,6 +1497,7 @@ void Cell_Container::flag_cell_for_removal( Cell* pCell )
 
 Cell_Container* create_cell_container_for_microenvironment( BioFVM::Microenvironment& m , double mechanics_voxel_size )
 {
+	//done
 	Cell_Container* cell_container = new Cell_Container;
 	cell_container->initialize( m.mesh.bounding_box[0], m.mesh.bounding_box[3],
 		m.mesh.bounding_box[1], m.mesh.bounding_box[4],
@@ -1449,7 +1519,7 @@ Cell_Container* create_cell_container_for_microenvironment( BioFVM::Microenviron
 /*------------------------------------------------------------------*/
 
 Cell_Container* create_cell_container_for_microenvironment( BioFVM::Microenvironment& m , double mechanics_voxel_size, mpi_Environment &world, mpi_Cartesian &cart_topo )
-{
+{   
 	Cell_Container* cell_container = new Cell_Container;
 	cell_container->initialize( m.mesh.bounding_box[0], m.mesh.bounding_box[3],
 		m.mesh.bounding_box[1], m.mesh.bounding_box[4],

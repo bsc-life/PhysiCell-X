@@ -77,7 +77,7 @@
 namespace PhysiCell
 {
 	
-class Variable
+class Variable //UPDATED
 {
  private:
 	friend std::ostream& operator<<(std::ostream& os, const Variable& v); // done 
@@ -85,11 +85,12 @@ class Variable
 	std::string name; 
 	double value; 
 	std::string units; 
-	
+	bool conserved_quantity;
+
 	Variable(); 
 };
 
-class Vector_Variable
+class Vector_Variable //UPDATED
 {
  private:
 	friend std::ostream& operator<<(std::ostream& os, const Vector_Variable& v); // done 
@@ -97,12 +98,13 @@ class Vector_Variable
  public:
 	std::string name; 
 	std::vector<double> value; 
-	std::string units; 
+	std::string units;
+	bool conserved_quantity; 
 	
 	Vector_Variable(); 
 };
 
-class Custom_Cell_Data
+class Custom_Cell_Data //updated
 {
  private:
 	std::unordered_map<std::string,int> name_to_index_map; 

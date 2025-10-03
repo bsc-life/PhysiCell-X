@@ -81,7 +81,7 @@
 using namespace DistPhy::mpi; 
 
 namespace PhysiCell{
-
+extern double time_diff, time_mechs, time_pheno, time_intracell;
 class Cell;
 
 /*==========================================================================================*/
@@ -100,6 +100,8 @@ public:
 	double cell_cell_repulsion_strength;
 	double relative_maximum_adhesion_distance;
 	double cell_cell_adhesion_strength;
+	//jose to be included
+	int type;
 };
 
 class Moore_Voxel_Info 
@@ -220,7 +222,7 @@ class Cell_Container : public BioFVM::Agent_Container
     /*-------------------------------------*/
     /* Parallel prototype of function above*/
     /*-------------------------------------*/
-  void initialize(double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double voxel_size, mpi_Environment &world, mpi_Cartesian &cart_topo);
+    void initialize(double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double voxel_size, mpi_Environment &world, mpi_Cartesian &cart_topo);
     
 	void initialize(double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double dx, double dy, double dz);
     
@@ -248,7 +250,8 @@ class Cell_Container : public BioFVM::Agent_Container
     /* Parallel prototype of function above*/
     /*-------------------------------------*/
   
-  void update_all_cells(double t, double phenotype_dt, double mechanics_dt, double diffusion_dt, mpi_Environment &world, mpi_Cartesian &cart_topo );
+    void update_all_cells(double t, double phenotype_dt, double mechanics_dt, double diffusion_dt, mpi_Environment &world, mpi_Cartesian &cart_topo );
+	void update_cell_potentials(double time_since_last_mechanics,  mpi_Environment &world, mpi_Cartesian &cart_topo);
 
 	void register_agent( Cell* agent );
 	void add_agent_to_outer_voxel(Cell* agent);
@@ -303,12 +306,16 @@ class Cell_Container : public BioFVM::Agent_Container
 	void pack_cell_interact_info(mpi_Environment &world, mpi_Cartesian &cart_topo);
 	void unpack_cell_interact_info(mpi_Environment &world, mpi_Cartesian &cart_topo);
 	void cell_cell_interaction_with_border(std::vector<Interacting_Voxel> *iv);
+	void evaluate_cell_cell_interactions(double time_since_last_mechanics,  mpi_Environment &world, mpi_Cartesian &cart_topo);
+
 	
 	std::vector<Interacting_Voxel> ivfr;		//Voxels From Right (mbfr from right process)
 	std::vector<Interacting_Voxel> ivfl; 	//Voxels Boundary From Left 	(mbfl from left process)
 	
 	std::unordered_map<int, Interacting_Voxel> um_ivfl; //um_mbfl[globa_mesh_index]=Moore_Voxel_Info[index]
 	std::unordered_map<int, Interacting_Voxel> um_ivfr; //um_mbfr[globa_mesh_index]=Moore_Voxel_Info[index]
+
+	std::vector<Interacting_Cell_Info> get_neighbour_interacting_cells(Cell* pCell, mpi_Environment &world, mpi_Cartesian &cart_topo);
 };
 
 int find_escaping_face_index(Cell* agent);

@@ -74,20 +74,20 @@
 
 <PhysiCell_settings version="devel-version">
 	<domain>
-		<x_min>-220</x_min>
-		<x_max>220</x_max>
-		<y_min>-120</y_min>
-		<y_max>120</y_max>
-		<z_min>-20</z_min>
-		<z_max>20</z_max>
-		<dx>10</dx>
-		<dy>10</dy>
-		<dz>10</dz>
+		<x_min>-1000</x_min>
+		<x_max>1000</x_max>
+		<y_min>-1000</y_min>
+		<y_max>1000</y_max>
+		<z_min>-1000</z_min>
+		<z_max>1000</z_max>
+		<dx>20</dx>
+		<dy>20</dy>
+		<dz>20</dz>
 		<use_2D>false</use_2D>
 	</domain>
 	
 	<overall>
-		<max_time units="min">200</max_time>
+		<max_time units="min">1000</max_time>
 		<time_units>min</time_units>
 		<space_units>micron</space_units>
 
@@ -97,7 +97,7 @@
 	</overall>
 	
 	<parallel>
-		<omp_num_threads>6</omp_num_threads>
+		<omp_num_threads>112</omp_num_threads>
 	</parallel> 
 	
 	<save>
@@ -109,12 +109,18 @@
 		</full_data>
 		
 		<SVG>
-			<interval units="min">10</interval>
-			<enable>true</enable>
+			 <interval units="min">60</interval>
+            <enable>true</enable>
+            <plot_substrate enabled="false" limits="false">
+                <substrate>oxygen</substrate>
+                <min_conc />
+                <max_conc />
+                <colormap />
+            </plot_substrate>
 		</SVG>
 		
 		<legacy_data>
-			<enable>true</enable>
+			<enable>false</enable>
 		</legacy_data>
 	</save>
 	
