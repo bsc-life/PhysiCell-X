@@ -128,9 +128,12 @@ class Hypothesis_Rule //UPDATED
     void set_hill_power( std::string , double hp ); // done 
     void set_response( std::string , std::string response ); // done 
 
-    void reduced_display( std::ostream& os ); // done 
-    void display( std::ostream& os ); // done 
-    void detailed_display( std::ostream& os ); // done 
+    void reduced_display( std::ostream& os);
+    void display(std::ostream& os);
+    void display( std::ostream& os , mpi_Environment world, mpi_Cartesian cart_topo ); // done 
+    void detailed_display( std::ostream& os , mpi_Environment world, mpi_Cartesian cart_topo);
+    void detailed_display( std::ostream& os );
+
 
     void English_display( std::ostream& os ); 
     void English_display_HTML( std::ostream& os ); 
@@ -163,8 +166,8 @@ class Hypothesis_Ruleset
     void sync_to_cell_definition( Cell_Definition* pCD ); // done 
     void sync_to_cell_definition( std::string cell_name ); // done 
 
-    void display( std::ostream& os ); // done 
-    void detailed_display( std::ostream& os ); // done 
+    void display( std::ostream& os, mpi_Environment world, mpi_Cartesian cart_topo );
+    void detailed_display( std::ostream& os, mpi_Environment world, mpi_Cartesian cart_topo); // done 
 }; 
 
 // access 
@@ -194,7 +197,7 @@ void set_behavior_max_value( std::string cell_type, std::string behavior, double
 
 // display 
 
-void display_hypothesis_rulesets( std::ostream& os ); 
+void display_hypothesis_rulesets( std::ostream& os , mpi_Environment& world, mpi_Cartesian& cart_topo); 
 void detailed_display_hypothesis_rulesets( std::ostream& os ); 
 
 // applying to a cell 
@@ -211,22 +214,22 @@ void split_csv( std::string input , std::vector<std::string>& output , char deli
 void spaces_to_underscore( std::string& str );
 std::string convert_bool_to_response( bool input ); 
 
-void parse_csv_rule_v0( std::vector<std::string> input ); // parse a tokenized string (vector of strings)
-void parse_csv_rule_v0( std::string input ); // parse a single string (a single line from CSV)
-void parse_csv_rules_v0( std::string filename ); // parse all rules in a CSV file 
+void parse_csv_rule_v0( std::vector<std::string> input , mpi_Environment& world, mpi_Cartesian& cart_topo); // parse a tokenized string (vector of strings)
+void parse_csv_rule_v0( std::string input , mpi_Environment& world, mpi_Cartesian& cart_topo); // parse a single string (a single line from CSV)
+void parse_csv_rules_v0( std::string filename , mpi_Environment& world, mpi_Cartesian& cart_topo); // parse all rules in a CSV file 
 
 void parse_csv_rule_v1( std::vector<std::string> input ); // parse a tokenized string (vector of strings)
 void parse_csv_rule_v1( std::string input ); // parse a single string (a single line from CSV)
 void parse_csv_rules_v1( std::string filename ); // parse all rules in a CSV file 
 
-void parse_csv_rule_v3( std::vector<std::string> input ); // parse a tokenized string (vector of strings)
-void parse_csv_rule_v3( std::string input ); // parse a single string (a single line from CSV)
-void parse_csv_rules_v3( std::string filename ); // parse all rules in a CSV file 
+void parse_csv_rule_v3( std::vector<std::string> input, mpi_Environment& world, mpi_Cartesian& cart_topo ); // parse a tokenized string (vector of strings)
+void parse_csv_rule_v3( std::string input , mpi_Environment& world, mpi_Cartesian& cart_topo ); // parse a single string (a single line from CSV)
+void parse_csv_rules_v3( std::string filename, mpi_Environment& world, mpi_Cartesian& cart_topo  ); // parse all rules in a CSV file 
 
-void parse_rules_from_pugixml( void );
+void parse_rules_from_pugixml( mpi_Environment& world, mpi_Cartesian& cart_topo );
 
 // needs fixing March 2023 // probably deprecate
-void parse_rules_from_parameters_v0( void ); 
+void parse_rules_from_parameters_v0( mpi_Environment& world, mpi_Cartesian& cart_topo ); 
 
 std::string csv_strings_to_English( std::vector<std::string> strings , bool include_cell_header ); 
 std::string csv_strings_to_English_v1( std::vector<std::string> strings , bool include_cell_header );
@@ -275,7 +278,7 @@ std::vector<double> linear_response_to_Hill_parameters( double s0, double s1 );
 std::vector<double> Hill_response_to_linear_parameters( double half_max , double Hill_power ); 
 */
 
-void setup_cell_rules( void );
+void setup_cell_rules( mpi_Environment& world, mpi_Cartesian& cart_topo );
 
 }; 
 

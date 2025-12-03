@@ -87,8 +87,8 @@ double& signal_scale( int signal_index ); // done
 void setup_signal_behavior_dictionaries( mpi_Environment &world, mpi_Cartesian &cart_topo ); // done 
 
 // display dictionaries 
-void display_signal_dictionary( void ); // done 
-void display_behavior_dictionary( void ); // done 
+void display_signal_dictionary( mpi_Environment &world, mpi_Cartesian &cart_topo); // done 
+void display_behavior_dictionary( mpi_Environment &world, mpi_Cartesian &cart_topo ); // done 
 
 void display_signal_dictionary( std::ostream& os ); // done 
 void display_behavior_dictionary( std::ostream& os ); // done 

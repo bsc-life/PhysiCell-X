@@ -224,4 +224,5 @@ void standard_elastic_contact_function( Cell* pC1, Phenotype& p1, vector<double>
 	// std::cout << pC1->velocity << std::endl << std::endl; 
 	return; 
 }
+
 };

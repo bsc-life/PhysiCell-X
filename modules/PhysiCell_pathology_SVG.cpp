@@ -177,8 +177,8 @@ void SVG_plot_mpi( std::string filename , Microenvironment& M, double z_slice , 
 		else
 		{
 			if(PhysiCell_settings.limits_substrate_plot){
-			 max_conc_local = PhysiCell_settings.max_concentration;
-			 min_conc_local = PhysiCell_settings.min_concentration;
+			 max_conc_global = PhysiCell_settings.max_concentration;
+			 min_conc_global = PhysiCell_settings.min_concentration;
 			}
 			else{
 			 max_conc_local = M.density_vector(5)[sub_index];
@@ -195,14 +195,15 @@ void SVG_plot_mpi( std::string filename , Microenvironment& M, double z_slice , 
 			//MPI allgather the max and the min from all to all
 			MPI_Allreduce(&max_conc_local, &max_conc_global, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
 			MPI_Allreduce(&min_conc_local, &min_conc_global, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-			};
+			}
+
 
 			//check that max conc is not zero otherwise it is a big problem!
 			if(max_conc_global == 0){
 
 				max_conc_global = 1.0;
 
-			};
+			}
 
 			for (int n = 0; n < M.number_of_voxels(); n++)
 			{
@@ -219,6 +220,8 @@ void SVG_plot_mpi( std::string filename , Microenvironment& M, double z_slice , 
 				if (z_slice == z_compare){			//this is to make sure the substrate is sampled in the voxel visualized (so basically the slice)
 					int x_center = current_voxel.center[0];
 					int y_center = current_voxel.center[1];
+
+					//std::cout <<"[Rank " <<  world.rank  << "]: " << current_voxel.center[0] << " " << current_voxel.center[1] << " " << current_voxel.center[2] << std::endl;
 					
 					double x_displ = x_center -  dx_stroma/2;
 					double y_displ = (y_center - dy_stroma) +  dy_stroma/2;
@@ -226,6 +229,7 @@ void SVG_plot_mpi( std::string filename , Microenvironment& M, double z_slice , 
 					double concentration = M.density_vector(n)[sub_index];
 
 					std::string output = substrate_coloring_function(concentration, max_conc_global, min_conc_global );
+
 					Write_SVG_rect( file_str , x_displ - X_lower , y_displ - Y_lower, dx_stroma, dy_stroma , 0 , "none", output, world, cart_topo );
 				}
 			}

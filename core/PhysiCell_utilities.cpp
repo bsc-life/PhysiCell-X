@@ -94,7 +94,7 @@ void setup_rng( void )
 				  << "\tFuture versions of PhysiCell may throw an error here. Kindly remove the user parameter and just use the <options><random_seed> element." << std::endl;
 		warned = true;
 	}
-	std::cout << "Setting up RNG with seed " << physicell_random_seed << std::endl;
+	//std::cout << "Setting up RNG with seed " << physicell_random_seed << std::endl;
 
 	// save the seed to random_seed.txt
 	std::ofstream out(PhysiCell_settings.folder + "/random_seed.txt");
@@ -387,5 +387,6 @@ void copy_file_to_output(std::string filename)
 	std::cout << "Copy command: " << copy_command << std::endl;
 	(void)system(copy_command); // make it explicit that we are ignoring the return value
 }
+
 
 };

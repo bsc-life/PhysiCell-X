@@ -10,20 +10,20 @@
     </cell_rules>
 
     <domain>
-        <x_min>-1000.0</x_min>
-        <x_max>1000.0</x_max>
-        <y_min>-1000.0</y_min>
-        <y_max>1000.0</y_max>
-        <z_min>-1000.0</z_min>
-        <z_max>1000.0</z_max>
-        <dx>20.0</dx>
-        <dy>20.0</dy>
-        <dz>20.0</dz>
+        <x_min>-500</x_min>
+        <x_max>500</x_max>
+        <y_min>-500</y_min>
+        <y_max>500</y_max>
+        <z_min>-500</z_min>
+        <z_max>500</z_max>
+        <dx>20</dx>
+        <dy>20</dy>
+        <dz>20</dz>
         <use_2D>false</use_2D>
     </domain>
 
     <overall>
-        <max_time units="min">1000</max_time>
+        <max_time units="min">300</max_time>
         <time_units>min</time_units>
         <space_units>micron</space_units>
         <dt_diffusion units="min">0.01</dt_diffusion>
@@ -32,23 +32,23 @@
     </overall>
 
     <parallel>
-        <omp_num_threads>6</omp_num_threads>
+        <omp_num_threads>112</omp_num_threads>
     </parallel>
 
     <save>
         <folder>output</folder>
         <full_data>
             <interval units="min">60</interval>
-            <enable>true</enable>
+            <enable>false</enable>
         </full_data>
         <SVG>
             <interval units="min">60</interval>
-            <enable>true</enable>
-            <plot_substrate enabled="true" limits="false">
+            <enable>false</enable>
+            <plot_substrate enabled="false" limits="false">
                 <substrate>oxygen</substrate>
-                <min_conc> 0.0 </min_conc >
-                <max_conc > 38.0 </max_conc >
-                <colormap>YlOrRd</colormap>
+                <min_conc />
+                <max_conc />
+                <colormap />
             </plot_substrate>
         </SVG>
         <legacy_data>
@@ -73,9 +73,9 @@
             <Dirichlet_boundary_condition units="mmHg" enabled="True">38</Dirichlet_boundary_condition>
             <Dirichlet_options>
                 <boundary_value ID="xmin" enabled="True">38</boundary_value>
-                <boundary_value ID="xmax" enabled="False">38</boundary_value>
-                <boundary_value ID="ymin" enabled="False">38</boundary_value>
-                <boundary_value ID="ymax" enabled="False">38</boundary_value>
+                <boundary_value ID="xmax" enabled="True">38</boundary_value>
+                <boundary_value ID="ymin" enabled="True">38</boundary_value>
+                <boundary_value ID="ymax" enabled="True">38</boundary_value>
                 <boundary_value ID="zmin" enabled="False">38</boundary_value>
                 <boundary_value ID="zmax" enabled="False">38</boundary_value>
             </Dirichlet_options>
@@ -99,9 +99,6 @@
                     <phase_transition_rates units="1/min">
                         <rate start_index="0" end_index="0" fixed_duration="false">0.00072</rate>
                     </phase_transition_rates>
-                    <standard_asymmetric_division enabled="False">
-                        <asymmetric_division_probability name="cancer cell" units="dimensionless">1.0</asymmetric_division_probability>
-                    </standard_asymmetric_division>
                 </cycle>
                 <death>
                     <model code="100" name="apoptosis">
@@ -232,7 +229,7 @@
     </initial_conditions>
 
     <user_parameters>
-        <number_of_cells type="int" units="none" description="initial number of cells (for each cell type)">0</number_of_cells>
+        <number_of_cells type="int" units="none" description="initial number of cells (for each cell type)">1000</number_of_cells>
         <tumor_radius type="double" units="micron" description="">250</tumor_radius>
         <oncoprotein_mean type="double" units="" description="">1</oncoprotein_mean>
         <oncoprotein_sd type="double" units="" description="">0.25</oncoprotein_sd>

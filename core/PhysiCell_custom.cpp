@@ -71,6 +71,7 @@
 #include <iostream>
 
 #include <cstring>
+#include "MPI_helper.h"
 
 namespace PhysiCell
 {
@@ -89,6 +90,34 @@ std::ostream& operator<<(std::ostream& os, const Variable& v)
 	return os; 
 }
 
+void Variable::pack(std::vector<char>& snd_buffer, int& len_buffer, int &position) {
+	pack_buff(this->name, snd_buffer, len_buffer, position);
+	/* There was a mistake in MPI_Pack here, instead of &snd_buffer[0], I had &snd_buffer */
+	/* A second mistake is the 'missing buffer resize statement ! 														*/
+	//Value
+	pack_buff(this->value, snd_buffer, len_buffer, position);
+
+	//units
+	pack_buff(this->units, snd_buffer, len_buffer, position);
+
+	//1.14 includes conserved quantity
+	pack_buff(this->conserved_quantity, snd_buffer, len_buffer, position);
+}
+
+void Variable::unpack(std::vector<char>& rcv_buffer, int& len_buffer, int &position) {
+	unpack_buff(this->name, rcv_buffer, len_buffer, position);
+	/* There was a mistake in MPI_Pack here, instead of &snd_buffer[0], I had &snd_buffer */
+	/* A second mistake is the 'missing buffer resize statement ! 														*/
+	//Value
+	unpack_buff(this->value, rcv_buffer, len_buffer, position);
+
+	//units
+	unpack_buff(this->units, rcv_buffer, len_buffer, position);
+
+	//1.14 includes conserved quantity
+	unpack_buff(this->conserved_quantity, rcv_buffer, len_buffer, position);
+}
+
 
 Vector_Variable::Vector_Variable()
 {
@@ -97,6 +126,31 @@ Vector_Variable::Vector_Variable()
 	value.resize(3, 0.0 );
 	return; 
 }
+
+void Vector_Variable::pack(std::vector<char>& snd_buffer, int& len_buffer, int &position){
+	
+	pack_buff(this->name, snd_buffer, len_buffer, position);
+
+	pack_buff(this->value, snd_buffer, len_buffer, position);
+
+	pack_buff(this->units, snd_buffer, len_buffer, position);
+
+	pack_buff(this->conserved_quantity, snd_buffer, len_buffer, position);
+		 
+} 
+
+void Vector_Variable::unpack(std::vector<char>& rcv_buffer, int& len_buffer, int &position){
+	
+	unpack_buff(this->name, rcv_buffer, len_buffer, position);
+
+	unpack_buff(this->value, rcv_buffer, len_buffer, position);
+
+	unpack_buff(this->units, rcv_buffer, len_buffer, position);
+
+	unpack_buff(this->conserved_quantity, rcv_buffer, len_buffer, position);
+		 
+} 
+
 
 std::ostream& operator<<(std::ostream& os, const Vector_Variable& v)
 {
@@ -259,6 +313,74 @@ std::ostream& operator<<(std::ostream& os, const Custom_Cell_Data& ccd)
 	}
 	
 	return os;
+}
+
+void Custom_Cell_Data::pack(std::vector<char>& snd_buffer, int& len_buffer, int &position) {
+	int len_int =this->name_to_index_map.size();
+
+	pack_buff(len_int, snd_buffer, len_buffer, position);
+    for(auto it = this->name_to_index_map.cbegin(); it != this->name_to_index_map.cend(); it++)
+    {
+        /* resize buffer to contain length of string, string and integer */
+        pack_buff(it->first, snd_buffer, len_buffer, position);
+		pack_buff(it->second, snd_buffer, len_buffer, position);
+    }
+
+	pack_buff(static_cast<int>(this->variables.size()), snd_buffer, len_buffer, position);
+    for(int i=0; i<this->variables.size(); i++)
+    {
+        this->variables[i].pack(snd_buffer, len_buffer, position);
+    }
+
+	/* Packing members of class 'Vector_Variable' i.e. string name, a vector<double> value and string units */
+	pack_buff(static_cast<int>(this->vector_variables.size()), snd_buffer, len_buffer, position);
+
+    for(int i=0; i<this->vector_variables.size(); i++)
+    {
+		this->vector_variables[i].pack(snd_buffer, len_buffer, position);
+    }
+}
+
+void Custom_Cell_Data::unpack(std::vector<char>& rcv_buffer, int& len_buffer, int &position) {
+	int len_int;
+	// Unpack unordered_map<string, int>
+    unpack_buff(len_int, rcv_buffer, len_buffer, position);
+	if(len_int < 0) {
+		std::cout << "Error unpack cell 1" << std::endl;
+		return;
+	}
+	//clear the map
+	this->name_to_index_map.clear();
+    for (int i = 0; i < len_int; ++i) {
+        std::string key;
+        int value;
+        unpack_buff(key, rcv_buffer, len_buffer, position);
+        unpack_buff(value, rcv_buffer, len_buffer, position);
+        this->name_to_index_map[key] = value;
+    }
+
+    // Variables
+    unpack_buff(len_int, rcv_buffer, len_buffer, position);
+	if(len_int < 0) {
+		std::cout << "Error unpack cell 2" << std::endl;
+		return;
+	}
+    this->variables.resize(len_int);
+    for (int i = 0; i < len_int; ++i) {
+		this->variables[i].unpack(rcv_buffer, len_buffer, position);
+    }
+
+    // Vector Variables
+    unpack_buff(len_int, rcv_buffer, len_buffer, position);
+	if(len_int < 0) {
+		std::cout << "Error unpack cell 3" << std::endl;
+		return;
+	}
+    this->vector_variables.resize(len_int);
+    for (int i = 0; i < len_int; ++i) {
+		this->vector_variables[i].unpack(rcv_buffer, len_buffer, position);
+    }
+
 }
 
 };

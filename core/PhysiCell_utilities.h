@@ -76,9 +76,11 @@
 #include <random>
 #include <chrono>
 #include <random>
+#include "../DistPhy/DistPhy.h"
 
 #include <omp.h> 
 
+using namespace DistPhy::mpi; 
 namespace PhysiCell{
 
 
@@ -112,6 +114,7 @@ void add_software_citation( std::string name , std::string version, std::string 
 int choose_event( std::vector<double>& probabilities ); 
 
 void copy_file_to_output( std::string filename );
+void copy_file_to_output(std::string filename, mpi_Environment& world, mpi_Cartesian& cart_topo);
 };
 
 #endif

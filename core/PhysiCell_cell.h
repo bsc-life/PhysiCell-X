@@ -120,6 +120,9 @@ class Cell_Parameters
 	int necrosis_type; // deprecate 
 	
 	Cell_Parameters(); 
+
+	void pack(std::vector<char>& snd_buffer, int& len_buffer, int &position);
+	void unpack(std::vector<char>& rcv_buffer, int& len_buffer, int &position);
 }; 
 
 class Cell_Definition
@@ -165,7 +168,10 @@ class Cell_State
 	double total_attack_time; 
 	bool contact_with_basement_membrane; // not implemented yet 
 
-	Cell_State(); 
+	Cell_State();
+	
+	void pack(vector<char>& snd_buffer, int& len_buffer, int& position);
+	void unpack(vector<char>& rcv_buffer, int& len_buffer, int& position);
 };
 
 class Cell : public Basic_Agent 
@@ -262,7 +268,8 @@ class Cell : public Basic_Agent
 /*=======================================================================*/
 /* Parallel prototype of assign_position */
 /*=======================================================================*/
-	bool assign_position(double x, double y, double z, mpi_Environment &world, mpi_Cartesian &cart_topo);	
+	bool assign_position(double x, double y, double z, mpi_Environment &world, mpi_Cartesian &cart_topo);
+	bool assign_position(std::vector<double> new_position, mpi_Environment &world, mpi_Cartesian &cart_topo);	
 	
 	void set_total_volume(double);
 	
@@ -399,7 +406,7 @@ extern std::vector<Cell_Definition*> cell_definitions_by_index; // works
 extern std::unordered_map<std::string,int> cell_definition_indices_by_name; 
 extern std::unordered_map<int,int> cell_definition_indices_by_type;
 
-void display_cell_definitions( std::ostream& os ); // done
+void display_cell_definitions( std::ostream& os, mpi_Environment& world, mpi_Cartesian& cart_topo); // done
 void build_cell_definitions_maps( void ); // done
 void prebuild_cell_definition_index_maps( void ); // done 
 
@@ -413,8 +420,8 @@ Cell_Definition& get_cell_definition( std::string search_string ); // done
 Cell_Definition& get_cell_definition( int search_type );
 
 Cell_Definition* initialize_cell_definition_from_pugixml( pugi::xml_node cd_node ); 
-void initialize_cell_definitions_from_pugixml( pugi::xml_node root ); 
-void initialize_cell_definitions_from_pugixml( void );
+void initialize_cell_definitions_from_pugixml( pugi::xml_node root, mpi_Environment world, mpi_Cartesian cart_topo ); 
+void initialize_cell_definitions_from_pugixml( mpi_Environment world, mpi_Cartesian cart_topo );
 
 extern std::vector<double> (*cell_division_orientation)(void);
 

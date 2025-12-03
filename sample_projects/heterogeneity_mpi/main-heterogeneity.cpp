@@ -118,7 +118,7 @@ int main( int argc, char* argv[] )
 /* Create mpi_Environment object, initialize it, then create Cartesian Topology          */
 /*=======================================================================================*/
 	
-		mpi_Environment world;                         //object contains size of communicator, rank of process
+	mpi_Environment world;                         //object contains size of communicator, rank of process
     world.Initialize();                            //Initialize using MPI_THREAD_FUNNELED, find comm. size and comm. rank
     mpi_Cartesian cart_topo;                       //Contains dims[3], coords[3] array and MPI_Comm mpi_cart_comm
     cart_topo.Build_Cartesian_Topology(world);     //Create 1-D X decomposition by setting dims[1]=size. 
@@ -167,7 +167,7 @@ int main( int argc, char* argv[] )
 	//PhysiCell setup
  	
 	//Set mechanics voxel size, must be >= Diffusion voxel size
-	double mechanics_voxel_size = 30;
+	double mechanics_voxel_size = 20;
     
 /*=========================================================*/
 /* Calling the parallel version of Cell Container creation */
@@ -175,7 +175,7 @@ int main( int argc, char* argv[] )
     
 	Cell_Container* cell_container = create_cell_container_for_microenvironment( microenvironment, mechanics_voxel_size, world, cart_topo);
 	
-	create_cell_types();
+	create_cell_types(world, cart_topo);
     
 	setup_tissue(microenvironment, world, cart_topo);      //Custom parallel function 
 	
@@ -206,7 +206,7 @@ int main( int argc, char* argv[] )
 	
 	//Use the parallel version of the function for SVG file plotting
 	sprintf( filename , "%s/initial.svg" , PhysiCell_settings.folder.c_str() ); 
-  SVG_plot( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function, world, cart_topo );
+    SVG_plot( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function, world, cart_topo );
 	
 	//Set the performance timers 
 	BioFVM::RUNTIME_TIC();

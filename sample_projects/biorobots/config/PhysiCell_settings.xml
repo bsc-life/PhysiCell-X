@@ -78,12 +78,12 @@
 		<x_max>1000</x_max>
 		<y_min>-1000</y_min>
 		<y_max>1000</y_max>
-		<z_min>-10</z_min>
-		<z_max>10</z_max>
+		<z_min>-100</z_min>
+		<z_max>100</z_max>
 		<dx>20</dx>
 		<dy>20</dy>
 		<dz>20</dz>
-		<use_2D>true</use_2D>
+		<use_2D>false</use_2D>
 	</domain>
 	
 	<overall>
@@ -97,7 +97,7 @@
 	</overall>
 	
 	<parallel>
-		<omp_num_threads>4</omp_num_threads>
+		<omp_num_threads>112</omp_num_threads>
 	</parallel> 
 	
 	<save>

@@ -67,145 +67,107 @@
 
 #include "./biorobots.h"
 
-void setup_microenvironment( void )
+void phenotype_function( Cell* pCell, Phenotype& phenotype, double dt )
+{ return; }
+
+void custom_function( Cell* pCell, Phenotype& phenotype , double dt )
+{ return; } 
+
+void contact_function( Cell* pMe, Phenotype& phenoMe , Cell* pOther, Phenotype& phenoOther , double dt )
+{ return; } 
+
+void setup_microenvironment( mpi_Environment& world, mpi_Cartesian& cart_topo )
 {
 	// set domain parameters
 	
-	initialize_microenvironment(); 	
+	initialize_microenvironment(world, cart_topo); 	
 	
-	// these will ***overwrite*** values specified in the 
-	// microenvironment_setup part of the XML,
-	// based on what's in the user_parameters section 
-	
-	microenvironment.name = "synthetic tissue"; 
-	
-	int cargo_index = microenvironment.find_density_index( "cargo signal" ); 
-	int director_index = microenvironment.find_density_index( "director signal" ); 
-	
-	microenvironment.diffusion_coefficients[cargo_index] = 
-		parameters.doubles("cargo_signal_D");  
-	microenvironment.decay_rates[cargo_index] = 
-		parameters.doubles("cargo_signal_decay");  
-	
-	microenvironment.diffusion_coefficients[director_index] = 
-		parameters.doubles("director_signal_D");  
-	microenvironment.decay_rates[director_index] = 
-		parameters.doubles("director_signal_decay"); 
-	
-	// display the microenvironment again 
-	
-	microenvironment.display_information( std::cout ); 
-	
+	if (IOProcessor(world))
+		microenvironment.display_information( std::cout ); 
+
 	return; 
 }
 
-void create_cell_types( void )
+void create_cell_types( mpi_Environment& world, mpi_Cartesian& cart_topo)
 {
-	SeedRandom( parameters.ints("random_seed") ); 
-	// housekeeping 
+	// set the random seed 
+	if (parameters.ints.find_index("random_seed") != -1)
+	{
+		SeedRandom(parameters.ints("random_seed"));
+	}
 	
-	initialize_default_cell_definition();
+	/* 
+	   Put any modifications to default cell definition here if you 
+	   want to have "inherited" by other cell types. 
+	   
+	   This is a good place to set default functions. 
+	*/ 
+	//cell_definitions_by_index.clear();
+	std::cout << " Cell definitions size in 1: " << cell_definitions_by_index.size() << std::endl;
+	
+	initialize_default_cell_definition(); 
 	cell_defaults.phenotype.secretion.sync_to_microenvironment( &microenvironment ); 
 	
-	// turn the default cycle model to live, 
-	// so it's easier to turn off proliferation
-	
-	cell_defaults.phenotype.cycle.sync_to_cycle_model( live ); 
-	
-	// Make sure we're ready for 2D
-	
-	cell_defaults.functions.set_orientation = up_orientation; 
-	cell_defaults.phenotype.geometry.polarity = 1.0; 
-	cell_defaults.phenotype.motility.restrict_to_2D = true; 
-	
-	// turn off proliferation and death 
-	
-	int cycle_start_index = live.find_phase_index( PhysiCell_constants::live ); 
-	int cycle_end_index = live.find_phase_index( PhysiCell_constants::live ); 
-	
-	int apoptosis_index = cell_defaults.phenotype.death.find_death_model_index( PhysiCell_constants::apoptosis_death_model ); 
-	
-	cell_defaults.phenotype.cycle.data.transition_rate( cycle_start_index , cycle_end_index ) = 0.0; 
-	cell_defaults.phenotype.death.rates[apoptosis_index] = 0.0; 
-	
-	int cargo_index = microenvironment.find_density_index( "cargo signal" ); // 1 
-	int director_index = microenvironment.find_density_index( "director signal" ); // 0 
-	
-	// set uptake and secretion to zero 
-	cell_defaults.phenotype.secretion.secretion_rates[director_index] = 0; 
-	cell_defaults.phenotype.secretion.uptake_rates[director_index] = 0; 
-	cell_defaults.phenotype.secretion.saturation_densities[director_index] = 1; 
-	
-	cell_defaults.phenotype.secretion.secretion_rates[cargo_index] = 0; 
-	cell_defaults.phenotype.secretion.uptake_rates[cargo_index] = 0; 
-	cell_defaults.phenotype.secretion.saturation_densities[cargo_index] = 1; 
+	cell_defaults.functions.volume_update_function = standard_volume_update_function;
+	cell_defaults.functions.update_velocity = standard_update_cell_velocity;
 
-	// set the default cell type to no phenotype updates 
+	cell_defaults.functions.update_migration_bias = NULL; 
+	cell_defaults.functions.update_phenotype = NULL; // update_cell_and_death_parameters_O2_based; 
+	cell_defaults.functions.custom_cell_rule = NULL; 
+	cell_defaults.functions.contact_function = NULL; 
 	
-	cell_defaults.functions.update_phenotype = NULL; 
+	cell_defaults.functions.add_cell_basement_membrane_interactions = NULL; 
+	cell_defaults.functions.calculate_distance_to_membrane = NULL; 
 	
-	// add custom data 
-	
-	cell_defaults.custom_data.add_variable( "receptor" , "dimensionless", 0.0 ); 
 	/*
-	cell_defaults.custom_data.add_variable( "elastic coefficient" , "1/min" , 0.05 );  // 0.1; 
+	   This parses the cell definitions in the XML config file. 
 	*/
-	Parameter<double> paramD = parameters.doubles[ "elastic_coefficient" ]; 
-	cell_defaults.custom_data.add_variable( "elastic coefficient" , paramD.units , paramD.value );  // 0.1; 
-	
-	//
-	// Define "seed" cells 
-	
-	director_cell = cell_defaults; 
-	director_cell.type = director_ID; 
-	director_cell.name = "director cell"; 
-	
-	// seed cell secrete the signal 
-	
-	director_cell.phenotype.secretion.secretion_rates[director_index] = 9.9; 
-	
-	// seed cell rule 
-	
-	director_cell.functions.update_phenotype = director_cell_rule; 
-	
-	// define "cargo" cells 
-	
-	cargo_cell = cell_defaults; 
-	cargo_cell.type = cargo_ID; 
-	cargo_cell.name = "cargo cell";
-	
-	cargo_cell.functions.update_phenotype = cargo_cell_rule; 
-	cargo_cell.functions.custom_cell_rule = extra_elastic_attachment_mechanics; 
-	
-	cargo_cell.custom_data["receptor"] = 1.0; 
+	std::cout << " Cell definitions size in 2: " << cell_definitions_by_index.size() << std::endl;
 
-	cargo_cell.phenotype.secretion.secretion_rates[cargo_index] = 9.9; 
-	cargo_cell.phenotype.cycle.data.transition_rate( cycle_start_index , cycle_end_index ) = 0.0; // 7e-4
-	
-	//
-	// Define "worker" cells 
-	
-	worker_cell = cell_defaults; 
-	worker_cell.type = worker_ID; 
-	worker_cell.name = "worker cell";
-	
-	// make them motile, and unadhesive  
-	
-	worker_cell.phenotype.motility.is_motile = true; 
-	worker_cell.phenotype.motility.persistence_time = 
-		parameters.doubles("worker_motility_persistence_time"); // 5.0; 
-	worker_cell.phenotype.motility.migration_speed = 
-		parameters.doubles("worker_migration_speed"); // 5; 
-	worker_cell.phenotype.motility.migration_bias = 
-		parameters.doubles("unattached_worker_migration_bias"); // 0.0; 
-	
+	initialize_cell_definitions_from_pugixml(world, cart_topo); 
 
-	worker_cell.phenotype.mechanics.cell_cell_adhesion_strength = 0.0; 
+	/*
+	   This builds the map of cell definitions and summarizes the setup. 
+	*/
+	std::cout << " Cell definitions size in 3: " << cell_definitions_by_index.size() << std::endl;
+
+	build_cell_definitions_maps(); 
+
+	/*
+	   This intializes cell signal and response dictionaries 
+	*/
+
+	setup_signal_behavior_dictionaries(world, cart_topo); 	
+
+	/* 
+	   Put any modifications to individual cell definitions here. 
+	   
+	   This is a good place to set custom functions. 
+	*/ 
 	
-	worker_cell.functions.update_phenotype = worker_cell_rule; 
-	worker_cell.functions.custom_cell_rule = extra_elastic_attachment_mechanics; 
-	worker_cell.functions.update_migration_bias = worker_cell_motility;
+	cell_defaults.functions.update_phenotype = phenotype_function; 
+	cell_defaults.functions.custom_cell_rule = custom_function; 
+	cell_defaults.functions.contact_function = contact_function; 
+
+	Cell_Definition* pCD = find_cell_definition( "director cell"); 
+	pCD->functions.update_phenotype = director_cell_rule; 
+
+	pCD = find_cell_definition( "cargo cell");
+	pCD->functions.update_phenotype = cargo_cell_rule; 
+	pCD->functions.contact_function = standard_elastic_contact_function; 
+
+	pCD = find_cell_definition( "worker cell");
+	pCD->functions.update_phenotype = worker_cell_rule; 
+	pCD->functions.contact_function = standard_elastic_contact_function; 
+
+	/*
+	   This builds the map of cell definitions and summarizes the setup. 
+	*/
+	std::cout << " Cell definitions size in 4: " << cell_definitions_by_index.size() << std::endl;
+
+	display_cell_definitions( std::cout , world, cart_topo); 
 	
+	std::cout << " Cell definitions size in 5: " << cell_definitions_by_index.size() << std::endl;
 	return; 
 }
 
@@ -242,12 +204,14 @@ std::vector<std::string> robot_coloring_function( Cell* pCell )
 	static std::string cargo_color = parameters.strings( "cargo_color" ); 
 	static std::string director_color = parameters.strings( "director_color" ); 
 
+	static int worker_ID = find_cell_definition( "worker cell" )->type; 
+	static int cargo_ID = find_cell_definition( "cargo cell" )->type; 
+	static int director_ID = find_cell_definition( "director cell" )->type; 
+
 	if( pCell->type == worker_ID )
 	{ color = worker_color; }
 	else if( pCell->type == cargo_ID )
 	{ color = cargo_color; }
-	else if( pCell->type == linker_ID )
-	{ color = "aquamarine"; }
 	else if( pCell->type == director_ID )
 	{ color = director_color; }
 	
@@ -257,11 +221,12 @@ std::vector<std::string> robot_coloring_function( Cell* pCell )
 	return output; 
 }
 
-void create_cargo_cluster_6( std::vector<double>& center )
+void create_cargo_cluster_6( std::vector<double>& center , mpi_Environment& world, mpi_Cartesian& cart_topo )
 {
 	// create a hollow cluster at position, with random orientation 
+	static Cell_Definition* pCargoDef = find_cell_definition("cargo cell");	
 	
-	static double spacing = 0.95 * cargo_cell.phenotype.geometry.radius * 2.0; 
+	static double spacing = 0.95 * pCargoDef->phenotype.geometry.radius * 2.0; 
 	static double d_Theta = 1.047197551196598 ; // 2*pi / 6.0 
 	
 	double theta = 6.283185307179586 * UniformRandom(); 
@@ -271,12 +236,12 @@ void create_cargo_cluster_6( std::vector<double>& center )
 	Cell* pC; 
 	for( int i=0; i < 6; i++ )
 	{
-		pC = create_cell( cargo_cell ); 
+		pC = create_cell( *pCargoDef ); 
 		
 		position[0] = center[0] + spacing*cos( theta ); 
 		position[1] = center[1] + spacing*sin( theta ); 
 		
-		pC->assign_position( position ); 
+		pC->assign_position( position, world, cart_topo ); 
 		
 		theta += d_Theta; 
 	}
@@ -284,13 +249,14 @@ void create_cargo_cluster_6( std::vector<double>& center )
 	return; 
 }
 
-void create_cargo_cluster_7( std::vector<double>& center )
+void create_cargo_cluster_7( std::vector<double>& center , mpi_Environment& world, mpi_Cartesian& cart_topo )
 {
 	// create a filled cluster at position, with random orientation 
+	static Cell_Definition* pCargoDef = find_cell_definition("cargo cell");	
 
-	create_cargo_cluster_6( center );
-	Cell* pC = create_cell( cargo_cell ); 
-	pC->assign_position( center ); 
+	create_cargo_cluster_6( center, world, cart_topo );
+	Cell* pC = create_cell( *pCargoDef ); 
+	pC->assign_position( center , world, cart_topo); 
 	
 	return; 
 }
@@ -299,8 +265,9 @@ void create_cargo_cluster_7( std::vector<double>& center )
 void create_cargo_cluster_3( std::vector<double>& center )
 {
 	// create a small cluster at position, with random orientation 
+	static Cell_Definition* pCargoDef = find_cell_definition("cargo cell");	
 	
-	static double spacing = 0.95 * cargo_cell.phenotype.geometry.radius * 1.0; 
+	static double spacing = 0.95 * pCargoDef->phenotype.geometry.radius * 1.0; 
 	static double d_Theta = 2.094395102393195 ; // 2*pi / 3.0 
 	
 	double theta = 6.283185307179586 * UniformRandom(); 
@@ -310,7 +277,7 @@ void create_cargo_cluster_3( std::vector<double>& center )
 	Cell* pC; 
 	for( int i=0; i < 3; i++ )
 	{
-		pC = create_cell( cargo_cell ); 
+		pC = create_cell( *pCargoDef ); 
 		
 		position[0] = center[0] + spacing*cos( theta ); 
 		position[1] = center[1] + spacing*sin( theta ); 
@@ -324,87 +291,138 @@ void create_cargo_cluster_3( std::vector<double>& center )
 }
 
 
-void setup_tissue( void )
+void setup_tissue( DistPhy::mpi::mpi_Environment &world, DistPhy::mpi::mpi_Cartesian &cart_topo )
 {
-	int number_of_directors = parameters.ints("number_of_directors"); // 15;  
-	int number_of_cargo_clusters = parameters.ints("number_of_cargo_clusters"); // 100;  
-	int number_of_workers = parameters.ints("number_of_workers"); // 50;  
+	Microenvironment microenvironment = (*default_microenvironment_options.pMicroenvironment);
 
-	std::cout << "Placing cells ... " << std::endl; 
+	double Xmin = microenvironment.mesh.x_coordinates[0]; 
+	double Ymin = microenvironment.mesh.y_coordinates[0]; 
+	double Zmin = microenvironment.mesh.z_coordinates[0];
+
+	int x_voxels = microenvironment.mesh.x_coordinates.size();
+	int y_voxels = microenvironment.mesh.y_coordinates.size();
+	int z_voxels = microenvironment.mesh.z_coordinates.size();
+
+	double Xmax = microenvironment.mesh.x_coordinates[x_voxels - 1]; 
+	double Ymax = microenvironment.mesh.y_coordinates[y_voxels - 1]; 
+	double Zmax = microenvironment.mesh.z_coordinates[z_voxels - 1];
+
+	int number_of_directors = parameters.ints("number_of_directors"); // 15; 
+	int local_directors =  (number_of_directors/world.size) + ((number_of_directors % world.size) > world.rank);
+	int number_of_cargo_clusters = parameters.ints("number_of_cargo_clusters"); // 100;  
+	int local_cargo_clusters = (number_of_cargo_clusters/world.size) + ((number_of_cargo_clusters % world.size) > world.rank);
+	int number_of_workers = parameters.ints("number_of_workers"); // 50; 
+	int local_workers =  (number_of_workers/world.size) + ((number_of_workers % world.size) > world.rank);
+
+	if (IOProcessor(world))
+		std::cout << "Placing cells ... " << std::endl; 
 	
 	// randomly place seed cells 
 	
 	std::vector<double> position(3,0.0); 
 	
-	double x_range = default_microenvironment_options.X_range[1] - default_microenvironment_options.X_range[0]; 
-	double y_range = default_microenvironment_options.Y_range[1] - default_microenvironment_options.Y_range[0]; 
+	double x_range = Xmax - Xmin; 
+	double y_range = Ymax - Ymin;
+	double z_range = Zmax - Zmin; 
 
 	double relative_margin = 0.2;  
 	double relative_outer_margin = 0.02; 
 	
-	std::cout << "\tPlacing " << number_of_directors << " director cells ... " << std::endl; 
-	for( int i=0; i < number_of_directors ; i++ )
+	for( int k=0; k < cell_definitions_by_index.size() ; k++ )
+	{
+		Cell* pC;
+		Cell_Definition* pCD = cell_definitions_by_index[k]; 
+		std::cout << "Placing cells of type " << pCD->name << " ... " << std::endl; 
+		for( int n = 0 ; n < parameters.ints("number_of_cells") / world.size ; n++ )
+		{
+			std::vector<double> position = {0,0,0}; 
+			position[0] = Xmin + UniformRandom()*x_range; 
+			position[1] = Ymin + UniformRandom()*y_range; 
+			position[2] = Zmin + UniformRandom()*z_range; 
+			
+			pC = create_cell( *pCD ); 
+			pC->assign_position( position, world, cart_topo );
+		}
+	}
+	std::cout << std::endl; 
+	
+	if (IOProcessor(world))
+		std::cout << "\tPlacing " << number_of_directors << " director cells ... " << std::endl; 
+	
+	static Cell_Definition* pCargoDef = find_cell_definition("cargo cell");	
+	static Cell_Definition* pDirectorDef = find_cell_definition("director cell");	
+	static Cell_Definition* pWorkerDef = find_cell_definition("worker cell");
+
+	for( int i=0; i < local_directors ; i++ )
 	{
 		// pick a random location 
-		position[0] = default_microenvironment_options.X_range[0] + x_range*( relative_margin + (1.0-2*relative_margin)*UniformRandom() ); 
+		position[0] = Xmin + x_range*( relative_margin + (1.0-2*relative_margin)*UniformRandom() ); 
 		
-		position[1] = default_microenvironment_options.Y_range[0] + y_range*( relative_outer_margin + (1.0-2*relative_outer_margin)*UniformRandom() ); 
+		position[1] = Ymin + y_range*( relative_outer_margin + (1.0-2*relative_outer_margin)*UniformRandom() ); 
+
+		position[2] = Zmin + z_range*( relative_outer_margin + (1.0-2*relative_outer_margin)*UniformRandom() ); 
 		
 		// place the cell
 		Cell* pC;
-		pC = create_cell( director_cell ); 
-		pC->assign_position( position );
+		pC = create_cell( *pDirectorDef ); 
+		pC->assign_position( position, world, cart_topo );
 		pC->is_movable = false; 
 	}
 	
 	// place cargo clusters on the fringes 
+
 	
-	std::cout << "\tPlacing cargo cells ... " << std::endl; 
-	for( int i=0; i < number_of_cargo_clusters ; i++ )
+	
+	if (IOProcessor(world))
+		std::cout << "\tPlacing cargo cells ... " << std::endl; 
+	
+	for( int i=0; i <  local_cargo_clusters ; i++ )
 	{
 		// pick a random location 
 		
-		position[0] = default_microenvironment_options.X_range[0] + 
-				x_range*( relative_outer_margin + (1-2.0*relative_outer_margin)*UniformRandom() ); 
+		position[0] = Xmin + x_range*( relative_margin + (1.0-2*relative_margin)*UniformRandom() ); 
 		
-		position[1] = default_microenvironment_options.Y_range[0] + 
-				y_range*( relative_outer_margin + (1-2.0*relative_outer_margin)*UniformRandom() ); 
+		position[1] = Ymin + y_range*( relative_outer_margin + (1.0-2*relative_outer_margin)*UniformRandom() ); 
+
+		position[2] = Zmin + z_range*( relative_outer_margin + (1.0-2*relative_outer_margin)*UniformRandom() );  
 		
 		if( UniformRandom() < 0.5 )
 		{
-			Cell* pCell = create_cell( cargo_cell ); 
-			pCell->assign_position( position ); 
+			Cell* pCell = create_cell( *pCargoDef ); 
+			pCell->assign_position( position  , world , cart_topo); 
 		}
 		else
 		{
-			create_cargo_cluster_7( position ); 
+			create_cargo_cluster_7( position, world, cart_topo ); 
 		}
 	}
 	
 	// place "workersworkers"
-
-	std::cout << "\tPlacing worker cells ... " << std::endl; 
-	for( int i=0; i < number_of_workers ; i++ )
+	if (IOProcessor(world))
+		std::cout << "\tPlacing worker cells ... " << std::endl; 
+	for( int i=0; i < local_workers ; i++ )
 	{
 		// pick a random location 
 		
-		position[0] = default_microenvironment_options.X_range[0] + x_range*( relative_margin + (1.0-2*relative_margin)*UniformRandom() ); 
+		position[0] = Xmin + x_range*( relative_margin + (1.0-2*relative_margin)*UniformRandom() ); 
 		
-		position[1] = default_microenvironment_options.Y_range[0] + y_range*( relative_outer_margin + (1.0-2*relative_outer_margin)*UniformRandom() ); 
+		position[1] = Ymin + y_range*( relative_outer_margin + (1.0-2*relative_outer_margin)*UniformRandom() ); 
+
+		position[2] = Zmin + z_range*( relative_outer_margin + (1.0-2*relative_outer_margin)*UniformRandom() ); 
 		
 		// place the cell
 		Cell* pC;
 
-		pC = create_cell( worker_cell ); 
-		pC->assign_position( position );
+		pC = create_cell( *pWorkerDef ); 
+		pC->assign_position( position, world, cart_topo);
 	}	
 	
-
-	std::cout << "done!" << std::endl; 
+	if (IOProcessor(world))
+		std::cout << "done!" << std::endl; 
 	// make a plot 
 	
 	PhysiCell_SVG_options.length_bar = 200; 
-	SVG_plot( "initial.svg" , microenvironment, 0.0 , 0.0 , robot_coloring_function );	
+	//SVG_plot_mpi( "initial.svg" , microenvironment, 0.0 , 0.0 , robot_coloring_function, world, cart_topo);	
 	
 	return; 
 }
@@ -539,7 +557,7 @@ void worker_cell_rule( Cell* pCell, Phenotype& phenotype, double dt )
 			// if it is expressing the receptor, dock with it 
 			if( nearby[i]->custom_data["receptor"] > 0.5 )
 			{
-				attach_cells( pCell, nearby[i] ); 
+				PhysiCell::attach_cells( pCell, nearby[i] ); 
 				nearby[i]->custom_data["receptor"] = 0.0; 
 				nearby[i]->phenotype.secretion.set_all_secretion_to_zero(); 
 			}

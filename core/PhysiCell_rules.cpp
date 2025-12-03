@@ -723,23 +723,27 @@ Hypothesis_Ruleset::Hypothesis_Ruleset()
 	return; 
 }
 
-void Hypothesis_Ruleset::display( std::ostream& os )
+void Hypothesis_Ruleset::display( std::ostream& os, mpi_Environment world, mpi_Cartesian cart_topo)
 {
-	os << "Behavioral rules for cell type " << cell_type << ":" << std::endl; 
-	os << "===================================================" << std::endl; 
-	for( int i=0; i < rules.size() ; i++ )
-	{ rules[i]->reduced_display(os); }
-	os << std::endl; 
+	if (IOProcessor(world)) {
+		os << "Behavioral rules for cell type " << cell_type << ":" << std::endl; 
+		os << "===================================================" << std::endl; 
+		for( int i=0; i < rules.size() ; i++ )
+		{ rules[i]->reduced_display(os); }
+		os << std::endl;
+	}
 	return; 
 }
 
-void Hypothesis_Ruleset::detailed_display( std::ostream& os )
+void Hypothesis_Ruleset::detailed_display( std::ostream& os , mpi_Environment world, mpi_Cartesian cart_topo)
 {
-	os << "Behavioral rules for cell type " << cell_type << ":" << std::endl; 
-	os << "===================================================" << std::endl; 
-	for( int i=0; i < rules.size() ; i++ )
-	{ rules[i]->detailed_display(os); }
-	os << std::endl; 
+	if (IOProcessor(world)) {
+		os << "Behavioral rules for cell type " << cell_type << ":" << std::endl; 
+		os << "===================================================" << std::endl; 
+		for( int i=0; i < rules.size() ; i++ )
+		{ rules[i]->detailed_display(os); }
+		os << std::endl; 
+	}
 	return; 
 }
 
@@ -870,18 +874,18 @@ Hypothesis_Ruleset& access_ruleset( Cell_Definition* pCD )
 Hypothesis_Ruleset* find_ruleset( Cell_Definition* pCD )
 { return &(hypothesis_rulesets[pCD]); }
 
-void display_hypothesis_rulesets( std::ostream& os )
+void display_hypothesis_rulesets( std::ostream& os, mpi_Environment& world, mpi_Cartesian& cart_topo )
 {
 	for( int n=0 ; n < cell_definitions_by_index.size() ; n++ )
-	{ hypothesis_rulesets[ cell_definitions_by_index[n] ].display( os ); }
+	{ hypothesis_rulesets[ cell_definitions_by_index[n] ].display( os, world, cart_topo ); }
 
 	return; 
 }
 
-void detailed_display_hypothesis_rulesets( std::ostream& os )
+void detailed_display_hypothesis_rulesets( std::ostream& os, mpi_Environment world, mpi_Cartesian cart_topo )
 {
 	for( int n=0 ; n < cell_definitions_by_index.size() ; n++ )
-	{ hypothesis_rulesets[ cell_definitions_by_index[n] ].detailed_display( os ); }
+	{ hypothesis_rulesets[ cell_definitions_by_index[n] ].detailed_display( os , world, cart_topo); }
 
 	return; 
 }
@@ -1441,7 +1445,7 @@ std::string csv_strings_to_English_HTML( std::vector<std::string> strings , bool
  Cell type, behavior, min value, base value, max value, signal, direction, half-max, Hill power, dead
 */ 
 
-void parse_csv_rule_v0( std::vector<std::string> input )
+void parse_csv_rule_v0( std::vector<std::string> input,  mpi_Environment& world, mpi_Cartesian& cart_topo )
 {
 	// if it's wrong length, skip 
 	bool skip = false; 
@@ -1455,7 +1459,8 @@ void parse_csv_rule_v0( std::vector<std::string> input )
 	}
 	if( skip == true )
 	{
-		std::cout << "Warning: Misformed rule (likely from an empty rules file). Skipping." << std::endl; 
+		if (IOProcessor(world))
+			std::cout << "Warning: Misformed rule (likely from an empty rules file). Skipping." << std::endl; 
 		return; 
 	}
 
@@ -1476,9 +1481,10 @@ void parse_csv_rule_v0( std::vector<std::string> input )
 	double hill_power = std::atof( input[8].c_str() );
 	bool use_for_dead = (bool) std::atof( input[9].c_str() ); 
 
-	std::cout << "Adding rule for " << cell_type << " cells:\n\t"; 
-	std::cout << temp << std::endl; 
-
+	if (IOProcessor(world)) {
+		std::cout << "Adding rule for " << cell_type << " cells:\n\t"; 
+		std::cout << temp << std::endl; 
+	}
 	// add_rule(cell_type,signal,behavior,response);  
 	add_rule(cell_type,signal,behavior,response,use_for_dead);  
 
@@ -1510,7 +1516,7 @@ void parse_csv_rule_v0( std::vector<std::string> input )
 	return;  
 }
 
-void parse_csv_rule_v0( std::string input )
+void parse_csv_rule_v0( std::string input , mpi_Environment& world, mpi_Cartesian& cart_topo)
 {
 	std::vector<std::string> tokenized_string; 
 	split_csv( input , tokenized_string , ','); 
@@ -1520,31 +1526,34 @@ void parse_csv_rule_v0( std::string input )
 	if( tokenized_string.size() != 10 )
 	{ split_csv( input , tokenized_string , '\t');  }
 
-	return parse_csv_rule_v0( tokenized_string ); 
+	return parse_csv_rule_v0( tokenized_string , world, cart_topo); 
 }
 
-void parse_csv_rules_v0( std::string filename )
+void parse_csv_rules_v0( std::string filename, mpi_Environment& world, mpi_Cartesian& cart_topo )
 {
 	std::fstream fs( filename, std::ios::in );
 	if( !fs )
 	{
-		std::cout << "Warning: Rules file " << filename << " failed to open." << std::endl; 
+		if (IOProcessor(world))
+			std::cout << "Warning: Rules file " << filename << " failed to open." << std::endl; 
 		return; 
 	}
 
-	std::cout << "Processing rules in file " << filename << " ... " << std::endl; 
+	if (IOProcessor(world))
+		std::cout << "Processing rules in file " << filename << " ... " << std::endl; 
 
 	while( fs.eof() == false )
 	{
 		std::string line; 	
 		std::getline( fs , line, '\n'); 
 		if( line.size() > 0 )
-		{ parse_csv_rule_v0(line); }
+		{ parse_csv_rule_v0(line, world, cart_topo); }
 	}
 
 	fs.close(); 
 
-	std::cout << "Done!" << std::endl << std::endl; 
+	if (IOProcessor(world))
+		std::cout << "Done!" << std::endl << std::endl; 
 
 	return; 
 }
@@ -1705,7 +1714,7 @@ void parse_csv_rules_v1( std::string filename )
  Cell type, signal, direction, behavior, max response value, half-max, Hill power, applies to dead?  
 */ 
 
-void parse_csv_rule_v3( std::vector<std::string> input )
+void parse_csv_rule_v3( std::vector<std::string> input , mpi_Environment& world, mpi_Cartesian& cart_topo)
 {
 	// if it's wrong length, skip 
 	bool skip = false; 
@@ -1719,11 +1728,13 @@ void parse_csv_rule_v3( std::vector<std::string> input )
 	}
 	if( skip == true )
 	{
-		std::cout << "Warning: Misformed rule (likely from an empty rules file). Skipping." << std::endl; 
+		if (IOProcessor(world)) {
+			std::cout << "Warning: Misformed rule (likely from an empty rules file). Skipping." << std::endl; 
 
-		for( int n=0 ; n < input.size(); n++ )
-		{
-			std::cout << n << " : " << input[n] << std::endl; 
+			for( int n=0 ; n < input.size(); n++ )
+			{
+				std::cout << n << " : " << input[n] << std::endl; 
+			}
 		}
 
 		return; 
@@ -1750,8 +1761,11 @@ void parse_csv_rule_v3( std::vector<std::string> input )
 	double hill_power = std::atof( input[6].c_str() );
 	bool use_for_dead = (bool) std::atof( input[7].c_str() ); 
 
-	std::cout << "Adding rule for " << cell_type << " cells:\n\t"; 
-	std::cout << temp << std::endl; 
+	if (IOProcessor(world)) {
+		std::cout << "Adding rule for " << cell_type << " cells:\n\t"; 
+		std::cout << temp << std::endl;
+	}
+	 
 
 	// add_rule(cell_type,signal,behavior,response);  
 	add_rule(cell_type,signal,behavior,response,use_for_dead);  
@@ -1775,7 +1789,7 @@ void parse_csv_rule_v3( std::vector<std::string> input )
 	return;  
 }
 
-void parse_csv_rule_v3( std::string input )
+void parse_csv_rule_v3( std::string input, mpi_Environment& world, mpi_Cartesian& cart_topo  )
 {
 	std::vector<std::string> tokenized_string; 
 	split_csv( input , tokenized_string , ','); 
@@ -1787,33 +1801,40 @@ void parse_csv_rule_v3( std::string input )
 
 	// check for comment 
 	if(tokenized_string[0][0] == '/' && tokenized_string[0][1] == '/' )
-	{ std::cout << "Skipping commented rule (" << input << ")" << std::endl; return; }	
+	{ 
+		if(IOProcessor(world))
+			std::cout << "Skipping commented rule (" << input << ")" << std::endl; 
+		return; 
+	}	
 
-	return parse_csv_rule_v3( tokenized_string ); 
+	return parse_csv_rule_v3( tokenized_string , world, cart_topo); 
 }
 
-void parse_csv_rules_v3( std::string filename )
+void parse_csv_rules_v3( std::string filename, mpi_Environment& world, mpi_Cartesian& cart_topo  )
 {
 	std::fstream fs( filename, std::ios::in );
 	if( !fs )
 	{
-		std::cout << "Warning: Rules file " << filename << " failed to open." << std::endl; 
+		if (IOProcessor(world))
+			std::cout << "Warning: Rules file " << filename << " failed to open." << std::endl; 
 		return; 
 	}
 
-	std::cout << "Processing rules in file " << filename << " ... " << std::endl; 
+	if(IOProcessor(world))
+		std::cout << "Processing rules in file " << filename << " ... " << std::endl; 
 
 	while( fs.eof() == false )
 	{
 		std::string line; 	
 		std::getline( fs , line, '\n'); 
 		if( line.size() > 0 )
-		{ parse_csv_rule_v3(line); }
+		{ parse_csv_rule_v3(line, world, cart_topo); }
 	}
 
 	fs.close(); 
 
-	std::cout << "Done!" << std::endl << std::endl; 
+	if(IOProcessor(world))
+		std::cout << "Done!" << std::endl << std::endl; 
 
 	return; 
 }
@@ -1822,13 +1843,14 @@ void parse_csv_rules_v3( std::string filename )
 /* end of v2 work */
 
 // needs fixing
-void parse_rules_from_pugixml( void )
+void parse_rules_from_pugixml( mpi_Environment& world, mpi_Cartesian& cart_topo)
 {
 	pugi::xml_node node = physicell_config_root.child( "cell_rules" ); 
 	if( !node )
 	{ 
-		std::cout << "Error: Could not find <cell_rules> section of XML config file." << std::endl 
-				 <<  "       Cannot parse cell rules, so disabling." << std::endl; 
+		if (IOProcessor(world))
+			std::cout << "Error: Could not find <cell_rules> section of XML config file." << std::endl 
+					<<  "       Cannot parse cell rules, so disabling." << std::endl; 
 
 		PhysiCell_settings.rules_enabled = false; 
 		return; 
@@ -1838,8 +1860,9 @@ void parse_rules_from_pugixml( void )
 	node = node.child( "rulesets" ); 
 	if( !node )
 	{ 
-		std::cout << "Error: Could not find <rulesets> in the <cell_rules> section of XML config file." << std::endl 
-				 <<  "       Cannot parse cell rules, so disabling." << std::endl; 
+		if (IOProcessor(world))
+			std::cout << "Error: Could not find <rulesets> in the <cell_rules> section of XML config file." << std::endl 
+					<<  "       Cannot parse cell rules, so disabling." << std::endl; 
 
 		PhysiCell_settings.rules_enabled = false; 
 		return; 
@@ -1848,8 +1871,9 @@ void parse_rules_from_pugixml( void )
 	node = node.child( "ruleset");
 	if( !node )
 	{ 
-		std::cout << "Error: Could not find any <ruleset> in the <rulesets> section of XML config file." << std::endl 
-				 <<  "       Cannot parse cell rules, so disabling." << std::endl; 
+		if (IOProcessor(world))
+			std::cout << "Error: Could not find any <ruleset> in the <rulesets> section of XML config file." << std::endl 
+					<<  "       Cannot parse cell rules, so disabling." << std::endl; 
 
 		PhysiCell_settings.rules_enabled = false; 
 		return; 
@@ -1864,7 +1888,8 @@ void parse_rules_from_pugixml( void )
 			std::string filename = xml_get_string_value( node, "filename" ); 
 			std::string input_filename = folder + "/" + filename; 
 
-			std::cout << "\tProcessing ruleset in " << input_filename << " ... " << std::endl; 
+			if (IOProcessor(world))
+				std::cout << "\tProcessing ruleset in " << input_filename << " ... " << std::endl; 
 			std::string format = node.attribute("format").as_string(); 
 			std::string protocol = node.attribute("protocol").as_string(); 
 			double version = node.attribute("version").as_double(); 
@@ -1875,44 +1900,54 @@ void parse_rules_from_pugixml( void )
 			{ 			
 				if( version < 1.0 )
 				{
-					std::cout << "\tFormat: CSV (prototype version)" << std::endl; 
+					if (IOProcessor(world))
+						std::cout << "\tFormat: CSV (prototype version)" << std::endl; 
 
 					// parse_csv_rules_v0( input_filename ); // parse all rules in a CSV file 
 
 					PhysiCell_settings.rules_enabled = true; 
 
-					std::cout << "\t\t**Error: Version < 3 no longer supported.\n\n"; 
-					std::cout << "\t\tSee possible fixes at https://github.com/physicell-training/PhysiCell_common_errors\n\n"; 
-					exit(-1); 
+					if (IOProcessor(world)) {
+						std::cout << "\t\t**Error: Version < 3 no longer supported.\n\n"; 
+						std::cout << "\t\tSee possible fixes at https://github.com/physicell-training/PhysiCell_common_errors\n\n"; 
+					}
+						exit(-1); 
 
 					done = true; 
 				}
 			
 				if(version >= 1.0 - 1e-10 && version < 2.0 - 1e-10 && protocol == "CBHG" && done == false )
 				{
-					std::cout << "\tFormat: CSV (version " << version << ")" << std::endl; 
+					if (IOProcessor(world))
+						std::cout << "\tFormat: CSV (version " << version << ")" << std::endl; 
 
 					// parse_csv_rules_v1( input_filename ); // parse all rules in a CSV file 
 
 					PhysiCell_settings.rules_enabled = true; 
 
-					std::cout << "\t\t**Error: Version < 3 no longer supported.\n\n"; 
-					std::cout << "\t\tSee possible fixes at https://github.com/physicell-training/PhysiCell_common_errors\n\n"; 
-					exit(-1); 
+					if (IOProcessor(world)) {
+						std::cout << "\t\t**Error: Version < 3 no longer supported.\n\n"; 
+						std::cout << "\t\tSee possible fixes at https://github.com/physicell-training/PhysiCell_common_errors\n\n"; 
+					}
+						exit(-1); 
 
 					done = true; 
 				}
 
 				if(version >= 2.0 - 1e-10 && version < 3.0 - 1e-10 && protocol == "CBHG" && done == false )
 				{
-					std::cout << "\tFormat: CSV (preprint version " << version << ")" << std::endl; 
+					if (IOProcessor(world))
+						std::cout << "\tFormat: CSV (preprint version " << version << ")" << std::endl; 
 
 					// parse_csv_rules_v2( input_filename ); // parse all rules in a CSV file 
 
 					PhysiCell_settings.rules_enabled = true; 
 
+					if (IOProcessor(world)) {
+
 					std::cout << "\t\t**Error: Version < 3 no longer supported.\n\n"; 
 					std::cout << "\t\tSee possible fixes at https://github.com/physicell-training/PhysiCell_common_errors\n\n"; 
+					}
 					exit(-1); 
 
 					done = true; 
@@ -1920,9 +1955,10 @@ void parse_rules_from_pugixml( void )
 
 				if(version >= 3.0 - 1e-10 && protocol == "CBHG" && done == false )
 				{
-					std::cout << "\tFormat: CSV (current version " << version << ")" << std::endl; 
+					if (IOProcessor(world)) 
+						std::cout << "\tFormat: CSV (current version " << version << ")" << std::endl; 
 
-					parse_csv_rules_v3( input_filename ); // parse all rules in a CSV file 
+					parse_csv_rules_v3( input_filename, world, cart_topo ); // parse all rules in a CSV file 
 
 					PhysiCell_settings.rules_enabled = true; 
 
@@ -1933,19 +1969,19 @@ void parse_rules_from_pugixml( void )
 
 
 			if( done == false )
-			{ std::cout << "\tWarning: Ruleset had unknown format (" << format << "). Skipping!" << std::endl; }
+			{  if (IOProcessor(world)) std::cout << "\tWarning: Ruleset had unknown format (" << format << "). Skipping!" << std::endl; }
 			else
-			{ copy_file_to_output( input_filename ); }
+			{ if (IOProcessor(world)) copy_file_to_output( input_filename ); }
 
 		}
 		else
-		{ std::cout << "\tRuleset disabled ... " << std::endl; }
+		{ if (IOProcessor(world)) std::cout << "\tRuleset disabled ... " << std::endl; }
 		node = node.next_sibling( "ruleset"); 		
 	}
 	return; 
 }
 
-void parse_rules_from_parameters_v0( void )
+void parse_rules_from_parameters_v0( mpi_Environment& world, mpi_Cartesian& cart_topo )
 {
 	bool enabled = parameters.bools( "rules_enabled" ); 
 
@@ -1964,9 +2000,10 @@ void parse_rules_from_parameters_v0( void )
 	// what kind? 
 	if( filetype == "csv" || filetype == "CSV" )
 	{
-		std::cout << "Loading rules from CSV file " << input_filename << " ... " << std::endl; 
+		if (IOProcessor(world))
+			std::cout << "Loading rules from CSV file " << input_filename << " ... " << std::endl; 
 		// load_cells_csv( input_filename );
-		parse_csv_rules_v0( input_filename ); 
+		parse_csv_rules_v0( input_filename , world, cart_topo); 
 		return; 
 	}
 
@@ -2346,16 +2383,16 @@ std::vector<double> UniformInShell( double r1, double r2 )
 	return { param2*sin(theta) , param2*cos(theta), param1*(1-2*T) }; 
 }
 
-void setup_cell_rules( void )
+void setup_cell_rules( mpi_Environment& world, mpi_Cartesian& cart_topo )
 {
 	// setup 
 	intialize_hypothesis_rulesets(); 
 
 	// load rules 
-	parse_rules_from_pugixml(); 
+	parse_rules_from_pugixml(world, cart_topo); 
 
 	// display rules to screen
-	display_hypothesis_rulesets( std::cout );
+	display_hypothesis_rulesets( std::cout , world, cart_topo);
 
 	// save annotations 
 	save_annotated_detailed_English_rules(); 

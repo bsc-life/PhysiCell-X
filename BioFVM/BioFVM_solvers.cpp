@@ -821,7 +821,6 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
 
             std::vector<double> zero(M.mesh.n_substrates, 0.0);
             std::vector<double> one(M.mesh.n_substrates, 1.0);
-            double dt = 0.01;
 
             int step_size = (M.mesh.z_size * M.mesh.y_size) / granurality;
             

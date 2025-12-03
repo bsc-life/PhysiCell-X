@@ -70,6 +70,8 @@
 #include "../BioFVM/BioFVM.h"
 #include "./PhysiCell_constants.h"
 #include "./PhysiCell_utilities.h"
+#include "./MPI_helper.h"
+
 
 using namespace BioFVM; 
 
@@ -87,6 +89,24 @@ Phase::Phase() //UPDATED
 	entry_function = NULL; 
 	return; 
 }
+
+void Phase::pack(std::vector<char>& snd_buffer, int& len_buffer, int& position){
+	
+	pack_buff( this->index, snd_buffer, len_buffer, position);
+	pack_buff( this->code, snd_buffer, len_buffer, position);
+	pack_buff( this->name, snd_buffer, len_buffer, position);
+	pack_buff( this->division_at_phase_exit, snd_buffer, len_buffer, position);
+	pack_buff( this->removal_at_phase_exit, snd_buffer, len_buffer, position);
+}
+
+void Phase::unpack(std::vector<char>& rcv_buffer, int& len_buffer, int& position){
+
+	unpack_buff(this->index, rcv_buffer, len_buffer, position);
+    unpack_buff(this->code, rcv_buffer, len_buffer, position);
+    unpack_buff(this->name, rcv_buffer, len_buffer, position);
+    unpack_buff(this->division_at_phase_exit, rcv_buffer,len_buffer,  position);
+    unpack_buff(this->removal_at_phase_exit, rcv_buffer, len_buffer, position);
+}
 	
 Phase_Link::Phase_Link() //UPDATED
 {
@@ -98,6 +118,18 @@ Phase_Link::Phase_Link() //UPDATED
 	arrest_function = NULL; 
 	exit_function = NULL; 
 	return; 
+}
+
+void Phase_Link::pack(std::vector<char>& snd_buffer, int& len_buffer, int& position){
+	pack_buff(this->start_phase_index, snd_buffer, len_buffer, position);
+	pack_buff(this->end_phase_index, snd_buffer, len_buffer, position);
+	pack_buff(this->fixed_duration, snd_buffer, len_buffer, position);
+}
+
+void Phase_Link::unpack(std::vector<char>& rcv_buffer, int& len_buffer, int& position){
+	unpack_buff(this->start_phase_index, rcv_buffer, len_buffer, position);
+	unpack_buff(this->end_phase_index, rcv_buffer, len_buffer, position);
+	unpack_buff(this->fixed_duration, rcv_buffer, len_buffer, position);
 }
 
 Cycle_Data::Cycle_Data() //UPDATED
@@ -151,15 +183,76 @@ double& Cycle_Data::exit_rate(int phase_index ) //UPDATED
 	return transition_rates[phase_index][0]; 
 }
 
-/*-----------------------------------------------*/
-/* Adding a function get_inverse_index_maps() to */ 
-/* return a reference to the private data 			 */
-/* Added by Gaurav Saxena												 */
-/*-----------------------------------------------*/
-
 std::vector<std::unordered_map<int,int>> & Cycle_Data:: get_inverse_index_maps()
 {
 	return inverse_index_maps; 
+}
+
+void Cycle_Data::pack(std::vector<char>& snd_buffer, int& len_buffer, int& position) {
+
+	pack_buff( static_cast<int>(this->inverse_index_maps.size()), snd_buffer, len_buffer, position);
+	
+    for(int i=0; i<(this->inverse_index_maps.size()); i++)
+    {
+		pack_buff( static_cast<int>(this->inverse_index_maps[i].size()), snd_buffer, len_buffer, position);
+
+        for(auto it = this->inverse_index_maps[i].cbegin(); it != this->inverse_index_maps[i].cend(); it++)
+        {
+			pack_buff( it->first, snd_buffer, len_buffer, position);
+			pack_buff( it->second, snd_buffer, len_buffer, position);
+        }
+    }
+
+    /*=====================================================================*/
+    /* Cycle_Model* pCycle_Model;  IS NOT PACKED 						   */
+    /*=====================================================================*/
+
+	pack_buff( this->time_units, snd_buffer, len_buffer, position);
+
+	pack_buff( static_cast<int>(this->transition_rates.size()), snd_buffer, len_buffer, position);
+    for(int i=0; i<this->transition_rates.size(); i++)
+    {
+		pack_buff(  this->transition_rates[i], snd_buffer, len_buffer, position);
+
+    /* this->functions.cycle_data.data.transition_rates[i] - is INCORRECT, as MPI needs base address of a double array and NOT a vector address */
+    //MPI_Pack(&(this->functions.cycle_model.data.transition_rates[i][0]), len_int, MPI_DOUBLE, &snd_buffer[0], len_buffer, &position, MPI_COMM_WORLD);
+    }
+
+    /* 1 int and 1 double are next to be packed in class Cycle_Data */
+	pack_buff( this->current_phase_index, snd_buffer, len_buffer, position);
+	pack_buff( this->elapsed_time_in_phase, snd_buffer, len_buffer, position);
+}
+
+void Cycle_Data::unpack(std::vector<char>& rcv_buffer, int& len_buffer, int& position) {
+
+	// Cycle_Data
+	auto& cycle_data_maps = this->get_inverse_index_maps();
+	int data_map_size;
+	unpack_buff(data_map_size, rcv_buffer, len_buffer, position);
+	cycle_data_maps.resize(data_map_size);
+	for (int i = 0; i < data_map_size; ++i) {
+		int msize;
+		cycle_data_maps[i].clear();
+		unpack_buff(msize, rcv_buffer, len_buffer, position);
+		for (int j = 0; j < msize; ++j) {
+			int key, value;
+			unpack_buff(key, rcv_buffer, len_buffer, position);
+			unpack_buff(value, rcv_buffer, len_buffer, position);
+			cycle_data_maps[i][key] = value;
+		}
+	}
+
+	unpack_buff(this->time_units, rcv_buffer, len_buffer, position);
+
+	int tr_size;
+    unpack_buff(tr_size, rcv_buffer, len_buffer, position);
+    this->transition_rates.resize(tr_size);
+    for (int i = 0; i < tr_size; ++i) {
+        unpack_buff(this->transition_rates[i], rcv_buffer, len_buffer, position);
+    }
+
+	unpack_buff(this->current_phase_index, rcv_buffer, len_buffer,position);
+    unpack_buff(this->elapsed_time_in_phase, rcv_buffer,  len_buffer,position);
 }
 	
 Cycle_Model::Cycle_Model() //UPDATED
@@ -379,6 +472,107 @@ std::vector<std::unordered_map<int,int>> & Cycle_Model:: get_inverse_index_maps(
 {
 	return inverse_index_maps; 
 }
+
+void Cycle_Model::pack(std::vector<char>& snd_buffer, int& len_buffer, int &position){
+	
+	std::vector<std::unordered_map<int,int>> &inverse_index_maps_cycle_model = this->get_inverse_index_maps();
+	
+	pack_buff( static_cast<int>(inverse_index_maps_cycle_model.size()), snd_buffer, len_buffer, position);
+
+    for(int i=0; i<inverse_index_maps_cycle_model.size(); i++)
+    {
+		pack_buff( static_cast<int>(inverse_index_maps_cycle_model[i].size()), snd_buffer, len_buffer, position);
+
+        for(auto it = inverse_index_maps_cycle_model[i].cbegin(); it != inverse_index_maps_cycle_model[i].cend(); it++)
+        {
+            pack_buff( it->first, snd_buffer, len_buffer, position);
+            pack_buff( it->second, snd_buffer, len_buffer, position);
+        }
+    }
+
+	pack_buff( this->name, snd_buffer, len_buffer, position);
+
+	pack_buff( this->code, snd_buffer, len_buffer, position);
+
+	/* Packing of data members of Phases as its object is a member of Cycle_Model */
+	/* std::vector<Phase> phases; is a member of it - its a vector */
+
+	
+	pack_buff( static_cast<int>(this->phases.size()), snd_buffer, len_buffer, position);
+
+    for(int i=0; i<this->phases.size(); i++)
+    {
+		this->phases[i].pack(snd_buffer, len_buffer, position);
+    }
+
+	/* Packing members of Phase_Link - std::vector<std::vector<Phase_Link>> phase_links is a member of */
+	/* class Cycle_Model which is a member of Functions - we're packing in DFS i.e. Inorder traversal	 */
+
+	
+	pack_buff( static_cast<int>(this->phase_links.size()), snd_buffer, len_buffer, position);
+
+    for(int i=0; i<this->phase_links.size(); i++)
+    {
+		pack_buff(static_cast<int>(this->phase_links[i].size()), snd_buffer, len_buffer, position);
+        for(int j=0; j<this->phase_links[i].size(); j++)
+        {
+			this->phase_links[i][j].pack(snd_buffer, len_buffer, position);
+        }
+    }
+
+	pack_buff(this->default_phase_index, snd_buffer, len_buffer, position);
+
+	//Pack Cycle_Data data
+	this->data.pack(snd_buffer, len_buffer, position);
+    
+}
+
+void Cycle_Model::unpack(std::vector<char>& rcv_buffer, int& len_buffer, int &position){
+	
+	 // Functions.cycle_model.inverse_index_maps
+    int inv_map_size;
+    unpack_buff(inv_map_size, rcv_buffer, len_buffer, position);
+    auto& inverse_index_maps = this->get_inverse_index_maps();
+    inverse_index_maps.resize(inv_map_size);
+    for (int i = 0; i < inv_map_size; ++i) {
+        int map_len;
+        unpack_buff(map_len, rcv_buffer, len_buffer, position);
+        for (int j = 0; j < map_len; ++j) {
+            int key, value;
+            unpack_buff(key, rcv_buffer, len_buffer, position);
+            unpack_buff(value, rcv_buffer,len_buffer, position);
+            inverse_index_maps[i][key] = value;
+        }
+    }
+
+	unpack_buff(this->name, rcv_buffer, len_buffer, position);
+    unpack_buff(this->code, rcv_buffer, len_buffer, position);
+
+	//Phases
+	int phase_count;
+    unpack_buff(phase_count, rcv_buffer, len_buffer, position);
+    this->phases.resize(phase_count);
+    for (int i = 0; i < phase_count; ++i) {
+		this->phases[i].unpack(rcv_buffer, len_buffer, position);
+    }
+
+	// Phase Links
+	int link_size;
+	unpack_buff(link_size, rcv_buffer, len_buffer, position);
+	this->phase_links.resize(link_size);
+	for (int i = 0; i < link_size; ++i) {
+		int sub_size;
+		unpack_buff(sub_size, rcv_buffer, len_buffer, position);
+		this->phase_links[i].resize(sub_size);
+		for (int j = 0; j < sub_size; ++j) {
+			this->phase_links[i][j].unpack(rcv_buffer, len_buffer, position);
+		}
+	}
+
+	unpack_buff(this->default_phase_index, rcv_buffer, len_buffer, position);
+
+	this->data.unpack(rcv_buffer, len_buffer, position);
+}
 	
 Phase& Cycle_Data::current_phase( void ) //UPDATED
 {
@@ -401,6 +595,26 @@ Death_Parameters::Death_Parameters() //UPDATED
 	relative_rupture_volume = 2.0; 
 
 	return; 
+}
+
+void Death_Parameters::pack(std::vector<char>& snd_buffer, int& len_buffer, int &position){
+	pack_buff(this->time_units, snd_buffer, len_buffer, position);
+    pack_buff(this->unlysed_fluid_change_rate,      snd_buffer, len_buffer, position);
+	pack_buff(this->lysed_fluid_change_rate,        snd_buffer, len_buffer, position);
+	pack_buff(this->cytoplasmic_biomass_change_rate,snd_buffer, len_buffer, position);
+	pack_buff(this->nuclear_biomass_change_rate,    snd_buffer, len_buffer, position);
+	pack_buff(this->calcification_rate,             snd_buffer, len_buffer, position);
+	pack_buff(this->relative_rupture_volume,        snd_buffer, len_buffer, position);
+}
+
+void Death_Parameters::unpack(std::vector<char>& rcv_buffer, int& len_buffer, int &position){
+	unpack_buff(this->time_units, rcv_buffer, len_buffer, position);
+	unpack_buff(this->unlysed_fluid_change_rate,       rcv_buffer, len_buffer, position);
+	unpack_buff(this->lysed_fluid_change_rate,         rcv_buffer, len_buffer, position);
+	unpack_buff(this->cytoplasmic_biomass_change_rate, rcv_buffer, len_buffer, position);
+	unpack_buff(this->nuclear_biomass_change_rate,     rcv_buffer, len_buffer, position);
+	unpack_buff(this->calcification_rate,              rcv_buffer, len_buffer, position);
+	unpack_buff(this->relative_rupture_volume,         rcv_buffer, len_buffer, position);
 }
 	
 Death::Death() //UPDATED
@@ -530,6 +744,57 @@ double& Death::necrosis_rate(void)
 	return rates[nNecrosis];
 }
 
+void Death::pack(std::vector<char>& snd_buffer, int& len_buffer, int &position){
+	 /* Now packing data members of class Death as there is an object of class Death in Phenotype class */
+
+	pack_buff( this->rates, snd_buffer, len_buffer, position);
+
+    /* Next field is std::vector<Cycle_Model*> models ;  this is a vector of Cycle_Model * pointers */
+
+    /*=====================================================================*/
+    /* std::vector<Cycle_Model*> models ;  IS NOT PACKED  								 */
+    /*=====================================================================*/
+
+    /* Now packing members of class Death_Parameters as class Death contains */
+    /* std::vector<Death_Parameters> parameters 														 */
+	
+	pack_buff( static_cast<int>(this->parameters.size()), snd_buffer, len_buffer, position);
+
+    for(int i=0; i<this->parameters.size(); i++)
+    {
+		this->parameters[i].pack(snd_buffer, len_buffer, position);
+	}
+
+    /* Next 1 bool value (allocate sizeof(int)) and 1 int value are to be packed */
+
+	pack_buff(this->dead ,snd_buffer, len_buffer, position);
+
+	pack_buff(this->current_death_model_index ,snd_buffer, len_buffer, position);
+}
+
+void Death::unpack(std::vector<char>& rcv_buffer, int& len_buffer, int &position){
+	// Unpack death.rates (std::vector<double>)
+	unpack_buff(this->rates, rcv_buffer, len_buffer, position);
+
+	// Unpack size of phenotype.death.parameters
+	int death_parameters_size;
+	unpack_buff(death_parameters_size, rcv_buffer, len_buffer, position);
+	this->parameters.resize(death_parameters_size);
+
+	// Unpack each Death_Parameters object
+	for (size_t i = 0; i < death_parameters_size; i++)
+	{
+		this->parameters[i].unpack(rcv_buffer, len_buffer, position);
+	}
+
+	// Unpack bool phenotype.death.dead
+	unpack_buff(this->dead, rcv_buffer, len_buffer, position);
+
+	// Unpack int phenotype.death.current_death_model_index
+	unpack_buff(this->current_death_model_index, rcv_buffer, len_buffer, position);
+
+}
+
 
 Cycle::Cycle()
 {
@@ -563,7 +828,36 @@ void Cycle::sync_to_cycle_model( Cycle_Model& cm )
 	pCycle_Model = &cm; 
 	data = cm.data; 
 	return; 
-}	
+}
+
+void Cycle::pack(std::vector<char>& snd_buffer, int& len_buffer, int &position) {
+	 /* Packing of members of class Cycle as the class Phenotype contains a data member of this class */
+    /* Not packing this->phenotype.cycle.pCycle_Model pointer data member *
+
+    /*=====================================================================*/
+    /* Cycle_Model* pCycle_Model;  IS NOT PACKED 						   */
+    /*=====================================================================*/
+
+    /* Packing data fields of Cycle_Data as it is an object of Cycle class which is    */
+    /* a data member of the Phenotype class which is a member of class Cell						*/
+    /* First field is std::vector<std::unordered_map<int,int>> inverse_index_maps;			*/
+	this->data.pack(snd_buffer, len_buffer, position);
+
+	this->asymmetric_division.pack(snd_buffer, len_buffer, position);
+	
+}
+
+void Cycle::unpack(std::vector<char>& rcv_buffer, int& len_buffer, int &position) {
+
+	this->data.unpack(rcv_buffer, len_buffer, position);
+
+	this->asymmetric_division.unpack(rcv_buffer, len_buffer, position);
+	
+}
+
+
+
+
 
 Death_Parameters& Death::current_parameters( void )
 {
@@ -640,6 +934,72 @@ void Volume::divide( void )
 	return; 
 }
 
+void Volume::pack(std::vector<char>& snd_buffer, int& len_buffer, int &position){
+
+	pack_buff(this->total ,snd_buffer, len_buffer, position);
+	pack_buff(this->solid ,snd_buffer, len_buffer, position);
+	pack_buff(this->fluid ,snd_buffer, len_buffer, position);
+
+	pack_buff(this->fluid_fraction ,snd_buffer, len_buffer, position);
+	pack_buff(this->nuclear,snd_buffer, len_buffer, position);
+	pack_buff(this->nuclear_fluid ,snd_buffer, len_buffer, position);
+
+    pack_buff(this->nuclear_solid,                            snd_buffer, len_buffer, position);
+	pack_buff(this->cytoplasmic,                              snd_buffer, len_buffer, position);
+	pack_buff(this->cytoplasmic_fluid,                        snd_buffer, len_buffer, position);
+
+	pack_buff(this->cytoplasmic_solid,                        snd_buffer, len_buffer, position);
+	pack_buff(this->calcified_fraction,                       snd_buffer, len_buffer, position);
+	pack_buff(this->cytoplasmic_to_nuclear_ratio,            snd_buffer, len_buffer, position);
+
+	pack_buff(this->rupture_volume,                           snd_buffer, len_buffer, position);
+	pack_buff(this->cytoplasmic_biomass_change_rate,         snd_buffer, len_buffer, position);
+	pack_buff(this->nuclear_biomass_change_rate,             snd_buffer, len_buffer, position);
+
+	pack_buff(this->fluid_change_rate,                        snd_buffer, len_buffer, position);
+	pack_buff(this->calcification_rate,                      snd_buffer, len_buffer, position);
+	pack_buff(this->target_solid_cytoplasmic,                snd_buffer, len_buffer, position);
+
+	pack_buff(this->target_solid_nuclear,                    snd_buffer, len_buffer, position);
+	pack_buff(this->target_fluid_fraction,                   snd_buffer, len_buffer, position);
+	pack_buff(this->target_cytoplasmic_to_nuclear_ratio,     snd_buffer, len_buffer, position);
+
+	pack_buff(this->relative_rupture_volume,                 snd_buffer, len_buffer, position);
+}
+
+void Volume::unpack(std::vector<char>& rcv_buffer, int& len_buffer, int &position){
+	// Unpack phenotype.volume fields (all doubles)
+	unpack_buff(this->total,                              rcv_buffer, len_buffer, position);
+	unpack_buff(this->solid,                              rcv_buffer, len_buffer, position);
+	unpack_buff(this->fluid,                              rcv_buffer, len_buffer, position);
+
+	unpack_buff(this->fluid_fraction,                     rcv_buffer, len_buffer, position);
+	unpack_buff(this->nuclear,                            rcv_buffer, len_buffer, position);
+	unpack_buff(this->nuclear_fluid,                      rcv_buffer, len_buffer, position);
+
+	unpack_buff(this->nuclear_solid,                      rcv_buffer, len_buffer, position);
+	unpack_buff(this->cytoplasmic,                        rcv_buffer, len_buffer, position);
+	unpack_buff(this->cytoplasmic_fluid,                  rcv_buffer, len_buffer, position);
+
+	unpack_buff(this->cytoplasmic_solid,                  rcv_buffer, len_buffer, position);
+	unpack_buff(this->calcified_fraction,                 rcv_buffer, len_buffer, position);
+	unpack_buff(this->cytoplasmic_to_nuclear_ratio,       rcv_buffer, len_buffer, position);
+
+	unpack_buff(this->rupture_volume,                     rcv_buffer, len_buffer, position);
+	unpack_buff(this->cytoplasmic_biomass_change_rate,    rcv_buffer, len_buffer, position);
+	unpack_buff(this->nuclear_biomass_change_rate,        rcv_buffer, len_buffer, position);
+
+	unpack_buff(this->fluid_change_rate,                  rcv_buffer, len_buffer, position);
+	unpack_buff(this->calcification_rate,                 rcv_buffer, len_buffer, position);
+	unpack_buff(this->target_solid_cytoplasmic,           rcv_buffer, len_buffer, position);
+
+	unpack_buff(this->target_solid_nuclear,               rcv_buffer, len_buffer, position);
+	unpack_buff(this->target_fluid_fraction,              rcv_buffer, len_buffer, position);
+	unpack_buff(this->target_cytoplasmic_to_nuclear_ratio,rcv_buffer, len_buffer, position);
+
+	unpack_buff(this->relative_rupture_volume,            rcv_buffer, len_buffer, position);
+}
+
 Geometry::Geometry()
 {
 	// reference values for MCF-7, based on 
@@ -691,6 +1051,25 @@ void Geometry::update( Cell* pCell, Phenotype& phenotype, double dt )
 	surface_area /= radius; 
 	surface_area *= 3.0; 
 	return; 
+}
+
+void Geometry::pack(std::vector<char>& snd_buffer, int& len_buffer, int &position){
+	 /* Next packing data members of class Geometry as this class has an object in class Phenotype */
+    /* 4 doubles are to be packed */
+
+    pack_buff(this->radius,         snd_buffer, len_buffer, position);
+	pack_buff(this->nuclear_radius, snd_buffer, len_buffer, position);
+	pack_buff(this->surface_area,   snd_buffer, len_buffer, position);
+	pack_buff(this->polarity,       snd_buffer, len_buffer, position);
+}
+
+void Geometry::unpack(std::vector<char>& rcv_buffer, int& len_buffer, int &position){
+
+	// Geometry: 4 doubles
+	unpack_buff(this->radius,         rcv_buffer, len_buffer, position);
+	unpack_buff(this->nuclear_radius, rcv_buffer, len_buffer, position);
+	unpack_buff(this->surface_area,   rcv_buffer, len_buffer, position);
+	unpack_buff(this->polarity,       rcv_buffer, len_buffer, position);
 }
 	
 Mechanics::Mechanics()
@@ -855,6 +1234,50 @@ void Mechanics::set_absolute_equilibrium_distance( Phenotype& phenotype, double 
 	return set_relative_equilibrium_distance( new_value / phenotype.geometry.radius ); 
 }
 
+void Mechanics::pack(std::vector<char>& snd_buffer, int& len_buffer, int &position){
+	/* Next packing object of class Mechanics as class Phenotype contains object of this class */
+    /* 5 doubles are to be packed, now v1.8 has added 4 more doubles and 1 int */
+	pack_buff(this->cell_cell_adhesion_strength,              snd_buffer, len_buffer, position);
+	pack_buff(this->cell_BM_adhesion_strength,               snd_buffer, len_buffer, position);
+	pack_buff(this->cell_cell_repulsion_strength,            snd_buffer, len_buffer, position);
+	pack_buff(this->cell_BM_repulsion_strength,              snd_buffer, len_buffer, position);
+	pack_buff(this->relative_maximum_adhesion_distance,      snd_buffer, len_buffer, position);
+	
+	pack_buff(this->attachment_rate,                         snd_buffer, len_buffer, position);
+	pack_buff(this->detachment_rate,                        snd_buffer, len_buffer, position);
+	
+	pack_buff(this->relative_maximum_attachment_distance,    snd_buffer, len_buffer, position);
+	pack_buff(this->relative_detachment_distance,            snd_buffer, len_buffer, position);
+	pack_buff(this->attachment_elastic_constant,             snd_buffer, len_buffer, position);
+	pack_buff(this->maximum_attachment_rate,                 snd_buffer, len_buffer, position);
+	
+	pack_buff(this->maximum_number_of_attachments,           snd_buffer, len_buffer, position);
+   
+    pack_buff(this->cell_adhesion_affinities, snd_buffer, len_buffer, position);
+}
+
+void Mechanics::unpack(std::vector<char>& rcv_buffer, int& len_buffer, int &position){
+	// Mechanics: 5 original + 6 v1.8 new = 11 total (10 doubles + 1 int)
+	unpack_buff(this->cell_cell_adhesion_strength,           rcv_buffer, len_buffer, position);
+	unpack_buff(this->cell_BM_adhesion_strength,            rcv_buffer, len_buffer, position);
+	unpack_buff(this->cell_cell_repulsion_strength,         rcv_buffer, len_buffer, position);
+	unpack_buff(this->cell_BM_repulsion_strength,           rcv_buffer, len_buffer, position);
+	unpack_buff(this->relative_maximum_adhesion_distance,   rcv_buffer, len_buffer, position);
+
+	// New in v1.8
+	unpack_buff(this->attachment_rate,                      rcv_buffer, len_buffer, position);
+	unpack_buff(this->detachment_rate,                     rcv_buffer, len_buffer, position);
+	unpack_buff(this->relative_maximum_attachment_distance, rcv_buffer, len_buffer, position);
+	unpack_buff(this->relative_detachment_distance,         rcv_buffer, len_buffer, position);
+	unpack_buff(this->attachment_elastic_constant,          rcv_buffer, len_buffer, position);
+	unpack_buff(this->maximum_attachment_rate,              rcv_buffer, len_buffer, position);
+
+	// 1 int
+	unpack_buff(this->maximum_number_of_attachments,        rcv_buffer, len_buffer, position);
+
+	// Unpack Phenotype::mechanics::cell_adhesion_affinities
+	unpack_buff(this->cell_adhesion_affinities, rcv_buffer, len_buffer, position);
+}
 	
 Motility::Motility()
 {
@@ -905,6 +1328,46 @@ void Motility::sync_to_microenvironment( Microenvironment* pNew_Microenvironment
 {
 	chemotactic_sensitivities.resize( pNew_Microenvironment->number_of_densities() , 0.0 ); 
 	return; 
+}
+
+void Motility::pack(std::vector<char>& snd_buffer, int& len_buffer, int &position){
+	 /* Next Packing data members of class Motility */
+    /* First bool value is to be packed - allocate sizeof(int) */
+
+	pack_buff(this->is_motile, snd_buffer, len_buffer, position);
+
+    /* Now pack 2 doubles */
+
+    pack_buff(this->persistence_time, snd_buffer, len_buffer, position);
+	pack_buff(this->migration_speed,  snd_buffer, len_buffer, position);
+
+    pack_buff(this->migration_bias_direction, snd_buffer, len_buffer, position);
+
+	pack_buff(this->restrict_to_2D, snd_buffer, len_buffer, position);
+
+	pack_buff(this->motility_vector, snd_buffer, len_buffer, position);
+    /*================================================================*/
+    /* Version 1.7 introduces 2 new 'int' variables in class Motility */
+    /* Now these will be packed 																			*/
+    /*================================================================*/
+
+    pack_buff(this->chemotaxis_index, snd_buffer, len_buffer, position);
+	pack_buff(this->chemotaxis_direction, snd_buffer, len_buffer, position);
+	
+	//Pack vector<double> chemotactic_sensitivities
+	pack_buff(this->chemotactic_sensitivities, snd_buffer, len_buffer, position);
+}
+
+void Motility::unpack(std::vector<char>& rcv_buffer, int& len_buffer, int &position){
+	unpack_buff(this->is_motile, rcv_buffer, len_buffer, position);
+	unpack_buff(this->persistence_time, rcv_buffer, len_buffer, position);
+	unpack_buff(this->migration_speed,  rcv_buffer, len_buffer, position);
+	unpack_buff(this->migration_bias_direction, rcv_buffer, len_buffer, position);
+	unpack_buff(this->restrict_to_2D, rcv_buffer, len_buffer, position);
+	unpack_buff(this->motility_vector, rcv_buffer, len_buffer, position);
+	unpack_buff(this->chemotaxis_index, rcv_buffer, len_buffer, position);
+	unpack_buff(this->chemotaxis_direction, rcv_buffer, len_buffer, position);
+	unpack_buff(this->chemotactic_sensitivities, rcv_buffer, len_buffer, position);
 }
 
 Secretion::Secretion()
@@ -1064,6 +1527,24 @@ double& Secretion::net_export_rate( std::string name )
 	return net_export_rates[index]; 
 }
 
+void Secretion::pack(std::vector<char>& snd_buffer, int& len_buffer, int &position){
+	/* Now packing data members of class Secretion as its object is a data member of class Phenotype */
+	pack_buff(this->secretion_rates, snd_buffer, len_buffer, position);
+	pack_buff(this->uptake_rates, snd_buffer, len_buffer, position);
+	pack_buff(this->saturation_densities, snd_buffer, len_buffer, position);
+	pack_buff(this->net_export_rates, snd_buffer, len_buffer, position);
+}
+
+void Secretion::unpack(std::vector<char>& rcv_buffer, int& len_buffer, int &position){
+
+	// Secretion
+	unpack_buff(this->secretion_rates, rcv_buffer, len_buffer, position);
+	unpack_buff(this->uptake_rates, rcv_buffer, len_buffer, position);
+	unpack_buff(this->saturation_densities, rcv_buffer, len_buffer, position);
+	unpack_buff(this->net_export_rates, rcv_buffer, len_buffer, position);
+}
+
+
 Molecular::Molecular()
 {
 	pMicroenvironment = get_default_microenvironment(); 
@@ -1119,6 +1600,22 @@ double&  Molecular::internalized_total_substrate( std::string name )
 {
 	int index = microenvironment.find_density_index(name); 
 	return internalized_total_substrates[index]; 
+}
+
+void Molecular::pack(std::vector<char>& snd_buffer, int& len_buffer, int &position){
+
+	pack_buff(this->internalized_total_substrates, snd_buffer, len_buffer, position);
+
+	pack_buff(this->fraction_released_at_death, snd_buffer, len_buffer, position);
+
+	pack_buff(this->fraction_transferred_when_ingested, snd_buffer, len_buffer, position);
+}
+
+void Molecular::unpack(std::vector<char>& rcv_buffer, int& len_buffer, int &position){
+	// Molecular
+	unpack_buff(this->internalized_total_substrates, rcv_buffer, len_buffer, position);
+	unpack_buff(this->fraction_released_at_death, rcv_buffer, len_buffer, position);
+	unpack_buff(this->fraction_transferred_when_ingested, rcv_buffer, len_buffer, position);
 }
 
 /*
@@ -1204,6 +1701,30 @@ Cell_Functions::Cell_Functions()
 	return; 
 }
 
+void Cell_Functions::pack(std::vector<char>& snd_buffer, int& len_buffer, int &position){
+
+	//Only attribute is Cycle_Model cycle_model
+	this->cycle_model.pack(snd_buffer, len_buffer, position);
+}
+
+void Cell_Functions::unpack(std::vector<char>& rcv_buffer, int& len_buffer, int &position){
+
+	//Only attribute is Cycle_Model cycle_model
+	this->cycle_model.unpack(rcv_buffer, len_buffer, position);
+}
+
+void Cell_Integrity::pack(std::vector<char>& snd_buffer, int& len_buffer, int& position){
+	pack_buff(this->damage, snd_buffer, len_buffer, position);
+	pack_buff(this->damage_rate, snd_buffer, len_buffer, position);
+	pack_buff(this->damage_repair_rate, snd_buffer, len_buffer, position);
+}
+
+void Cell_Integrity::unpack(std::vector<char>& rcv_buffer, int& len_buffer, int& position){
+	unpack_buff(this->damage, rcv_buffer, len_buffer, position);
+	unpack_buff(this->damage_rate, rcv_buffer, len_buffer, position);
+	unpack_buff(this->damage_repair_rate, rcv_buffer, len_buffer, position);
+}
+
 void Phenotype::sync_to_functions( Cell_Functions& functions )
 {
 	cycle.sync_to_cycle_model( functions.cycle_model );  
@@ -1267,6 +1788,105 @@ Phenotype& Phenotype::operator=(const Phenotype &p )
 	return *this;
 }
 
+void Phenotype::pack(std::vector<char>& snd_buffer, int& len_buffer, int& position){
+
+	pack_buff( this->flagged_for_division, snd_buffer, len_buffer, position);
+    
+	pack_buff( this->flagged_for_removal, snd_buffer, len_buffer, position);
+
+	this->cycle.pack(snd_buffer, len_buffer, position);
+
+	this->death.pack(snd_buffer, len_buffer, position);
+
+	this->volume.pack(snd_buffer, len_buffer, position);
+
+	this->geometry.pack(snd_buffer, len_buffer, position);
+
+	this->mechanics.pack(snd_buffer, len_buffer, position);
+
+	this->motility.pack(snd_buffer, len_buffer, position);
+
+	this->secretion.pack(snd_buffer, len_buffer, position);
+
+	this->molecular.pack(snd_buffer, len_buffer, position);
+
+	this->cell_integrity.pack(snd_buffer, len_buffer, position);
+
+	std::string temp_str;
+	//Time to pack intracelluar
+	 if (this->intracellular != NULL) 											//this is NULL and NOT nullptr
+    {
+        temp_str = this->intracellular->intracellular_type; 				//This was the original code
+    }
+    else
+        temp_str = "not-maboss";
+                
+	pack_buff(temp_str, snd_buffer, len_buffer, position);
+			
+#ifdef ADDON_PHYSIBOSS
+
+	if(this->intracellular != NULL)			//Added by Gaurav Saxena
+		if (this->intracellular->intracellular_type.compare("maboss") == 0) 
+		{
+			MaBoSSIntracellular* t_intracellular = static_cast<MaBoSSIntracellular*>(this->intracellular); 
+			t_intracellular->pack(snd_buffer, len_buffer, position);	
+		}
+				
+#endif
+
+	this->cell_interactions.pack(snd_buffer, len_buffer, position);
+
+	this->cell_transformations.pack(snd_buffer, len_buffer, position);
+
+
+}
+
+void Phenotype::unpack(std::vector<char>& rcv_buffer, int& len_buffer, int& position){
+
+	unpack_buff( this->flagged_for_division, rcv_buffer, len_buffer, position);
+    
+	unpack_buff( this->flagged_for_removal, rcv_buffer, len_buffer, position);
+
+	this->cycle.unpack(rcv_buffer, len_buffer, position);
+
+	this->death.unpack(rcv_buffer, len_buffer, position);
+
+	this->volume.unpack(rcv_buffer, len_buffer, position);
+
+	this->geometry.unpack(rcv_buffer, len_buffer, position);
+
+	this->mechanics.unpack(rcv_buffer, len_buffer, position);
+
+	this->motility.unpack(rcv_buffer, len_buffer, position);
+
+	this->secretion.unpack(rcv_buffer, len_buffer, position);
+
+	this->molecular.unpack(rcv_buffer, len_buffer, position);
+
+	this->cell_integrity.unpack(rcv_buffer, len_buffer, position);
+
+	std::string temp_str;
+                
+	unpack_buff(temp_str, rcv_buffer, len_buffer, position);
+			
+#ifdef ADDON_PHYSIBOSS
+
+	if(this->phenotype.intracellular != NULL)			//Added by Gaurav Saxena
+		if (this->phenotype.intracellular->intracellular_type.compare("maboss") == 0) 
+		{
+			MaBoSSIntracellular* t_intracellular = static_cast<MaBoSSIntracellular*>(this->phenotype.intracellular); 
+			t_intracellular->unpack(rcv_buffer, len_buffer, position);	
+		}
+				
+#endif
+
+	this->cell_interactions.unpack(rcv_buffer, len_buffer, position);
+
+	this->cell_transformations.unpack(rcv_buffer, len_buffer, position);
+
+
+}
+
 Asymmetric_Division::Asymmetric_Division()
 {
 	asymmetric_division_probabilities = {0.0};
@@ -1289,6 +1909,16 @@ double Asymmetric_Division::probabilities_total( void )
 	for( int i=0; i < asymmetric_division_probabilities.size(); i++ )
 	{ total += asymmetric_division_probabilities[i]; }
 	return total; 
+}
+
+void Asymmetric_Division::pack(std::vector<char>& snd_buffer, int& len_buffer, int &position) {
+
+	pack_buff(this->asymmetric_division_probabilities, snd_buffer, len_buffer, position);
+}
+
+void Asymmetric_Division::unpack(std::vector<char>& rcv_buffer, int& len_buffer, int &position) {
+
+	unpack_buff(this->asymmetric_division_probabilities, rcv_buffer, len_buffer, position);
 }
 
 // ease of access
@@ -1405,6 +2035,32 @@ double& Cell_Interactions::immunogenicity( std::string type_name )
 	return immunogenicities[n]; 
 }
 
+void Cell_Interactions::pack(std::vector<char>& snd_buffer, int& len_buffer, int& position){
+	pack_buff(this->apoptotic_phagocytosis_rate, snd_buffer, len_buffer, position);
+	pack_buff(this->necrotic_phagocytosis_rate, snd_buffer, len_buffer, position);
+	pack_buff(this->other_dead_phagocytosis_rate, snd_buffer, len_buffer, position);
+	pack_buff(this->live_phagocytosis_rates, snd_buffer, len_buffer, position);
+	pack_buff(this->attack_rates, snd_buffer, len_buffer, position);
+	pack_buff(this->immunogenicities, snd_buffer, len_buffer, position);
+	pack_buff(this->attack_damage_rate, snd_buffer, len_buffer, position);
+	pack_buff(this->total_damage_delivered, snd_buffer, len_buffer, position);
+	pack_buff(this->attack_duration, snd_buffer, len_buffer, position);
+	pack_buff(this->fusion_rates, snd_buffer, len_buffer, position); 
+}
+
+void Cell_Interactions::unpack(std::vector<char>& rcv_buffer, int& len_buffer, int& position){
+	unpack_buff(this->apoptotic_phagocytosis_rate, rcv_buffer, len_buffer, position);
+	unpack_buff(this->necrotic_phagocytosis_rate, rcv_buffer, len_buffer, position);
+	unpack_buff(this->other_dead_phagocytosis_rate, rcv_buffer, len_buffer, position);
+	unpack_buff(this->live_phagocytosis_rates, rcv_buffer, len_buffer, position);
+	unpack_buff(this->attack_rates, rcv_buffer, len_buffer, position);
+	unpack_buff(this->immunogenicities, rcv_buffer, len_buffer, position);
+	unpack_buff(this->attack_damage_rate, rcv_buffer, len_buffer, position);
+	unpack_buff(this->total_damage_delivered, rcv_buffer, len_buffer, position);
+	unpack_buff(this->attack_duration, rcv_buffer, len_buffer, position);
+	unpack_buff(this->fusion_rates, rcv_buffer, len_buffer, position); 
+}
+
 Cell_Transformations::Cell_Transformations()
 {
 	transformation_rates = {0.0}; 
@@ -1431,7 +2087,13 @@ double& Cell_Transformations::transformation_rate( std::string type_name )
 	return transformation_rates[n]; 
 }
 
+void Cell_Transformations::pack(std::vector<char>& snd_buffer, int& len_buffer, int& position){
+	pack_buff(this->transformation_rates, snd_buffer, len_buffer, position);
+}
 
+void Cell_Transformations::unpack(std::vector<char>& snd_buffer, int& len_buffer, int& position){
+	unpack_buff(this->transformation_rates, snd_buffer, len_buffer, position);
+}
 
 /*
 class Cell_Interactions

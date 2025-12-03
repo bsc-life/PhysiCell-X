@@ -12,11 +12,11 @@
 *.exe
 *.out
 *.app
-
+*.sh 
 #Miscellaneous
 core/doubts.txt
 
-#Resutls
+#Results
 output/
 
 .DS_Store

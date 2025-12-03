@@ -2478,7 +2478,7 @@ void initialize_microenvironment( mpi_Environment &world, mpi_Cartesian &cart_to
 	}
 	else
 	{
-		microenvironment.diffusion_decay_solver = diffusion_decay_solver__constant_coefficients_LOD_3D;
+		//microenvironment.diffusion_decay_solver = diffusion_decay_solver__constant_coefficients_LOD_3D;
 		/*----------------------------------------------------------------------------------------------*/
 		/*																	IMPORTANT 																									*/
 		/* The "new" function pointer should point to the "parallel" version of the 3-D solver 					*/

@@ -76,6 +76,7 @@
 #include "../BioFVM/BioFVM.h" 
 
 #include "../modules/PhysiCell_settings.h"
+#include "./MPI_helper.h"
 
 using namespace BioFVM; 
 
@@ -114,6 +115,9 @@ class Phase //UPDATED
 	void (*entry_function)( Cell* pCell, Phenotype& phenotype, double dt ); 
 	
 	Phase(); // done
+
+	void pack(std::vector<char>& snd_buffer, int& len_buffer, int& position);
+	void unpack(std::vector<char>& rcv_buffer, int& len_buffer, int& position);
 };
 
 class Phase_Link //UPDATED
@@ -131,6 +135,9 @@ class Phase_Link //UPDATED
 		// function to be excecuted when completing the phase transition 
 	
 	Phase_Link(); // done
+
+	void pack(std::vector<char>& snd_buffer, int& len_buffer, int& position);
+	void unpack(std::vector<char>& rcv_buffer, int& len_buffer, int& position);
 };
 
 class Cycle_Data //UPDATED
@@ -175,6 +182,8 @@ class Cycle_Data //UPDATED
 	/*=========================================================*/
 	
 	std::vector<std::unordered_map<int,int>> & get_inverse_index_maps(); //Not present in PhysiCell 1.14.0
+	void pack(std::vector<char>& snd_buffer, int& len_buffer, int &position);
+	void unpack(std::vector<char>& rcv_buffer, int& len_buffer, int &position);
 };
 
 class Cycle_Model //UPDATED
@@ -224,6 +233,8 @@ class Cycle_Model //UPDATED
 	/*=========================================================*/
 	
 	std::vector<std::unordered_map<int,int>> & get_inverse_index_maps(); 
+	void pack(std::vector<char>& snd_buffer, int& len_buffer, int &position);
+	void unpack(std::vector<char>& rcv_buffer, int& len_buffer, int &position);
 	
 };
 
@@ -242,6 +253,9 @@ public:
 
 	// ease of access 
 	double& asymmetric_division_probability( std::string type_name ); // done
+
+	void pack(std::vector<char>& snd_buffer, int& len_buffer, int &position);
+	void unpack(std::vector<char>& rcv_buffer, int& len_buffer, int &position);
 };
 
 class Cycle //UPDATED
@@ -263,6 +277,9 @@ class Cycle //UPDATED
 	void sync_to_cycle_model( Cycle_Model& cm ); // done 
 
 	Asymmetric_Division asymmetric_division;
+
+	void pack(std::vector<char>& snd_buffer, int& len_buffer, int &position);
+	void unpack(std::vector<char>& rcv_buffer, int& len_buffer, int &position);
 };
 
 class Death_Parameters //UPDATED
@@ -281,6 +298,9 @@ class Death_Parameters //UPDATED
 	double relative_rupture_volume; 
 	
 	Death_Parameters(); // done 
+
+	void pack(std::vector<char>& snd_buffer, int& len_buffer, int &position);
+	void unpack(std::vector<char>& rcv_buffer, int& len_buffer, int &position);
 };
 
 class Death //UPDATED
@@ -311,6 +331,9 @@ class Death //UPDATED
 	// ease of access
 	double& apoptosis_rate(void); 
 	double& necrosis_rate(void); 
+
+	void pack(std::vector<char>& snd_buffer, int& len_buffer, int &position);
+	void unpack(std::vector<char>& rcv_buffer, int& len_buffer, int &position);
 };
 
 class Volume  //UPDATED
@@ -339,11 +362,6 @@ class Volume  //UPDATED
 	double rupture_volume; // in volume units 
 	
 	//
-	// a function that can be set by the user. 
-	//
-	// void (*volume_update_function)( Cell* pCell, Phenotype& phenotype, double dt ); 
-	
-	//
 	// parameters that can be set by users 
 	//
 	double cytoplasmic_biomass_change_rate; 
@@ -369,6 +387,9 @@ class Volume  //UPDATED
 	
 	void divide( void ); // done 
 	void multiply_by_ratio(double); // done 
+
+	void pack(std::vector<char>& snd_buffer, int& len_buffer, int &position);
+	void unpack(std::vector<char>& rcv_buffer, int& len_buffer, int &position);
 };
 
 class Geometry //UPDATED
@@ -387,6 +408,9 @@ class Geometry //UPDATED
 	void update_surface_area( Cell* pCell, Phenotype& phenotype, double dt ); // done 
 	
 	void update( Cell* pCell, Phenotype& phenotype, double dt ); // done 
+
+	void pack(std::vector<char>& snd_buffer, int& len_buffer, int &position);
+	void unpack(std::vector<char>& rcv_buffer, int& len_buffer, int &position);
 };
 
 class Mechanics //UPDATED
@@ -428,7 +452,8 @@ class Mechanics //UPDATED
 	
 	void set_absolute_equilibrium_distance( Phenotype& phenotype, double new_value ); // done 
 	
-	
+	void pack(std::vector<char>& snd_buffer, int& len_buffer, int &position);
+	void unpack(std::vector<char>& rcv_buffer, int& len_buffer, int &position);
 };
 
 class Motility //UPDATED
@@ -467,6 +492,11 @@ class Motility //UPDATED
 	void sync_to_microenvironment( Microenvironment* pNew_Microenvironment ); 
 
 	Motility(); // done 
+
+	void pack(std::vector<char>& snd_buffer, int& len_buffer, int &position);
+	void unpack(std::vector<char>& rcv_buffer, int& len_buffer, int &position);
+
+
 };
 
 class Secretion //UPDATED
@@ -503,6 +533,9 @@ class Secretion //UPDATED
 	double& uptake_rate( std::string name ); 
 	double& saturation_density( std::string name ); 
 	double& net_export_rate( std::string name );  
+
+	void pack(std::vector<char>& snd_buffer, int& len_buffer, int &position);
+	void unpack(std::vector<char>& rcv_buffer, int& len_buffer, int &position);
 };
 
 class Cell_Functions //UPDATED
@@ -554,6 +587,9 @@ class Cell_Functions //UPDATED
 	void (*plot_agent_legend)(std::ofstream& os, Cell_Definition* cell_def, double& cursor_x, double& cursor_y, std::vector<std::string> (*cell_coloring_function)(Cell*), double temp_cell_radius);
 	
 	Cell_Functions(); // done 
+
+	void pack(std::vector<char>& snd_buffer, int& len_buffer, int &position);
+	void unpack(std::vector<char>& rcv_buffer, int& len_buffer, int &position);
 };
 
 class Bools //UPDATED
@@ -635,6 +671,9 @@ class Molecular //UPDATED
 		
 		// ease of access 
 		double&  internalized_total_substrate( std::string name ); 
+
+		void pack(std::vector<char>& snd_buffer, int& len_buffer, int &position);
+		void unpack(std::vector<char>& rcv_buffer, int& len_buffer, int &position);
 };
 
 class Intracellular //UPDATED
@@ -739,6 +778,9 @@ class Cell_Interactions //UPDATED
 	double& fusion_rate( std::string type_name ); // done 
 	double& immunogenicity( std::string type_name ); // done 
 
+	void pack(std::vector<char>& snd_buffer, int& len_buffer, int& position);
+	void unpack(std::vector<char>& rcv_buffer, int& len_buffer, int& position);
+
 };
 
 class Cell_Transformations //UPDATED
@@ -757,6 +799,8 @@ class Cell_Transformations //UPDATED
 
 	// automated cell transformations
 	// void perform_transformations( Cell* pCell, Phenotype& phenotype, double dt ); 
+	void pack(std::vector<char>& snd_buffer, int& len_buffer, int& position);
+	void unpack(std::vector<char>& rcv_buffer, int& len_buffer, int& position);
 };
 
 // pre-beta functionality in 1.10.3 
@@ -771,7 +815,9 @@ class Cell_Integrity //UPDATED
 
 	Cell_Integrity(); 
 
-	void advance_damage( double dt ); 
+	void advance_damage( double dt );
+	void pack(std::vector<char>& snd_buffer, int& len_buffer, int& position);
+	void unpack(std::vector<char>& rcv_buffer, int& len_buffer, int& position);  
 };
 
 class Phenotype //UPDATED
@@ -812,6 +858,9 @@ class Phenotype //UPDATED
 	
 	// make sure cycle, death, etc. are synced to the defaults. 
 	void sync_to_default_functions( void ); // done 
+
+	void pack(std::vector<char>& snd_buffer, int& len_buffer, int& position);
+	void unpack(std::vector<char>& rcv_buffer, int& len_buffer, int& position);
 };
 
 };

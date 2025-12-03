@@ -487,7 +487,6 @@ void PhysiCell_Settings::read_from_pugixml( mpi_Environment &world ) //Updated
 	limits_substrate_plot = node_plot_substrate.attribute("limits").as_bool();
 
 	if(enable_substrate_plot){
-		std::cout << "Plot substrate activated!" << std::endl;
 		substrate_to_monitor = xml_get_string_value(node_plot_substrate, "substrate");
 		if (limits_substrate_plot) {
 			min_concentration = xml_get_double_value(node_plot_substrate, "min_conc");

@@ -79,6 +79,65 @@ std::map<std::string,int> behavior_to_int;
 std::map<int,std::string> int_to_signal; 
 std::map<int,std::string> int_to_behavior; 
 
+void display_signal_dictionary( std::ostream& os )
+{
+	os << "Signals: " << std::endl 
+	   << "=======" << std::endl; 
+	for( int i=0; i < int_to_signal.size() ; i++ )
+	{ os << i << " : " << int_to_signal[i] << std::endl; }
+	os << std::endl;  
+    return; 
+}
+
+void display_signal_dictionary( mpi_Environment& world, mpi_Cartesian& cart_topo )
+{
+	if (IOProcessor(world)) {
+		display_signal_dictionary( std::cout); std::cout << std::endl;
+	} 
+}
+
+void display_signal_dictionary_with_synonyms( std::ostream& os )
+{
+	os << "Signals (with synonyms): " << std::endl 
+	   << "=======================" << std::endl; 
+	for( auto it = signal_to_int.begin() ; it != signal_to_int.end() ; it++ )
+	{ os << it->second << " : " << it->first << std::endl; }
+	os << std::endl << std::endl;  	
+    return; 
+}
+
+void display_behavior_dictionary( std::ostream& os )
+{
+	os << "Behaviors: " << std::endl 
+	   << "=========" << std::endl; 
+	for( int i=0; i < int_to_behavior.size() ; i++ )
+	{ os << i << " : " << int_to_behavior[i] << std::endl; }
+	os << std::endl; 
+    return; 
+}
+void display_behavior_dictionary( mpi_Environment& world, mpi_Cartesian& cart_topo )
+{
+	if (IOProcessor(world)) {
+		display_behavior_dictionary( std::cout); std::cout << std::endl;
+	} 
+}
+
+
+
+
+void display_behavior_dictionary_with_synonyms( std::ostream& os )
+{
+	os << "Behaviors (with synonyms): " << std::endl 
+  	   << "=========================" << std::endl; 
+	for( auto it = behavior_to_int.begin() ; it != behavior_to_int.end() ; it++ )
+	{ os << it->second << " : " << it->first << std::endl; }
+	os << std::endl << std::endl;  	
+    return; 
+}
+
+void display_behavior_dictionary_with_synonyms( void )
+{ display_behavior_dictionary_with_synonyms( std::cout ); return; }
+
 void setup_signal_behavior_dictionaries( mpi_Environment &world, mpi_Cartesian &cart_topo  ) //1.14 revised
 {
 	extern std::unordered_map<std::string,int> cell_definition_indices_by_name; 
@@ -607,10 +666,10 @@ void setup_signal_behavior_dictionaries( mpi_Environment &world, mpi_Cartesian &
     // resize scales; 
     signal_scales.resize( int_to_signal.size() , 1.0 ); 
 
-	if (world.rank == 0) {
-		display_signal_dictionary(); 
-    	display_behavior_dictionary(); 
-	}
+	
+	display_signal_dictionary(world, cart_topo); 
+    display_behavior_dictionary(world, cart_topo); 
+	
    
 	return;
 }
@@ -621,59 +680,10 @@ double& signal_scale( std::string signal_name )
 double& signal_scale( int signal_index  )
 { return signal_scales[signal_index]; }
 
-void display_signal_dictionary( std::ostream& os )
-{
-	os << "Signals: " << std::endl 
-	   << "=======" << std::endl; 
-	for( int i=0; i < int_to_signal.size() ; i++ )
-	{ os << i << " : " << int_to_signal[i] << std::endl; }
-	os << std::endl;  
-    return; 
-}
-
-void display_signal_dictionary( void )
-{ display_signal_dictionary( std::cout); std::cout << std::endl; }
 
 
-void display_signal_dictionary_with_synonyms( std::ostream& os )
-{
-	os << "Signals (with synonyms): " << std::endl 
-	   << "=======================" << std::endl; 
-	for( auto it = signal_to_int.begin() ; it != signal_to_int.end() ; it++ )
-	{ os << it->second << " : " << it->first << std::endl; }
-	os << std::endl << std::endl;  	
-    return; 
-}
 
-void display_behavior_dictionary( std::ostream& os )
-{
-	os << "Behaviors: " << std::endl 
-	   << "=========" << std::endl; 
-	for( int i=0; i < int_to_behavior.size() ; i++ )
-	{ os << i << " : " << int_to_behavior[i] << std::endl; }
-	os << std::endl; 
-    return; 
-}
 
-void display_behavior_dictionary( void )
-{
-	display_behavior_dictionary( std::cout );
-	std::cout << std::endl; 
-	return; 
-}
-
-void display_behavior_dictionary_with_synonyms( std::ostream& os )
-{
-	os << "Behaviors (with synonyms): " << std::endl 
-  	   << "=========================" << std::endl; 
-	for( auto it = behavior_to_int.begin() ; it != behavior_to_int.end() ; it++ )
-	{ os << it->second << " : " << it->first << std::endl; }
-	os << std::endl << std::endl;  	
-    return; 
-}
-
-void display_behavior_dictionary_with_synonyms( void )
-{ display_behavior_dictionary_with_synonyms( std::cout ); return; }
 /*
 	std::cout << "Behaviors (with synonyms): " << std::endl 
 			  << "=========================" << std::endl; 

@@ -1535,7 +1535,7 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
     /* First find local x coordinate start of each process = global_x_start + process_y_coodinate * x_local_nodes * dx */
     /*-----------------------------------------------------------------------------------------------------------------*/
     
-    local_x_start = x_start + (coords[1] * local_x_nodes * dx);
+    local_x_start = x_start + (coords[1] * (x_nodes/dims[1]) * dx);
 	if (x_nodes % dims[1] > world.rank) local_x_start += world.rank * dx;
 	else local_x_start +=  (x_nodes % dims[1]) * dx; 
 
@@ -1636,7 +1636,8 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
     //local_start_of_global_index = (coords[1] * z_nodes * y_nodes * local_x_nodes) +       //Imagine 3rd plate 'beginning' point (leftmost bottom point)
     //                              (dims[0]-coords[0]-1) * z_nodes * local_y_nodes +       //Imagine going up in 3rd plate
     //                              (coords[2] * local_z_nodes) ;                           //Imagine going right in 3rd plate
-    local_start_of_global_index =  world.rank * z_nodes * y_nodes * local_x_nodes;                                     
+    local_start_of_global_index = z_nodes * y_nodes * ((local_bounding_box[0] - bounding_box[0])/dx);     
+	                           
 	int n = 0;
 	//#pragma omp parallel for collapse(3)
 	for (int i = 0; i < x_coordinates.size(); i++)

@@ -2033,26 +2033,26 @@ void add_PhysiCell_cells_to_open_xml_pugi_v2( pugi::xml_document& xml_dom, std::
 	 	// name = "uptake_rates"; 
     	std::copy(pCell->phenotype.secretion.uptake_rates.begin(), pCell->phenotype.secretion.uptake_rates.end(), &buffer[pos]); 
 		pos += pCell->phenotype.secretion.uptake_rates.size();
-		if (pCell->phenotype.secretion.uptake_rates.size() != m) std::cout << "Es aqui4" << std::endl;
+		if (pCell->phenotype.secretion.uptake_rates.size() != m) std::cout << "\t[Rank " << world.rank << "]: Es aqui4" << std::endl;
  		// name = "saturation_densities"; 
     	std::copy(pCell->phenotype.secretion.saturation_densities.begin(), pCell->phenotype.secretion.saturation_densities.end(), &buffer[pos]); 
 		pos += pCell->phenotype.secretion.saturation_densities.size();
-		if (pCell->phenotype.secretion.saturation_densities.size() != m) std::cout << "Es aqui5" << std::endl;
+		if (pCell->phenotype.secretion.saturation_densities.size() != m) std::cout << "\t[Rank " << world.rank << "]: Es aqui5" << std::endl;
  		// name = "net_export_rates"; 
     	std::copy(pCell->phenotype.secretion.net_export_rates.begin(), pCell->phenotype.secretion.net_export_rates.end(), &buffer[pos]); 
 		pos += pCell->phenotype.secretion.net_export_rates.size();
-		if (pCell->phenotype.secretion.net_export_rates.size() != m) std::cout << "Es aqui6" << std::endl;
+		if (pCell->phenotype.secretion.net_export_rates.size() != m) std::cout << "\t[Rank " << world.rank << "]: Es aqui6" << std::endl;
 
 
 // molecular 
  		// name = "internalized_total_substrates"; 
     	std::copy(pCell->phenotype.molecular.internalized_total_substrates.begin(), pCell->phenotype.molecular.internalized_total_substrates.end(), &buffer[pos]); 
 		pos += pCell->phenotype.molecular.internalized_total_substrates.size();
-		if (pCell->phenotype.molecular.internalized_total_substrates.size() != m) std::cout << "Es aqui 7" << std::endl;
+		if (pCell->phenotype.molecular.internalized_total_substrates.size() != m) std::cout << "\t[Rank " << world.rank << "]: Es aqui 7" << std::endl;
  		// name = "fraction_released_at_death"; 
     	std::copy(pCell->phenotype.molecular.fraction_released_at_death.begin(), pCell->phenotype.molecular.fraction_released_at_death.end(), &buffer[pos]); 
 		pos += pCell->phenotype.molecular.fraction_released_at_death.size();
-		if (pCell->phenotype.molecular.fraction_released_at_death.size() != m) std::cout << "Es aqui 8" << std::endl;
+		if (pCell->phenotype.molecular.fraction_released_at_death.size() != m) std::cout << "\t[Rank " << world.rank << "]: Es aqui 8" << std::endl;
  		// name = "fraction_transferred_when_ingested"; 
     	std::copy(pCell->phenotype.molecular.fraction_transferred_when_ingested.begin(), pCell->phenotype.molecular.fraction_transferred_when_ingested.end(), &buffer[pos]); 
 		pos += pCell->phenotype.molecular.fraction_transferred_when_ingested.size();

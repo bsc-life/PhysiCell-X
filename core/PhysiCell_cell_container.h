@@ -100,8 +100,13 @@ public:
 	double cell_cell_repulsion_strength;
 	double relative_maximum_adhesion_distance;
 	double cell_cell_adhesion_strength;
-	//jose to be included
 	int type;
+
+	Moore_Cell_Info() = default;
+	
+	Moore_Cell_Info(std::vector<char>& buffer, int size, int &pos);
+
+
 };
 
 class Moore_Voxel_Info 
@@ -112,6 +117,10 @@ public:
 	std::vector<double> center;
 	double max_cell_interactive_distance_in_voxel;
 	std::vector<Moore_Cell_Info> moore_cells;
+
+	Moore_Voxel_Info() = default;
+
+	Moore_Voxel_Info(std::vector<char>& buffer, int size, int &pos);
 };
 
 class Interacting_Cell_Info
@@ -144,6 +153,7 @@ public:
 	std::vector<double> fraction_transferred_when_ingested;
 	//OUT
 	bool ingested = false;
+
 };
 
 class Interacting_Voxel
@@ -284,7 +294,7 @@ class Cell_Container : public BioFVM::Agent_Container
 	/* update the velocity. 																									*/
 	/* Later change name of function to exchange_moore_info 									*/
 	/*------------------------------------------------------------------------*/
-	
+	void pack_moore_voxel(uint voxel_index, std::vector<char>& snd_buffer, int& len_buffer, int& position);
 	void pack_moore_info(mpi_Environment &world, mpi_Cartesian &cart_topo);
 	
 	/*-----------------------------------------------------------------------------------------------------*/
@@ -306,7 +316,9 @@ class Cell_Container : public BioFVM::Agent_Container
 	void pack_cell_interact_info(mpi_Environment &world, mpi_Cartesian &cart_topo);
 	void unpack_cell_interact_info(mpi_Environment &world, mpi_Cartesian &cart_topo);
 	void cell_cell_interaction_with_border(std::vector<Interacting_Voxel> *iv);
+	void exchange_mechanics_halos(mpi_Environment &world, mpi_Cartesian &cart_topo);
 	void evaluate_cell_cell_interactions(double time_since_last_mechanics,  mpi_Environment &world, mpi_Cartesian &cart_topo);
+	void evaluate_cell_elastic_interactions( PhysiCell::Cell *pCell , double dt_mec,  mpi_Environment &world, mpi_Cartesian &cart_topo);
 
 	
 	std::vector<Interacting_Voxel> ivfr;		//Voxels From Right (mbfr from right process)

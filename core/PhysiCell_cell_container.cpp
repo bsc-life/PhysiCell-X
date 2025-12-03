@@ -512,6 +512,7 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 			microenvironment.compute_all_gradient_vectors();
 		}
 
+		exchange_mechanics_halos(world, cart_topo);
 		update_cell_potentials(time_since_last_mechanics,  world, cart_topo);
 	
 		//std::cout << "\t\t[Rank " << world.rank << " ] Update potentials: " << duration.count() << " ms"<< std::endl;
@@ -632,6 +633,52 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 	return;
 }
 
+void Cell_Container::pack_moore_voxel(uint voxel_index, std::vector<char>& snd_buffer, int& len_buffer, int& position) {
+
+	if (voxel_index < 0){
+		std::cout << "	Error in packing moore voxel! Invalid voxel index: " << voxel_index << std::endl;
+		return;
+	} else if (voxel_index >= underlying_mesh.voxels.size()) {
+		std::cout << "	Error in packing moore voxel! Voxel index is out of domain: " << voxel_index << std::endl;
+		return;
+	}
+	int global_mesh_index 			= underlying_mesh.voxels[voxel_index].global_mesh_index;
+	int no_of_cells_in_vxl 			= agent_grid[voxel_index].size();
+	std::vector<double> centers 	= underlying_mesh.voxels[voxel_index].center;
+	double max_i_dist				= max_cell_interactive_distance_in_voxel[voxel_index];
+
+	/* Pack the global voxel index, no. of cells in the voxel, 	 */
+	/* voxel centers, and max_cell_interactive_distance_in_voxel */
+
+	len_buffer = len_buffer + 2 * sizeof(int) + 4 * sizeof(double);
+	snd_buffer.resize(len_buffer);
+
+	MPI_Pack(&global_mesh_index, 	1, MPI_INT, 	 &snd_buffer[0], len_buffer, &position, MPI_COMM_WORLD);
+	MPI_Pack(&no_of_cells_in_vxl, 1, MPI_INT, 	 &snd_buffer[0], len_buffer, &position, MPI_COMM_WORLD);
+	MPI_Pack(&centers[0], 				3, MPI_DOUBLE, &snd_buffer[0], len_buffer, &position, MPI_COMM_WORLD);
+	MPI_Pack(&max_i_dist, 				1, MPI_DOUBLE, &snd_buffer[0], len_buffer, &position, MPI_COMM_WORLD);
+
+	//Now pack the cell information within the voxel
+
+	for(int vec_len=0; vec_len < no_of_cells_in_vxl; vec_len++)
+	{
+		Cell *pCell = agent_grid[voxel_index][vec_len];
+
+		len_buffer = len_buffer + 2 * sizeof(int) + 8 * sizeof(double);
+		snd_buffer.resize(len_buffer);
+
+		MPI_Pack(&pCell->ID, 																							 			 1, MPI_INT, 		&snd_buffer[0], len_buffer, &position, MPI_COMM_WORLD);
+		MPI_Pack(&pCell->position[0], 																		 			 3, MPI_DOUBLE, &snd_buffer[0], len_buffer, &position, MPI_COMM_WORLD);
+		MPI_Pack(&pCell->phenotype.geometry.radius, 											 			 1, MPI_DOUBLE, &snd_buffer[0], len_buffer, &position, MPI_COMM_WORLD);
+		MPI_Pack(&pCell->phenotype.geometry.nuclear_radius, 							 			 1, MPI_DOUBLE, &snd_buffer[0], len_buffer, &position, MPI_COMM_WORLD);
+		MPI_Pack(&pCell->phenotype.mechanics.cell_cell_repulsion_strength, 			 1, MPI_DOUBLE, &snd_buffer[0], len_buffer, &position, MPI_COMM_WORLD);
+		MPI_Pack(&pCell->phenotype.mechanics.relative_maximum_adhesion_distance, 1, MPI_DOUBLE, &snd_buffer[0], len_buffer, &position, MPI_COMM_WORLD);
+		MPI_Pack(&pCell->phenotype.mechanics.cell_cell_adhesion_strength, 			 1, MPI_DOUBLE, &snd_buffer[0], len_buffer, &position, MPI_COMM_WORLD);
+		MPI_Pack(&pCell->type, 											 1, MPI_INT, 		&snd_buffer[0], len_buffer, &position, MPI_COMM_WORLD);
+	}
+
+}
+
 void Cell_Container::pack_moore_info(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
 
@@ -648,6 +695,7 @@ void Cell_Container::pack_moore_info(mpi_Environment &world, mpi_Cartesian &cart
 
 	int z_dim = underlying_mesh.z_coordinates.size();
 	int y_dim = underlying_mesh.y_coordinates.size();
+	int x_dim = underlying_mesh.x_coordinates.size();
 
 	int len_snd_buf_left  	 = 0;
 	int len_snd_buf_right 	 = 0;
@@ -658,90 +706,29 @@ void Cell_Container::pack_moore_info(mpi_Environment &world, mpi_Cartesian &cart
 
 	/* Data Packing of the left boundary voxel cells of all processes except rank = 0 */
 
-	if(world.rank > 0)
+	if(world.rank > 0) 
 	{
 		for(int k=0; k<z_dim; k++)
 		{
 			for(int j=0; j<y_dim; j++)
 			{
-				int local_vxl_inex = underlying_mesh.voxel_index(0, j, k);
-				int global_mesh_index = underlying_mesh.voxels[local_vxl_inex].global_mesh_index;
-				int no_of_cells_in_vxl 			= agent_grid[local_vxl_inex].size();
-				std::vector<double> centers = underlying_mesh.voxels[local_vxl_inex].center;
-				double max_i_dist						= max_cell_interactive_distance_in_voxel[local_vxl_inex];
-
-				/* Pack the global voxel index, no. of cells in the voxel, 	 */
-				/* voxel centers, and max_cell_interactive_distance_in_voxel */
-
-				len_snd_buf_left = len_snd_buf_left + 2 * sizeof(int) + 4 * sizeof(double);
-				snd_buf_left.resize(len_snd_buf_left);
-
-				MPI_Pack(&global_mesh_index, 	1, MPI_INT, 	 &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-				MPI_Pack(&no_of_cells_in_vxl, 1, MPI_INT, 	 &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-				MPI_Pack(&centers[0], 				3, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-				MPI_Pack(&max_i_dist, 				1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-
-				for(int vec_len=0; vec_len < no_of_cells_in_vxl; vec_len++)
-				{
-					Cell *pCell = agent_grid[local_vxl_inex][vec_len];
-
-					len_snd_buf_left = len_snd_buf_left + 2 * sizeof(int) + 8 * sizeof(double);
-					snd_buf_left.resize(len_snd_buf_left);
-
-					MPI_Pack(&pCell->ID, 																							 			 1, MPI_INT, 		&snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->position[0], 																		 			 3, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.geometry.radius, 											 			 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.geometry.nuclear_radius, 							 			 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.mechanics.cell_cell_repulsion_strength, 			 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.mechanics.relative_maximum_adhesion_distance, 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.mechanics.cell_cell_adhesion_strength, 			 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->type, 											 1, MPI_INT, 		&snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-				}
+				uint local_vxl_index = underlying_mesh.voxel_index(0, j, k);
+				pack_moore_voxel(local_vxl_index, snd_buf_left, len_snd_buf_left, position_left);
 			}
 		}
 	}
+	
 
 /* Data Packing of the right boundary voxel cells of all processes except rank = world.size-1 */
 
-if(world.rank < world.size-1)
+	if(world.rank < world.size-1)
 	{
 		for(int k=0; k<z_dim; k++)
 		{
 			for(int j=0; j<y_dim; j++)
 			{
-				int local_vxl_inex 		 			= underlying_mesh.voxel_index(underlying_mesh.x_coordinates.size()-1, j, k);
-				int global_mesh_index 			= underlying_mesh.voxels[local_vxl_inex].global_mesh_index;
-				int no_of_cells_in_vxl 			= agent_grid[local_vxl_inex].size();
-				std::vector<double> centers = underlying_mesh.voxels[local_vxl_inex].center;
-				double max_i_dist						= max_cell_interactive_distance_in_voxel[local_vxl_inex];
-
-				/* Pack the global voxel index, no. of cells in the voxel, 	 */
-				/* voxel centers, and max_cell_interactive_distance_in_voxel */
-
-				len_snd_buf_right = len_snd_buf_right + 2 * sizeof(int) + 4 * sizeof(double);
-				snd_buf_right.resize(len_snd_buf_right);
-
-				MPI_Pack(&global_mesh_index, 	1, MPI_INT, 	 &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-				MPI_Pack(&no_of_cells_in_vxl, 1, MPI_INT, 	 &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-				MPI_Pack(&centers[0], 				3, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-				MPI_Pack(&max_i_dist, 				1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-
-				for(int vec_len=0; vec_len < no_of_cells_in_vxl; vec_len++)
-				{
-					Cell *pCell = agent_grid[local_vxl_inex][vec_len];
-
-					len_snd_buf_right = len_snd_buf_right + 2 * sizeof(int) + 8 * sizeof(double);
-					snd_buf_right.resize(len_snd_buf_right);
-
-					MPI_Pack(&pCell->ID, 																							 			 1, MPI_INT, 		&snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->position[0], 																		 			 3, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.geometry.radius, 											 			 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.geometry.nuclear_radius, 							 			 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.mechanics.cell_cell_repulsion_strength, 			 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.mechanics.relative_maximum_adhesion_distance, 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.mechanics.cell_cell_adhesion_strength, 			 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->type, 											 1, MPI_INT, 		&snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-				}
+				uint local_vxl_index = underlying_mesh.voxel_index(x_dim-1, j, k);
+				pack_moore_voxel(local_vxl_index, snd_buf_right, len_snd_buf_right, position_right);
 			}
 		}
 	}
@@ -778,11 +765,16 @@ if(world.rank < world.size-1)
 
 	/* Now send the actual data in snd_buf_left and snd_buf_right */
 
-	MPI_Irecv(&rcv_buf_right[0], size_of_data_recvd_from_right_process , MPI_PACKED, cart_topo.X_RIGHT, 3333, cart_topo.mpi_cart_comm, &rcv_req[0]);
-	MPI_Isend(&snd_buf_left[0], len_snd_buf_left, MPI_PACKED, cart_topo.X_LEFT,  3333, cart_topo.mpi_cart_comm, &snd_req[0]);
+	char* rcv_right_ptr = rcv_buf_right.empty() ? nullptr : rcv_buf_right.data();
+	char* rcv_left_ptr  = rcv_buf_left.empty()  ? nullptr : rcv_buf_left.data();
+	char* snd_left_ptr  = snd_buf_left.empty()  ? nullptr : snd_buf_left.data();
+	char* snd_right_ptr = snd_buf_right.empty() ? nullptr : snd_buf_right.data();
 
-	MPI_Irecv(&rcv_buf_left[0], size_of_data_recvd_from_left_process, MPI_PACKED, cart_topo.X_LEFT, 4444, cart_topo.mpi_cart_comm, &rcv_req[1]);
-	MPI_Isend(&snd_buf_right[0], len_snd_buf_right, MPI_PACKED, cart_topo.X_RIGHT, 4444, cart_topo.mpi_cart_comm, &snd_req[1]);
+	MPI_Irecv(rcv_right_ptr, size_of_data_recvd_from_right_process , MPI_PACKED, cart_topo.X_RIGHT, 3333, cart_topo.mpi_cart_comm, &rcv_req[0]);
+	MPI_Isend(snd_left_ptr, len_snd_buf_left, MPI_PACKED, cart_topo.X_LEFT,  3333, cart_topo.mpi_cart_comm, &snd_req[0]);
+
+	MPI_Irecv(rcv_left_ptr, size_of_data_recvd_from_left_process, MPI_PACKED, cart_topo.X_LEFT, 4444, cart_topo.mpi_cart_comm, &rcv_req[1]);
+	MPI_Isend(snd_right_ptr, len_snd_buf_right, MPI_PACKED, cart_topo.X_RIGHT, 4444, cart_topo.mpi_cart_comm, &snd_req[1]);
 
 	MPI_Waitall(2, snd_req, MPI_STATUSES_IGNORE);
 	MPI_Waitall(2, rcv_req, MPI_STATUSES_IGNORE);
@@ -796,8 +788,9 @@ if(world.rank < world.size-1)
 	/* std::vector<Moore_Voxel_Info> mbfr (moore boundary from right [process]), similarly mbfl */
 	/* is declared in PhysiCell_cell_container.h as a public data member 												*/
 
-	mbfr.resize(y_dim * z_dim);
-	mbfl.resize(y_dim * z_dim);
+	//v:1.14.2 "Commented because not used anymore"
+	//mbfr.resize(y_dim * z_dim);
+	//mbfl.resize(y_dim * z_dim);
 
 	/* Additionally, we have um_mbfl = unordered map moore boundary from left ---> 								 */
 	/* maps the global mesh index of a voxel 																											 */
@@ -826,36 +819,15 @@ if(world.rank < world.size-1)
 	{
 		for(int vxl_ctr=0; vxl_ctr<y_dim*z_dim; vxl_ctr++)
 		{
-			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &mbfr[vxl_ctr].global_mesh_index, 											1, MPI_INT, 		MPI_COMM_WORLD);
-			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &mbfr[vxl_ctr].no_of_cells_in_vxl, 										1, MPI_INT, 		MPI_COMM_WORLD);
-			mbfr[vxl_ctr].center.resize(3);
-			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &mbfr[vxl_ctr].center[0], 															3, MPI_DOUBLE, 	MPI_COMM_WORLD);
-			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &mbfr[vxl_ctr].max_cell_interactive_distance_in_voxel, 1, MPI_DOUBLE, 	MPI_COMM_WORLD);
+			
+        	Moore_Voxel_Info voxel(rcv_buf_right, size_right, position_right);
 
-			/* Now resize vector moore_cells using no_of_cells_in_vxl unpacked above */
-
-			int no_of_cells_in_vxl = mbfr[vxl_ctr].no_of_cells_in_vxl;
-			mbfr[vxl_ctr].moore_cells.resize(no_of_cells_in_vxl);
-
-			for(int cell_ctr=0; cell_ctr<no_of_cells_in_vxl; cell_ctr++)
-			{
-				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &mbfr[vxl_ctr].moore_cells[cell_ctr].ID, 				 												1, MPI_INT, 	 MPI_COMM_WORLD);
-				mbfr[vxl_ctr].moore_cells[cell_ctr].position.resize(3);
-				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &mbfr[vxl_ctr].moore_cells[cell_ctr].position[0], 												3, MPI_DOUBLE, MPI_COMM_WORLD);
-				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &mbfr[vxl_ctr].moore_cells[cell_ctr].radius, 		 												1, MPI_DOUBLE, MPI_COMM_WORLD);
-				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &mbfr[vxl_ctr].moore_cells[cell_ctr].nuclear_radius, 										1, MPI_DOUBLE, MPI_COMM_WORLD);
-				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &mbfr[vxl_ctr].moore_cells[cell_ctr].cell_cell_repulsion_strength, 			1, MPI_DOUBLE, MPI_COMM_WORLD);
-				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &mbfr[vxl_ctr].moore_cells[cell_ctr].relative_maximum_adhesion_distance, 1, MPI_DOUBLE, MPI_COMM_WORLD);
-				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &mbfr[vxl_ctr].moore_cells[cell_ctr].cell_cell_adhesion_strength, 				1, MPI_DOUBLE, MPI_COMM_WORLD);
-				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &mbfr[vxl_ctr].moore_cells[cell_ctr].type, 				1, MPI_INT, 	 MPI_COMM_WORLD);
-			}
-
-			  um_mbfr[mbfr[vxl_ctr].global_mesh_index]=mbfr[vxl_ctr];
+        	um_mbfr[voxel.global_mesh_index] = std::move(voxel);
 
 		}
 	}
 
-	/* Now unpack data coming FROM left process in 'rcv_buf_left' into 'mbfl' 					 		 */
+	/* Now unpack data coming FROM left process in 'rcv_buf_left' into 'um_mbfl' 					 		 */
 	/* Outer loop runs till y_dim * z_dim voxels and each voxel can have any number of cells */
 	/* IMPORTANT: rcv_buf_left will be unpacked ONLY on ranks > 0 							 						 */
 	/* REMEMBER: size_left = 0 on rank=0, hence error 													 						 */
@@ -864,38 +836,13 @@ if(world.rank < world.size-1)
 	{
 		for(int vxl_ctr=0; vxl_ctr<y_dim*z_dim; vxl_ctr++)
 		{
-			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &mbfl[vxl_ctr].global_mesh_index, 											1, MPI_INT, 		MPI_COMM_WORLD);
-			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &mbfl[vxl_ctr].no_of_cells_in_vxl, 											1, MPI_INT, 		MPI_COMM_WORLD);
-			mbfl[vxl_ctr].center.resize(3);
-			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &mbfl[vxl_ctr].center[0], 															3, MPI_DOUBLE, 	MPI_COMM_WORLD);
-			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &mbfl[vxl_ctr].max_cell_interactive_distance_in_voxel, 	1, MPI_DOUBLE, 	MPI_COMM_WORLD);
 
-			/* Now resize vector moore_cells using no_of_cells_in_vxl unpacked above */
-
-			int no_of_cells_in_vxl = mbfl[vxl_ctr].no_of_cells_in_vxl;
-			mbfl[vxl_ctr].moore_cells.resize(no_of_cells_in_vxl);
-
-			for(int cell_ctr=0; cell_ctr<no_of_cells_in_vxl; cell_ctr++)
-			{
-				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &mbfl[vxl_ctr].moore_cells[cell_ctr].ID, 				 													1, MPI_INT, 	 MPI_COMM_WORLD);
-				mbfl[vxl_ctr].moore_cells[cell_ctr].position.resize(3);
-				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &mbfl[vxl_ctr].moore_cells[cell_ctr].position[0], 												3, MPI_DOUBLE, MPI_COMM_WORLD);
-				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &mbfl[vxl_ctr].moore_cells[cell_ctr].radius, 		 													1, MPI_DOUBLE, MPI_COMM_WORLD);
-				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &mbfl[vxl_ctr].moore_cells[cell_ctr].nuclear_radius, 											1, MPI_DOUBLE, MPI_COMM_WORLD);
-				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &mbfl[vxl_ctr].moore_cells[cell_ctr].cell_cell_repulsion_strength, 				1, MPI_DOUBLE, MPI_COMM_WORLD);
-				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &mbfl[vxl_ctr].moore_cells[cell_ctr].relative_maximum_adhesion_distance, 	1, MPI_DOUBLE, MPI_COMM_WORLD);
-				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &mbfl[vxl_ctr].moore_cells[cell_ctr].cell_cell_adhesion_strength, 				1, MPI_DOUBLE, MPI_COMM_WORLD);
-				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &mbfl[vxl_ctr].moore_cells[cell_ctr].type, 				1, MPI_INT, 	 MPI_COMM_WORLD);
-			}
-
-			  um_mbfl[mbfl[vxl_ctr].global_mesh_index]=mbfl[vxl_ctr];
+        	Moore_Voxel_Info voxel(rcv_buf_left, size_left, position_left);
+        
+       		um_mbfl[voxel.global_mesh_index] = std::move(voxel);
 		}
 	}
 
-	/* Now one step is left: Need to map the global mesh index to a specific Moor_Voxel_Info object */
-	/* i.e. declare map_glbl_indx_to_Moore_Voxel_Info_object[global_mesh_index]=mbfl[vxl_ctr] 			*/
-	/* Similarly for mbfr as well 																																	*/
-	/* Declare: std::unordered_map<int, Moore_Voxel_Info> in PhysiCell_cell_container.h 						*/
 }
 
 void Cell_Container::pack_cell_interact_info(mpi_Environment &world, mpi_Cartesian &cart_topo)
@@ -912,9 +859,78 @@ void Cell_Container::pack_cell_interact_info(mpi_Environment &world, mpi_Cartesi
 
 	int z_dim = underlying_mesh.z_coordinates.size();
 	int y_dim = underlying_mesh.y_coordinates.size();
+	int x_dim = underlying_mesh.x_coordinates.size();
 
 	int len_snd_buf_left  	 = 0;
 	int len_snd_buf_right 	 = 0;
+
+	// Reserve enough space up-front to avoid repeated reallocations while packing.
+	if(world.rank > 0)
+	{
+		size_t estimated = 0;
+		for(int k=0; k<z_dim; k++)
+		{
+			for(int j=0; j<y_dim; j++)
+			{
+				uint local_vxl_index = underlying_mesh.voxel_index(0, j, k);
+				int no_of_cells_in_vxl = agent_grid[local_vxl_index].size();
+				estimated += 2 * sizeof(int) + 4 * sizeof(double);
+				estimated += static_cast<size_t>(no_of_cells_in_vxl) * (2 * sizeof(int) + 8 * sizeof(double));
+			}
+		}
+		snd_buf_left.reserve(estimated);
+	}
+	if(world.rank < world.size-1)
+	{
+		size_t estimated = 0;
+		for(int k=0; k<z_dim; k++)
+		{
+			for(int j=0; j<y_dim; j++)
+			{
+				uint local_vxl_index = underlying_mesh.voxel_index(x_dim-1, j, k);
+				int no_of_cells_in_vxl = agent_grid[local_vxl_index].size();
+				estimated += 2 * sizeof(int) + 4 * sizeof(double);
+				estimated += static_cast<size_t>(no_of_cells_in_vxl) * (2 * sizeof(int) + 8 * sizeof(double));
+			}
+		}
+		snd_buf_right.reserve(estimated);
+	}
+
+	const int per_cell_bytes = 3 * sizeof(int) + 1 * sizeof(bool) + 10 * sizeof(double) + 2 * underlying_mesh.n_substrates * sizeof(double);
+
+	// First pass: compute total buffer sizes to avoid repeated reallocations while packing.
+	if(world.rank > 0) 
+	{
+		for(int j=0; j< y_dim; j++) 
+		{
+			for(int k=0; k<z_dim; k++)
+			{
+				int local_vxl_inex = underlying_mesh.voxel_index(0, j, k);
+				int no_of_cells_in_vxl 	= agent_grid[local_vxl_inex].size();
+				len_snd_buf_left += 2 * sizeof(int);
+				len_snd_buf_left += per_cell_bytes * no_of_cells_in_vxl;
+			}
+		}
+	}
+
+	if(world.rank < world.size-1)
+	{
+		for(int j=0; j<y_dim; j++)
+		{
+			for(int k=0; k<z_dim; k++)
+			{
+				int local_vxl_inex 	= underlying_mesh.voxel_index(underlying_mesh.x_coordinates.size()-1, j, k);
+				int no_of_cells_in_vxl 	= agent_grid[local_vxl_inex].size();
+				len_snd_buf_right += 2 * sizeof(int);
+				len_snd_buf_right += per_cell_bytes * no_of_cells_in_vxl;
+			}
+		}
+	}
+
+	snd_buf_left.resize(len_snd_buf_left);
+	snd_buf_right.resize(len_snd_buf_right);
+	position_left = 0;
+	position_right = 0;
 
 	/*---------------------*/
 	/* Data Packing first  */
@@ -932,37 +948,28 @@ void Cell_Container::pack_cell_interact_info(mpi_Environment &world, mpi_Cartesi
 				int global_mesh_index = underlying_mesh.voxels[local_vxl_inex].global_mesh_index;
 				int no_of_cells_in_vxl 	= agent_grid[local_vxl_inex].size();
 
-				/* Pack the global voxel index, no. of cells in the voxel, 	 */
-				/* voxel centers, and max_cell_interactive_distance_in_voxel */
-
-				len_snd_buf_left = len_snd_buf_left + 2 * sizeof(int);
-				snd_buf_left.resize(len_snd_buf_left);
-
-				MPI_Pack(&global_mesh_index,  1, MPI_INT,  &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-				MPI_Pack(&no_of_cells_in_vxl, 1, MPI_INT,  &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+				MPI_Pack(&global_mesh_index,  1, MPI_INT,  snd_buf_left.data(), len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+				MPI_Pack(&no_of_cells_in_vxl, 1, MPI_INT,  snd_buf_left.data(), len_snd_buf_left, &position_left, MPI_COMM_WORLD);
 
 				for(int vec_len=0; vec_len < no_of_cells_in_vxl; vec_len++)
 				{
 					Cell *pCell = agent_grid[local_vxl_inex][vec_len];
 
-					len_snd_buf_left = len_snd_buf_left + 3 * sizeof(int) + 1 * sizeof(bool) + 10 * sizeof(double) + 2*underlying_mesh.n_substrates * sizeof(double);
-					snd_buf_left.resize(len_snd_buf_left);
-
-					MPI_Pack(&pCell->ID, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->type, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.death.dead, 1, MPI_C_BOOL, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->ID, 1, MPI_INT, snd_buf_left.data(), len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->type, 1, MPI_INT, snd_buf_left.data(), len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->phenotype.death.dead, 1, MPI_C_BOOL, snd_buf_left.data(), len_snd_buf_left, &position_left, MPI_COMM_WORLD);
 					if (pCell->position.size() != 3) std::cout << "Ghost cell rank " << world.rank << " ID " << pCell->ID << std::endl;
- 					MPI_Pack(&pCell->position[0] , 3, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->state.number_of_nuclei, 1, MPI_INT, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.volume.total, 1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.volume.cytoplasmic_fluid,  1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.volume.nuclear_fluid,  1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.volume.cytoplasmic_solid,  1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.volume.nuclear_solid,  1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-					MPI_Pack(&(*pCell->internalized_substrates)[0],underlying_mesh.n_substrates, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.volume.target_solid_cytoplasmic,  1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.volume.target_solid_nuclear,  1, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.molecular.fraction_transferred_when_ingested[0],  underlying_mesh.n_substrates, MPI_DOUBLE, &snd_buf_left[0], len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+ 					MPI_Pack(&pCell->position[0] , 3, MPI_DOUBLE, snd_buf_left.data(), len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->state.number_of_nuclei, 1, MPI_INT, snd_buf_left.data(), len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->phenotype.volume.total, 1, MPI_DOUBLE, snd_buf_left.data(), len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->phenotype.volume.cytoplasmic_fluid,  1, MPI_DOUBLE, snd_buf_left.data(), len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->phenotype.volume.nuclear_fluid,  1, MPI_DOUBLE, snd_buf_left.data(), len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->phenotype.volume.cytoplasmic_solid,  1, MPI_DOUBLE, snd_buf_left.data(), len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->phenotype.volume.nuclear_solid,  1, MPI_DOUBLE, snd_buf_left.data(), len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+					MPI_Pack(&(*pCell->internalized_substrates)[0],underlying_mesh.n_substrates, MPI_DOUBLE, snd_buf_left.data(), len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->phenotype.volume.target_solid_cytoplasmic,  1, MPI_DOUBLE, snd_buf_left.data(), len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->phenotype.volume.target_solid_nuclear,  1, MPI_DOUBLE, snd_buf_left.data(), len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->phenotype.molecular.fraction_transferred_when_ingested[0],  underlying_mesh.n_substrates, MPI_DOUBLE, snd_buf_left.data(), len_snd_buf_left, &position_left, MPI_COMM_WORLD);
 				}
 			}
 		}
@@ -980,37 +987,28 @@ if(world.rank < world.size-1)
 				int global_mesh_index = underlying_mesh.voxels[local_vxl_inex].global_mesh_index;
 				int no_of_cells_in_vxl 	= agent_grid[local_vxl_inex].size();
 
-				/* Pack the global voxel index, no. of cells in the voxel, 	 */
-				/* voxel centers, and max_cell_interactive_distance_in_voxel */
-
-				len_snd_buf_right = len_snd_buf_right + 2 * sizeof(int);
-				snd_buf_right.resize(len_snd_buf_right);
-
-				MPI_Pack(&global_mesh_index,  1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-				MPI_Pack(&no_of_cells_in_vxl, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+				MPI_Pack(&global_mesh_index,  1, MPI_INT, snd_buf_right.data(), len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+				MPI_Pack(&no_of_cells_in_vxl, 1, MPI_INT, snd_buf_right.data(), len_snd_buf_right, &position_right, MPI_COMM_WORLD);
 
 				for(int vec_len=0; vec_len < no_of_cells_in_vxl; vec_len++)
 				{
 					Cell *pCell = agent_grid[local_vxl_inex][vec_len];
 
-					len_snd_buf_right = len_snd_buf_right + 3 * sizeof(int) + 1 * sizeof(bool) + 10 * sizeof(double) + 2*underlying_mesh.n_substrates * sizeof(double);
-					snd_buf_right.resize(len_snd_buf_right);
-
-					MPI_Pack(&pCell->ID, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->type, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.death.dead, 1, MPI_C_BOOL, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->ID, 1, MPI_INT, snd_buf_right.data(), len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->type, 1, MPI_INT, snd_buf_right.data(), len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->phenotype.death.dead, 1, MPI_C_BOOL, snd_buf_right.data(), len_snd_buf_right, &position_right, MPI_COMM_WORLD);
 					if (pCell->position.size() != 3) std::cout << "Ghost cell rank " << world.rank << " ID " << pCell->ID << std::endl;
-					MPI_Pack(&pCell->position[0] , 3, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->state.number_of_nuclei, 1, MPI_INT, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.volume.total, 1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.volume.cytoplasmic_fluid,  1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.volume.nuclear_fluid,  1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.volume.cytoplasmic_solid,  1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.volume.nuclear_solid,  1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-					MPI_Pack(&(*pCell->internalized_substrates)[0],underlying_mesh.n_substrates, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.volume.target_solid_cytoplasmic,  1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.volume.target_solid_nuclear,  1, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.molecular.fraction_transferred_when_ingested[0], underlying_mesh.n_substrates, MPI_DOUBLE, &snd_buf_right[0], len_snd_buf_right, &position_right, MPI_COMM_WORLD );
+					MPI_Pack(&pCell->position[0] , 3, MPI_DOUBLE, snd_buf_right.data(), len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->state.number_of_nuclei, 1, MPI_INT, snd_buf_right.data(), len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->phenotype.volume.total, 1, MPI_DOUBLE, snd_buf_right.data(), len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->phenotype.volume.cytoplasmic_fluid,  1, MPI_DOUBLE, snd_buf_right.data(), len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->phenotype.volume.nuclear_fluid,  1, MPI_DOUBLE, snd_buf_right.data(), len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->phenotype.volume.cytoplasmic_solid,  1, MPI_DOUBLE, snd_buf_right.data(), len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->phenotype.volume.nuclear_solid,  1, MPI_DOUBLE, snd_buf_right.data(), len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+					MPI_Pack(&(*pCell->internalized_substrates)[0],underlying_mesh.n_substrates, MPI_DOUBLE, snd_buf_right.data(), len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->phenotype.volume.target_solid_cytoplasmic,  1, MPI_DOUBLE, snd_buf_right.data(), len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->phenotype.volume.target_solid_nuclear,  1, MPI_DOUBLE, snd_buf_right.data(), len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->phenotype.molecular.fraction_transferred_when_ingested[0], underlying_mesh.n_substrates, MPI_DOUBLE, snd_buf_right.data(), len_snd_buf_right, &position_right, MPI_COMM_WORLD );
 				}
 			}
 		}
@@ -1048,11 +1046,16 @@ if(world.rank < world.size-1)
 
 	/* Now send the actual data in snd_buf_left and snd_buf_right */
 
-	MPI_Irecv(&rcv_buf_right[0], size_of_data_recvd_from_right_process , MPI_PACKED, cart_topo.X_RIGHT, 3333, cart_topo.mpi_cart_comm, &rcv_req[0]);
-	MPI_Isend(&snd_buf_left[0], len_snd_buf_left, MPI_PACKED, cart_topo.X_LEFT,  3333, cart_topo.mpi_cart_comm, &snd_req[0]);
+	char* rcv_right_ptr = rcv_buf_right.empty() ? nullptr : rcv_buf_right.data();
+	char* rcv_left_ptr  = rcv_buf_left.empty()  ? nullptr : rcv_buf_left.data();
+	char* snd_left_ptr  = snd_buf_left.empty()  ? nullptr : snd_buf_left.data();
+	char* snd_right_ptr = snd_buf_right.empty() ? nullptr : snd_buf_right.data();
 
-	MPI_Irecv(&rcv_buf_left[0], size_of_data_recvd_from_left_process, MPI_PACKED, cart_topo.X_LEFT, 4444, cart_topo.mpi_cart_comm, &rcv_req[1]);
-	MPI_Isend(&snd_buf_right[0], len_snd_buf_right, MPI_PACKED, cart_topo.X_RIGHT, 4444, cart_topo.mpi_cart_comm, &snd_req[1]);
+	MPI_Irecv(rcv_right_ptr, size_of_data_recvd_from_right_process , MPI_PACKED, cart_topo.X_RIGHT, 3333, cart_topo.mpi_cart_comm, &rcv_req[0]);
+	MPI_Isend(snd_left_ptr, len_snd_buf_left, MPI_PACKED, cart_topo.X_LEFT,  3333, cart_topo.mpi_cart_comm, &snd_req[0]);
+
+	MPI_Irecv(rcv_left_ptr, size_of_data_recvd_from_left_process, MPI_PACKED, cart_topo.X_LEFT, 4444, cart_topo.mpi_cart_comm, &rcv_req[1]);
+	MPI_Isend(snd_right_ptr, len_snd_buf_right, MPI_PACKED, cart_topo.X_RIGHT, 4444, cart_topo.mpi_cart_comm, &snd_req[1]);
 
 	MPI_Waitall(2, snd_req, MPI_STATUSES_IGNORE);
 	MPI_Waitall(2, rcv_req, MPI_STATUSES_IGNORE);
@@ -1301,11 +1304,16 @@ void Cell_Container::unpack_cell_interact_info(mpi_Environment &world, mpi_Carte
 
 	/* Now send the actual data in snd_buf_left and snd_buf_right */
 
-	MPI_Irecv(&rcv_buf_right[0], size_of_data_recvd_from_right_process , MPI_PACKED, cart_topo.X_RIGHT, 3333, cart_topo.mpi_cart_comm, &rcv_req[0]);
-	MPI_Isend(&snd_buf_left[0], len_snd_buf_left, MPI_PACKED, cart_topo.X_LEFT,  3333, cart_topo.mpi_cart_comm, &snd_req[0]);
+	char* rcv_right_ptr = rcv_buf_right.empty() ? nullptr : rcv_buf_right.data();
+	char* rcv_left_ptr  = rcv_buf_left.empty()  ? nullptr : rcv_buf_left.data();
+	char* snd_left_ptr  = snd_buf_left.empty()  ? nullptr : snd_buf_left.data();
+	char* snd_right_ptr = snd_buf_right.empty() ? nullptr : snd_buf_right.data();
 
-	MPI_Irecv(&rcv_buf_left[0], size_of_data_recvd_from_left_process, MPI_PACKED, cart_topo.X_LEFT, 4444, cart_topo.mpi_cart_comm, &rcv_req[1]);
-	MPI_Isend(&snd_buf_right[0], len_snd_buf_right, MPI_PACKED, cart_topo.X_RIGHT, 4444, cart_topo.mpi_cart_comm, &snd_req[1]);
+	MPI_Irecv(rcv_right_ptr, size_of_data_recvd_from_right_process , MPI_PACKED, cart_topo.X_RIGHT, 3333, cart_topo.mpi_cart_comm, &rcv_req[0]);
+	MPI_Isend(snd_left_ptr, len_snd_buf_left, MPI_PACKED, cart_topo.X_LEFT,  3333, cart_topo.mpi_cart_comm, &snd_req[0]);
+
+	MPI_Irecv(rcv_left_ptr, size_of_data_recvd_from_left_process, MPI_PACKED, cart_topo.X_LEFT, 4444, cart_topo.mpi_cart_comm, &rcv_req[1]);
+	MPI_Isend(snd_right_ptr, len_snd_buf_right, MPI_PACKED, cart_topo.X_RIGHT, 4444, cart_topo.mpi_cart_comm, &snd_req[1]);
 
 	MPI_Waitall(2, snd_req, MPI_STATUSES_IGNORE);
 	MPI_Waitall(2, rcv_req, MPI_STATUSES_IGNORE);
@@ -1401,6 +1409,7 @@ Cell* Cell_Container::find_cell(int local_voxel, int cell_id) {
 	}
 	return NULL;
 }
+
 void Cell_Container::register_agent( Cell* agent )
 {
 	agent_grid[agent->get_current_mechanics_voxel_index()].push_back(agent);

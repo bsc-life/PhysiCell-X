@@ -1,0 +1,1727 @@
+unload bsc/1.0 (PATH, MANPATH)
+unload UCX/1.15.0 (PATH, LD_LIBRARY_PATH, LIBRARY_PATH, C_INCLUDE_PATH,
+CPLUS_INCLUDE_PATH) 
+remove mkl/2023.2.0 (LD_LIBRARY_PATH)
+remove impi/2021.10.0 (PATH, MANPATH, LD_LIBRARY_PATH)
+load GCC/13.2.0 (PATH, LD_LIBRARY_PATH, LIBRARY_PATH, C_INCLUDE_PATH,
+CPLUS_INCLUDE_PATH,CC,CXX, I_MPI_F77, I_MPI_CXX, I_MPI_F90) 
+load openmpi/4.1.5-gcc (LD_LIBRARY_PATH)
+load DDT/25.0.2 (PATH)
+  _____  _               _  _____     _ _     __   __                     _                    ___  __	
+ |  __ \| |             (_)/ ____|   | | |    \ \ / /                    (_)                  / _ \/_ |
+ | |__) | |__  _   _ ___ _| |     ___| | |_____\ V /  __   _____ _ __ ___ _  ___  _ __ ______| | | || |
+ |  ___/| '_ \| | | / __| | |    / _ \ | |______> <   \ \ / / _ \ '__/ __| |/ _ \| '_ \______| | | || |
+ | |    | | | | |_| \__ \ | |___|  __/ | |     / . \   \ V /  __/ |  \__ \ | (_) | | | |     | |_| || |
+ |_|    |_| |_|\__, |___/_|\_____\___|_|_|    /_/ \_\   \_/ \___|_|  |___/_|\___/|_| |_|      \___(_)_|
+                __/ |                                                                                  
+               |___/                                                                                   
+Using config file ./config/PhysiCell_settings.xml ... 
+1
+dc? 1
+User parameters in XML config file: 
+Bool parameters:: 
+
+Int parameters:: 
+number_of_cells: 1000000 [none]
+
+Double parameters:: 
+
+String parameters:: 
+
+
+which boundaries?
+1 1 1 1 0 0
+
+Microenvironment summary: microenvironment: 
+
+Mesh information: 
+type: uniform Cartesian
+Domain: [-1000,1000] micron x [-1000,1000] micron x [-1000,1000] micron
+   resolution: dx = 20 micron
+   voxels (per-process): 100000
+   voxel faces: 0
+   volume: 8e+09 cubic micron
+Densities: (1 total)
+   substrate:
+     units: dimensionless
+     diffusion coefficient: 100000 micron^2 / min
+     decay rate: 10 min^-1
+     diffusion length scale: 100 micron
+     initial condition: 0 dimensionless
+     boundary condition: 38 dimensionless (enabled: true)
+
+virtual_wall_at_domain_edge: enabled
+Pre-processing type 0 named stem
+Pre-processing type 1 named progenitor_1
+Pre-processing type 2 named progenitor_2
+Asymmetric division probabilities for stem: 0 1 0 
+  --------- attachment_elastic_constant = 0.01
+copying data ... 
+stem to progenitor_1
+  --------- attachment_elastic_constant = 0.01
+copying data ... 
+stem to progenitor_2
+  --------- attachment_elastic_constant = 0.01
+ruleset
+	Processing ruleset in ./config/cell_rules.csv ... 
+	Format: CSV (current version 3)
+Processing rules in file ./config/cell_rules.csv ... 
+Adding rule for stem cells:
+	contact with progenitor_1 decreases asymmetric division to progenitor_1 towards 0.0 with a Hill response, with half-max 3 and Hill power 4.
+Adding rule for stem cells:
+	contact with progenitor_1 increases asymmetric division to progenitor_2 towards 1.0 with a Hill response, with half-max 3 and Hill power 4.
+Adding rule for stem cells:
+	volume increases cycle entry towards 0.17 with a Hill response, with half-max 1200.0 and Hill power 8.
+Done!
+
+Copying ./config/cell_rules.csv to output folder.
+Copy command: cp ./config/cell_rules.csv output/cell_rules.csv
+Behavioral rules for cell type stem:
+===================================================
+contact with progenitor_1 decreases asymmetric division to progenitor_1
+contact with progenitor_1 increases asymmetric division to progenitor_2
+volume increases cycle entry
+
+Behavioral rules for cell type progenitor_1:
+===================================================
+
+Behavioral rules for cell type progenitor_2:
+===================================================
+
+Exporting rules to file output/cell_rules_parsed.csv (v3 format) ... 
+Done!
+
+virtual_wall_at_domain_edge: enabled
+Pre-processing type 0 named stem
+Pre-processing type 1 named progenitor_1
+Pre-processing type 2 named progenitor_2
+Asymmetric division probabilities for stem: 0 1 0 
+  --------- attachment_elastic_constant = 0.01
+copying data ... 
+stem to progenitor_1
+  --------- attachment_elastic_constant = 0.01
+copying data ... 
+stem to progenitor_2
+  --------- attachment_elastic_constant = 0.01
+Signals: 
+=======
+0 : substrate
+1 : intracellular substrate
+2 : substrate gradient
+3 : pressure
+4 : volume
+5 : contact with stem
+6 : contact with progenitor_1
+7 : contact with progenitor_2
+8 : contact with live cell
+9 : contact with dead cell
+10 : contact with apoptotic cell
+11 : contact with necrotic cell
+12 : contact with other dead cell
+13 : contact with basement membrane
+14 : damage
+15 : damage delivered
+16 : attacking
+17 : dead
+18 : total attack time
+19 : time
+20 : custom:sample
+21 : apoptotic
+22 : necrotic
+
+
+Behaviors: 
+=========
+0 : substrate secretion
+1 : substrate secretion target
+2 : substrate uptake
+3 : substrate export
+4 : cycle entry
+5 : exit from cycle phase 1
+6 : exit from cycle phase 2
+7 : exit from cycle phase 3
+8 : exit from cycle phase 4
+9 : exit from cycle phase 5
+10 : apoptosis
+11 : necrosis
+12 : migration speed
+13 : migration bias
+14 : migration persistence time
+15 : chemotactic response to substrate
+16 : cell-cell adhesion
+17 : cell-cell adhesion elastic constant
+18 : adhesive affinity to stem
+19 : adhesive affinity to progenitor_1
+20 : adhesive affinity to progenitor_2
+21 : relative maximum adhesion distance
+22 : cell-cell repulsion
+23 : cell-BM adhesion
+24 : cell-BM repulsion
+25 : phagocytose apoptotic cell
+26 : phagocytose necrotic cell
+27 : phagocytose other dead cell
+28 : phagocytose stem
+29 : phagocytose progenitor_1
+30 : phagocytose progenitor_2
+31 : attack stem
+32 : attack progenitor_1
+33 : attack progenitor_2
+34 : fuse to stem
+35 : fuse to progenitor_1
+36 : fuse to progenitor_2
+37 : transform to stem
+38 : transform to progenitor_1
+39 : transform to progenitor_2
+40 : asymmetric division to stem
+41 : asymmetric division to progenitor_1
+42 : asymmetric division to progenitor_2
+43 : custom:sample
+44 : is_movable
+45 : immunogenicity to stem
+46 : immunogenicity to progenitor_1
+47 : immunogenicity to progenitor_2
+48 : cell attachment rate
+49 : cell detachment rate
+50 : maximum number of cell attachments
+51 : attack damage rate
+52 : attack duration
+53 : damage rate
+54 : damage repair rate
+
+
+ruleset
+	Processing ruleset in ./config/cell_rules.csv ... 
+	Format: CSV (current version 3)
+Processing rules in file ./config/cell_rules.csv ... 
+Adding rule for stem cells:
+	contact with progenitor_1 decreases asymmetric division to progenitor_1 towards 0.0 with a Hill response, with half-max 3 and Hill power 4.
+Adding rule for stem cells:
+	contact with progenitor_1 increases asymmetric division to progenitor_2 towards 1.0 with a Hill response, with half-max 3 and Hill power 4.
+Adding rule for stem cells:
+	volume increases cycle entry towards 0.17 with a Hill response, with half-max 1200.0 and Hill power 8.
+Done!
+
+Copying ./config/cell_rules.csv to output folder.
+Copy command: cp ./config/cell_rules.csv output/cell_rules.csv
+Behavioral rules for cell type stem:
+===================================================
+contact with progenitor_1 decreases asymmetric division to progenitor_1
+contact with progenitor_1 increases asymmetric division to progenitor_2
+volume increases cycle entry
+
+Behavioral rules for cell type progenitor_1:
+===================================================
+
+Behavioral rules for cell type progenitor_2:
+===================================================
+
+Exporting rules to file output/cell_rules_parsed.csv (v3 format) ... 
+Done!
+
+0 :: type:0 name: stem
+	 cycle model: Live (code=5)
+		Phase 0: Live
+		Cycle transitions: 
+		-----------------
+		Live --> Live w mean duration 1440 min
+	 death models: 
+		0 : Apoptosis (code=100) with rate 0 1/min
+		death phase transitions: 
+		------------------------
+		Apoptotic --> Debris w mean duration 515.996 min
+		1 : Necrosis (code=101) with rate 0 1/min
+		death phase transitions: 
+		------------------------
+		Necrotic (swelling) --> Necrotic (lysed) w mean duration 1.11111e-10 min
+		Necrotic (lysed) --> Debris w mean duration 86399.8 min
+	 key functions: 
+		 migration bias rule: false
+		 custom rule: true
+		 phenotype rule: true
+		 volume update function: true
+		 mechanics function: true
+		 contact function: true
+	motility (enabled: false in 2D)
+		speed: 1 micron/min
+		bias: 0.5 
+		persistence time: 1 min
+		chemotaxis (enabled: false)
+			along 1 * grad(substrate) 
+	custom data: 
+		sample: 1 dimensionless
+	custom vector data: 
+			NOTE: custom vector data will eventually be merged with custom data
+1 :: type:1 name: progenitor_1
+	 cycle model: Live (code=5)
+		Phase 0: Live
+		Cycle transitions: 
+		-----------------
+		Live --> Live w mean duration inf min
+	 death models: 
+		0 : Apoptosis (code=100) with rate 0 1/min
+		death phase transitions: 
+		------------------------
+		Apoptotic --> Debris w mean duration 515.996 min
+		1 : Necrosis (code=101) with rate 0 1/min
+		death phase transitions: 
+		------------------------
+		Necrotic (swelling) --> Necrotic (lysed) w mean duration 1.11111e-10 min
+		Necrotic (lysed) --> Debris w mean duration 86399.8 min
+	 key functions: 
+		 migration bias rule: false
+		 custom rule: false
+		 phenotype rule: false
+		 volume update function: true
+		 mechanics function: true
+		 contact function: false
+	motility (enabled: false in 2D)
+		speed: 1 micron/min
+		bias: 0 
+		persistence time: 1 min
+		chemotaxis (enabled: false)
+			along 1 * grad(substrate) 
+	custom data: 
+		sample: 0 dimensionless
+	custom vector data: 
+			NOTE: custom vector data will eventually be merged with custom data
+2 :: type:2 name: progenitor_2
+	 cycle model: Live (code=5)
+		Phase 0: Live
+		Cycle transitions: 
+		-----------------
+		Live --> Live w mean duration inf min
+	 death models: 
+		0 : Apoptosis (code=100) with rate 0 1/min
+		death phase transitions: 
+		------------------------
+		Apoptotic --> Debris w mean duration 515.996 min
+		1 : Necrosis (code=101) with rate 0 1/min
+		death phase transitions: 
+		------------------------
+		Necrotic (swelling) --> Necrotic (lysed) w mean duration 1.11111e-10 min
+		Necrotic (lysed) --> Debris w mean duration 86399.8 min
+	 key functions: 
+		 migration bias rule: false
+		 custom rule: false
+		 phenotype rule: false
+		 volume update function: true
+		 mechanics function: true
+		 contact function: false
+	motility (enabled: false in 2D)
+		speed: 1 micron/min
+		bias: 0 
+		persistence time: 1 min
+		chemotaxis (enabled: false)
+			along 1 * grad(substrate) 
+	custom data: 
+		sample: 0 dimensionless
+	custom vector data: 
+			NOTE: custom vector data will eventually be merged with custom data
+virtual_wall_at_domain_edge: enabled
+Pre-processing type 0 named stem
+Pre-processing type 1 named progenitor_1
+Pre-processing type 2 named progenitor_2
+Asymmetric division probabilities for stem: 0 1 0 
+  --------- attachment_elastic_constant = 0.01
+copying data ... 
+stem to progenitor_1
+  --------- attachment_elastic_constant = 0.01
+copying data ... 
+stem to progenitor_2
+  --------- attachment_elastic_constant = 0.01
+ruleset
+	Processing ruleset in ./config/cell_rules.csv ... 
+	Format: CSV (current version 3)
+Processing rules in file ./config/cell_rules.csv ... 
+Adding rule for stem cells:
+	contact with progenitor_1 decreases asymmetric division to progenitor_1 towards 0.0 with a Hill response, with half-max 3 and Hill power 4.
+Adding rule for stem cells:
+	contact with progenitor_1 increases asymmetric division to progenitor_2 towards 1.0 with a Hill response, with half-max 3 and Hill power 4.
+Adding rule for stem cells:
+	volume increases cycle entry towards 0.17 with a Hill response, with half-max 1200.0 and Hill power 8.
+Done!
+
+Copying ./config/cell_rules.csv to output folder.
+Copy command: cp ./config/cell_rules.csv output/cell_rules.csv
+Behavioral rules for cell type stem:
+===================================================
+contact with progenitor_1 decreases asymmetric division to progenitor_1
+contact with progenitor_1 increases asymmetric division to progenitor_2
+volume increases cycle entry
+
+Behavioral rules for cell type progenitor_1:
+===================================================
+
+Behavioral rules for cell type progenitor_2:
+===================================================
+
+Exporting rules to file output/cell_rules_parsed.csv (v3 format) ... 
+Done!
+
+virtual_wall_at_domain_edge: enabled
+Pre-processing type 0 named stem
+Pre-processing type 1 named progenitor_1
+Pre-processing type 2 named progenitor_2
+Asymmetric division probabilities for stem: 0 1 0 
+  --------- attachment_elastic_constant = 0.01
+copying data ... 
+stem to progenitor_1
+  --------- attachment_elastic_constant = 0.01
+copying data ... 
+stem to progenitor_2
+  --------- attachment_elastic_constant = 0.01
+ruleset
+	Processing ruleset in ./config/cell_rules.csv ... 
+	Format: CSV (current version 3)
+Processing rules in file ./config/cell_rules.csv ... 
+Adding rule for stem cells:
+	contact with progenitor_1 decreases asymmetric division to progenitor_1 towards 0.0 with a Hill response, with half-max 3 and Hill power 4.
+Adding rule for stem cells:
+	contact with progenitor_1 increases asymmetric division to progenitor_2 towards 1.0 with a Hill response, with half-max 3 and Hill power 4.
+Adding rule for stem cells:
+	volume increases cycle entry towards 0.17 with a Hill response, with half-max 1200.0 and Hill power 8.
+Done!
+
+Copying ./config/cell_rules.csv to output folder.
+Copy command: cp ./config/cell_rules.csv output/cell_rules.csv
+Behavioral rules for cell type stem:
+===================================================
+contact with progenitor_1 decreases asymmetric division to progenitor_1
+contact with progenitor_1 increases asymmetric division to progenitor_2
+volume increases cycle entry
+
+Behavioral rules for cell type progenitor_1:
+===================================================
+
+Behavioral rules for cell type progenitor_2:
+===================================================
+
+Exporting rules to file output/cell_rules_parsed.csv (v3 format) ... 
+Done!
+
+virtual_wall_at_domain_edge: enabled
+Pre-processing type 0 named stem
+Pre-processing type 1 named progenitor_1
+Pre-processing type 2 named progenitor_2
+Asymmetric division probabilities for stem: 0 1 0 
+  --------- attachment_elastic_constant = 0.01
+copying data ... 
+stem to progenitor_1
+  --------- attachment_elastic_constant = 0.01
+copying data ... 
+stem to progenitor_2
+  --------- attachment_elastic_constant = 0.01
+ruleset
+	Processing ruleset in ./config/cell_rules.csv ... 
+	Format: CSV (current version 3)
+Processing rules in file ./config/cell_rules.csv ... 
+Adding rule for stem cells:
+	contact with progenitor_1 decreases asymmetric division to progenitor_1 towards 0.0 with a Hill response, with half-max 3 and Hill power 4.
+Adding rule for stem cells:
+	contact with progenitor_1 increases asymmetric division to progenitor_2 towards 1.0 with a Hill response, with half-max 3 and Hill power 4.
+Adding rule for stem cells:
+	volume increases cycle entry towards 0.17 with a Hill response, with half-max 1200.0 and Hill power 8.
+Done!
+
+Copying ./config/cell_rules.csv to output folder.
+Copy command: cp ./config/cell_rules.csv output/cell_rules.csv
+Behavioral rules for cell type stem:
+===================================================
+contact with progenitor_1 decreases asymmetric division to progenitor_1
+contact with progenitor_1 increases asymmetric division to progenitor_2
+volume increases cycle entry
+
+Behavioral rules for cell type progenitor_1:
+===================================================
+
+Behavioral rules for cell type progenitor_2:
+===================================================
+
+Exporting rules to file output/cell_rules_parsed.csv (v3 format) ... 
+Done!
+
+virtual_wall_at_domain_edge: enabled
+Pre-processing type 0 named stem
+Pre-processing type 1 named progenitor_1
+Pre-processing type 2 named progenitor_2
+Asymmetric division probabilities for stem: 0 1 0 
+  --------- attachment_elastic_constant = 0.01
+copying data ... 
+stem to progenitor_1
+  --------- attachment_elastic_constant = 0.01
+copying data ... 
+stem to progenitor_2
+  --------- attachment_elastic_constant = 0.01
+ruleset
+	Processing ruleset in ./config/cell_rules.csv ... 
+	Format: CSV (current version 3)
+Processing rules in file ./config/cell_rules.csv ... 
+Adding rule for stem cells:
+	contact with progenitor_1 decreases asymmetric division to progenitor_1 towards 0.0 with a Hill response, with half-max 3 and Hill power 4.
+Adding rule for stem cells:
+	contact with progenitor_1 increases asymmetric division to progenitor_2 towards 1.0 with a Hill response, with half-max 3 and Hill power 4.
+Adding rule for stem cells:
+	volume increases cycle entry towards 0.17 with a Hill response, with half-max 1200.0 and Hill power 8.
+Done!
+
+Copying ./config/cell_rules.csv to output folder.
+Copy command: cp ./config/cell_rules.csv output/cell_rules.csv
+Behavioral rules for cell type stem:
+===================================================
+contact with progenitor_1 decreases asymmetric division to progenitor_1
+contact with progenitor_1 increases asymmetric division to progenitor_2
+volume increases cycle entry
+
+Behavioral rules for cell type progenitor_1:
+===================================================
+
+Behavioral rules for cell type progenitor_2:
+===================================================
+
+virtual_wall_at_domain_edge: enabled
+Pre-processing type 0 named stem
+Pre-processing type 1 named progenitor_1
+Pre-processing type 2 named progenitor_2
+Asymmetric division probabilities for stem: 0 1 0 
+  --------- attachment_elastic_constant = 0.01
+copying data ... 
+stem to progenitor_1
+  --------- attachment_elastic_constant = 0.01
+copying data ... 
+stem to progenitor_2
+  --------- attachment_elastic_constant = 0.01
+ruleset
+	Processing ruleset in ./config/cell_rules.csv ... 
+	Format: CSV (current version 3)
+Processing rules in file ./config/cell_rules.csv ... 
+Adding rule for stem cells:
+	contact with progenitor_1 decreases asymmetric division to progenitor_1 towards 0.0 with a Hill response, with half-max 3 and Hill power 4.
+Adding rule for stem cells:
+	contact with progenitor_1 increases asymmetric division to progenitor_2 towards 1.0 with a Hill response, with half-max 3 and Hill power 4.
+Adding rule for stem cells:
+	volume increases cycle entry towards 0.17 with a Hill response, with half-max 1200.0 and Hill power 8.
+Done!
+
+Copying ./config/cell_rules.csv to output folder.
+Copy command: cp ./config/cell_rules.csv output/cell_rules.csv
+virtual_wall_at_domain_edge: enabled
+Pre-processing type 0 named stem
+Pre-processing type 1 named progenitor_1
+Pre-processing type 2 named progenitor_2
+Asymmetric division probabilities for stem: 0 1 0 
+  --------- attachment_elastic_constant = 0.01
+copying data ... 
+stem to progenitor_1
+  --------- attachment_elastic_constant = 0.01
+copying data ... 
+stem to progenitor_2
+  --------- attachment_elastic_constant = 0.01
+ruleset
+	Processing ruleset in ./config/cell_rules.csv ... 
+	Format: CSV (current version 3)
+Processing rules in file ./config/cell_rules.csv ... 
+Adding rule for stem cells:
+	contact with progenitor_1 decreases asymmetric division to progenitor_1 towards 0.0 with a Hill response, with half-max 3 and Hill power 4.
+Adding rule for stem cells:
+	contact with progenitor_1 increases asymmetric division to progenitor_2 towards 1.0 with a Hill response, with half-max 3 and Hill power 4.
+Adding rule for stem cells:
+	volume increases cycle entry towards 0.17 with a Hill response, with half-max 1200.0 and Hill power 8.
+Done!
+
+Copying ./config/cell_rules.csv to output folder.
+Copy command: cp ./config/cell_rules.csv output/cell_rules.csv
+Behavioral rules for cell type stem:
+===================================================
+contact with progenitor_1 decreases asymmetric division to progenitor_1
+contact with progenitor_1 increases asymmetric division to progenitor_2
+volume increases cycle entry
+
+Behavioral rules for cell type progenitor_1:
+===================================================
+
+Behavioral rules for cell type progenitor_2:
+===================================================
+
+virtual_wall_at_domain_edge: enabled
+Pre-processing type 0 named stem
+Pre-processing type 1 named progenitor_1
+Pre-processing type 2 named progenitor_2
+Asymmetric division probabilities for stem: 0 1 0 
+  --------- attachment_elastic_constant = 0.01
+copying data ... 
+stem to progenitor_1
+  --------- attachment_elastic_constant = 0.01
+copying data ... 
+stem to progenitor_2
+  --------- attachment_elastic_constant = 0.01
+ruleset
+	Processing ruleset in ./config/cell_rules.csv ... 
+	Format: CSV (current version 3)
+Processing rules in file ./config/cell_rules.csv ... 
+Adding rule for stem cells:
+	contact with progenitor_1 decreases asymmetric division to progenitor_1 towards 0.0 with a Hill response, with half-max 3 and Hill power 4.
+Adding rule for stem cells:
+	contact with progenitor_1 increases asymmetric division to progenitor_2 towards 1.0 with a Hill response, with half-max 3 and Hill power 4.
+Adding rule for stem cells:
+	volume increases cycle entry towards 0.17 with a Hill response, with half-max 1200.0 and Hill power 8.
+Done!
+
+Copying ./config/cell_rules.csv to output folder.
+Copy command: cp ./config/cell_rules.csv output/cell_rules.csv
+Exporting rules to file output/cell_rules_parsed.csv (v3 format) ... 
+Done!
+
+virtual_wall_at_domain_edge: enabled
+Behavioral rules for cell type stem:
+===================================================
+contact with progenitor_1 decreases asymmetric division to progenitor_1
+contact with progenitor_1 increases asymmetric division to progenitor_2
+volume increases cycle entry
+
+Behavioral rules for cell type progenitor_1:
+===================================================
+
+Behavioral rules for cell type progenitor_2:
+===================================================
+
+Behavioral rules for cell type stem:
+===================================================
+contact with progenitor_1 decreases asymmetric division to progenitor_1
+contact with progenitor_1 increases asymmetric division to progenitor_2
+volume increases cycle entry
+
+Behavioral rules for cell type progenitor_1:
+===================================================
+
+Behavioral rules for cell type progenitor_2:
+===================================================
+
+Pre-processing type 0 named stem
+Pre-processing type 1 named progenitor_1
+Pre-processing type 2 named progenitor_2
+Asymmetric division probabilities for stem: 0 1 0 
+  --------- attachment_elastic_constant = 0.01
+copying data ... 
+stem to progenitor_1
+  --------- attachment_elastic_constant = 0.01
+copying data ... 
+stem to progenitor_2
+  --------- attachment_elastic_constant = 0.01
+ruleset
+	Processing ruleset in ./config/cell_rules.csv ... 
+	Format: CSV (current version 3)
+Processing rules in file ./config/cell_rules.csv ... 
+Adding rule for stem cells:
+	contact with progenitor_1 decreases asymmetric division to progenitor_1 towards 0.0 with a Hill response, with half-max 3 and Hill power 4.
+Adding rule for stem cells:
+	contact with progenitor_1 increases asymmetric division to progenitor_2 towards 1.0 with a Hill response, with half-max 3 and Hill power 4.
+Adding rule for stem cells:
+	volume increases cycle entry towards 0.17 with a Hill response, with half-max 1200.0 and Hill power 8.
+Done!
+
+Copying ./config/cell_rules.csv to output folder.
+Copy command: cp ./config/cell_rules.csv output/cell_rules.csv
+Behavioral rules for cell type stem:
+===================================================
+contact with progenitor_1 decreases asymmetric division to progenitor_1
+contact with progenitor_1 increases asymmetric division to progenitor_2
+volume increases cycle entry
+
+Behavioral rules for cell type progenitor_1:
+===================================================
+
+Behavioral rules for cell type progenitor_2:
+===================================================
+
+Exporting rules to file output/cell_rules_parsed.csv (v3 format) ... 
+Done!
+
+Exporting rules to file output/cell_rules_parsed.csv (v3 format) ... 
+Done!
+
+Exporting rules to file output/cell_rules_parsed.csv (v3 format) ... 
+Done!
+
+Exporting rules to file output/cell_rules_parsed.csv (v3 format) ... 
+Done!
+
+
+Loading cells from CSV file ./config/cells.csv ... 
+Loading cells from detailed (v2) CSV file ./config/cells.csv ... 
+Creating stem (type=0) at 0 0 0 
+Done! 
+
+
+Loading cells from CSV file ./config/cells.csv ... 
+Loading cells from detailed (v2) CSV file ./config/cells.csv ... 
+Creating stem (type=0) at 0 0 0 
+Done! 
+
+
+Loading cells from CSV file ./config/cells.csv ... 
+Loading cells from detailed (v2) CSV file ./config/cells.csv ... 
+Creating stem (type=0) at 0 0 0 
+Done! 
+
+
+Loading cells from CSV file ./config/cells.csv ... 
+Loading cells from detailed (v2) CSV file ./config/cells.csv ... 
+Creating stem (type=0) at 0 0 0 
+Done! 
+
+
+Loading cells from CSV file ./config/cells.csv ... 
+Loading cells from detailed (v2) CSV file ./config/cells.csv ... 
+Creating stem (type=0) at 0 0 0 
+Done! 
+
+
+Loading cells from CSV file ./config/cells.csv ... 
+Loading cells from detailed (v2) CSV file ./config/cells.csv ... 
+Creating stem (type=0) at 0 0 0 
+Done! 
+
+
+Loading cells from CSV file ./config/cells.csv ... 
+Loading cells from detailed (v2) CSV file ./config/cells.csv ... 
+Creating stem (type=0) at 0 0 0 
+Done! 
+
+
+Loading cells from CSV file ./config/cells.csv ... 
+Loading cells from detailed (v2) CSV file ./config/cells.csv ... 
+Creating stem (type=0) at 0 0 0 
+Done! 
+
+
+Loading cells from CSV file ./config/cells.csv ... 
+Loading cells from detailed (v2) CSV file ./config/cells.csv ... 
+Creating stem (type=0) at 0 0 0 
+Done! 
+
+
+Loading cells from CSV file ./config/cells.csv ... 
+Loading cells from detailed (v2) CSV file ./config/cells.csv ... 
+Creating stem (type=0) at 0 0 0 
+Done! 
+
+Copying ./config/cells.csv to output folder.
+Copy command: cp ./config/cells.csv output/cells.csv
+Copying ./config/cells.csv to output folder.
+Copy command: cp ./config/cells.csv output/cells.csv
+Copying ./config/cells.csv to output folder.
+Copy command: cp ./config/cells.csv output/cells.csv
+Copying ./config/cells.csv to output folder.
+Copy command: cp ./config/cells.csv output/cells.csv
+Copying ./config/cells.csv to output folder.
+Copy command: cp ./config/cells.csv output/cells.csv
+Copying ./config/cells.csv to output folder.
+Copy command: cp ./config/cells.csv output/cells.csv
+Copying ./config/cells.csv to output folder.
+Copy command: cp ./config/cells.csv output/cells.csv
+Copying ./config/cells.csv to output folder.
+Copy command: cp ./config/cells.csv output/cells.csv
+Copying ./config/cells.csv to output folder.
+Copy command: cp ./config/cells.csv output/cells.csv
+Copying ./config/cells.csv to output folder.
+Copy command: cp ./config/cells.csv output/cells.csv
+Using PhysiCell version 1.14.2
+	Please cite DOI: 10.1371/journal.pcbi.1005991
+	Project website: http://physicell.org
+
+See ALL_CITATIONS.txt for this list.
+current simulated time: 0 min (max: 1440 min)
+total agents: 3000010
+interval wall time: 0 days, 0 hours, 0 minutes, and 0.00242423 seconds  | 15.654GB 
+time scales:  diff -nan% |  mechs -nan% |  pheno -nan% |  intracell -nan%  
+total wall time: 0 days, 0 hours, 0 minutes, and 0.00243001 seconds 
+
+  Diffusion messages:18 | Size in 0.0762939 MB
+Warning! Do not use get_total_volume!
+Use (some_cell).phenotype.volume.total instead!
+Warning! Do not use get_total_volume!
+Use (some_cell).phenotype.volume.total instead!
+Warning! Do not use get_total_volume!
+Use (some_cell).phenotype.volume.total instead!
+Warning! Do not use get_total_volume!
+Use (some_cell).phenotype.volume.total instead!
+Warning! Do not use get_total_volume!
+Use (some_cell).phenotype.volume.total instead!
+Warning! Do not use get_total_volume!
+Use (some_cell).phenotype.volume.total instead!
+Warning! Do not use get_total_volume!
+Use (some_cell).phenotype.volume.total instead!
+Warning! Do not use get_total_volume!
+Use (some_cell).phenotype.volume.total instead!
+Warning! Do not use get_total_volume!
+Use (some_cell).phenotype.volume.total instead!
+Warning! Do not use get_total_volume!
+Use (some_cell).phenotype.volume.total instead!
+current simulated time: 6 min (max: 1440 min)
+total agents: 4000020
+interval wall time: 0 days, 0 hours, 4 minutes, and 31.7328 seconds  | 26.0547GB 
+time scales:  diff 0.86976% |  mechs 88.1117% |  pheno 10.9724% |  intracell 0.0461059%  
+total wall time: 0 days, 0 hours, 4 minutes, and 31.7352 seconds 
+
+current simulated time: 12 min (max: 1440 min)
+total agents: 4590055
+interval wall time: 0 days, 0 hours, 1 minutes, and 29.4045 seconds  | 30.7786GB 
+time scales:  diff 2.75896% |  mechs 84.4882% |  pheno 12.5772% |  intracell 0.175677%  
+total wall time: 0 days, 0 hours, 6 minutes, and 1.13969 seconds 
+
+current simulated time: 18 min (max: 1440 min)
+total agents: 4843390
+interval wall time: 0 days, 0 hours, 1 minutes, and 27.7667 seconds  | 32.9438GB 
+time scales:  diff 2.88715% |  mechs 93.9% |  pheno 3.01058% |  intracell 0.202242%  
+total wall time: 0 days, 0 hours, 7 minutes, and 28.9064 seconds 
+
+current simulated time: 24 min (max: 1440 min)
+total agents: 4952616
+interval wall time: 0 days, 0 hours, 1 minutes, and 28.1373 seconds  | 33.8917GB 
+time scales:  diff 2.86876% |  mechs 96.1852% |  pheno 0.820094% |  intracell 0.125917%  
+total wall time: 0 days, 0 hours, 8 minutes, and 57.0437 seconds 
+
+current simulated time: 30 min (max: 1440 min)
+total agents: 5003642
+interval wall time: 0 days, 0 hours, 1 minutes, and 28.5294 seconds  | 34.3549GB 
+time scales:  diff 2.83546% |  mechs 96.7491% |  pheno 0.299664% |  intracell 0.115755%  
+total wall time: 0 days, 0 hours, 10 minutes, and 25.5731 seconds 
+
+current simulated time: 36 min (max: 1440 min)
+total agents: 5031690
+interval wall time: 0 days, 0 hours, 1 minutes, and 29.9809 seconds  | 34.6196GB 
+time scales:  diff 2.85594% |  mechs 96.8494% |  pheno 0.174546% |  intracell 0.120116%  
+total wall time: 0 days, 0 hours, 11 minutes, and 55.554 seconds 
+
+current simulated time: 42 min (max: 1440 min)
+total agents: 5052544
+interval wall time: 0 days, 0 hours, 1 minutes, and 30.8122 seconds  | 34.8199GB 
+time scales:  diff 2.87701% |  mechs 96.8386% |  pheno 0.148074% |  intracell 0.136356%  
+total wall time: 0 days, 0 hours, 13 minutes, and 26.3662 seconds 
+
+current simulated time: 48 min (max: 1440 min)
+total agents: 5072973
+interval wall time: 0 days, 0 hours, 1 minutes, and 32.0907 seconds  | 35.0161GB 
+time scales:  diff 2.94439% |  mechs 96.7624% |  pheno 0.139813% |  intracell 0.153366%  
+total wall time: 0 days, 0 hours, 14 minutes, and 58.4569 seconds 
+
+current simulated time: 54 min (max: 1440 min)
+total agents: 5095865
+interval wall time: 0 days, 0 hours, 1 minutes, and 33.0908 seconds  | 35.2328GB 
+time scales:  diff 2.94095% |  mechs 96.8028% |  pheno 0.146074% |  intracell 0.110224%  
+total wall time: 0 days, 0 hours, 16 minutes, and 31.5477 seconds 
+
+current simulated time: 60 min (max: 1440 min)
+total agents: 5123373
+interval wall time: 0 days, 0 hours, 1 minutes, and 34.8319 seconds  | 35.4879GB 
+time scales:  diff 2.92575% |  mechs 96.7944% |  pheno 0.16331% |  intracell 0.116548%  
+total wall time: 0 days, 0 hours, 18 minutes, and 6.37956 seconds 
+
+current simulated time: 66 min (max: 1440 min)
+total agents: 5156963
+interval wall time: 0 days, 0 hours, 1 minutes, and 36.7243 seconds  | 35.7965GB 
+time scales:  diff 2.90115% |  mechs 96.8051% |  pheno 0.182447% |  intracell 0.111259%  
+total wall time: 0 days, 0 hours, 19 minutes, and 43.1038 seconds 
+
+current simulated time: 72 min (max: 1440 min)
+total agents: 5197204
+interval wall time: 0 days, 0 hours, 1 minutes, and 38.732 seconds  | 36.1653GB 
+time scales:  diff 2.85464% |  mechs 96.8271% |  pheno 0.207663% |  intracell 0.11056%  
+total wall time: 0 days, 0 hours, 21 minutes, and 21.8359 seconds 
+
+current simulated time: 78 min (max: 1440 min)
+total agents: 5246030
+interval wall time: 0 days, 0 hours, 1 minutes, and 40.8985 seconds  | 36.6159GB 
+time scales:  diff 2.83554% |  mechs 96.8078% |  pheno 0.247888% |  intracell 0.108808%  
+total wall time: 0 days, 0 hours, 23 minutes, and 2.73439 seconds 
+
+current simulated time: 84 min (max: 1440 min)
+total agents: 5304153
+interval wall time: 0 days, 0 hours, 1 minutes, and 43.6213 seconds  | 37.1404GB 
+time scales:  diff 2.84812% |  mechs 96.7482% |  pheno 0.297731% |  intracell 0.105973%  
+total wall time: 0 days, 0 hours, 24 minutes, and 46.3557 seconds 
+
+current simulated time: 90 min (max: 1440 min)
+total agents: 5371750
+interval wall time: 0 days, 0 hours, 1 minutes, and 46.0764 seconds  | 37.7477GB 
+time scales:  diff 2.84556% |  mechs 96.7043% |  pheno 0.342558% |  intracell 0.107589%  
+total wall time: 0 days, 0 hours, 26 minutes, and 32.4321 seconds 
+
+current simulated time: 96 min (max: 1440 min)
+total agents: 5448210
+interval wall time: 0 days, 0 hours, 1 minutes, and 48.7851 seconds  | 38.4302GB 
+time scales:  diff 2.84015% |  mechs 96.6659% |  pheno 0.38967% |  intracell 0.104234%  
+total wall time: 0 days, 0 hours, 28 minutes, and 21.2172 seconds 
+
+current simulated time: 102 min (max: 1440 min)
+total agents: 5531990
+interval wall time: 0 days, 0 hours, 1 minutes, and 51.6967 seconds  | 39.1806GB 
+time scales:  diff 2.83511% |  mechs 96.6213% |  pheno 0.430645% |  intracell 0.112917%  
+total wall time: 0 days, 0 hours, 30 minutes, and 12.9138 seconds 
+
+current simulated time: 108 min (max: 1440 min)
+total agents: 5620167
+interval wall time: 0 days, 0 hours, 1 minutes, and 54.4243 seconds  | 39.9681GB 
+time scales:  diff 2.83429% |  mechs 96.6062% |  pheno 0.446227% |  intracell 0.113242%  
+total wall time: 0 days, 0 hours, 32 minutes, and 7.33817 seconds 
+
+current simulated time: 114 min (max: 1440 min)
+total agents: 5708306
+interval wall time: 0 days, 0 hours, 1 minutes, and 57.5865 seconds  | 40.762GB 
+time scales:  diff 2.82168% |  mechs 96.6246% |  pheno 0.438713% |  intracell 0.114991%  
+total wall time: 0 days, 0 hours, 34 minutes, and 4.92471 seconds 
+
+current simulated time: 120 min (max: 1440 min)
+total agents: 5792849
+interval wall time: 0 days, 0 hours, 2 minutes, and 0.0165574 seconds  | 41.5506GB 
+time scales:  diff 2.796% |  mechs 96.6936% |  pheno 0.400889% |  intracell 0.109503%  
+total wall time: 0 days, 0 hours, 36 minutes, and 4.94127 seconds 
+
+current simulated time: 126 min (max: 1440 min)
+total agents: 5869920
+interval wall time: 0 days, 0 hours, 2 minutes, and 1.99558 seconds  | 42.2176GB 
+time scales:  diff 2.75217% |  mechs 96.7837% |  pheno 0.354891% |  intracell 0.109281%  
+total wall time: 0 days, 0 hours, 38 minutes, and 6.93686 seconds 
+
+current simulated time: 132 min (max: 1440 min)
+total agents: 5935956
+interval wall time: 0 days, 0 hours, 2 minutes, and 3.93814 seconds  | 42.8148GB 
+time scales:  diff 2.76873% |  mechs 96.8335% |  pheno 0.287444% |  intracell 0.110371%  
+total wall time: 0 days, 0 hours, 40 minutes, and 10.875 seconds 
+
+current simulated time: 138 min (max: 1440 min)
+total agents: 5991513
+interval wall time: 0 days, 0 hours, 2 minutes, and 5.6492 seconds  | 43.3235GB 
+time scales:  diff 2.74285% |  mechs 96.9012% |  pheno 0.234043% |  intracell 0.121911%  
+total wall time: 0 days, 0 hours, 42 minutes, and 16.5242 seconds 
+
+current simulated time: 144 min (max: 1440 min)
+total agents: 6036867
+interval wall time: 0 days, 0 hours, 2 minutes, and 7.35325 seconds  | 43.7355GB 
+time scales:  diff 2.76661% |  mechs 96.9392% |  pheno 0.190098% |  intracell 0.104085%  
+total wall time: 0 days, 0 hours, 44 minutes, and 23.8775 seconds 
+
+current simulated time: 150 min (max: 1440 min)
+total agents: 6076303
+interval wall time: 0 days, 0 hours, 2 minutes, and 8.2295 seconds  | 44.0994GB 
+time scales:  diff 2.81084% |  mechs 96.917% |  pheno 0.163317% |  intracell 0.108837%  
+total wall time: 0 days, 0 hours, 46 minutes, and 32.107 seconds 
+
+current simulated time: 156 min (max: 1440 min)
+total agents: 6113632
+interval wall time: 0 days, 0 hours, 2 minutes, and 9.77134 seconds  | 44.4452GB 
+time scales:  diff 2.91882% |  mechs 96.811% |  pheno 0.156197% |  intracell 0.113993%  
+total wall time: 0 days, 0 hours, 48 minutes, and 41.8783 seconds 
+
+current simulated time: 162 min (max: 1440 min)
+total agents: 6152562
+interval wall time: 0 days, 0 hours, 2 minutes, and 11.4585 seconds  | 44.8034GB 
+time scales:  diff 2.89808% |  mechs 96.8296% |  pheno 0.158332% |  intracell 0.113987%  
+total wall time: 0 days, 0 hours, 50 minutes, and 53.3368 seconds 
+
+current simulated time: 168 min (max: 1440 min)
+total agents: 6195945
+interval wall time: 0 days, 0 hours, 2 minutes, and 13.1815 seconds  | 45.2029GB 
+time scales:  diff 2.87169% |  mechs 96.8426% |  pheno 0.171724% |  intracell 0.113988%  
+total wall time: 0 days, 0 hours, 53 minutes, and 6.51838 seconds 
+
+current simulated time: 174 min (max: 1440 min)
+total agents: 6246028
+interval wall time: 0 days, 0 hours, 2 minutes, and 15.3023 seconds  | 45.6619GB 
+time scales:  diff 2.63488% |  mechs 97.0624% |  pheno 0.196342% |  intracell 0.106349%  
+total wall time: 0 days, 0 hours, 55 minutes, and 21.8207 seconds 
+
+current simulated time: 180 min (max: 1440 min)
+total agents: 6303522
+interval wall time: 0 days, 0 hours, 2 minutes, and 17.7938 seconds  | 46.1906GB 
+time scales:  diff 2.51955% |  mechs 97.1436% |  pheno 0.221602% |  intracell 0.115238%  
+total wall time: 0 days, 0 hours, 57 minutes, and 39.6145 seconds 
+
+current simulated time: 186 min (max: 1440 min)
+total agents: 6368618
+interval wall time: 0 days, 0 hours, 2 minutes, and 21.1069 seconds  | 46.7868GB 
+time scales:  diff 2.49958% |  mechs 97.1459% |  pheno 0.249506% |  intracell 0.104972%  
+total wall time: 0 days, 1 hours, 0 minutes, and 0.721312 seconds 
+
+current simulated time: 192 min (max: 1440 min)
+total agents: 6440565
+interval wall time: 0 days, 0 hours, 2 minutes, and 24.1876 seconds  | 47.432GB 
+time scales:  diff 2.37823% |  mechs 97.2401% |  pheno 0.27412% |  intracell 0.107516%  
+total wall time: 0 days, 1 hours, 2 minutes, and 24.9089 seconds 
+
+current simulated time: 198 min (max: 1440 min)
+total agents: 6517834
+interval wall time: 0 days, 0 hours, 2 minutes, and 26.2252 seconds  | 48.1314GB 
+time scales:  diff 2.34969% |  mechs 97.2503% |  pheno 0.297111% |  intracell 0.10293%  
+total wall time: 0 days, 1 hours, 4 minutes, and 51.1342 seconds 
+
+current simulated time: 204 min (max: 1440 min)
+total agents: 6597633
+interval wall time: 0 days, 0 hours, 2 minutes, and 28.7814 seconds  | 48.8586GB 
+time scales:  diff 2.3921% |  mechs 97.2% |  pheno 0.304542% |  intracell 0.103368%  
+total wall time: 0 days, 1 hours, 7 minutes, and 19.9156 seconds 
+
+current simulated time: 210 min (max: 1440 min)
+total agents: 6678694
+interval wall time: 0 days, 0 hours, 2 minutes, and 31.081 seconds  | 49.5894GB 
+time scales:  diff 2.39356% |  mechs 97.1869% |  pheno 0.303857% |  intracell 0.115671%  
+total wall time: 0 days, 1 hours, 9 minutes, and 50.9966 seconds 
+
+current simulated time: 216 min (max: 1440 min)
+total agents: 6758556
+interval wall time: 0 days, 0 hours, 2 minutes, and 33.6911 seconds  | 50.3238GB 
+time scales:  diff 2.32612% |  mechs 97.2748% |  pheno 0.297155% |  intracell 0.10189%  
+total wall time: 0 days, 1 hours, 12 minutes, and 24.6877 seconds 
+
+current simulated time: 222 min (max: 1440 min)
+total agents: 6833836
+interval wall time: 0 days, 0 hours, 2 minutes, and 35.6704 seconds  | 51.0094GB 
+time scales:  diff 2.27059% |  mechs 97.3522% |  pheno 0.272193% |  intracell 0.10502%  
+total wall time: 0 days, 1 hours, 15 minutes, and 0.358163 seconds 
+
+current simulated time: 228 min (max: 1440 min)
+total agents: 6903737
+interval wall time: 0 days, 0 hours, 2 minutes, and 36.8018 seconds  | 51.6431GB 
+time scales:  diff 2.24893% |  mechs 97.4005% |  pheno 0.249224% |  intracell 0.1013%  
+total wall time: 0 days, 1 hours, 17 minutes, and 37.1599 seconds 
+
+current simulated time: 234 min (max: 1440 min)
+total agents: 6967147
+interval wall time: 0 days, 0 hours, 2 minutes, and 39.7031 seconds  | 52.2283GB 
+time scales:  diff 2.24886% |  mechs 97.4273% |  pheno 0.217357% |  intracell 0.106449%  
+total wall time: 0 days, 1 hours, 20 minutes, and 16.863 seconds 
+
+current simulated time: 240 min (max: 1440 min)
+total agents: 7023692
+interval wall time: 0 days, 0 hours, 2 minutes, and 42.0755 seconds  | 52.753GB 
+time scales:  diff 2.20525% |  mechs 97.5044% |  pheno 0.18942% |  intracell 0.100943%  
+total wall time: 0 days, 1 hours, 22 minutes, and 58.9385 seconds 
+
+current simulated time: 246 min (max: 1440 min)
+total agents: 7076478
+interval wall time: 0 days, 0 hours, 2 minutes, and 44.1607 seconds  | 53.2282GB 
+time scales:  diff 2.23475% |  mechs 97.4748% |  pheno 0.173921% |  intracell 0.116495%  
+total wall time: 0 days, 1 hours, 25 minutes, and 43.0992 seconds 
+
+current simulated time: 252 min (max: 1440 min)
+total agents: 7125473
+interval wall time: 0 days, 0 hours, 2 minutes, and 45.5825 seconds  | 53.7018GB 
+time scales:  diff 2.19006% |  mechs 97.5246% |  pheno 0.16134% |  intracell 0.123977%  
+total wall time: 0 days, 1 hours, 28 minutes, and 28.6817 seconds 
+
+current simulated time: 258 min (max: 1440 min)
+total agents: 7174096
+interval wall time: 0 days, 0 hours, 2 minutes, and 47.3868 seconds  | 54.145GB 
+time scales:  diff 2.17362% |  mechs 97.5587% |  pheno 0.159822% |  intracell 0.107812%  
+total wall time: 0 days, 1 hours, 31 minutes, and 16.0685 seconds 
+
+current simulated time: 264 min (max: 1440 min)
+total agents: 7224107
+interval wall time: 0 days, 0 hours, 2 minutes, and 48.8857 seconds  | 54.6207GB 
+time scales:  diff 2.16734% |  mechs 97.5716% |  pheno 0.162469% |  intracell 0.0986062%  
+total wall time: 0 days, 1 hours, 34 minutes, and 4.95411 seconds 
+
+current simulated time: 270 min (max: 1440 min)
+total agents: 7277390
+interval wall time: 0 days, 0 hours, 2 minutes, and 50.6889 seconds  | 55.1037GB 
+time scales:  diff 2.14538% |  mechs 97.5808% |  pheno 0.170785% |  intracell 0.103002%  
+total wall time: 0 days, 1 hours, 36 minutes, and 55.643 seconds 
+
+current simulated time: 276 min (max: 1440 min)
+total agents: 7335482
+interval wall time: 0 days, 0 hours, 2 minutes, and 52.2711 seconds  | 55.6463GB 
+time scales:  diff 2.17108% |  mechs 97.5441% |  pheno 0.185547% |  intracell 0.0992265%  
+total wall time: 0 days, 1 hours, 39 minutes, and 47.9141 seconds 
+
+current simulated time: 282 min (max: 1440 min)
+total agents: 7398674
+interval wall time: 0 days, 0 hours, 2 minutes, and 55.334 seconds  | 56.2239GB 
+time scales:  diff 2.1189% |  mechs 97.5828% |  pheno 0.198584% |  intracell 0.0997607%  
+total wall time: 0 days, 1 hours, 42 minutes, and 43.2481 seconds 
+
+current simulated time: 288 min (max: 1440 min)
+total agents: 7465825
+interval wall time: 0 days, 0 hours, 2 minutes, and 57.5002 seconds  | 56.8361GB 
+time scales:  diff 2.14439% |  mechs 97.5373% |  pheno 0.212161% |  intracell 0.106151%  
+total wall time: 0 days, 1 hours, 45 minutes, and 40.7483 seconds 
+
+current simulated time: 294 min (max: 1440 min)
+total agents: 7537287
+interval wall time: 0 days, 0 hours, 2 minutes, and 59.5686 seconds  | 57.4928GB 
+time scales:  diff 2.13325% |  mechs 97.5458% |  pheno 0.220937% |  intracell 0.100023%  
+total wall time: 0 days, 1 hours, 48 minutes, and 40.3169 seconds 
+
+current simulated time: 300 min (max: 1440 min)
+total agents: 7610430
+interval wall time: 0 days, 0 hours, 3 minutes, and 1.69142 seconds  | 58.1865GB 
+time scales:  diff 2.13097% |  mechs 97.5274% |  pheno 0.226222% |  intracell 0.115399%  
+total wall time: 0 days, 1 hours, 51 minutes, and 42.0083 seconds 
+
+current simulated time: 306 min (max: 1440 min)
+total agents: 7684721
+interval wall time: 0 days, 0 hours, 3 minutes, and 4.54186 seconds  | 58.8747GB 
+time scales:  diff 2.11971% |  mechs 97.5387% |  pheno 0.226472% |  intracell 0.115116%  
+total wall time: 0 days, 1 hours, 54 minutes, and 46.5502 seconds 
+
+current simulated time: 312 min (max: 1440 min)
+total agents: 7757877
+interval wall time: 0 days, 0 hours, 3 minutes, and 6.8049 seconds  | 59.5228GB 
+time scales:  diff 2.12321% |  mechs 97.5571% |  pheno 0.221156% |  intracell 0.0985377%  
+total wall time: 0 days, 1 hours, 57 minutes, and 53.3551 seconds 
+
+current simulated time: 318 min (max: 1440 min)
+total agents: 7829355
+interval wall time: 0 days, 0 hours, 3 minutes, and 9.48554 seconds  | 60.1832GB 
+time scales:  diff 2.1388% |  mechs 97.5348% |  pheno 0.212347% |  intracell 0.11403%  
+total wall time: 0 days, 2 hours, 1 minutes, and 2.84065 seconds 
+
+current simulated time: 324 min (max: 1440 min)
+total agents: 7897389
+interval wall time: 0 days, 0 hours, 3 minutes, and 12.002 seconds  | 60.7994GB 
+time scales:  diff 2.10996% |  mechs 97.5758% |  pheno 0.201061% |  intracell 0.113158%  
+total wall time: 0 days, 2 hours, 4 minutes, and 14.8427 seconds 
+
+current simulated time: 330 min (max: 1440 min)
+total agents: 7961755
+interval wall time: 0 days, 0 hours, 3 minutes, and 14.8665 seconds  | 61.4031GB 
+time scales:  diff 2.11294% |  mechs 97.5934% |  pheno 0.185276% |  intracell 0.10843%  
+total wall time: 0 days, 2 hours, 7 minutes, and 29.7092 seconds 
+
+current simulated time: 336 min (max: 1440 min)
+total agents: 8022541
+interval wall time: 0 days, 0 hours, 3 minutes, and 17.4501 seconds  | 61.9705GB 
+time scales:  diff 2.13001% |  mechs 97.5997% |  pheno 0.170774% |  intracell 0.0995545%  
+total wall time: 0 days, 2 hours, 10 minutes, and 47.1593 seconds 
+
+current simulated time: 342 min (max: 1440 min)
+total agents: 8079979
+interval wall time: 0 days, 0 hours, 3 minutes, and 19.5072 seconds  | 62.5092GB 
+time scales:  diff 2.12673% |  mechs 97.5918% |  pheno 0.167698% |  intracell 0.113754%  
+total wall time: 0 days, 2 hours, 14 minutes, and 6.66648 seconds 
+
+current simulated time: 348 min (max: 1440 min)
+total agents: 8135435
+interval wall time: 0 days, 0 hours, 3 minutes, and 21.7724 seconds  | 63.0298GB 
+time scales:  diff 2.11927% |  mechs 97.6263% |  pheno 0.15389% |  intracell 0.100522%  
+total wall time: 0 days, 2 hours, 17 minutes, and 28.4389 seconds 
+
+current simulated time: 354 min (max: 1440 min)
+total agents: 8190502
+interval wall time: 0 days, 0 hours, 3 minutes, and 25.0614 seconds  | 63.5517GB 
+time scales:  diff 2.06961% |  mechs 97.672% |  pheno 0.151235% |  intracell 0.107117%  
+total wall time: 0 days, 2 hours, 20 minutes, and 53.5003 seconds 
+
+current simulated time: 360 min (max: 1440 min)
+total agents: 8245853
+interval wall time: 0 days, 0 hours, 3 minutes, and 27.723 seconds  | 64.0805GB 
+time scales:  diff 2.08671% |  mechs 97.6624% |  pheno 0.149616% |  intracell 0.101249%  
+total wall time: 0 days, 2 hours, 24 minutes, and 21.2233 seconds 
+
+current simulated time: 366 min (max: 1440 min)
+total agents: 8302457
+interval wall time: 0 days, 0 hours, 3 minutes, and 30.6124 seconds  | 64.6286GB 
+time scales:  diff 2.04387% |  mechs 97.7019% |  pheno 0.150639% |  intracell 0.103549%  
+total wall time: 0 days, 2 hours, 27 minutes, and 51.8357 seconds 
+
+current simulated time: 372 min (max: 1440 min)
+total agents: 8361101
+interval wall time: 0 days, 0 hours, 3 minutes, and 33.2947 seconds  | 65.1814GB 
+time scales:  diff 2.06184% |  mechs 97.6792% |  pheno 0.157028% |  intracell 0.10191%  
+total wall time: 0 days, 2 hours, 31 minutes, and 25.1305 seconds 
+
+current simulated time: 378 min (max: 1440 min)
+total agents: 8423005
+interval wall time: 0 days, 0 hours, 3 minutes, and 35.5109 seconds  | 65.7791GB 
+time scales:  diff 2.05037% |  mechs 97.6835% |  pheno 0.16316% |  intracell 0.10301%  
+total wall time: 0 days, 2 hours, 35 minutes, and 0.641373 seconds 
+
+current simulated time: 384 min (max: 1440 min)
+total agents: 8487889
+interval wall time: 0 days, 0 hours, 3 minutes, and 37.6014 seconds  | 66.4153GB 
+time scales:  diff 2.06456% |  mechs 97.6668% |  pheno 0.169354% |  intracell 0.0992736%  
+total wall time: 0 days, 2 hours, 38 minutes, and 38.2428 seconds 
+
+current simulated time: 390 min (max: 1440 min)
+total agents: 8555138
+interval wall time: 0 days, 0 hours, 3 minutes, and 39.9324 seconds  | 67.068GB 
+time scales:  diff 2.0674% |  mechs 97.658% |  pheno 0.174541% |  intracell 0.100088%  
+total wall time: 0 days, 2 hours, 42 minutes, and 18.1752 seconds 
+
+current simulated time: 396 min (max: 1440 min)
+total agents: 8624096
+interval wall time: 0 days, 0 hours, 3 minutes, and 42.2981 seconds  | 67.7569GB 
+time scales:  diff 2.06245% |  mechs 97.658% |  pheno 0.179543% |  intracell 0.0999763%  
+total wall time: 0 days, 2 hours, 46 minutes, and 0.473267 seconds 
+
+current simulated time: 402 min (max: 1440 min)
+total agents: 8693865
+interval wall time: 0 days, 0 hours, 3 minutes, and 44.8099 seconds  | 68.4388GB 
+time scales:  diff 2.06208% |  mechs 97.657% |  pheno 0.180282% |  intracell 0.100659%  
+total wall time: 0 days, 2 hours, 49 minutes, and 45.2832 seconds 
+
+current simulated time: 408 min (max: 1440 min)
+total agents: 8763482
+interval wall time: 0 days, 0 hours, 3 minutes, and 46.6422 seconds  | 69.1374GB 
+time scales:  diff 2.04981% |  mechs 97.6677% |  pheno 0.181307% |  intracell 0.101195%  
+total wall time: 0 days, 2 hours, 53 minutes, and 31.9254 seconds 
+
+current simulated time: 414 min (max: 1440 min)
+total agents: 8832310
+interval wall time: 0 days, 0 hours, 3 minutes, and 49.096 seconds  | 69.8223GB 
+time scales:  diff 2.06999% |  mechs 97.6515% |  pheno 0.176366% |  intracell 0.102134%  
+total wall time: 0 days, 2 hours, 57 minutes, and 21.0214 seconds 
+
+current simulated time: 420 min (max: 1440 min)
+total agents: 8899350
+interval wall time: 0 days, 0 hours, 3 minutes, and 51.3966 seconds  | 70.4941GB 
+time scales:  diff 2.03635% |  mechs 97.692% |  pheno 0.168657% |  intracell 0.102946%  
+total wall time: 0 days, 3 hours, 1 minutes, and 12.418 seconds 
+
+current simulated time: 426 min (max: 1440 min)
+total agents: 8964387
+interval wall time: 0 days, 0 hours, 3 minutes, and 53.3845 seconds  | 71.151GB 
+time scales:  diff 2.0577% |  mechs 97.6773% |  pheno 0.163357% |  intracell 0.101676%  
+total wall time: 0 days, 3 hours, 5 minutes, and 5.80244 seconds 
+
+current simulated time: 432 min (max: 1440 min)
+total agents: 9026843
+interval wall time: 0 days, 0 hours, 3 minutes, and 55.4154 seconds  | 71.782GB 
+time scales:  diff 2.02656% |  mechs 97.7158% |  pheno 0.155499% |  intracell 0.10211%  
+total wall time: 0 days, 3 hours, 9 minutes, and 1.21781 seconds 
+
+current simulated time: 438 min (max: 1440 min)
+total agents: 9087401
+interval wall time: 0 days, 0 hours, 3 minutes, and 57.2414 seconds  | 72.3896GB 
+time scales:  diff 2.04974% |  mechs 97.6955% |  pheno 0.151937% |  intracell 0.102855%  
+total wall time: 0 days, 3 hours, 12 minutes, and 58.4592 seconds 
+
+current simulated time: 444 min (max: 1440 min)
+total agents: 9146257
+interval wall time: 0 days, 0 hours, 3 minutes, and 59.6409 seconds  | 72.9822GB 
+time scales:  diff 2.06098% |  mechs 97.6831% |  pheno 0.146556% |  intracell 0.109383%  
+total wall time: 0 days, 3 hours, 16 minutes, and 58.1001 seconds 
+
+current simulated time: 450 min (max: 1440 min)
+total agents: 9204084
+interval wall time: 0 days, 0 hours, 4 minutes, and 1.43445 seconds  | 73.577GB 
+time scales:  diff 2.02219% |  mechs 97.7297% |  pheno 0.145518% |  intracell 0.102602%  
+total wall time: 0 days, 3 hours, 20 minutes, and 59.5346 seconds 
+
+current simulated time: 456 min (max: 1440 min)
+total agents: 9262382
+interval wall time: 0 days, 0 hours, 4 minutes, and 3.72434 seconds  | 74.1664GB 
+time scales:  diff 2.02236% |  mechs 97.73% |  pheno 0.14418% |  intracell 0.103418%  
+total wall time: 0 days, 3 hours, 25 minutes, and 3.25889 seconds 
+
+current simulated time: 462 min (max: 1440 min)
+total agents: 9321512
+interval wall time: 0 days, 0 hours, 4 minutes, and 6.37066 seconds  | 74.7614GB 
+time scales:  diff 2.00787% |  mechs 97.7437% |  pheno 0.144974% |  intracell 0.103482%  
+total wall time: 0 days, 3 hours, 29 minutes, and 9.62956 seconds 
+
+current simulated time: 468 min (max: 1440 min)
+total agents: 9381992
+interval wall time: 0 days, 0 hours, 4 minutes, and 7.658 seconds  | 75.3618GB 
+time scales:  diff 2.01038% |  mechs 97.7372% |  pheno 0.148212% |  intracell 0.104177%  
+total wall time: 0 days, 3 hours, 33 minutes, and 17.2876 seconds 
+
+current simulated time: 474 min (max: 1440 min)
+total agents: 9443768
+interval wall time: 0 days, 0 hours, 4 minutes, and 10.5737 seconds  | 75.9664GB 
+time scales:  diff 2.01305% |  mechs 97.7278% |  pheno 0.147575% |  intracell 0.111537%  
+total wall time: 0 days, 3 hours, 37 minutes, and 27.8613 seconds 
+
+current simulated time: 480 min (max: 1440 min)
+total agents: 9507114
+interval wall time: 0 days, 0 hours, 4 minutes, and 12.7882 seconds  | 76.5916GB 
+time scales:  diff 2.00364% |  mechs 97.7408% |  pheno 0.150291% |  intracell 0.105317%  
+total wall time: 0 days, 3 hours, 41 minutes, and 40.6495 seconds 
+
+current simulated time: 486 min (max: 1440 min)
+total agents: 9571972
+interval wall time: 0 days, 0 hours, 4 minutes, and 14.6713 seconds  | 77.2305GB 
+time scales:  diff 1.99495% |  mechs 97.7434% |  pheno 0.155022% |  intracell 0.106631%  
+total wall time: 0 days, 3 hours, 45 minutes, and 55.3208 seconds 
+
+current simulated time: 492 min (max: 1440 min)
+total agents: 9638462
+interval wall time: 0 days, 0 hours, 4 minutes, and 17.2172 seconds  | 77.8794GB 
+time scales:  diff 1.99258% |  mechs 97.7437% |  pheno 0.156827% |  intracell 0.106932%  
+total wall time: 0 days, 3 hours, 50 minutes, and 12.538 seconds 
+
+current simulated time: 498 min (max: 1440 min)
+total agents: 9705546
+interval wall time: 0 days, 0 hours, 4 minutes, and 19.5176 seconds  | 78.5172GB 
+time scales:  diff 1.9936% |  mechs 97.7409% |  pheno 0.156551% |  intracell 0.108936%  
+total wall time: 0 days, 3 hours, 54 minutes, and 32.0556 seconds 
+
+current simulated time: 504 min (max: 1440 min)
+total agents: 9772581
+interval wall time: 0 days, 0 hours, 4 minutes, and 21.7624 seconds  | 79.1675GB 
+time scales:  diff 1.99087% |  mechs 97.7505% |  pheno 0.15297% |  intracell 0.105687%  
+total wall time: 0 days, 3 hours, 58 minutes, and 53.818 seconds 
+
+current simulated time: 510 min (max: 1440 min)
+total agents: 9839226
+interval wall time: 0 days, 0 hours, 4 minutes, and 23.9989 seconds  | 79.8066GB 
+time scales:  diff 1.9915% |  mechs 97.7435% |  pheno 0.157117% |  intracell 0.107854%  
+total wall time: 0 days, 4 hours, 3 minutes, and 17.8169 seconds 
+
+current simulated time: 516 min (max: 1440 min)
+total agents: 9904645
+interval wall time: 0 days, 0 hours, 4 minutes, and 26.4655 seconds  | 80.4301GB 
+time scales:  diff 1.98835% |  mechs 97.7531% |  pheno 0.149221% |  intracell 0.10936%  
+total wall time: 0 days, 4 hours, 7 minutes, and 44.2824 seconds 
+
+current simulated time: 522 min (max: 1440 min)
+total agents: 9969672
+interval wall time: 0 days, 0 hours, 4 minutes, and 28.6657 seconds  | 81.051GB 
+time scales:  diff 1.98152% |  mechs 97.7605% |  pheno 0.148044% |  intracell 0.109904%  
+total wall time: 0 days, 4 hours, 12 minutes, and 12.9481 seconds 
+
+current simulated time: 528 min (max: 1440 min)
+total agents: 10032994
+interval wall time: 0 days, 0 hours, 4 minutes, and 31.1565 seconds  | 81.6499GB 
+time scales:  diff 1.95466% |  mechs 97.7958% |  pheno 0.142236% |  intracell 0.107282%  
+total wall time: 0 days, 4 hours, 16 minutes, and 44.1046 seconds 
+
+current simulated time: 534 min (max: 1440 min)
+total agents: 10094988
+interval wall time: 0 days, 0 hours, 4 minutes, and 33.2905 seconds  | 82.241GB 
+time scales:  diff 1.94899% |  mechs 97.8018% |  pheno 0.14046% |  intracell 0.108744%  
+total wall time: 0 days, 4 hours, 21 minutes, and 17.3951 seconds 
+
+current simulated time: 540 min (max: 1440 min)
+total agents: 10155979
+interval wall time: 0 days, 0 hours, 4 minutes, and 34.7252 seconds  | 82.8205GB 
+time scales:  diff 1.94343% |  mechs 97.8113% |  pheno 0.137803% |  intracell 0.107437%  
+total wall time: 0 days, 4 hours, 25 minutes, and 52.1203 seconds 
+
+current simulated time: 546 min (max: 1440 min)
+total agents: 10216491
+interval wall time: 0 days, 0 hours, 4 minutes, and 37.4514 seconds  | 83.3885GB 
+time scales:  diff 1.93148% |  mechs 97.8227% |  pheno 0.138881% |  intracell 0.106892%  
+total wall time: 0 days, 4 hours, 30 minutes, and 29.5717 seconds 
+
+current simulated time: 552 min (max: 1440 min)
+total agents: 10276463
+interval wall time: 0 days, 0 hours, 4 minutes, and 40.2452 seconds  | 83.9543GB 
+time scales:  diff 1.91685% |  mechs 97.8385% |  pheno 0.136313% |  intracell 0.108362%  
+total wall time: 0 days, 4 hours, 35 minutes, and 9.8169 seconds 
+
+current simulated time: 558 min (max: 1440 min)
+total agents: 10337348
+interval wall time: 0 days, 0 hours, 4 minutes, and 42.2456 seconds  | 84.5327GB 
+time scales:  diff 1.90482% |  mechs 97.8545% |  pheno 0.134764% |  intracell 0.105914%  
+total wall time: 0 days, 4 hours, 39 minutes, and 52.0625 seconds 
+
+current simulated time: 564 min (max: 1440 min)
+total agents: 10398798
+interval wall time: 0 days, 0 hours, 4 minutes, and 44.5582 seconds  | 85.1111GB 
+time scales:  diff 1.89055% |  mechs 97.8685% |  pheno 0.135846% |  intracell 0.105121%  
+total wall time: 0 days, 4 hours, 44 minutes, and 36.6208 seconds 
+
+current simulated time: 570 min (max: 1440 min)
+total agents: 10460709
+interval wall time: 0 days, 0 hours, 4 minutes, and 48.1534 seconds  | 85.7098GB 
+time scales:  diff 1.87462% |  mechs 97.8872% |  pheno 0.136515% |  intracell 0.101646%  
+total wall time: 0 days, 4 hours, 49 minutes, and 24.7742 seconds 
+
+current simulated time: 576 min (max: 1440 min)
+total agents: 10524257
+interval wall time: 0 days, 0 hours, 4 minutes, and 50.9125 seconds  | 86.3296GB 
+time scales:  diff 1.86369% |  mechs 97.8906% |  pheno 0.138722% |  intracell 0.107015%  
+total wall time: 0 days, 4 hours, 54 minutes, and 15.6867 seconds 
+
+current simulated time: 582 min (max: 1440 min)
+total agents: 10588212
+interval wall time: 0 days, 0 hours, 4 minutes, and 53.8372 seconds  | 86.9151GB 
+time scales:  diff 1.85101% |  mechs 97.9093% |  pheno 0.137425% |  intracell 0.102281%  
+total wall time: 0 days, 4 hours, 59 minutes, and 9.52385 seconds 
+
+current simulated time: 588 min (max: 1440 min)
+total agents: 10652739
+interval wall time: 0 days, 0 hours, 4 minutes, and 56.0898 seconds  | 87.5457GB 
+time scales:  diff 1.85249% |  mechs 97.9061% |  pheno 0.13834% |  intracell 0.103038%  
+total wall time: 0 days, 5 hours, 4 minutes, and 5.61368 seconds 
+
+current simulated time: 594 min (max: 1440 min)
+total agents: 10718122
+interval wall time: 0 days, 0 hours, 4 minutes, and 59.6646 seconds  | 88.169GB 
+time scales:  diff 1.84626% |  mechs 97.9153% |  pheno 0.137261% |  intracell 0.10119%  
+total wall time: 0 days, 5 hours, 9 minutes, and 5.27831 seconds 
+
+current simulated time: 600 min (max: 1440 min)
+total agents: 10783956
+interval wall time: 0 days, 0 hours, 5 minutes, and 3.7097 seconds  | 88.7652GB 
+time scales:  diff 1.83277% |  mechs 97.9193% |  pheno 0.137858% |  intracell 0.110062%  
+total wall time: 0 days, 5 hours, 14 minutes, and 8.98801 seconds 
+
+current simulated time: 606 min (max: 1440 min)
+total agents: 10849288
+interval wall time: 0 days, 0 hours, 5 minutes, and 7.91858 seconds  | 89.3695GB 
+time scales:  diff 1.824% |  mechs 97.9365% |  pheno 0.134696% |  intracell 0.104755%  
+total wall time: 0 days, 5 hours, 19 minutes, and 16.9066 seconds 
+
+current simulated time: 612 min (max: 1440 min)
+total agents: 10914048
+interval wall time: 0 days, 0 hours, 5 minutes, and 12.5361 seconds  | 89.9763GB 
+time scales:  diff 1.79882% |  mechs 97.9675% |  pheno 0.132373% |  intracell 0.101331%  
+total wall time: 0 days, 5 hours, 24 minutes, and 29.4427 seconds 
+
+current simulated time: 618 min (max: 1440 min)
+total agents: 10978493
+interval wall time: 0 days, 0 hours, 5 minutes, and 14.5926 seconds  | 90.5778GB 
+time scales:  diff 1.80322% |  mechs 97.9647% |  pheno 0.132424% |  intracell 0.099618%  
+total wall time: 0 days, 5 hours, 29 minutes, and 44.0353 seconds 
+
+current simulated time: 624 min (max: 1440 min)
+total agents: 11041784
+interval wall time: 0 days, 0 hours, 5 minutes, and 16.7904 seconds  | 91.1831GB 
+time scales:  diff 1.80386% |  mechs 97.9582% |  pheno 0.129858% |  intracell 0.108102%  
+total wall time: 0 days, 5 hours, 35 minutes, and 0.825757 seconds 
+
+current simulated time: 630 min (max: 1440 min)
+total agents: 11104481
+interval wall time: 0 days, 0 hours, 5 minutes, and 19.4315 seconds  | 91.7702GB 
+time scales:  diff 1.80111% |  mechs 97.9695% |  pheno 0.128111% |  intracell 0.101312%  
+total wall time: 0 days, 5 hours, 40 minutes, and 20.2573 seconds 
+
+current simulated time: 636 min (max: 1440 min)
+total agents: 11166847
+interval wall time: 0 days, 0 hours, 5 minutes, and 22.546 seconds  | 92.3537GB 
+time scales:  diff 1.79059% |  mechs 97.9808% |  pheno 0.127511% |  intracell 0.101069%  
+total wall time: 0 days, 5 hours, 45 minutes, and 42.8033 seconds 
+
+current simulated time: 642 min (max: 1440 min)
+total agents: 11228600
+interval wall time: 0 days, 0 hours, 5 minutes, and 23.7185 seconds  | 92.9426GB 
+time scales:  diff 1.79268% |  mechs 97.9786% |  pheno 0.12728% |  intracell 0.101452%  
+total wall time: 0 days, 5 hours, 51 minutes, and 6.52185 seconds 
+
+current simulated time: 648 min (max: 1440 min)
+total agents: 11290581
+interval wall time: 0 days, 0 hours, 5 minutes, and 26.1112 seconds  | 93.5269GB 
+time scales:  diff 1.79323% |  mechs 97.98% |  pheno 0.1258% |  intracell 0.100962%  
+total wall time: 0 days, 5 hours, 56 minutes, and 32.6331 seconds 
+
+current simulated time: 654 min (max: 1440 min)
+total agents: 11351517
+interval wall time: 0 days, 0 hours, 5 minutes, and 28.4278 seconds  | 94.1002GB 
+time scales:  diff 1.78137% |  mechs 97.9932% |  pheno 0.124502% |  intracell 0.100926%  
+total wall time: 0 days, 6 hours, 2 minutes, and 1.06094 seconds 
+
+current simulated time: 660 min (max: 1440 min)
+total agents: 11413179
+interval wall time: 0 days, 0 hours, 5 minutes, and 31.06 seconds  | 94.6807GB 
+time scales:  diff 1.77614% |  mechs 97.9982% |  pheno 0.125391% |  intracell 0.100257%  
+total wall time: 0 days, 6 hours, 7 minutes, and 32.121 seconds 
+
+current simulated time: 666 min (max: 1440 min)
+total agents: 11476203
+interval wall time: 0 days, 0 hours, 5 minutes, and 33.4874 seconds  | 95.2747GB 
+time scales:  diff 1.76259% |  mechs 98.0105% |  pheno 0.126686% |  intracell 0.100245%  
+total wall time: 0 days, 6 hours, 13 minutes, and 5.60842 seconds 
+
+current simulated time: 672 min (max: 1440 min)
+total agents: 11538676
+interval wall time: 0 days, 0 hours, 5 minutes, and 36.6519 seconds  | 95.8659GB 
+time scales:  diff 1.78194% |  mechs 97.9878% |  pheno 0.125103% |  intracell 0.105194%  
+total wall time: 0 days, 6 hours, 18 minutes, and 42.2604 seconds 
+
+current simulated time: 678 min (max: 1440 min)
+total agents: 11602634
+interval wall time: 0 days, 0 hours, 5 minutes, and 38.9126 seconds  | 96.4693GB 
+time scales:  diff 1.75469% |  mechs 98.0196% |  pheno 0.126402% |  intracell 0.0993317%  
+total wall time: 0 days, 6 hours, 24 minutes, and 21.173 seconds 
+
+current simulated time: 684 min (max: 1440 min)
+total agents: 11666881
+interval wall time: 0 days, 0 hours, 5 minutes, and 41.1548 seconds  | 97.0734GB 
+time scales:  diff 1.741% |  mechs 98.0328% |  pheno 0.127545% |  intracell 0.098661%  
+total wall time: 0 days, 6 hours, 30 minutes, and 2.32782 seconds 
+
+current simulated time: 690 min (max: 1440 min)
+total agents: 11731135
+interval wall time: 0 days, 0 hours, 5 minutes, and 43.4673 seconds  | 97.6772GB 
+time scales:  diff 1.72367% |  mechs 98.052% |  pheno 0.125739% |  intracell 0.0986133%  
+total wall time: 0 days, 6 hours, 35 minutes, and 45.7952 seconds 
+
+current simulated time: 696 min (max: 1440 min)
+total agents: 11795633
+interval wall time: 0 days, 0 hours, 5 minutes, and 44.6413 seconds  | 98.2891GB 
+time scales:  diff 1.72759% |  mechs 98.0439% |  pheno 0.126387% |  intracell 0.102099%  
+total wall time: 0 days, 6 hours, 41 minutes, and 30.4365 seconds 
+
+current simulated time: 702 min (max: 1440 min)
+total agents: 11860211
+interval wall time: 0 days, 0 hours, 5 minutes, and 46.5903 seconds  | 98.8975GB 
+time scales:  diff 1.73037% |  mechs 98.0436% |  pheno 0.12627% |  intracell 0.0997901%  
+total wall time: 0 days, 6 hours, 47 minutes, and 17.0268 seconds 
+
+current simulated time: 708 min (max: 1440 min)
+total agents: 11924391
+interval wall time: 0 days, 0 hours, 5 minutes, and 49.7529 seconds  | 99.5061GB 
+time scales:  diff 1.7353% |  mechs 98.0355% |  pheno 0.125371% |  intracell 0.103793%  
+total wall time: 0 days, 6 hours, 53 minutes, and 6.77965 seconds 
+
+current simulated time: 714 min (max: 1440 min)
+total agents: 11988156
+interval wall time: 0 days, 0 hours, 5 minutes, and 52.4367 seconds  | 100.105GB 
+time scales:  diff 1.733% |  mechs 98.0361% |  pheno 0.125178% |  intracell 0.105747%  
+total wall time: 0 days, 6 hours, 58 minutes, and 59.2164 seconds 
+
+current simulated time: 720 min (max: 1440 min)
+total agents: 12051646
+interval wall time: 0 days, 0 hours, 5 minutes, and 54.0786 seconds  | 100.703GB 
+time scales:  diff 1.72582% |  mechs 98.0454% |  pheno 0.123435% |  intracell 0.105327%  
+total wall time: 0 days, 7 hours, 4 minutes, and 53.295 seconds 
+
+current simulated time: 726 min (max: 1440 min)
+total agents: 12114738
+interval wall time: 0 days, 0 hours, 5 minutes, and 58.1199 seconds  | 101.302GB 
+time scales:  diff 1.71444% |  mechs 98.0607% |  pheno 0.122692% |  intracell 0.102151%  
+total wall time: 0 days, 7 hours, 10 minutes, and 51.4148 seconds 
+
+current simulated time: 732 min (max: 1440 min)
+total agents: 12177496
+interval wall time: 0 days, 0 hours, 6 minutes, and 0.723213 seconds  | 101.894GB 
+time scales:  diff 1.71688% |  mechs 98.0597% |  pheno 0.122044% |  intracell 0.101407%  
+total wall time: 0 days, 7 hours, 16 minutes, and 52.138 seconds 
+
+current simulated time: 738 min (max: 1440 min)
+total agents: 12239582
+interval wall time: 0 days, 0 hours, 6 minutes, and 3.31536 seconds  | 102.5GB 
+time scales:  diff 1.70629% |  mechs 98.0693% |  pheno 0.120666% |  intracell 0.103704%  
+total wall time: 0 days, 7 hours, 22 minutes, and 55.4534 seconds 
+
+current simulated time: 744 min (max: 1440 min)
+total agents: 12301854
+interval wall time: 0 days, 0 hours, 6 minutes, and 6.12312 seconds  | 103.091GB 
+time scales:  diff 1.7068% |  mechs 98.0696% |  pheno 0.122195% |  intracell 0.101384%  
+total wall time: 0 days, 7 hours, 29 minutes, and 1.57653 seconds 
+
+current simulated time: 750 min (max: 1440 min)
+total agents: 12364206
+interval wall time: 0 days, 0 hours, 6 minutes, and 9.20019 seconds  | 103.683GB 
+time scales:  diff 1.70671% |  mechs 98.0664% |  pheno 0.119339% |  intracell 0.107524%  
+total wall time: 0 days, 7 hours, 35 minutes, and 10.7767 seconds 
+
+current simulated time: 756 min (max: 1440 min)
+total agents: 12426827
+interval wall time: 0 days, 0 hours, 6 minutes, and 11.7168 seconds  | 104.272GB 
+time scales:  diff 1.69681% |  mechs 98.0824% |  pheno 0.120147% |  intracell 0.100626%  
+total wall time: 0 days, 7 hours, 41 minutes, and 22.4935 seconds 
+
+current simulated time: 762 min (max: 1440 min)
+total agents: 12489585
+interval wall time: 0 days, 0 hours, 6 minutes, and 14.0721 seconds  | 104.861GB 
+time scales:  diff 1.70675% |  mechs 98.0694% |  pheno 0.119647% |  intracell 0.104156%  
+total wall time: 0 days, 7 hours, 47 minutes, and 36.5656 seconds 
+
+current simulated time: 768 min (max: 1440 min)
+total agents: 12553160
+interval wall time: 0 days, 0 hours, 6 minutes, and 16.5109 seconds  | 105.475GB 
+time scales:  diff 1.70222% |  mechs 98.0748% |  pheno 0.120338% |  intracell 0.102649%  
+total wall time: 0 days, 7 hours, 53 minutes, and 53.0764 seconds 
+
+current simulated time: 774 min (max: 1440 min)
+total agents: 12616821
+interval wall time: 0 days, 0 hours, 6 minutes, and 19.1807 seconds  | 106.061GB 
+time scales:  diff 1.69415% |  mechs 98.0857% |  pheno 0.119282% |  intracell 0.1009%  
+total wall time: 0 days, 8 hours, 0 minutes, and 12.2571 seconds 
+
+current simulated time: 780 min (max: 1440 min)
+total agents: 12680675
+interval wall time: 0 days, 0 hours, 6 minutes, and 22.2703 seconds  | 106.661GB 
+time scales:  diff 1.67976% |  mechs 98.0994% |  pheno 0.121004% |  intracell 0.0997959%  
+total wall time: 0 days, 8 hours, 6 minutes, and 34.5274 seconds 
+
+current simulated time: 786 min (max: 1440 min)
+total agents: 12744732
+interval wall time: 0 days, 0 hours, 6 minutes, and 25.8271 seconds  | 107.262GB 
+time scales:  diff 1.6763% |  mechs 98.1033% |  pheno 0.119973% |  intracell 0.100454%  
+total wall time: 0 days, 8 hours, 13 minutes, and 0.354547 seconds 
+
+current simulated time: 792 min (max: 1440 min)
+total agents: 12808656
+interval wall time: 0 days, 0 hours, 6 minutes, and 28.3781 seconds  | 107.858GB 
+time scales:  diff 1.67943% |  mechs 98.1008% |  pheno 0.119205% |  intracell 0.10058%  
+total wall time: 0 days, 8 hours, 19 minutes, and 28.7326 seconds 
+
+current simulated time: 798 min (max: 1440 min)
+total agents: 12872559
+interval wall time: 0 days, 0 hours, 6 minutes, and 31.5397 seconds  | 108.457GB 
+time scales:  diff 1.66817% |  mechs 98.1131% |  pheno 0.118096% |  intracell 0.100612%  
+total wall time: 0 days, 8 hours, 26 minutes, and 0.272272 seconds 
+
+current simulated time: 804 min (max: 1440 min)
+total agents: 12936280
+interval wall time: 0 days, 0 hours, 6 minutes, and 37.1723 seconds  | 109.056GB 
+time scales:  diff 1.65812% |  mechs 98.1247% |  pheno 0.117063% |  intracell 0.100081%  
+total wall time: 0 days, 8 hours, 32 minutes, and 37.4446 seconds 
+
+current simulated time: 810 min (max: 1440 min)
+total agents: 13000170
+interval wall time: 0 days, 0 hours, 6 minutes, and 41.743 seconds  | 109.657GB 
+time scales:  diff 1.63907% |  mechs 98.1455% |  pheno 0.116828% |  intracell 0.0986317%  
+total wall time: 0 days, 8 hours, 39 minutes, and 19.1876 seconds 
+
+current simulated time: 816 min (max: 1440 min)
+total agents: 13063121
+interval wall time: 0 days, 0 hours, 6 minutes, and 48.1605 seconds  | 110.243GB 
+time scales:  diff 1.617% |  mechs 98.1706% |  pheno 0.114652% |  intracell 0.0977272%  
+total wall time: 0 days, 8 hours, 46 minutes, and 7.34815 seconds 
+
+current simulated time: 822 min (max: 1440 min)
+total agents: 13126124
+interval wall time: 0 days, 0 hours, 6 minutes, and 52.2682 seconds  | 110.837GB 
+time scales:  diff 1.60226% |  mechs 98.1881% |  pheno 0.113933% |  intracell 0.0957227%  
+total wall time: 0 days, 8 hours, 52 minutes, and 59.6163 seconds 
+
+current simulated time: 828 min (max: 1440 min)
+total agents: 13189007
+interval wall time: 0 days, 0 hours, 6 minutes, and 56.3369 seconds  | 111.433GB 
+time scales:  diff 1.58532% |  mechs 98.2032% |  pheno 0.11361% |  intracell 0.0978335%  
+total wall time: 0 days, 8 hours, 59 minutes, and 55.9532 seconds 
+
+current simulated time: 834 min (max: 1440 min)
+total agents: 13252048
+interval wall time: 0 days, 0 hours, 6 minutes, and 59.8698 seconds  | 112.024GB 
+time scales:  diff 1.58367% |  mechs 98.2076% |  pheno 0.11287% |  intracell 0.0958872%  
+total wall time: 0 days, 9 hours, 6 minutes, and 55.823 seconds 
+
+current simulated time: 840 min (max: 1440 min)
+total agents: 13314391
+interval wall time: 0 days, 0 hours, 7 minutes, and 2.12324 seconds  | 112.615GB 
+time scales:  diff 1.59477% |  mechs 98.1949% |  pheno 0.112454% |  intracell 0.097907%  
+total wall time: 0 days, 9 hours, 13 minutes, and 57.9463 seconds 
+
+current simulated time: 846 min (max: 1440 min)
+total agents: 13377490
+interval wall time: 0 days, 0 hours, 7 minutes, and 4.6682 seconds  | 113.212GB 
+time scales:  diff 1.59036% |  mechs 98.1965% |  pheno 0.114158% |  intracell 0.0989415%  
+total wall time: 0 days, 9 hours, 21 minutes, and 2.61446 seconds 
+
+current simulated time: 852 min (max: 1440 min)
+total agents: 13439918
+interval wall time: 0 days, 0 hours, 7 minutes, and 7.10361 seconds  | 113.811GB 
+time scales:  diff 1.58649% |  mechs 98.1987% |  pheno 0.112343% |  intracell 0.102461%  
+total wall time: 0 days, 9 hours, 28 minutes, and 9.71808 seconds 
+
+current simulated time: 858 min (max: 1440 min)
+total agents: 13502534
+interval wall time: 0 days, 0 hours, 7 minutes, and 9.19809 seconds  | 114.404GB 
+time scales:  diff 1.59684% |  mechs 98.1933% |  pheno 0.112489% |  intracell 0.0973629%  
+total wall time: 0 days, 9 hours, 35 minutes, and 18.9162 seconds 
+
+current simulated time: 864 min (max: 1440 min)
+total agents: 13565589
+interval wall time: 0 days, 0 hours, 7 minutes, and 13.5862 seconds  | 115.01GB 
+time scales:  diff 1.60034% |  mechs 98.1902% |  pheno 0.111641% |  intracell 0.0978551%  
+total wall time: 0 days, 9 hours, 42 minutes, and 32.5024 seconds 
+
+current simulated time: 870 min (max: 1440 min)
+total agents: 13628797
+interval wall time: 0 days, 0 hours, 7 minutes, and 16.0776 seconds  | 115.613GB 
+time scales:  diff 1.58008% |  mechs 98.209% |  pheno 0.112004% |  intracell 0.098904%  
+total wall time: 0 days, 9 hours, 49 minutes, and 48.58 seconds 
+
+current simulated time: 876 min (max: 1440 min)
+total agents: 13692203
+interval wall time: 0 days, 0 hours, 7 minutes, and 19.6926 seconds  | 116.238GB 
+time scales:  diff 1.57069% |  mechs 98.2212% |  pheno 0.11169% |  intracell 0.0964621%  
+total wall time: 0 days, 9 hours, 57 minutes, and 8.27263 seconds 
+
+current simulated time: 882 min (max: 1440 min)
+total agents: 13756123
+interval wall time: 0 days, 0 hours, 7 minutes, and 21.6438 seconds  | 116.861GB 
+time scales:  diff 1.5685% |  mechs 98.2232% |  pheno 0.112428% |  intracell 0.0958777%  
+total wall time: 0 days, 10 hours, 4 minutes, and 29.9164 seconds 
+
+current simulated time: 888 min (max: 1440 min)
+total agents: 13819994
+interval wall time: 0 days, 0 hours, 7 minutes, and 24.8767 seconds  | 117.494GB 
+time scales:  diff 1.56698% |  mechs 98.2241% |  pheno 0.11241% |  intracell 0.0965578%  
+total wall time: 0 days, 10 hours, 11 minutes, and 54.7931 seconds 
+
+current simulated time: 894 min (max: 1440 min)
+total agents: 13883577
+interval wall time: 0 days, 0 hours, 7 minutes, and 27.5048 seconds  | 118.127GB 
+time scales:  diff 1.55715% |  mechs 98.2347% |  pheno 0.111782% |  intracell 0.0963543%  
+total wall time: 0 days, 10 hours, 19 minutes, and 22.2979 seconds 
+
+current simulated time: 900 min (max: 1440 min)
+total agents: 13947287
+interval wall time: 0 days, 0 hours, 7 minutes, and 30.2618 seconds  | 118.777GB 
+time scales:  diff 1.55084% |  mechs 98.2419% |  pheno 0.11086% |  intracell 0.0963888%  
+total wall time: 0 days, 10 hours, 26 minutes, and 52.5597 seconds 
+
+current simulated time: 906 min (max: 1440 min)
+total agents: 14011045
+interval wall time: 0 days, 0 hours, 7 minutes, and 33.2261 seconds  | 119.445GB 
+time scales:  diff 1.56073% |  mechs 98.232% |  pheno 0.110631% |  intracell 0.0966175%  
+total wall time: 0 days, 10 hours, 34 minutes, and 25.7858 seconds 
+
+current simulated time: 912 min (max: 1440 min)
+total agents: 14074615
+interval wall time: 0 days, 0 hours, 7 minutes, and 35.5528 seconds  | 120.101GB 
+time scales:  diff 1.5513% |  mechs 98.2414% |  pheno 0.111052% |  intracell 0.0962641%  
+total wall time: 0 days, 10 hours, 42 minutes, and 1.33865 seconds 
+
+current simulated time: 918 min (max: 1440 min)
+total agents: 14137887
+interval wall time: 0 days, 0 hours, 7 minutes, and 39.256 seconds  | 120.785GB 
+time scales:  diff 1.55049% |  mechs 98.2397% |  pheno 0.110319% |  intracell 0.0995318%  
+total wall time: 0 days, 10 hours, 49 minutes, and 40.5947 seconds 
+
+current simulated time: 924 min (max: 1440 min)
+total agents: 14200825
+interval wall time: 0 days, 0 hours, 7 minutes, and 42.9612 seconds  | 121.47GB 
+time scales:  diff 1.54325% |  mechs 98.2383% |  pheno 0.110386% |  intracell 0.108099%  
+total wall time: 0 days, 10 hours, 57 minutes, and 23.5559 seconds 
+
+current simulated time: 930 min (max: 1440 min)
+total agents: 14263359
+interval wall time: 0 days, 0 hours, 7 minutes, and 45.3273 seconds  | 122.163GB 
+time scales:  diff 1.54106% |  mechs 98.2533% |  pheno 0.108616% |  intracell 0.0970292%  
+total wall time: 0 days, 11 hours, 5 minutes, and 8.88323 seconds 
+
+current simulated time: 936 min (max: 1440 min)
+total agents: 14326709
+interval wall time: 0 days, 0 hours, 7 minutes, and 49.584 seconds  | 122.904GB 
+time scales:  diff 1.54066% |  mechs 98.2534% |  pheno 0.109067% |  intracell 0.0968216%  
+total wall time: 0 days, 11 hours, 12 minutes, and 58.4672 seconds 
+
+current simulated time: 942 min (max: 1440 min)
+total agents: 14389911
+interval wall time: 0 days, 0 hours, 7 minutes, and 56.0622 seconds  | 123.625GB 
+time scales:  diff 1.52733% |  mechs 98.2688% |  pheno 0.106967% |  intracell 0.0968976%  
+total wall time: 0 days, 11 hours, 20 minutes, and 54.5295 seconds 
+
+current simulated time: 948 min (max: 1440 min)
+total agents: 14452805
+interval wall time: 0 days, 0 hours, 8 minutes, and 1.3692 seconds  | 124.366GB 
+time scales:  diff 1.52922% |  mechs 98.2674% |  pheno 0.106572% |  intracell 0.096824%  
+total wall time: 0 days, 11 hours, 28 minutes, and 55.8987 seconds 
+
+current simulated time: 954 min (max: 1440 min)
+total agents: 14515725
+interval wall time: 0 days, 0 hours, 8 minutes, and 3.6301 seconds  | 125.106GB 
+time scales:  diff 1.5179% |  mechs 98.2793% |  pheno 0.106545% |  intracell 0.0962232%  
+total wall time: 0 days, 11 hours, 36 minutes, and 59.5288 seconds 
+
+current simulated time: 960 min (max: 1440 min)
+total agents: 14578578
+interval wall time: 0 days, 0 hours, 8 minutes, and 7.07717 seconds  | 125.871GB 
+time scales:  diff 1.50986% |  mechs 98.2885% |  pheno 0.106112% |  intracell 0.0955323%  
+total wall time: 0 days, 11 hours, 45 minutes, and 6.60595 seconds 
+
+current simulated time: 966 min (max: 1440 min)
+total agents: 14641943
+interval wall time: 0 days, 0 hours, 8 minutes, and 8.53482 seconds  | 126.641GB 
+time scales:  diff 1.49831% |  mechs 98.2983% |  pheno 0.1066% |  intracell 0.0968266%  
+total wall time: 0 days, 11 hours, 53 minutes, and 15.1408 seconds 
+
+slurmstepd: error: *** STEP 30562238.0 ON gs11r1b21 CANCELLED AT 2025-10-10T23:54:02 DUE TO TIME LIMIT ***
+slurmstepd: error: *** JOB 30562238 ON gs11r1b21 CANCELLED AT 2025-10-10T23:54:02 DUE TO TIME LIMIT ***

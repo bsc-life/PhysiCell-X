@@ -10,12 +10,12 @@
     </cell_rules>
 
     <domain>
-        <x_min>-1000</x_min>
-        <x_max>1000</x_max>
-        <y_min>-1000</y_min>
-        <y_max>1000</y_max>
-        <z_min>-1000</z_min>
-        <z_max>1000</z_max>
+        <x_min>-5000</x_min>
+        <x_max>5000</x_max>
+        <y_min>-5000</y_min>
+        <y_max>5000</y_max>
+        <z_min>-5000</z_min>
+        <z_max>5000</z_max>
         <dx>20</dx>
         <dy>20</dy>
         <dz>20</dz>
@@ -23,7 +23,7 @@
     </domain>
 
     <overall>
-        <max_time units="min">64800</max_time>
+        <max_time units="min">3000</max_time>
         <time_units>min</time_units>
         <space_units>micron</space_units>
         <dt_diffusion units="min">0.01</dt_diffusion>
@@ -39,11 +39,11 @@
         <folder>output</folder>
         <full_data>
             <interval units="min">60</interval>
-            <enable>true</enable>
+            <enable>false</enable>
         </full_data>
         <SVG>
-            <interval units="min">60</interval>
-            <enable>true</enable>
+            <interval units="min">1000</interval>
+            <enable>false</enable>
             <plot_substrate enabled="false" limits="false">
                 <substrate>oxygen</substrate>
                 <min_conc />
@@ -188,19 +188,19 @@
                     </substrate>
                 </secretion>
                 <cell_interactions>
-                    <apoptotic_phagocytosis_rate units="1/min">1</apoptotic_phagocytosis_rate>
-                    <necrotic_phagocytosis_rate units="1/min">1</necrotic_phagocytosis_rate>
-                    <other_dead_phagocytosis_rate units="1/min">1</other_dead_phagocytosis_rate>
+                    <apoptotic_phagocytosis_rate units="1/min">0</apoptotic_phagocytosis_rate>
+                    <necrotic_phagocytosis_rate units="1/min">0</necrotic_phagocytosis_rate>
+                    <other_dead_phagocytosis_rate units="1/min">0</other_dead_phagocytosis_rate>
                     <live_phagocytosis_rates>
                         <phagocytosis_rate name="cancer cell" units="1/min">0</phagocytosis_rate>
                     </live_phagocytosis_rates>
                     <attack_rates>
-                        <attack_rate name="cancer cell" units="1/min">1</attack_rate>
+                        <attack_rate name="cancer cell" units="1/min">0</attack_rate>
                     </attack_rates>
                     <attack_damage_rate units="1/min">1</attack_damage_rate>
                     <attack_duration units="min">0.1</attack_duration>
                     <fusion_rates>
-                        <fusion_rate name="cancer cell" units="1/min">1</fusion_rate>
+                        <fusion_rate name="cancer cell" units="1/min">0</fusion_rate>
                     </fusion_rates>
                 </cell_interactions>
                 <cell_transformations>
@@ -229,7 +229,7 @@
     </initial_conditions>
 
     <user_parameters>
-        <number_of_cells type="int" units="none" description="initial number of cells (for each cell type)">0</number_of_cells>
+        <number_of_cells type="int" units="none" description="initial number of cells (for each cell type)">1000000</number_of_cells>
         <tumor_radius type="double" units="micron" description="">250</tumor_radius>
         <oncoprotein_mean type="double" units="" description="">1</oncoprotein_mean>
         <oncoprotein_sd type="double" units="" description="">0.25</oncoprotein_sd>

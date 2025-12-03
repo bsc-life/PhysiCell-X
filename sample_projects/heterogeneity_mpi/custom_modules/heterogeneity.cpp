@@ -84,96 +84,76 @@
 
 using namespace DistPhy::mpi;
 
-void create_cell_types( void )
+void create_cell_types( mpi_Environment &world, mpi_Cartesian &cart_topo )
 {
 	// Use the same random seed so that future experiments have the 
 	// same initial histogram of oncoprotein, even if threading means 
 	// that future division and other events are still not identical 
 	// for all runs 
 	
-	SeedRandom( parameters.ints( "random_seed" ) ); 
+	if (parameters.ints.find_index("random_seed") != -1)
+	{
+		SeedRandom(parameters.ints("random_seed"));
+	}
 	
 	// Housekeeping 
 	
 	initialize_default_cell_definition();
 	cell_defaults.phenotype.secretion.sync_to_microenvironment( &microenvironment ); 
 	
-	// Turn the default cycle model to live, 
-	// so it's easier to turn-off proliferation
-	
-	cell_defaults.phenotype.cycle.sync_to_cycle_model( live ); 
-	
-	// Make sure we're ready for 2D <---- This is changed to 3-D in PhysiCell-X
-	// in setup_microenvironment(...) as PhysiCell-X works ONLY in 3-D
-	
-	cell_defaults.functions.set_orientation = up_orientation;  
-	cell_defaults.phenotype.geometry.polarity = 1.0; 
-	cell_defaults.phenotype.motility.restrict_to_2D = true; 
-	
-	// Use default proliferation and death 
-	
-	int cycle_start_index = live.find_phase_index( PhysiCell_constants::live ); 
-	int cycle_end_index = live.find_phase_index( PhysiCell_constants::live ); 
-	
-	int apoptosis_index = cell_defaults.phenotype.death.find_death_model_index( PhysiCell_constants::apoptosis_death_model ); 
-	
-	cell_defaults.parameters.o2_proliferation_saturation = 38.0;  
-	cell_defaults.parameters.o2_reference = 38.0; 
+	cell_defaults.functions.volume_update_function = standard_volume_update_function;
+	cell_defaults.functions.update_velocity = standard_update_cell_velocity;
+	cell_defaults.functions.update_velocity_parallel = standard_update_cell_velocity;
 
-	initialize_cell_definitions_from_pugixml(); 
+	cell_defaults.functions.update_migration_bias = NULL; 
+	cell_defaults.functions.update_phenotype = NULL; // update_cell_and_death_parameters_O2_based; 
+	cell_defaults.functions.custom_cell_rule = NULL; 
+	cell_defaults.functions.contact_function = NULL; 
+	
+	cell_defaults.functions.add_cell_basement_membrane_interactions = NULL; 
+	cell_defaults.functions.calculate_distance_to_membrane = NULL; 
+
+	initialize_cell_definitions_from_pugixml(world, cart_topo); 
 	
 	// Set default uptake and secretion 
 	
-	static int oxygen_ID = microenvironment.find_density_index( "oxygen" ); 
+	build_cell_definitions_maps(); 
 
-	// Oxygen
-	 
-	cell_defaults.phenotype.secretion.secretion_rates[oxygen_ID] = 0; 
-	cell_defaults.phenotype.secretion.uptake_rates[oxygen_ID] = 10; 
-	cell_defaults.phenotype.secretion.saturation_densities[oxygen_ID] = 38; 
+	setup_signal_behavior_dictionaries(world, cart_topo); 
 
-	// Set the default cell type to no phenotype updates 
+	/* 
+	   Put any modifications to individual cell definitions here. 
+	   
+	   This is a good place to set custom functions. 
+	*/ 
 	
-	cell_defaults.functions.update_phenotype = tumor_cell_phenotype_with_oncoprotein; 
-	cell_defaults.name = "cancer cell"; 
-	cell_defaults.type = 0; 
+	cell_defaults.functions.update_phenotype = phenotype_function; 
+	cell_defaults.functions.custom_cell_rule = custom_function; 
+	cell_defaults.functions.contact_function = contact_function; 
 	
-	// Add custom data 
+	static int oxygen_ID = microenvironment.find_density_index( "oxygen" );
 	
-	cell_defaults.custom_data.add_variable( "oncoprotein" , "dimensionless", 1.0 ); 
+	Cell_Definition* pCD = find_cell_definition( "cancer cell"); 
+	pCD->functions.update_phenotype = tumor_cell_phenotype_with_oncoprotein; 
+
+	pCD->parameters.o2_proliferation_saturation = 38; 
+	pCD->parameters.o2_reference = 38; 
+
 	
-	build_cell_definitions_maps(); //Uncommenting it
-	
-	// display_cell_definitions( std::cout ); <------ will print using all processes, thus disabled
-	
-	/*---------------------------------------------------------------------------------------*/
-	/* display_cell_definitions(...) has been disabled above as the printing will be done by */
-	/* ALL processes. If you want to print (for checking, testing etc.) then create a new 	 */
-	/* version of void create_cell_types(mpi_Environment &world, mpi_Cartesian &cart_topo)	 */
-	/* and then use the IOProcessor(world) function to print using ONLY the root process  	 */
-	/*---------------------------------------------------------------------------------------*/
+	display_cell_definitions( std::cout, world, cart_topo );
 
 	return; 
 }
 
-void setup_microenvironment( void )
-{
-	
-	// Make sure not override and go back to 2D <--- ONLY valid for PhysiCell and NOT PhysiCell-X 
-	if( default_microenvironment_options.simulate_2D == true )
-	{
-		std::cout << "Warning: overriding XML config option and setting to 3D!" << std::endl; 
-		default_microenvironment_options.simulate_2D = false; 
-	}
-	
-	initialize_microenvironment(); 	
+void phenotype_function( Cell* pCell, Phenotype& phenotype, double dt )
+{ return; }
 
-	return; 
-}
+void custom_function( Cell* pCell, Phenotype& phenotype , double dt )
+{ return; } 
 
-/*==============================================*/
-/* Parallel version of setup_microenvironment() */
-/*==============================================*/
+void contact_function( Cell* pMe, Phenotype& phenoMe , Cell* pOther, Phenotype& phenoOther , double dt )
+{ return; } 
+
 
 void setup_microenvironment(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
@@ -191,119 +171,6 @@ void setup_microenvironment(mpi_Environment &world, mpi_Cartesian &cart_topo)
 
 	return; 
 }	
-
-
-void setup_tissue( void )
-{
-	// place a cluster of tumor cells at the center 
-	
-	double cell_radius = cell_defaults.phenotype.geometry.radius; 
-	double cell_spacing = 0.95 * 2.0 * cell_radius; 
-	
-	double tumor_radius = parameters.doubles( "tumor_radius" ); // 250.0; 
-	
-	// Parameter<double> temp; 
-	
-	int i = parameters.doubles.find_index( "tumor_radius" ); 
-	
-	Cell* pCell = NULL; 
-	
-	double x = 0.0; 
-	double x_outer = tumor_radius; 
-	double y = 0.0; 
-	
-	double p_mean = parameters.doubles( "oncoprotein_mean" ); 
-	double p_sd = parameters.doubles( "oncoprotein_sd" ); 
-	double p_min = parameters.doubles( "oncoprotein_min" ); 
-	double p_max = parameters.doubles( "oncoprotein_max" ); 
-	
-	int n = 0; 
-	while( y < tumor_radius )
-	{
-		x = 0.0; 
-		if( n % 2 == 1 )
-		{ x = 0.5*cell_spacing; }
-		x_outer = sqrt( tumor_radius*tumor_radius - y*y ); 
-		
-		while( x < x_outer )
-		{
-			pCell = create_cell(); // tumor cell 
-			pCell->assign_position( x , y , 0.0 );
-			pCell->custom_data[0] = NormalRandom( p_mean, p_sd );
-			if( pCell->custom_data[0] < p_min )
-			{ pCell->custom_data[0] = p_min; }
-			if( pCell->custom_data[0] > p_max )
-			{ pCell->custom_data[0] = p_max; }
-			
-			if( fabs( y ) > 0.01 )
-			{
-				pCell = create_cell(); // tumor cell 
-				pCell->assign_position( x , -y , 0.0 );
-				pCell->custom_data[0] = NormalRandom( p_mean, p_sd );
-				if( pCell->custom_data[0] < p_min )
-				{ pCell->custom_data[0] = p_min; }
-				if( pCell->custom_data[0] > p_max )
-				{ pCell->custom_data[0] = p_max; }				
-			}
-			
-			if( fabs( x ) > 0.01 )
-			{ 
-				pCell = create_cell(); // tumor cell 
-				pCell->assign_position( -x , y , 0.0 );
-				pCell->custom_data[0] = NormalRandom( p_mean, p_sd );
-				if( pCell->custom_data[0] < p_min )
-				{ pCell->custom_data[0] = p_min; }
-				if( pCell->custom_data[0] > p_max )
-				{ pCell->custom_data[0] = p_max; }
-		
-				if( fabs( y ) > 0.01 )
-				{
-					pCell = create_cell(); // tumor cell 
-					pCell->assign_position( -x , -y , 0.0 );
-					pCell->custom_data[0] = NormalRandom( p_mean, p_sd );
-					if( pCell->custom_data[0] < p_min )
-					{ pCell->custom_data[0] = p_min; }
-					if( pCell->custom_data[0] > p_max )
-					{ pCell->custom_data[0] = p_max; }
-				}
-			}
-			x += cell_spacing; 
-			
-		}
-		
-		y += cell_spacing * sqrt(3.0)/2.0; 
-		n++; 
-	}
-	
-	double sum = 0.0; 
-	double min = 9e9; 
-	double max = -9e9; 
-	for( int i=0; i < all_cells->size() ; i++ )
-	{
-		double r = (*all_cells)[i]->custom_data[0]; 
-		sum += r;
-		if( r < min )
-		{ min = r; } 
-		if( r > max )
-		{ max = r; }
-	}
-	double mean = sum / ( all_cells->size() + 1e-15 ); 
-	// compute standard deviation 
-	sum = 0.0; 
-	for( int i=0; i < all_cells->size(); i++ )
-	{
-		sum +=  ( (*all_cells)[i]->custom_data[0] - mean )*( (*all_cells)[i]->custom_data[0] - mean ); 
-	}
-	double standard_deviation = sqrt( sum / ( all_cells->size() - 1.0 + 1e-15 ) ); 
-	
-	std::cout << std::endl << "Oncoprotein summary: " << std::endl
-			  << "===================" << std::endl; 
-	std::cout << "mean: " << mean << std::endl; 
-	std::cout << "standard deviation: " << standard_deviation << std::endl; 
-	std::cout << "[min max]: [" << min << " " << max << "]" << std::endl << std::endl; 
-	
-	return; 
-}
 
 /*-------------------------------------------------------------------*/
 /* Miguel Ponce-de-Leon's function for generating positions of cells */
@@ -347,13 +214,55 @@ std::vector<std::vector<double>> create_cell_sphere_positions(double cell_radius
 
 void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
-  // Place a cluster of tumor cells at the center
-   
-	double cell_radius = cell_defaults.phenotype.geometry.radius; 
+
+	double Xmin = microenvironment.mesh.x_coordinates[0]; 
+	double Ymin = microenvironment.mesh.y_coordinates[0]; 
+	double Zmin = microenvironment.mesh.z_coordinates[0];
+
+	int x_voxels = microenvironment.mesh.x_coordinates.size();
+	int y_voxels = microenvironment.mesh.y_coordinates.size();
+	int z_voxels = microenvironment.mesh.z_coordinates.size();
+
+	double Xmax = microenvironment.mesh.x_coordinates[x_voxels - 1]; 
+	double Ymax = microenvironment.mesh.y_coordinates[y_voxels - 1]; 
+	double Zmax = microenvironment.mesh.z_coordinates[z_voxels - 1];
+
+	std::vector<double> position(3,0.0); 
+	
+	double x_range = Xmax - Xmin; 
+	double y_range = Ymax - Ymin;
+	double z_range = Zmax - Zmin; 
+
+	double relative_margin = 0.2;  
+	double relative_outer_margin = 0.02; 
+
+	for( int k=0; k < cell_definitions_by_index.size() ; k++ )
+	{
+		Cell* pC;
+		Cell_Definition* pCD = cell_definitions_by_index[k]; 
+		std::cout << "Placing cells of type " << pCD->name << " ... " << std::endl; 
+		for( int n = 0 ; n < parameters.ints("number_of_cells") / world.size ; n++ )
+		{
+			std::vector<double> position = {0,0,0}; 
+			position[0] = Xmin + UniformRandom()*x_range; 
+			position[1] = Ymin + UniformRandom()*y_range; 
+			position[2] = Zmin + UniformRandom()*z_range; 
+			
+			pC = create_cell( *pCD ); 
+			pC->assign_position( position, world, cart_topo );
+		}
+	}
+	std::cout << std::endl; 
+
+    // Custom placement
+
+	Cell_Definition* pCD = find_cell_definition( "cancer cell"); 
+	double cell_radius = pCD->phenotype.geometry.radius; 
 	double cell_spacing = 0.95 * 2.0 * cell_radius; 
 	
-	double tumor_radius = parameters.doubles( "tumor_radius" ); // 250.0; now changed to 150 in PhysiCell_settings.xml file	
-	int i = parameters.doubles.find_index( "tumor_radius" ); 
+	double tumor_radius = parameters.doubles( "tumor_radius" );
+	
+	//int i = parameters.doubles.find_index( "tumor_radius" ); 
 	
 	Cell* pCell = NULL; 
     
@@ -401,7 +310,7 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 		for( int i=0; i < mc.my_no_of_cell_IDs; i++ )
 		{
 		  
-			pCell = create_cell(mc.my_cell_IDs[i]); // tumor cell --> This has to be replaced by create_cell(mc.my_cell_IDs[i])
+			pCell = create_cell(*pCD, mc.my_cell_IDs[i]); // tumor cell --> This has to be replaced by create_cell(mc.my_cell_IDs[i])
 	  	  		
 			pCell->assign_position(mc.my_cell_coords[3*i],mc.my_cell_coords[3*i+1],mc.my_cell_coords[3*i+2],world, cart_topo); //pCell->assign_position( positions[i] );
 				 	

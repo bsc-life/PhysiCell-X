@@ -206,6 +206,7 @@ void display_simulation_status( std::ostream& os, mpi_Environment &world, mpi_Ca
 	MPI_Reduce(&time_mechs, &global_time_mech, 1, MPI_DOUBLE, MPI_MAX, 0, cart_topo.mpi_cart_comm);
 	MPI_Reduce(&time_pheno, &global_time_pheno, 1, MPI_DOUBLE, MPI_MAX, 0, cart_topo.mpi_cart_comm);
 	MPI_Reduce(&time_intracell, &global_time_intracell, 1, MPI_DOUBLE, MPI_MAX, 0, cart_topo.mpi_cart_comm);
+	MPI_Reduce(&local_ram, &global_ram, 1, MPI_DOUBLE, MPI_SUM, 0, cart_topo.mpi_cart_comm);
 
 	if(IOProcessor(world))
 	{	

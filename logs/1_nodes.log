@@ -1,0 +1,353 @@
+  _____  _               _  _____     _ _     __   __                     _                    ___  __	
+ |  __ \| |             (_)/ ____|   | | |    \ \ / /                    (_)                  / _ \/_ |
+ | |__) | |__  _   _ ___ _| |     ___| | |_____\ V /  __   _____ _ __ ___ _  ___  _ __ ______| | | || |
+ |  ___/| '_ \| | | / __| | |    / _ \ | |______> <   \ \ / / _ \ '__/ __| |/ _ \| '_ \______| | | || |
+ | |    | | | | |_| \__ \ | |___|  __/ | |     / . \   \ V /  __/ |  \__ \ | (_) | | | |     | |_| || |
+ |_|    |_| |_|\__, |___/_|\_____\___|_|_|    /_/ \_\   \_/ \___|_|  |___/_|\___/|_| |_|      \___(_)_|
+                __/ |                                                                                  
+               |___/                                                                                   
+Using config file ./config/PhysiCell_settings.xml ... 
+1
+dc? 1
+User parameters in XML config file: 
+Bool parameters:: 
+
+Int parameters:: 
+number_of_cells: 1000000 [none]
+
+Double parameters:: 
+
+String parameters:: 
+
+
+which boundaries?
+1 1 1 1 0 0
+
+Microenvironment summary: microenvironment: 
+
+Mesh information: 
+type: uniform Cartesian
+Domain: [-1000,1000] micron x [-1000,1000] micron x [-1000,1000] micron
+   resolution: dx = 20 micron
+   voxels (per-process): 1000000
+   voxel faces: 0
+   volume: 8e+09 cubic micron
+Densities: (1 total)
+   substrate:
+     units: dimensionless
+     diffusion coefficient: 100000 micron^2 / min
+     decay rate: 10 min^-1
+     diffusion length scale: 100 micron
+     initial condition: 0 dimensionless
+     boundary condition: 38 dimensionless (enabled: true)
+
+virtual_wall_at_domain_edge: enabled
+Pre-processing type 0 named stem
+Pre-processing type 1 named progenitor_1
+Pre-processing type 2 named progenitor_2
+Asymmetric division probabilities for stem: 0 1 0 
+  --------- attachment_elastic_constant = 0.01
+copying data ... 
+stem to progenitor_1
+  --------- attachment_elastic_constant = 0.01
+copying data ... 
+stem to progenitor_2
+  --------- attachment_elastic_constant = 0.01
+Signals: 
+=======
+0 : substrate
+1 : intracellular substrate
+2 : substrate gradient
+3 : pressure
+4 : volume
+5 : contact with stem
+6 : contact with progenitor_1
+7 : contact with progenitor_2
+8 : contact with live cell
+9 : contact with dead cell
+10 : contact with apoptotic cell
+11 : contact with necrotic cell
+12 : contact with other dead cell
+13 : contact with basement membrane
+14 : damage
+15 : damage delivered
+16 : attacking
+17 : dead
+18 : total attack time
+19 : time
+20 : custom:sample
+21 : apoptotic
+22 : necrotic
+
+
+Behaviors: 
+=========
+0 : substrate secretion
+1 : substrate secretion target
+2 : substrate uptake
+3 : substrate export
+4 : cycle entry
+5 : exit from cycle phase 1
+6 : exit from cycle phase 2
+7 : exit from cycle phase 3
+8 : exit from cycle phase 4
+9 : exit from cycle phase 5
+10 : apoptosis
+11 : necrosis
+12 : migration speed
+13 : migration bias
+14 : migration persistence time
+15 : chemotactic response to substrate
+16 : cell-cell adhesion
+17 : cell-cell adhesion elastic constant
+18 : adhesive affinity to stem
+19 : adhesive affinity to progenitor_1
+20 : adhesive affinity to progenitor_2
+21 : relative maximum adhesion distance
+22 : cell-cell repulsion
+23 : cell-BM adhesion
+24 : cell-BM repulsion
+25 : phagocytose apoptotic cell
+26 : phagocytose necrotic cell
+27 : phagocytose other dead cell
+28 : phagocytose stem
+29 : phagocytose progenitor_1
+30 : phagocytose progenitor_2
+31 : attack stem
+32 : attack progenitor_1
+33 : attack progenitor_2
+34 : fuse to stem
+35 : fuse to progenitor_1
+36 : fuse to progenitor_2
+37 : transform to stem
+38 : transform to progenitor_1
+39 : transform to progenitor_2
+40 : asymmetric division to stem
+41 : asymmetric division to progenitor_1
+42 : asymmetric division to progenitor_2
+43 : custom:sample
+44 : is_movable
+45 : immunogenicity to stem
+46 : immunogenicity to progenitor_1
+47 : immunogenicity to progenitor_2
+48 : cell attachment rate
+49 : cell detachment rate
+50 : maximum number of cell attachments
+51 : attack damage rate
+52 : attack duration
+53 : damage rate
+54 : damage repair rate
+
+
+ruleset
+	Processing ruleset in ./config/cell_rules.csv ... 
+	Format: CSV (current version 3)
+Processing rules in file ./config/cell_rules.csv ... 
+Adding rule for stem cells:
+	contact with progenitor_1 decreases asymmetric division to progenitor_1 towards 0.0 with a Hill response, with half-max 3 and Hill power 4.
+Adding rule for stem cells:
+	contact with progenitor_1 increases asymmetric division to progenitor_2 towards 1.0 with a Hill response, with half-max 3 and Hill power 4.
+Adding rule for stem cells:
+	volume increases cycle entry towards 0.17 with a Hill response, with half-max 1200.0 and Hill power 8.
+Done!
+
+Copying ./config/cell_rules.csv to output folder.
+Copy command: cp ./config/cell_rules.csv output/cell_rules.csv
+Behavioral rules for cell type stem:
+===================================================
+contact with progenitor_1 decreases asymmetric division to progenitor_1
+contact with progenitor_1 increases asymmetric division to progenitor_2
+volume increases cycle entry
+
+Behavioral rules for cell type progenitor_1:
+===================================================
+
+Behavioral rules for cell type progenitor_2:
+===================================================
+
+Exporting rules to file output/cell_rules_parsed.csv (v3 format) ... 
+Done!
+
+0 :: type:0 name: stem
+	 cycle model: Live (code=5)
+		Phase 0: Live
+		Cycle transitions: 
+		-----------------
+		Live --> Live w mean duration 1440 min
+	 death models: 
+		0 : Apoptosis (code=100) with rate 0 1/min
+		death phase transitions: 
+		------------------------
+		Apoptotic --> Debris w mean duration 515.996 min
+		1 : Necrosis (code=101) with rate 0 1/min
+		death phase transitions: 
+		------------------------
+		Necrotic (swelling) --> Necrotic (lysed) w mean duration 1.11111e-10 min
+		Necrotic (lysed) --> Debris w mean duration 86399.8 min
+	 key functions: 
+		 migration bias rule: false
+		 custom rule: true
+		 phenotype rule: true
+		 volume update function: true
+		 mechanics function: true
+		 contact function: true
+	motility (enabled: false in 2D)
+		speed: 1 micron/min
+		bias: 0.5 
+		persistence time: 1 min
+		chemotaxis (enabled: false)
+			along 1 * grad(substrate) 
+	custom data: 
+		sample: 1 dimensionless
+	custom vector data: 
+			NOTE: custom vector data will eventually be merged with custom data
+1 :: type:1 name: progenitor_1
+	 cycle model: Live (code=5)
+		Phase 0: Live
+		Cycle transitions: 
+		-----------------
+		Live --> Live w mean duration inf min
+	 death models: 
+		0 : Apoptosis (code=100) with rate 0 1/min
+		death phase transitions: 
+		------------------------
+		Apoptotic --> Debris w mean duration 515.996 min
+		1 : Necrosis (code=101) with rate 0 1/min
+		death phase transitions: 
+		------------------------
+		Necrotic (swelling) --> Necrotic (lysed) w mean duration 1.11111e-10 min
+		Necrotic (lysed) --> Debris w mean duration 86399.8 min
+	 key functions: 
+		 migration bias rule: false
+		 custom rule: false
+		 phenotype rule: false
+		 volume update function: true
+		 mechanics function: true
+		 contact function: false
+	motility (enabled: false in 2D)
+		speed: 1 micron/min
+		bias: 0 
+		persistence time: 1 min
+		chemotaxis (enabled: false)
+			along 1 * grad(substrate) 
+	custom data: 
+		sample: 0 dimensionless
+	custom vector data: 
+			NOTE: custom vector data will eventually be merged with custom data
+2 :: type:2 name: progenitor_2
+	 cycle model: Live (code=5)
+		Phase 0: Live
+		Cycle transitions: 
+		-----------------
+		Live --> Live w mean duration inf min
+	 death models: 
+		0 : Apoptosis (code=100) with rate 0 1/min
+		death phase transitions: 
+		------------------------
+		Apoptotic --> Debris w mean duration 515.996 min
+		1 : Necrosis (code=101) with rate 0 1/min
+		death phase transitions: 
+		------------------------
+		Necrotic (swelling) --> Necrotic (lysed) w mean duration 1.11111e-10 min
+		Necrotic (lysed) --> Debris w mean duration 86399.8 min
+	 key functions: 
+		 migration bias rule: false
+		 custom rule: false
+		 phenotype rule: false
+		 volume update function: true
+		 mechanics function: true
+		 contact function: false
+	motility (enabled: false in 2D)
+		speed: 1 micron/min
+		bias: 0 
+		persistence time: 1 min
+		chemotaxis (enabled: false)
+			along 1 * grad(substrate) 
+	custom data: 
+		sample: 0 dimensionless
+	custom vector data: 
+			NOTE: custom vector data will eventually be merged with custom data
+
+Loading cells from CSV file ./config/cells.csv ... 
+Loading cells from detailed (v2) CSV file ./config/cells.csv ... 
+Creating stem (type=0) at 0 0 0 
+Done! 
+
+Copying ./config/cells.csv to output folder.
+Copy command: cp ./config/cells.csv output/cells.csv
+Using PhysiCell version 1.14.2
+	Please cite DOI: 10.1371/journal.pcbi.1005991
+	Project website: http://physicell.org
+
+See ALL_CITATIONS.txt for this list.
+current simulated time: 0 min (max: 60 min)
+total agents: 3000001
+interval wall time: 0 days, 0 hours, 0 minutes, and 6.2671e-05 seconds  | 14.2483GB 
+time scales:  diff -nan% |  mechs -nan% |  pheno -nan% |  intracell -nan%  
+total wall time: 0 days, 0 hours, 0 minutes, and 6.9025e-05 seconds 
+
+  Diffusion messages:0 | Size in 0.0762939 MB
+current simulated time: 6 min (max: 60 min)
+total agents: 4000002
+interval wall time: 0 days, 7 hours, 35 minutes, and 29.4001 seconds  | 23.1057GB 
+time scales:  diff 0.0855105% |  mechs 90.745% |  pheno 9.16446% |  intracell 0.00501389%  
+total wall time: 0 days, 7 hours, 35 minutes, and 29.4002 seconds 
+
+current simulated time: 12 min (max: 60 min)
+total agents: 4589966
+interval wall time: 0 days, 0 hours, 20 minutes, and 25.4317 seconds  | 28.0946GB 
+time scales:  diff 2.32507% |  mechs 24.806% |  pheno 72.6888% |  intracell 0.180158%  
+total wall time: 0 days, 7 hours, 55 minutes, and 54.8319 seconds 
+
+current simulated time: 18 min (max: 60 min)
+total agents: 4843497
+interval wall time: 0 days, 0 hours, 8 minutes, and 53.9062 seconds  | 30.2143GB 
+time scales:  diff 5.86343% |  mechs 61.5378% |  pheno 32.1968% |  intracell 0.401991%  
+total wall time: 0 days, 8 hours, 4 minutes, and 48.7381 seconds 
+
+current simulated time: 24 min (max: 60 min)
+total agents: 4953294
+interval wall time: 0 days, 0 hours, 6 minutes, and 48.9497 seconds  | 31.136GB 
+time scales:  diff 6.65704% |  mechs 84.3726% |  pheno 8.47702% |  intracell 0.493308%  
+total wall time: 0 days, 8 hours, 11 minutes, and 37.6878 seconds 
+
+current simulated time: 30 min (max: 60 min)
+total agents: 5003610
+interval wall time: 0 days, 0 hours, 6 minutes, and 29.9632 seconds  | 31.565GB 
+time scales:  diff 6.66078% |  mechs 90.7553% |  pheno 2.13424% |  intracell 0.449674%  
+total wall time: 0 days, 8 hours, 18 minutes, and 7.65103 seconds 
+
+current simulated time: 36 min (max: 60 min)
+total agents: 5031502
+interval wall time: 0 days, 0 hours, 6 minutes, and 34.6642 seconds  | 31.8062GB 
+time scales:  diff 6.46648% |  mechs 92.3144% |  pheno 0.764344% |  intracell 0.454771%  
+total wall time: 0 days, 8 hours, 24 minutes, and 42.3153 seconds 
+
+current simulated time: 42 min (max: 60 min)
+total agents: 5052291
+interval wall time: 0 days, 0 hours, 6 minutes, and 37.6898 seconds  | 31.9873GB 
+time scales:  diff 6.20197% |  mechs 92.9438% |  pheno 0.48012% |  intracell 0.374107%  
+total wall time: 0 days, 8 hours, 31 minutes, and 20.0051 seconds 
+
+current simulated time: 48 min (max: 60 min)
+total agents: 5072509
+interval wall time: 0 days, 0 hours, 6 minutes, and 39.0917 seconds  | 32.1674GB 
+time scales:  diff 6.1132% |  mechs 93.0305% |  pheno 0.458199% |  intracell 0.398128%  
+total wall time: 0 days, 8 hours, 37 minutes, and 59.0968 seconds 
+
+current simulated time: 54 min (max: 60 min)
+total agents: 5095710
+interval wall time: 0 days, 0 hours, 6 minutes, and 43.7118 seconds  | 32.3707GB 
+time scales:  diff 6.35386% |  mechs 92.6744% |  pheno 0.559101% |  intracell 0.412664%  
+total wall time: 0 days, 8 hours, 44 minutes, and 42.8086 seconds 
+
+current simulated time: 60 min (max: 60 min)
+total agents: 5123115
+interval wall time: 0 days, 0 hours, 6 minutes, and 46.9178 seconds  | 32.6109GB 
+time scales:  diff 6.34542% |  mechs 92.5251% |  pheno 0.719149% |  intracell 0.410342%  
+total wall time: 0 days, 8 hours, 51 minutes, and 29.7264 seconds 
+
+
+Total simulation runtime: 
+0 days, 8 hours, 51 minutes, and 47.6769 seconds [1760396570.780068] [gs04r2b39:59535:0]       tag_match.c:62   UCX  WARN  unexpected tag-receive descriptor 0x370bb1d80 was not matched
+[1760396570.780074] [gs04r2b39:59535:0]       tag_match.c:62   UCX  WARN  unexpected tag-receive descriptor 0x370bb1cc0 was not matched

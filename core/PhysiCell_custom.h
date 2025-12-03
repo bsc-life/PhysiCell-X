@@ -88,6 +88,9 @@ class Variable //UPDATED
 	bool conserved_quantity;
 
 	Variable(); 
+
+	void pack(std::vector<char>& snd_buffer, int& len_buffer, int &position);
+	void unpack(std::vector<char>& rcv_buffer, int& len_buffer, int &position);
 };
 
 class Vector_Variable //UPDATED
@@ -101,7 +104,9 @@ class Vector_Variable //UPDATED
 	std::string units;
 	bool conserved_quantity; 
 	
-	Vector_Variable(); 
+	Vector_Variable();
+	void pack(std::vector<char>& snd_buffer, int& len_buffer, int &position); 
+	void unpack(std::vector<char>& rcv_buffer, int& len_buffer, int &position);
 };
 
 class Custom_Cell_Data //updated
@@ -138,7 +143,9 @@ class Custom_Cell_Data //updated
 	/* Gaurav Saxena wrote this to help with printing the {Key,Value} in this unordered map */
 	/*======================================================================================*/
 	
-	std::unordered_map<std::string,int> & get_name_to_index_map(); 
+	std::unordered_map<std::string,int> & get_name_to_index_map();
+	void pack(std::vector<char>& snd_buffer, int& len_buffer, int &position); 
+	void unpack(std::vector<char>& rcv_buffer, int& len_buffer, int &position); 
 };
 
 }; 

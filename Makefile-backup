@@ -63,7 +63,7 @@ all:
 # sample projects 	
 list-projects:
 	@echo "Sample projects: template2D template3D biorobots-sample cancer-biorobots-sample heterogeneity-sample-mpi"
-	@echo "                 cancer-immune-sample virus-macrophage-sample pred-prey-mpi pred-prey-farmer cell-interaction-mpi"
+	@echo "                 cancer-immune-sample virus-macrophage-sample pred-prey-mpi pred-prey-farmer"
 	@echo ""
 	@echo "Sample intracellular projects: ode-energy-sample physiboss-cell-lines-sample cancer-metabolism-sample"
 	@echo "physiboss-cell-lines-mpi physiboss-tnf-model physiboss-tnf-model-mpi"
@@ -161,16 +161,7 @@ beta-testing:
 	cp ./sample_projects/beta_testing/Makefile .
 	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
 	cp ./sample_projects/beta_testing/config/* ./config/
-
-cell-interaction-mpi:
-	cp ./sample_projects/cell_interaction_mpi/custom_modules/* ./custom_modules/
-	touch main.cpp && cp main.cpp main-backup.cpp
-	cp ./sample_projects/cell_interaction_mpi/main-heterogeneity.cpp ./main.cpp 
-	cp Makefile Makefile-backup
-	cp ./sample_projects/cell_interaction_mpi/Makefile .
-	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
-	cp ./sample_projects/cell_interaction_mpi/config/* ./config/
-
+	
 # ---- intracellular projects 
 ode-energy-sample:
 	cp ./sample_projects_intracellular/ode/ode_energy/custom_modules/* ./custom_modules/
