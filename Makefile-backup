@@ -62,31 +62,24 @@ all:
 
 # sample projects 	
 list-projects:
-	@echo "Sample projects: template2D template3D biorobots-sample cancer-biorobots-sample heterogeneity-sample-mpi"
+	@echo "Sample projects: template biorobots-sample cancer-biorobots-mpi heterogeneity-sample-mpi"
 	@echo "                 cancer-immune-sample virus-macrophage-sample pred-prey-mpi pred-prey-farmer"
+	@echo "                 worm-mpi custom-division-mpi episode-mpi immune-function-mpi mechano-mpi rules-sample-mpi"
 	@echo ""
 	@echo "Sample intracellular projects: ode-energy-sample physiboss-cell-lines-sample cancer-metabolism-sample"
 	@echo "physiboss-cell-lines-mpi physiboss-tnf-model physiboss-tnf-model-mpi"
 	@echo ""
 	
 # ---- non-intracellular projects 	
-template2D: 
-	cp ./sample_projects/template2D/custom_modules/* ./custom_modules/
-	touch main.cpp && cp main.cpp main-backup.cpp
-	cp ./sample_projects/template2D/main-2D.cpp ./main.cpp 
-	cp Makefile Makefile-backup
-	cp ./sample_projects/template2D/Makefile .
-	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
-	cp ./sample_projects/template2D/config/* ./config/
 	
-template3D: 	
-	cp ./sample_projects/template3D/custom_modules/* ./custom_modules/
+template: 	
+	cp ./sample_projects/template/custom_modules/* ./custom_modules/
 	touch main.cpp && cp main.cpp main-backup.cpp
-	cp ./sample_projects/template3D/main-3D.cpp ./main.cpp 
+	cp ./sample_projects/template/main-3D.cpp ./main.cpp 
 	cp Makefile Makefile-backup
-	cp ./sample_projects/template3D/Makefile .
+	cp ./sample_projects/template/Makefile .
 	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
-	cp ./sample_projects/template3D/config/* ./config/
+	cp ./sample_projects/template/config/* ./config/
 	
 pred-prey-mpi:
 	cp ./sample_projects/pred_prey_mpi/custom_modules/* ./custom_modules/
@@ -108,14 +101,14 @@ biorobots-sample:
 	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
 	cp ./sample_projects/biorobots/config/* ./config/
 	
-cancer-biorobots-sample:
-	cp ./sample_projects/cancer_biorobots/custom_modules/* ./custom_modules/
+cancer-biorobots-mpi:
+	cp ./sample_projects/cancer_biorobots_mpi/custom_modules/* ./custom_modules/
 	touch main.cpp && cp main.cpp main-backup.cpp
-	cp ./sample_projects/cancer_biorobots/main-cancer_biorobots.cpp ./main.cpp 
+	cp ./sample_projects/cancer_biorobots_mpi/main.cpp ./main.cpp 
 	cp Makefile Makefile-backup
-	cp ./sample_projects/cancer_biorobots/Makefile .
+	cp ./sample_projects/cancer_biorobots_mpi/Makefile .
 	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
-	cp ./sample_projects/cancer_biorobots/config/* ./config/
+	cp ./sample_projects/cancer_biorobots_mpi/config/* ./config/
 	
 heterogeneity-sample-mpi:
 	cp ./sample_projects/heterogeneity_mpi/custom_modules/* ./custom_modules/
@@ -161,6 +154,60 @@ beta-testing:
 	cp ./sample_projects/beta_testing/Makefile .
 	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
 	cp ./sample_projects/beta_testing/config/* ./config/
+
+worm-mpi:
+	cp ./sample_projects/worm_mpi/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects/worm_mpi/main.cpp ./main.cpp 
+	cp Makefile Makefile-backup
+	cp ./sample_projects/worm_mpi/Makefile .
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
+	cp ./sample_projects/worm_mpi/config/* ./config/
+
+custom-division-mpi:
+	cp ./sample_projects/custom_division_mpi/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects/custom_division_mpi/main.cpp ./main.cpp 
+	cp Makefile Makefile-backup
+	cp ./sample_projects/custom_division_mpi/Makefile .
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
+	cp ./sample_projects/custom_division_mpi/config/* ./config/
+
+episode-mpi:
+	cp ./sample_projects/episode_mpi/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects/episode_mpi/main.cpp ./main.cpp 
+	cp Makefile Makefile-backup
+	cp ./sample_projects/episode_mpi/Makefile .
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
+	cp ./sample_projects/episode_mpi/config/* ./config/
+
+immune-function-mpi:
+	cp ./sample_projects/immune_function_mpi/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects/immune_function_mpi/main.cpp ./main.cpp 
+	cp Makefile Makefile-backup
+	cp ./sample_projects/immune_function_mpi/Makefile .
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
+	cp ./sample_projects/immune_function_mpi/config/* ./config/
+
+mechano-mpi:
+	cp ./sample_projects/mechano_mpi/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects/mechano_mpi/main.cpp ./main.cpp 
+	cp Makefile Makefile-backup
+	cp ./sample_projects/mechano_mpi/Makefile .
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
+	cp ./sample_projects/mechano_mpi/config/* ./config/
+
+rules-sample-mpi:
+	cp ./sample_projects/rules_sample_mpi/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects/rules_sample_mpi/main.cpp ./main.cpp 
+	cp Makefile Makefile-backup
+	cp ./sample_projects/rules_sample_mpi/Makefile .
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
+	cp ./sample_projects/rules_sample_mpi/config/* ./config/
 	
 # ---- intracellular projects 
 ode-energy-sample:

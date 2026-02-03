@@ -128,7 +128,7 @@ bool load_PhysiCell_config_file( std::string filename )
 	return true; 	
 }
 
-bool load_PhysiCell_config_file( std::string filename, mpi_Environment &world ) //Jose: revised
+bool load_PhysiCell_config_file( std::string filename, mpi_Environment &world ) 
 {
 	if(IOProcessor(world))
         std::cout << "Using config file " << filename << " ... " << std::endl ; 
