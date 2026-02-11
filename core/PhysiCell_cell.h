@@ -72,7 +72,6 @@
 
 #include "../BioFVM/BioFVM.h"
 #include "./PhysiCell_phenotype.h"
-#include "./PhysiCell_cell_container.h"
 #include "./PhysiCell_constants.h"
 
 #include "../modules/PhysiCell_settings.h"
@@ -91,6 +90,8 @@ namespace PhysiCell{
 //Performance 
 
 class Cell_Container;
+class Moore_Cell_Info;
+class Interacting_Cell_Info;
 
 class Cell_Parameters
 {

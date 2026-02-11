@@ -313,6 +313,8 @@ class Cell_Container : public BioFVM::Agent_Container
 	/* It is required read information and return result to neighbours processes 						   */													 
 	/*-----------------------------------------------------------------------------------------------------*/
 
+	void pack_moore_info_parallel(mpi_Environment &world, mpi_Cartesian &cart_topo);
+
 	void pack_cell_interact_info(mpi_Environment &world, mpi_Cartesian &cart_topo);
 	void unpack_cell_interact_info(mpi_Environment &world, mpi_Cartesian &cart_topo);
 	void cell_cell_interaction_with_border(std::vector<Interacting_Voxel> *iv);

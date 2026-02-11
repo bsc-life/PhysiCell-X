@@ -507,34 +507,63 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 		start = std::chrono::high_resolution_clock::now();
 		// new February 2018
 		// if we need gradients, compute them
+		#ifdef MECHS_TIME 
+		auto start_part = std::chrono::high_resolution_clock::now();
+		#endif
 		if( default_microenvironment_options.calculate_gradients )
 		{
 			microenvironment.compute_all_gradient_vectors();
 		}
+		#ifdef MECHS_TIME 
+		auto end_part = std::chrono::high_resolution_clock::now();
+		auto duration_part = std::chrono::duration_cast<std::chrono::milliseconds>(end_part - start_part);
+		if (world.rank == 0)
+			std::cout << "\t\tCompute gradients: " << duration_part.count() << " milliseconds"<< std::endl;
 
+		start_part = std::chrono::high_resolution_clock::now();
+		#endif
 		exchange_mechanics_halos(world, cart_topo);
-		update_cell_potentials(time_since_last_mechanics,  world, cart_topo);
-	
-		//std::cout << "\t\t[Rank " << world.rank << " ] Update potentials: " << duration.count() << " ms"<< std::endl;
+		#ifdef MECHS_TIME
+		end_part = std::chrono::high_resolution_clock::now();
+		duration_part = std::chrono::duration_cast<std::chrono::milliseconds>(end_part - start_part);
+		if (world.rank == 0)
+			std::cout << "\t\tCompute mechanics halos: " << duration_part.count() << " milliseconds"<< std::endl;
 
-		evaluate_cell_cell_interactions(time_since_last_mechanics,  world, cart_topo); 
-		//std::cout << "\t\t[Rank " << world.rank << " ] Cell Cell interactions: " << duration.count() << " ms"<< std::endl;
+		start_part = std::chrono::high_resolution_clock::now();
+		#endif
+		update_cell_potentials(time_since_last_mechanics,  world, cart_topo);
+		#ifdef MECHS_TIME
+		end_part = std::chrono::high_resolution_clock::now();
+		duration_part = std::chrono::duration_cast<std::chrono::milliseconds>(end_part - start_part);
+		if (world.rank == 0)
+			std::cout << "\t\tUpdate potentials: " << duration_part.count() << " milliseconds"<< std::endl;
 		
-		// super-critical to performance! clear the "dummy" cells from phagocytosis / fusion
-		// otherwise, comptuational cost increases at polynomial rate VERY fast, as O(10,000) 
-		// dummy cells of size zero are left ot interact mechanically, etc. 
+		start_part = std::chrono::high_resolution_clock::now();
+		#endif
+		evaluate_cell_cell_interactions(time_since_last_mechanics,  world, cart_topo);
+		#ifdef MECHS_TIME
+		end_part = std::chrono::high_resolution_clock::now();
+		duration_part = std::chrono::duration_cast<std::chrono::milliseconds>(end_part - start_part);
+		if (world.rank == 0)
+			std::cout << "\t\tEvaluate cell-cell interactions: " << duration_part.count() << " milliseconds"<< std::endl; 
+		
+		start_part = std::chrono::high_resolution_clock::now();
+		#endif
+		
 		if( cells_ready_to_die.size() > 0 )
 		{
-			/*
-			std::cout << "\tClearing dummy cells from phagocytosis and fusion events ... " << std::endl; 
-			std::cout << "\t\tClearing " << cells_ready_to_die.size() << " cells ... " << std::endl; 
-			// there might be a lot of "dummy" cells ready for removal. Let's do it. 		
-			*/
 			for( int i=0; i < cells_ready_to_die.size(); i++ )
 			{ cells_ready_to_die[i]->die(); }
 			cells_ready_to_die.clear();
 		}
+		#ifdef MECHS_TIME 
+		end_part = std::chrono::high_resolution_clock::now();
+		duration_part = std::chrono::duration_cast<std::chrono::milliseconds>(end_part - start_part);
+		if (world.rank == 0)
+			std::cout << "\t\tClear dummy cells: " << duration_part.count() << " milliseconds"<< std::endl; 
 
+		start_part = std::chrono::high_resolution_clock::now();
+		#endif
 		#pragma omp parallel for
 		for( int i=0; i < (*all_cells).size(); i++ )
 		{
@@ -544,22 +573,30 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 				pC->update_position(time_since_last_mechanics, world, cart_topo);
 			}
 		}
+		int crossed_this_step = 0;
+		for( int i=0; i < (*all_cells).size(); i++ )
+		{
+			if((*all_cells)[i]->crossed_to_left_subdomain || (*all_cells)[i]->crossed_to_right_subdomain)
+			{
+				crossed_this_step++;
+			}
+		}
+		//cout << "\t\t[Rank " << world.rank << " ] Crossed after update_position: " << crossed_this_step << std::endl;
+		#ifdef MECHS_TIME
+		end_part = std::chrono::high_resolution_clock::now();
+		duration_part = std::chrono::duration_cast<std::chrono::milliseconds>(end_part - start_part);
+		if (world.rank == 0)
+			std::cout << "\t\tUpdate positions: " << duration_part.count() << " milliseconds"<< std::endl; 
 		
-		/* As per David's suggestion, writing "sort of time-step" into the CELLS_RANK_* file for each process */
-		
-// 		static int send_recv_counter = 0;
-// 		if(no_cells_cross_left > 0 || no_cells_cross_right > 0 || no_of_cells_from_left > 0 || no_of_cells_from_right > 0)
-// 		{ 
-// 			std::string filename="CELLS_RANK_";
-// 			filename = filename + std::to_string(world.rank);
-// 			std::ofstream ofile;
-// 			ofile.open(filename,std::ios::app);
-// 			ofile<<"--->SENDING RECEIVING CYCLE NO.:"<<send_recv_counter<<std::endl<<std::endl; 
-// 			send_recv_counter += 1;
-// 			ofile.close();
-// 		}
-		
+		start_part = std::chrono::high_resolution_clock::now();
+		 #endif
 		pack(all_cells, world, cart_topo);
+		#ifdef MECHS_TIME
+		end_part = std::chrono::high_resolution_clock::now();
+		duration_part = std::chrono::duration_cast<std::chrono::milliseconds>(end_part - start_part);
+		if (world.rank == 0)
+			std::cout << "\t\tPack cells: " << duration_part.count() << " milliseconds"<< std::endl; 
+		#endif
 
 		for(int i=0; i < (*all_cells).size(); i++)
     	if((*all_cells)[i]->crossed_to_left_subdomain || (*all_cells)[i]->crossed_to_right_subdomain)
@@ -576,58 +613,58 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
     	}
 
 		
-		//std::cout << "Rank: " << world.rank << " pre send " << corrupted << " corrupted cells " << std::endl; 
-
-    //Checking for uniqueness ends
+	#ifdef MECHS_TIME 
+	start_part = std::chrono::high_resolution_clock::now();
+    #endif
+	//Checking for uniqueness ends
 		//std::cout << "\t\t[Rank " << world.rank << " ][" << no_cells_cross_left << " || " << no_cells_cross_right <<" ] " << std::endl; 
 		cart_topo.Send_and_Receive_Cells(no_cells_cross_left,  position_left,  snd_buf_left,
        															 no_cells_cross_right, position_right, snd_buf_right,
        															 no_of_cells_from_left,  rcv_buf_left,
        															 no_of_cells_from_right, rcv_buf_right,
        															 world
-       															);
-
+    														);
+	#ifdef MECHS_TIME
+	end_part = std::chrono::high_resolution_clock::now();
+	duration_part = std::chrono::duration_cast<std::chrono::milliseconds>(end_part - start_part);
+	if (world.rank == 0)
+		std::cout << "\t\tSend/Receive cells: " << duration_part.count() << " milliseconds"<< std::endl;
+	start_part = std::chrono::high_resolution_clock::now();
+	#endif 
     unpack(world, cart_topo);
-
-
-	
-	//std::cout << "Rank: " << world.rank << " post unpack " << corrupted << " corrupted cells " << std::endl; 
-    
-    /*=======================DELETE LATER===============================================*/
-    //Checking for uniqueness of IDs - later delete
-		//As per David's suggestion moving this "checking" code to AFTER pack/send/receive/unpack
-		//to make sure there is no duplicate cell 
-		
-//     for(int temp_rank = 0; temp_rank < world.size; temp_rank++)
-//     {
-//     	if(temp_rank == world.rank)
-//     	{
-//     		//std::cout<<"IDs for Rank = "<<world.rank <<std::endl;
-//     		for(int i=0; i < (*all_cells).size(); i++)
-//     		{
-//     			for(int j=i+1; j < (*all_cells).size(); j++)
-//     			{
-//     				if((*all_cells)[i]->ID == (*all_cells)[j]->ID)
-//     					std::cout<<"Found a duplicate ID on Rank="<<world.rank<<std::endl;
-//     			}
-//     		}
-//     		std::cout<<std::endl;
-//     	}
-//     	MPI_Barrier(cart_topo.mpi_cart_comm);
-//     }
-    /*=======================DELETE LATER===============================================*/
-    
-//    MPI_Barrier(cart_topo.mpi_cart_comm); 
+	#ifdef MECHS_TIME
+	end_part = std::chrono::high_resolution_clock::now();
+		duration_part = std::chrono::duration_cast<std::chrono::milliseconds>(end_part - start_part);
+		if (world.rank == 0)
+			std::cout << "\t\tUnpack cells: " << duration_part.count() << " milliseconds"<< std::endl; 
+	#endif														
 
 		// Update cell indices in the container because some cells 'could' have moved to new voxels
+		#ifdef MECHS_TIME
+		start_part = std::chrono::high_resolution_clock::now();
+		#endif
 		for( int i=0; i < (*all_cells).size(); i++ )
 			if(!(*all_cells)[i]->is_out_of_domain && (*all_cells)[i]->is_movable)
-				(*all_cells)[i]->update_voxel_in_container(world, cart_topo);					//Changed to parallel version
+				(*all_cells)[i]->update_voxel_in_container(world, cart_topo);
+		#ifdef MECHS_TIME
+		end_part = std::chrono::high_resolution_clock::now();
+		duration_part = std::chrono::duration_cast<std::chrono::milliseconds>(end_part - start_part);
+		if (world.rank == 0)
+			std::cout << "\t\tUpdate cell indices in container: " << duration_part.count() << " milliseconds"<< std::endl; 					//Changed to parallel version
+			last_mechanics_time=t;
+			end = std::chrono::high_resolution_clock::now();
+			duration = end - start;
+			time_mechs += duration.count();
+			if (world.rank == 0)
+				std::cout << "Mechanics block total: " << duration.count() << " ms" << std::endl;
+		}
+		#else
 		last_mechanics_time=t;
 		end = std::chrono::high_resolution_clock::now();
 		duration = end - start;
 		time_mechs += duration.count();
-	}
+		}
+		#endif
 
 	initialzed=true;
 	return;

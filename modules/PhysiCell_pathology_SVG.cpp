@@ -282,8 +282,8 @@ void SVG_plot_mpi( std::string filename , Microenvironment& M, double z_slice , 
     
 
 	std::string str5[4];
-	
-	for( int i=0 ; i < total_cell_count ; i++ )
+	int cells = all_cells->size();
+	for( int i=0 ; i < cells ; i++ )
 	{
 		Cell* pC = (*all_cells)[i]; // global_cell_list[i]; 
   

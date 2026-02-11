@@ -89,14 +89,18 @@ void load_cells_csv_v2( std::string filename ); // done
 
 
 void load_cells_csv( std::string filename ); 
-
-
+void load_cells_csv( std::string filename, mpi_Environment &world, mpi_Cartesian &cart_topo );
+void load_cells_csv( std::string filename, mpi_Environment &world, mpi_Cartesian &cart_topo, std::pair<double,double> x_range );
 
 void load_cells_mat( std::string filename ); 
 void load_cells_physicell( std::string filename ); 
 
 bool load_cells_from_pugixml( pugi::xml_node root ); 
 bool load_cells_from_pugixml( void ); // load cells based on default config XML root
+
+bool load_cells_from_pugixml(pugi::xml_node root, mpi_Environment &world, mpi_Cartesian &cart_topo);
+bool load_cells_from_pugixml(mpi_Environment &world, mpi_Cartesian &cart_topo);
+bool load_cells_from_pugixml(mpi_Environment &world, mpi_Cartesian &cart_topo, std::pair<double,double> x_range);
 
 void set_parameters_from_distributions( const pugi::xml_node root );
 void set_parameters_from_distributions(void);

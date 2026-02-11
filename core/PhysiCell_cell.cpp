@@ -3258,13 +3258,6 @@ if (this->phenotype.intracellular != NULL) {
 
 }
 
-
-/*---------------------------------------------*/
-/* Added by Gaurav Saxena to pack almost all 	 */
-/* fields of Cell data structure when cells		 */
-/* cross sub-domain boundaries.								 */
-/*---------------------------------------------*/
-
 void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
 
@@ -3282,10 +3275,6 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 	int len_double  = 0;
 	int len_str = 0;
 	int len_vector = 0;
-
-	/*----------------------------------------------------------*/
-	/* All 10 members below are now in the Cell_Container class */
-	/*----------------------------------------------------------*/
 
 	position_left 			= 0;					//Must be initialized to 0
 	position_right 			= 0;					//Must be initialized to 0
@@ -3315,51 +3304,32 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 
 	/*-----------------------------------------------------------------------------------*/
 	/* There is no need to pack crossed_to_left_subdomain and crossed_to_right_subdomain */
-	/* as we send these two fields as the First Communication between MPI processes. 		 */
-	/* Also try to send the length of the buffer to be allocated when sending.					 */
+	/* as we send these two fields as the First Communication between MPI processes. 	 */
+	/* Also try to send the length of the buffer to be allocated when sending.			 */
 	/*-----------------------------------------------------------------------------------*/
 
   //std::cout<<"Total cells crossing to left in Rank "<<world.rank<<":"<<no_cells_cross_left<<std::endl;
 	//std::cout<<"Total cells crossing to right in Rank "<<world.rank<<":"<<no_cells_cross_right<<std::endl;
 
 	/* IMPORTANT: CANNOT USE #pragma omp for HERE AS ALL THREADS WILL WRITE TO THE SAME SHARED BUFFER */
+	int left = 0;
+	int right = 0;
 	for(int i=0; i<(*all_cells).size();i++)
 	{
 		pCell = (*all_cells)[i];
 
 		if(pCell->crossed_to_left_subdomain == true)
 		{
-			pCell->pack(snd_buf_left, len_snd_buf_left, position_left); 
+			pCell->pack(snd_buf_left, len_snd_buf_left, position_left);
+			left++;
 		}
 		else if(pCell->crossed_to_right_subdomain == true)
 		{
-			pCell->pack(snd_buf_right, len_snd_buf_left, position_right);
+			pCell->pack(snd_buf_right, len_snd_buf_right, position_right);
+			right++;
 		}
-
-		//pCell->print_cell(world);
 	}
 
-
-	/*----------------------------------------------------------------------*/
-	/* PACKING OF BUFFER TO BE SENT TO LEFT PROCESS ENDS v.1.9				*/
-	/* THE RIGHT BUFFER IS IDENTICAL EXCEPT FOR _LEFT IS REPLACED BY _RIGHT */
-	/*----------------------------------------------------------------------*/
-
-	// if(no_cells_cross_left > 0)
-	// {
-	// 	std::cout<<"+++PACKING+++"<<std::endl; 
-	// 	std::cout<<"Rank = " << world.rank << std::endl;
-	// 	std::cout<<"Cells going to left = "								<< no_cells_cross_left 	<< std::endl;
-	// 	// std::cout<<"Buffer size for cells going to left: "	<< snd_buf_left.size() 	<< std::endl; 
-	// }
-	
-	// if(no_cells_cross_right > 0)
-	// {
-	// 	std::cout<<"+++PACKING+++"<<std::endl; 
-	// 	std::cout<<"Rank = " << world.rank << std::endl;
-	// 	std::cout<<"Cells going to right = "							<< no_cells_cross_right << std::endl;
-	// 	// std::cout<<"Buffer size for cells going to right: "	<< snd_buf_right.size() << std::endl;
-	// }
  }
 
 		
@@ -3433,25 +3403,8 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 		int len_vector	 		= 0;
 		int len_vector_nest = 0;
 		
-		
-		// if(no_of_cells_from_right > 0)
-		// {
-		// 	std::cout<<"---UNPACKING---"<<std::endl;
-		// 	std::cout<<"Rank = " << world.rank << std::endl;
-		// 	std::cout<<"Cells from right = "<< no_of_cells_from_right << std::endl;
-		// 	std::cout<<"Buffer size for cells from right: "<< rcv_buf_right.size() <<std::endl; 
-		// }
-		
-		// if(no_of_cells_from_left > 0)
-		// {
-		// 	std::cout<<"---UNPACKING---"<<std::endl;
-		// 	std::cout<<"Rank = " << world.rank << std::endl;
-		// 	std::cout<<"Cells from left = "<< no_of_cells_from_left << std::endl;
-		// 	std::cout<<"Buffer size for cells from left: "<< rcv_buf_left.size() <<std::endl; 
-		// }
-
-		/* Unpack all cells coming from right */
-
+		int right = 0;
+		int left = 0;
 		if(no_of_cells_from_right > 0)
 		{
 			size_right = rcv_buf_right.size();
@@ -3461,16 +3414,18 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 			/* loop BEFORE completing the unpacking, as the next cell would get filled with wrong values 			 */
 			/* so complete unpacking of 1 cell first THEN put the loop 																				 */
 			/*-------------------------------------------------------------------------------------------------*/
-				//Jose: voy por aqui
 				for(int loop_ctr = 0; loop_ctr < no_of_cells_from_right; loop_ctr++)
 				{
 					Cell *pCell = create_cell(cell_ID);
 
 					pCell->unpack(rcv_buf_right, size_right, position_right);
-
+					++right;
 					pCell->assign_position(pCell->position[0], pCell->position[1], pCell->position[2], world, cart_topo);
-
-					
+					/*
+					std::cout << "\t\t\t\t[Rank " << world.rank << " ] Unpacked cell ID: " << pCell->ID << " at position: (" 
+					          << pCell->position[0] << "," << pCell->position[1] << "," << pCell->position[2] << ")  velocity: (" 
+					          << pCell->velocity[0] << "," << pCell->velocity[1] << "," << pCell->velocity[2] << ") from RIGHT" 
+					          << std::endl;*/
 		 		}	 
 		}
 
@@ -3491,17 +3446,14 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 					pCell->unpack(rcv_buf_left, size_left, position_left);
 
 					pCell->assign_position(pCell->position[0], pCell->position[1], pCell->position[2], world, cart_topo);
+					++left;
+					/*
+					std::cout << "\t\t\t\t[Rank " << world.rank << " ] Unpacked cell ID: " << pCell->ID << " at position: (" 
+					          << pCell->position[0] << "," << pCell->position[1] << "," << pCell->position[2] << ")  velocity: (" 
+					          << pCell->velocity[0] << "," << pCell->velocity[1] << "," << pCell->velocity[2] << ") from LEFT" 
+					          << std::endl;*/
 				}
-				
-			
-			/* The following print should be INSIDE the for loop, earlier it was OUTSIDE the loop */
-			//pCell->print_cell(world);
 		} 
-		
-
-		//rcv_buf_left.resize(0);
-		//rcv_buf_right.resize(0);
-		
 }
 
 bool cell_definitions_by_name_constructed = false;

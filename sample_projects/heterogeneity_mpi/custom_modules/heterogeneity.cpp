@@ -235,6 +235,15 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 
 	double relative_margin = 0.2;  
 	double relative_outer_margin = 0.02; 
+	
+	bool use_csv_positions = false;
+	pugi::xml_node node_ic = xml_find_node( physicell_config_root , "initial_conditions" ); 
+	if( node_ic )
+	{
+		pugi::xml_node node_cp = xml_find_node( node_ic , "cell_positions" );
+		if( node_cp && node_cp.attribute("enabled").as_bool() )
+		{ use_csv_positions = true; }
+	}
 
 	for( int k=0; k < cell_definitions_by_index.size() ; k++ )
 	{
@@ -301,38 +310,55 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 	double x_outer = tumor_radius; 
 	double y = 0.0; 
 	
-	double p_mean = parameters.doubles( "oncoprotein_mean" ); 
-	double p_sd 	= parameters.doubles( "oncoprotein_sd" ); 
-	double p_min 	= parameters.doubles( "oncoprotein_min" ); 
-	double p_max 	= parameters.doubles( "oncoprotein_max" ); 
-	
-
 		for( int i=0; i < mc.my_no_of_cell_IDs; i++ )
 		{
 		  
 			pCell = create_cell(*pCD, mc.my_cell_IDs[i]); // tumor cell --> This has to be replaced by create_cell(mc.my_cell_IDs[i])
 	  	  		
 			pCell->assign_position(mc.my_cell_coords[3*i],mc.my_cell_coords[3*i+1],mc.my_cell_coords[3*i+2],world, cart_topo); //pCell->assign_position( positions[i] );
-				 	
-		 	pCell->custom_data[0] = NormalRandom( p_mean, p_sd );
-		
-
-			if( pCell->custom_data[0] < p_min )
-			{ 
-				pCell->custom_data[0] = p_min; 
-			}
-			if( pCell->custom_data[0] > p_max )
-			{ 
-				pCell->custom_data[0] = p_max; 
-			}
 		} 
  
-	
+	if( use_csv_positions )
+	{
+		if( IOProcessor(world) )
+		{
+			std::cout << "cell_positions enabled in XML; loading positions from file." << std::endl;
+		}
+
+		double half_delta = m.mesh.dx/2.0;
+		std::pair<double,double> x_range = {Xmin - half_delta, Xmax + half_delta };
+		std::cout << "Rank: " << world.rank << " x_range: [" << x_range.first << " " << x_range.second << "]" << std::endl;
+		load_cells_from_pugixml(world, cart_topo, x_range); 
+	}
+
+	Cell_Definition* pCD_onco = find_cell_definition( "cancer cell"); 
+	if( pCD_onco != NULL )
+	{
+		double p_mean = parameters.doubles( "oncoprotein_mean" ); 
+		double p_sd 	= parameters.doubles( "oncoprotein_sd" ); 
+		double p_min 	= parameters.doubles( "oncoprotein_min" ); 
+		double p_max 	= parameters.doubles( "oncoprotein_max" ); 
+
+		for( int i=0; i < all_cells->size(); i++ )
+		{
+			Cell* pCell = (*all_cells)[i];
+			if( pCell->type != pCD_onco->type )
+			{ continue; }
+			pCell->custom_data[0] = NormalRandom( p_mean, p_sd );
+			if( pCell->custom_data[0] < p_min )
+			{ pCell->custom_data[0] = p_min; }
+			if( pCell->custom_data[0] > p_max )
+			{ pCell->custom_data[0] = p_max; }
+		}
+	}
+
+	int local_cells = 0; 
+	local_cells = (int) all_cells->size(); 
 	
 	double local_sum = 0.0, global_sum = 0.0; 
 	double local_min = 9e9, global_min = 0.0; 
 	double local_max = -9e9, global_max = 0.0; 
-	int local_cells, global_cells; 
+	int global_cells; 
 
 /*------------------------------------------------------------------------------------------------------*/
 /* The global_min/max are only for display purposes. We can just calculate local_min then do MPI_Reduce */
@@ -354,9 +380,6 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 			local_max = r; 
 		}
 	}
-	
-	local_cells 	= mc.my_no_of_cell_IDs; 											//or all_cells->size()
-	
 	global_sum 		= distribute_global_sum(local_sum, cart_topo);
 	global_cells 	= distribute_global_sum(local_cells, cart_topo); 
 	global_max		= distribute_global_max(local_max, cart_topo); 

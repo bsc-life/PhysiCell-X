@@ -99,10 +99,14 @@ void Cell_Container::evaluate_cell_elastic_interactions( PhysiCell::Cell *pCell 
     int max_elastic = pCell->phenotype.mechanics.maximum_number_of_attachments;
     int done_elastic = pCell->state.spring_attachments.size();
     vector<Interacting_Cell_Info> neighbours = get_neighbour_interacting_cells(pCell, world, cart_topo);
-
+    
+     double attachment_probability = pCell->phenotype.mechanics.attachment_rate * dt_mec; 
     int i = 0;
     while (done_elastic < max_elastic && i < neighbours.size()) {
-        standard_elastic_contact_function(pCell,pCell->phenotype, neighbours[i].position ,dt_mec, world, cart_topo);
+        double probability_of_attachment = attachment_probability * pCell->phenotype.mechanics.cell_adhesion_affinities[neighbours[i].type];
+        if (uniform_random() < probability_of_attachment) {
+            standard_elastic_contact_function(pCell,pCell->phenotype, neighbours[i].position ,dt_mec, world, cart_topo);
+        }
         ++i;
         ++done_elastic;
     }
@@ -110,8 +114,24 @@ void Cell_Container::evaluate_cell_elastic_interactions( PhysiCell::Cell *pCell 
 
 void Cell_Container::exchange_mechanics_halos(mpi_Environment &world, mpi_Cartesian &cart_topo) {
     // Exchange ghost cells for mechanical potentials and cell-cell interactions once per mechanics step.
+#ifdef MECHS_TIME 
+    auto start = std::chrono::high_resolution_clock::now();
+#endif
     pack_moore_info(world, cart_topo);
+#ifdef MECHS_TIME 
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    if (world.rank == 0)
+        std::cout << "\t\t\tPack Moore info: " << duration.count() << " milliseconds"<< std::endl;
+    start = std::chrono::high_resolution_clock::now();
+#endif 
     pack_cell_interact_info(world, cart_topo);
+#ifdef MECHS_TIME
+    end = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    if (world.rank == 0)
+        std::cout << "\t\t\tPack cell interact info: " << duration.count() << " milliseconds"<< std::endl;
+#endif
 }
 
 void Cell_Container::evaluate_cell_cell_interactions(double time_since_last_mechanics,  mpi_Environment &world, mpi_Cartesian &cart_topo) {
@@ -132,6 +152,7 @@ void Cell_Container::evaluate_cell_cell_interactions(double time_since_last_mech
 void Cell_Container::update_cell_potentials(double time_since_last_mechanics,  mpi_Environment &world, mpi_Cartesian &cart_topo){
 
     // Boundary data must be exchanged before calling this routine.
+    #pragma omp parallel for
     for( int i=0; i < (*all_cells).size(); i++ )
     {
         Cell* pC = (*all_cells)[i];
@@ -153,7 +174,6 @@ void Cell_Container::update_cell_potentials(double time_since_last_mechanics,  m
                 }
 
                 evaluate_cell_elastic_interactions( pC , time_since_last_mechanics, world, cart_topo);
-                
                 
             }
         }
