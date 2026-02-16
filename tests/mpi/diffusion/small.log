@@ -1,0 +1,298 @@
+  _____  _               _  _____     _ _     __   __                     _                    ___  __	
+ |  __ \| |             (_)/ ____|   | | |    \ \ / /                    (_)                  / _ \/_ |
+ | |__) | |__  _   _ ___ _| |     ___| | |_____\ V /  __   _____ _ __ ___ _  ___  _ __ ______| | | || |
+ |  ___/| '_ \| | | / __| | |    / _ \ | |______> <   \ \ / / _ \ '__/ __| |/ _ \| '_ \______| | | || |
+ | |    | | | | |_| \__ \ | |___|  __/ | |     / . \   \ V /  __/ |  \__ \ | (_) | | | |     | |_| || |
+ |_|    |_| |_|\__, |___/_|\_____\___|_|_|    /_/ \_\   \_/ \___|_|  |___/_|\___/|_| |_|      \___(_)_|
+                __/ |                                                                                  
+               |___/                                                                                   
+Using config file ./config/PhysiCell_settings.xml ... 
+1
+dc? 1
+User parameters in XML config file: 
+Bool parameters:: 
+
+Int parameters:: 
+random_seed: 0 [dimensionless]
+
+Double parameters:: 
+tumor_radius: 150 [micron]
+oncoprotein_mean: 1 [dimensionless]
+oncoprotein_sd: 0.25 [dimensionless]
+oncoprotein_min: 0 [dimensionless]
+oncoprotein_max: 2 [dimensionless]
+
+String parameters:: 
+
+
+which boundaries?
+1 1 1 1 1 1
+
+Microenvironment summary: microenvironment: 
+
+Mesh information: 
+type: uniform Cartesian
+Domain: [-5000,5000] micron x [-5000,5000] micron x [-5000,5000] micron
+   resolution: dx = 20 micron
+   voxels (per-process): 2500000
+   voxel faces: 0
+   volume: 1e+12 cubic micron
+Densities: (2 total)
+   oxygen:
+     units: mmHg
+     diffusion coefficient: 100000 micron^2 / min
+     decay rate: 0.1 min^-1
+     diffusion length scale: 1000 micron
+     initial condition: 38 mmHg
+     boundary condition: 38 mmHg (enabled: true)
+   drug1:
+     units: mmHg
+     diffusion coefficient: 105000 micron^2 / min
+     decay rate: 0.1 min^-1
+     diffusion length scale: 1024.7 micron
+     initial condition: 0 mmHg
+     boundary condition: 100 mmHg (enabled: true)
+
+Granmurality was: 1
+Granurality will be: 50
+  Diffusion messages:4900 | Size in 3.8147 MB
+	Iteration 0:  598.283 ms | Median bandwith: 31242.8 MB/s
+	Iteration 1:  52.3608 ms | Median bandwith: 356985 MB/s
+	Iteration 2:  22.4105 ms | Median bandwith: 834074 MB/s
+	Iteration 3:  23.2033 ms | Median bandwith: 805575 MB/s
+	Iteration 4:  22.5664 ms | Median bandwith: 828311 MB/s
+	Iteration 5:  25.0787 ms | Median bandwith: 745335 MB/s
+	Iteration 6:  20.388 ms | Median bandwith: 916813 MB/s
+	Iteration 7:  19.5148 ms | Median bandwith: 957838 MB/s
+	Iteration 8:  20.7749 ms | Median bandwith: 899740 MB/s
+	Iteration 9:  20.7663 ms | Median bandwith: 900115 MB/s
+	Iteration 10:  17.84 ms | Median bandwith: 1.04776e+06 MB/s
+	Iteration 11:  19.2047 ms | Median bandwith: 973304 MB/s
+	Iteration 12:  19.8082 ms | Median bandwith: 943649 MB/s
+	Iteration 13:  17.9611 ms | Median bandwith: 1.04069e+06 MB/s
+	Iteration 14:  17.9164 ms | Median bandwith: 1.04329e+06 MB/s
+	Iteration 15:  18.0019 ms | Median bandwith: 1.03834e+06 MB/s
+	Iteration 16:  17.851 ms | Median bandwith: 1.04711e+06 MB/s
+	Iteration 17:  18.0406 ms | Median bandwith: 1.03611e+06 MB/s
+	Iteration 18:  18.1037 ms | Median bandwith: 1.0325e+06 MB/s
+	Iteration 19:  17.9132 ms | Median bandwith: 1.04348e+06 MB/s
+	Iteration 20:  18.9131 ms | Median bandwith: 988310 MB/s
+	Iteration 21:  19.0051 ms | Median bandwith: 983524 MB/s
+	Iteration 22:  18.1845 ms | Median bandwith: 1.02791e+06 MB/s
+	Iteration 23:  17.937 ms | Median bandwith: 1.04209e+06 MB/s
+	Iteration 24:  22.1838 ms | Median bandwith: 842598 MB/s
+	Iteration 25:  17.9054 ms | Median bandwith: 1.04393e+06 MB/s
+	Iteration 26:  19.0135 ms | Median bandwith: 983091 MB/s
+	Iteration 27:  17.986 ms | Median bandwith: 1.03925e+06 MB/s
+	Iteration 28:  17.9327 ms | Median bandwith: 1.04234e+06 MB/s
+	Iteration 29:  20.3527 ms | Median bandwith: 918403 MB/s
+	Iteration 30:  17.8705 ms | Median bandwith: 1.04597e+06 MB/s
+	Iteration 31:  18.0258 ms | Median bandwith: 1.03696e+06 MB/s
+	Iteration 32:  17.8648 ms | Median bandwith: 1.04631e+06 MB/s
+	Iteration 33:  19.5259 ms | Median bandwith: 957296 MB/s
+	Iteration 34:  18.392 ms | Median bandwith: 1.01631e+06 MB/s
+	Iteration 35:  20.9228 ms | Median bandwith: 893381 MB/s
+	Iteration 36:  18.2342 ms | Median bandwith: 1.02511e+06 MB/s
+	Iteration 37:  19.4322 ms | Median bandwith: 961909 MB/s
+	Iteration 38:  18.0486 ms | Median bandwith: 1.03565e+06 MB/s
+	Iteration 39:  19.3446 ms | Median bandwith: 966264 MB/s
+	Iteration 40:  19.3603 ms | Median bandwith: 965484 MB/s
+	Iteration 41:  18.1625 ms | Median bandwith: 1.02915e+06 MB/s
+	Iteration 42:  22.2881 ms | Median bandwith: 838654 MB/s
+	Iteration 43:  18.2975 ms | Median bandwith: 1.02156e+06 MB/s
+	Iteration 44:  19.7195 ms | Median bandwith: 947896 MB/s
+	Iteration 45:  19.7055 ms | Median bandwith: 948567 MB/s
+	Iteration 46:  18.0441 ms | Median bandwith: 1.03591e+06 MB/s
+	Iteration 47:  18.5421 ms | Median bandwith: 1.00809e+06 MB/s
+	Iteration 48:  18.1092 ms | Median bandwith: 1.03218e+06 MB/s
+	Iteration 49:  20.0717 ms | Median bandwith: 931262 MB/s
+	Iteration 50:  17.8754 ms | Median bandwith: 1.04568e+06 MB/s
+	Iteration 51:  17.9729 ms | Median bandwith: 1.04001e+06 MB/s
+	Iteration 52:  18.5064 ms | Median bandwith: 1.01003e+06 MB/s
+	Iteration 53:  17.8487 ms | Median bandwith: 1.04725e+06 MB/s
+	Iteration 54:  18.3114 ms | Median bandwith: 1.02079e+06 MB/s
+	Iteration 55:  17.9038 ms | Median bandwith: 1.04402e+06 MB/s
+	Iteration 56:  17.9423 ms | Median bandwith: 1.04178e+06 MB/s
+	Iteration 57:  17.9811 ms | Median bandwith: 1.03954e+06 MB/s
+	Iteration 58:  18.5781 ms | Median bandwith: 1.00613e+06 MB/s
+	Iteration 59:  18.0695 ms | Median bandwith: 1.03445e+06 MB/s
+	Iteration 60:  18.1075 ms | Median bandwith: 1.03228e+06 MB/s
+	Iteration 61:  17.9737 ms | Median bandwith: 1.03996e+06 MB/s
+	Iteration 62:  21.3353 ms | Median bandwith: 876108 MB/s
+	Iteration 63:  19.1008 ms | Median bandwith: 978600 MB/s
+	Iteration 64:  18.5076 ms | Median bandwith: 1.00997e+06 MB/s
+	Iteration 65:  22.7182 ms | Median bandwith: 822778 MB/s
+	Iteration 66:  18.0053 ms | Median bandwith: 1.03814e+06 MB/s
+	Iteration 67:  18.5507 ms | Median bandwith: 1.00762e+06 MB/s
+	Iteration 68:  18.16 ms | Median bandwith: 1.0293e+06 MB/s
+	Iteration 69:  18.1382 ms | Median bandwith: 1.03053e+06 MB/s
+	Iteration 70:  18.051 ms | Median bandwith: 1.03551e+06 MB/s
+	Iteration 71:  17.9365 ms | Median bandwith: 1.04212e+06 MB/s
+	Iteration 72:  19.2991 ms | Median bandwith: 968543 MB/s
+	Iteration 73:  17.9143 ms | Median bandwith: 1.04341e+06 MB/s
+	Iteration 74:  17.9796 ms | Median bandwith: 1.03962e+06 MB/s
+	Iteration 75:  18.1798 ms | Median bandwith: 1.02818e+06 MB/s
+	Iteration 76:  18.1779 ms | Median bandwith: 1.02828e+06 MB/s
+	Iteration 77:  18.5664 ms | Median bandwith: 1.00676e+06 MB/s
+	Iteration 78:  18.7295 ms | Median bandwith: 998001 MB/s
+	Iteration 79:  18.429 ms | Median bandwith: 1.01427e+06 MB/s
+	Iteration 80:  17.9252 ms | Median bandwith: 1.04278e+06 MB/s
+	Iteration 81:  18.4513 ms | Median bandwith: 1.01304e+06 MB/s
+	Iteration 82:  20.1454 ms | Median bandwith: 927856 MB/s
+	Iteration 83:  20.7361 ms | Median bandwith: 901424 MB/s
+	Iteration 84:  18.0323 ms | Median bandwith: 1.03659e+06 MB/s
+	Iteration 85:  17.9626 ms | Median bandwith: 1.04061e+06 MB/s
+	Iteration 86:  17.9216 ms | Median bandwith: 1.04299e+06 MB/s
+	Iteration 87:  18.1093 ms | Median bandwith: 1.03218e+06 MB/s
+	Iteration 88:  18.2325 ms | Median bandwith: 1.02521e+06 MB/s
+	Iteration 89:  18.0582 ms | Median bandwith: 1.0351e+06 MB/s
+	Iteration 90:  17.8049 ms | Median bandwith: 1.04982e+06 MB/s
+	Iteration 91:  18.1223 ms | Median bandwith: 1.03144e+06 MB/s
+	Iteration 92:  18.9181 ms | Median bandwith: 988049 MB/s
+	Iteration 93:  17.9955 ms | Median bandwith: 1.03871e+06 MB/s
+	Iteration 94:  18.5238 ms | Median bandwith: 1.00908e+06 MB/s
+	Iteration 95:  18.6306 ms | Median bandwith: 1.0033e+06 MB/s
+	Iteration 96:  20.4486 ms | Median bandwith: 914100 MB/s
+	Iteration 97:  18.1673 ms | Median bandwith: 1.02888e+06 MB/s
+	Iteration 98:  18.386 ms | Median bandwith: 1.01664e+06 MB/s
+	Iteration 99:  17.8698 ms | Median bandwith: 1.04601e+06 MB/s
+	Iteration 100:  18.0431 ms | Median bandwith: 1.03597e+06 MB/s
+	Iteration 101:  19.6657 ms | Median bandwith: 950486 MB/s
+	Iteration 102:  17.9028 ms | Median bandwith: 1.04408e+06 MB/s
+	Iteration 103:  18.2084 ms | Median bandwith: 1.02656e+06 MB/s
+	Iteration 104:  17.9771 ms | Median bandwith: 1.03977e+06 MB/s
+	Iteration 105:  20.1044 ms | Median bandwith: 929748 MB/s
+	Iteration 106:  18.578 ms | Median bandwith: 1.00614e+06 MB/s
+	Iteration 107:  18.4838 ms | Median bandwith: 1.01127e+06 MB/s
+	Iteration 108:  18.1333 ms | Median bandwith: 1.03081e+06 MB/s
+	Iteration 109:  17.8915 ms | Median bandwith: 1.04474e+06 MB/s
+	Iteration 110:  17.8084 ms | Median bandwith: 1.04962e+06 MB/s
+	Iteration 111:  17.8647 ms | Median bandwith: 1.04631e+06 MB/s
+	Iteration 112:  18.0344 ms | Median bandwith: 1.03647e+06 MB/s
+	Iteration 113:  17.9576 ms | Median bandwith: 1.0409e+06 MB/s
+	Iteration 114:  19.997 ms | Median bandwith: 934742 MB/s
+	Iteration 115:  17.868 ms | Median bandwith: 1.04612e+06 MB/s
+	Iteration 116:  18.1049 ms | Median bandwith: 1.03243e+06 MB/s
+	Iteration 117:  18.0695 ms | Median bandwith: 1.03445e+06 MB/s
+	Iteration 118:  18.3122 ms | Median bandwith: 1.02074e+06 MB/s
+	Iteration 119:  17.7761 ms | Median bandwith: 1.05152e+06 MB/s
+	Iteration 120:  17.9472 ms | Median bandwith: 1.0415e+06 MB/s
+	Iteration 121:  17.9494 ms | Median bandwith: 1.04137e+06 MB/s
+	Iteration 122:  17.8859 ms | Median bandwith: 1.04507e+06 MB/s
+	Iteration 123:  17.9009 ms | Median bandwith: 1.04419e+06 MB/s
+	Iteration 124:  19.1502 ms | Median bandwith: 976073 MB/s
+	Iteration 125:  18.1379 ms | Median bandwith: 1.03055e+06 MB/s
+	Iteration 126:  18.0848 ms | Median bandwith: 1.03358e+06 MB/s
+	Iteration 127:  18.4594 ms | Median bandwith: 1.0126e+06 MB/s
+	Iteration 128:  18.24 ms | Median bandwith: 1.02478e+06 MB/s
+	Iteration 129:  19.4995 ms | Median bandwith: 958588 MB/s
+	Iteration 130:  26.8901 ms | Median bandwith: 695126 MB/s
+	Iteration 131:  19.355 ms | Median bandwith: 965746 MB/s
+	Iteration 132:  17.9659 ms | Median bandwith: 1.04042e+06 MB/s
+	Iteration 133:  17.9975 ms | Median bandwith: 1.03859e+06 MB/s
+	Iteration 134:  19.5316 ms | Median bandwith: 957012 MB/s
+	Iteration 135:  18.0938 ms | Median bandwith: 1.03306e+06 MB/s
+	Iteration 136:  17.9738 ms | Median bandwith: 1.03996e+06 MB/s
+	Iteration 137:  17.8976 ms | Median bandwith: 1.04438e+06 MB/s
+	Iteration 138:  18.043 ms | Median bandwith: 1.03597e+06 MB/s
+	Iteration 139:  18.045 ms | Median bandwith: 1.03585e+06 MB/s
+	Iteration 140:  18.205 ms | Median bandwith: 1.02675e+06 MB/s
+	Iteration 141:  18.3265 ms | Median bandwith: 1.01995e+06 MB/s
+	Iteration 142:  18.4569 ms | Median bandwith: 1.01274e+06 MB/s
+	Iteration 143:  17.7531 ms | Median bandwith: 1.05289e+06 MB/s
+	Iteration 144:  18.0346 ms | Median bandwith: 1.03645e+06 MB/s
+	Iteration 145:  17.9098 ms | Median bandwith: 1.04368e+06 MB/s
+	Iteration 146:  17.9461 ms | Median bandwith: 1.04156e+06 MB/s
+	Iteration 147:  19.0857 ms | Median bandwith: 979372 MB/s
+	Iteration 148:  18.0329 ms | Median bandwith: 1.03655e+06 MB/s
+	Iteration 149:  18.9287 ms | Median bandwith: 987495 MB/s
+	Iteration 150:  17.9567 ms | Median bandwith: 1.04095e+06 MB/s
+	Iteration 151:  17.9457 ms | Median bandwith: 1.04158e+06 MB/s
+	Iteration 152:  22.2856 ms | Median bandwith: 838748 MB/s
+	Iteration 153:  18.5338 ms | Median bandwith: 1.00854e+06 MB/s
+	Iteration 154:  20.2248 ms | Median bandwith: 924213 MB/s
+	Iteration 155:  19.5579 ms | Median bandwith: 955729 MB/s
+	Iteration 156:  19.3334 ms | Median bandwith: 966823 MB/s
+	Iteration 157:  23.0981 ms | Median bandwith: 809244 MB/s
+	Iteration 158:  18.5397 ms | Median bandwith: 1.00822e+06 MB/s
+	Iteration 159:  17.8515 ms | Median bandwith: 1.04709e+06 MB/s
+	Iteration 160:  17.7579 ms | Median bandwith: 1.0526e+06 MB/s
+	Iteration 161:  17.8999 ms | Median bandwith: 1.04425e+06 MB/s
+	Iteration 162:  18.0033 ms | Median bandwith: 1.03826e+06 MB/s
+	Iteration 163:  17.9435 ms | Median bandwith: 1.04172e+06 MB/s
+	Iteration 164:  18.1254 ms | Median bandwith: 1.03126e+06 MB/s
+	Iteration 165:  17.9478 ms | Median bandwith: 1.04147e+06 MB/s
+	Iteration 166:  18.4399 ms | Median bandwith: 1.01367e+06 MB/s
+	Iteration 167:  17.8311 ms | Median bandwith: 1.04828e+06 MB/s
+	Iteration 168:  17.9555 ms | Median bandwith: 1.04102e+06 MB/s
+	Iteration 169:  17.8325 ms | Median bandwith: 1.0482e+06 MB/s
+	Iteration 170:  17.9144 ms | Median bandwith: 1.04341e+06 MB/s
+	Iteration 171:  17.9434 ms | Median bandwith: 1.04172e+06 MB/s
+	Iteration 172:  18.2003 ms | Median bandwith: 1.02702e+06 MB/s
+	Iteration 173:  17.7692 ms | Median bandwith: 1.05193e+06 MB/s
+	Iteration 174:  17.9663 ms | Median bandwith: 1.0404e+06 MB/s
+	Iteration 175:  17.892 ms | Median bandwith: 1.04471e+06 MB/s
+	Iteration 176:  18.2658 ms | Median bandwith: 1.02334e+06 MB/s
+	Iteration 177:  17.95 ms | Median bandwith: 1.04134e+06 MB/s
+	Iteration 178:  18.3878 ms | Median bandwith: 1.01654e+06 MB/s
+	Iteration 179:  19.2334 ms | Median bandwith: 971853 MB/s
+	Iteration 180:  19.113 ms | Median bandwith: 977973 MB/s
+	Iteration 181:  20.5574 ms | Median bandwith: 909262 MB/s
+	Iteration 182:  17.6617 ms | Median bandwith: 1.05834e+06 MB/s
+	Iteration 183:  19.1943 ms | Median bandwith: 973834 MB/s
+	Iteration 184:  18.2097 ms | Median bandwith: 1.02649e+06 MB/s
+	Iteration 185:  19.8735 ms | Median bandwith: 940549 MB/s
+	Iteration 186:  17.8076 ms | Median bandwith: 1.04967e+06 MB/s
+	Iteration 187:  18.0257 ms | Median bandwith: 1.03697e+06 MB/s
+	Iteration 188:  18.0096 ms | Median bandwith: 1.03789e+06 MB/s
+	Iteration 189:  17.9442 ms | Median bandwith: 1.04167e+06 MB/s
+	Iteration 190:  18.0696 ms | Median bandwith: 1.03444e+06 MB/s
+	Iteration 191:  18.6962 ms | Median bandwith: 999777 MB/s
+	Iteration 192:  18.1055 ms | Median bandwith: 1.0324e+06 MB/s
+	Iteration 193:  17.9055 ms | Median bandwith: 1.04392e+06 MB/s
+	Iteration 194:  19.1015 ms | Median bandwith: 978561 MB/s
+	Iteration 195:  17.9201 ms | Median bandwith: 1.04307e+06 MB/s
+	Iteration 196:  19.2612 ms | Median bandwith: 970448 MB/s
+	Iteration 197:  17.8831 ms | Median bandwith: 1.04523e+06 MB/s
+	Iteration 198:  18.0229 ms | Median bandwith: 1.03712e+06 MB/s
+	Iteration 199:  17.9499 ms | Median bandwith: 1.04134e+06 MB/s
+	Iteration 200:  18.0302 ms | Median bandwith: 1.03671e+06 MB/s
+	Iteration 201:  18.0464 ms | Median bandwith: 1.03577e+06 MB/s
+	Iteration 202:  17.9719 ms | Median bandwith: 1.04007e+06 MB/s
+	Iteration 203:  18.1135 ms | Median bandwith: 1.03194e+06 MB/s
+	Iteration 204:  19.0644 ms | Median bandwith: 980466 MB/s
+	Iteration 205:  19.884 ms | Median bandwith: 940051 MB/s
+	Iteration 206:  18.4304 ms | Median bandwith: 1.0142e+06 MB/s
+	Iteration 207:  18.2505 ms | Median bandwith: 1.02419e+06 MB/s
+	Iteration 208:  18.1162 ms | Median bandwith: 1.03178e+06 MB/s
+	Iteration 209:  17.9482 ms | Median bandwith: 1.04144e+06 MB/s
+	Iteration 210:  22.8876 ms | Median bandwith: 816686 MB/s
+	Iteration 211:  18.4568 ms | Median bandwith: 1.01274e+06 MB/s
+	Iteration 212:  17.9305 ms | Median bandwith: 1.04247e+06 MB/s
+	Iteration 213:  17.8448 ms | Median bandwith: 1.04748e+06 MB/s
+	Iteration 214:  18.0155 ms | Median bandwith: 1.03755e+06 MB/s
+	Iteration 215:  17.8617 ms | Median bandwith: 1.04649e+06 MB/s
+	Iteration 216:  18.236 ms | Median bandwith: 1.02501e+06 MB/s
+	Iteration 217:  17.8141 ms | Median bandwith: 1.04928e+06 MB/s
+	Iteration 218:  18.9838 ms | Median bandwith: 984632 MB/s
+	Iteration 219:  17.8977 ms | Median bandwith: 1.04438e+06 MB/s
+	Iteration 220:  17.9957 ms | Median bandwith: 1.0387e+06 MB/s
+	Iteration 221:  18.1059 ms | Median bandwith: 1.03237e+06 MB/s
+	Iteration 222:  18.5502 ms | Median bandwith: 1.00764e+06 MB/s
+	Iteration 223:  18.2526 ms | Median bandwith: 1.02407e+06 MB/s
+	Iteration 224:  18.2308 ms | Median bandwith: 1.0253e+06 MB/s
+	Iteration 225:  19.6127 ms | Median bandwith: 953055 MB/s
+	Iteration 226:  18.4009 ms | Median bandwith: 1.01582e+06 MB/s
+	Iteration 227:  18.2739 ms | Median bandwith: 1.02288e+06 MB/s
+	Iteration 228:  18.5465 ms | Median bandwith: 1.00785e+06 MB/s
+	Iteration 229:  18.1597 ms | Median bandwith: 1.02931e+06 MB/s
+	Iteration 230:  17.9939 ms | Median bandwith: 1.0388e+06 MB/s
+	Iteration 231:  17.8732 ms | Median bandwith: 1.04581e+06 MB/s
+	Iteration 232:  17.9899 ms | Median bandwith: 1.03903e+06 MB/s
+	Iteration 233:  18.1102 ms | Median bandwith: 1.03213e+06 MB/s
+	Iteration 234:  18.2585 ms | Median bandwith: 1.02374e+06 MB/s
+	Iteration 235:  18.0203 ms | Median bandwith: 1.03728e+06 MB/s
+	Iteration 236:  17.919 ms | Median bandwith: 1.04314e+06 MB/s
+	Iteration 237:  17.7 ms | Median bandwith: 1.05605e+06 MB/s
+	Iteration 238:  18.1214 ms | Median bandwith: 1.03149e+06 MB/s
+	Iteration 239:  17.9369 ms | Median bandwith: 1.0421e+06 MB/s

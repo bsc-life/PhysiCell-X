@@ -74,13 +74,13 @@ using namespace BioFVM;
 using namespace PhysiCell;
 
 // setup functions to help us along 
-void create_cell_types( void );
+void create_cell_types( mpi_Environment &world, mpi_Cartesian &cart_topo );
 
 /*======================================*/
 /* Parallel prototype of setup_tissue() */
 /*======================================*/
 
-void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &cart_topo);
+void setup_tissue(Microenvironment & microenvironment, mpi_Environment &world, mpi_Cartesian &cart_topo);
 
 // custom pathology coloring function 
 
@@ -88,15 +88,19 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 /* Parallel prototype of setup_microenvironment() */
 /*================================================*/
 
-void setup_microenvironment(mpi_Environment &world, mpi_Cartesian &cart_topo);
+void setup_microenvironment( mpi_Environment &world, mpi_Cartesian &cart_topo);
 
 std::vector<std::string> my_coloring_function( Cell* );
 
 // custom cell phenotype functions could go here 
-void tumor_cell_phenotype_with_signaling( Cell* pCell, Phenotype& phenotype, double dt , mpi_Environment &world, mpi_Cartesian &cart_topo);
+//void tumor_cell_phenotype_with_signaling( Cell* pCell, Phenotype& phenotype, double dt , mpi_Environment &world, mpi_Cartesian &cart_topo);
 /** \brief Write Density values to output file */
-void set_input_nodes(Cell* pCell); 
-void from_nodes_to_cell(Cell* pCell, Phenotype& phenotype, double dt);
+//void set_input_nodes(Cell* pCell); 
+//void from_nodes_to_cell(Cell* pCell, Phenotype& phenotype, double dt);
+
+// custom cell phenotype functions could go here 
+void pre_update_intracellular( Cell* pCell, Phenotype& phenotype, double dt );
+void post_update_intracellular( Cell* pCell, Phenotype& phenotype, double dt );
 void color_node(Cell* pCell);
 
 #endif

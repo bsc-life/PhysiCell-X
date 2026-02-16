@@ -580,25 +580,7 @@ void MaBoSSIntracellular::pack(std::vector<char>& buffer, int& len_buffer, int& 
 		pack_buff(t_mutation.first, buffer, len_buffer, position);
 
 		pack_buff(t_mutation.second, buffer, len_buffer, position);
-
-		pack_buff(t_initial_value.second, buffer, len_buffer, position);
 	}
-
-	// Mutations
-	temp_int = static_cast<int>(this->mutations.size());
-	pack_buff(temp_int, buffer, len_buffer, position);
-
-	//mutations
-	for (auto t_mutation: this->mutations) {
-	
-		pack_buff(t_mutation.first, buffer, len_buffer, position);
-
-		pack_buff(t_mutation.second, buffer, len_buffer, position);
-
-		pack_buff(t_initial_value.second, buffer, len_buffer, position);
-	}
-	
-	
 	
 	// Parameters
 
@@ -709,7 +691,7 @@ void MaBoSSIntracellular::unpack(std::vector<char>& buffer, int len_buffer, int&
     this->mutations.clear();
     for (int i = 0; i < temp_int; ++i) {
         std::string key;
-        int value;
+        double value;
         unpack_buff(key, buffer, len_buffer, position);
         unpack_buff(value, buffer, len_buffer, position);
         this->mutations[key] = value;
@@ -755,7 +737,16 @@ void MaBoSSIntracellular::unpack(std::vector<char>& buffer, int len_buffer, int&
     unpack_buff(this->indicesOfOutputs, buffer, len_buffer, position);
 
 	// Unpack maboss
+	maboss.init_maboss(bnd_filename, cfg_filename);
     this->maboss.unpack(buffer, len_buffer, position); //todo
+	maboss.mutate(mutations);
+	maboss.set_parameters(parameters);
+	maboss.set_time_stochasticity(time_stochasticity);
+	maboss.set_scaling(scaling);
+	maboss.set_discrete_time(discrete_time, time_tick);
+	maboss.set_update_time_step(time_step);
+	maboss.set_time_stochasticity(time_stochasticity);
+	
 
     // Unpack next_physiboss_run
     unpack_buff(this->next_physiboss_run, buffer, len_buffer, position);

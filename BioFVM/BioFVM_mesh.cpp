@@ -238,6 +238,7 @@ std::vector<double> General_Mesh::get_subdomain_limits()
 	return local_bounding_box; 
 }
 
+
 bool General_Mesh::is_position_valid(double x, double y, double z)
 {
 	if(x< bounding_box[mesh_min_x_index] || x>bounding_box[mesh_max_x_index])

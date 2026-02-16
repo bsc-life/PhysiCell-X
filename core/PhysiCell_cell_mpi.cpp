@@ -50,7 +50,26 @@ void Cell::pack(std::vector<char>& snd_buffer, int& len_buffer, int &position){
 
     //Pack intracellular addon
 
-    //Will be here
+     if (this->phenotype.intracellular != NULL) 											//this is NULL and NOT nullptr
+    {
+        temp_str = this->phenotype.intracellular->intracellular_type; 				//This was the original code
+    }
+    else
+        temp_str = "not-maboss";
+                
+	pack_buff(temp_str, snd_buffer, len_buffer, position);
+			
+		
+#ifdef ADDON_PHYSIBOSS
+
+    if(this->phenotype.intracellular != NULL)
+        if (this->phenotype.intracellular->intracellular_type.compare("maboss") == 0) 
+        {
+            MaBoSSIntracellular* t_intracellular = static_cast<MaBoSSIntracellular*>(this->phenotype.intracellular); 
+            t_intracellular->pack(snd_buffer, len_buffer, position);	
+        }
+				
+#endif
 
 
     pack_buff(this->is_out_of_domain, snd_buffer, len_buffer, position);
@@ -142,7 +161,7 @@ void Cell::unpack(std::vector<char>& rcv_buffer, int& len_buffer, int& position)
 
    this->phenotype.unpack(rcv_buffer, len_buffer, position);    
 
-    /*
+    
 	// Unpack intracellular_type string first
 	unpack_buff(temp_str, rcv_buffer, len_buffer, position);
 
@@ -171,7 +190,7 @@ void Cell::unpack(std::vector<char>& rcv_buffer, int& len_buffer, int& position)
 			delete this->phenotype.intracellular;
 			this->phenotype.intracellular = NULL;
 		}
-	}*/
+	}
 
 	unpack_buff(this->is_out_of_domain, rcv_buffer, len_buffer, position);
 

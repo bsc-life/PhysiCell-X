@@ -69,7 +69,7 @@ PhysiCell_rules.o PhysiCell_basic_signaling.o PhysiCell_cell_container_mechanics
 PhysiCell_standard_models_mpi.o 
 
 PhysiCell_module_OBJECTS :=  PhysiCell_SVG.o PhysiCell_pathology.o PhysiCell_MultiCellDS.o PhysiCell_various_outputs.o \
-PhysiCell_pugixml.o PhysiCell_settings.o PhysiCell_pathology_SVG.o
+PhysiCell_pugixml.o PhysiCell_settings.o PhysiCell_pathology_SVG.o PhysiCell_geometry.o
 
 # put your custom objects here (they should be in the custom_modules directory)  
 
@@ -199,6 +199,9 @@ PhysiCell_pugixml.o: ./modules/PhysiCell_pugixml.cpp
 	
 PhysiCell_settings.o: ./modules/PhysiCell_settings.cpp
 	$(COMPILE_COMMAND)  -c ./modules/PhysiCell_settings.cpp	
+
+PhysiCell_geometry.o: ./modules/PhysiCell_geometry.cpp
+	$(COMPILE_COMMAND) -c ./modules/PhysiCell_geometry.cpp 
 	
 # user-defined PhysiCell modules
 

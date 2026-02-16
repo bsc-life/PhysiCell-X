@@ -1,0 +1,8 @@
+Notes
+
+void Cell::advance_bundled_phenotype_functions( double dt_ , mpi_Environment &world, mpi_Cartesian &cart_topo )
+
+This function is important! It is executed for each cell and avances the phenotype. I need to ensure that the new
+functions coming in the 1.14 require MPI: standard_cell_transformations | apply_ruleset | advance damage
+-> I have revised the code and it don't need MPI. Attack has been modified. 
+

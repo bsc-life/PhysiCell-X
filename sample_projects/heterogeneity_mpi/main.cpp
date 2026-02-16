@@ -196,7 +196,7 @@ int main( int argc, char* argv[] )
 	sprintf( filename , "%s/initial" , PhysiCell_settings.folder.c_str() ); 
 	
 	//Use the parallel version of the function for XML file writing
-	save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo ); 
+	save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo );  
 	
 	//Save a SVG cross section through z = 0, after setting its length bar to 200 microns 
 	PhysiCell_SVG_options.length_bar = 200; 
@@ -273,10 +273,10 @@ int main( int argc, char* argv[] )
 	
 	//Save a final simulation snapshot 
 	sprintf( filename , "%s/final" , PhysiCell_settings.folder.c_str() ); 
-	//save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo ); 
+	save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo ); 
 	
 	sprintf( filename , "%s/final.svg" , PhysiCell_settings.folder.c_str()); 
-	//SVG_plot_mpi( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function, substrate_coloring_function, world, cart_topo );
+	SVG_plot_mpi( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function, substrate_coloring_function, world, cart_topo );
 	
 	//Timer, printing is done ONLY through MPI process rank 0 i.e. the first MPI process 
 	if(IOProcessor(world))

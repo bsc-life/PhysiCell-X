@@ -1199,6 +1199,11 @@ unsigned int Microenvironment::number_of_voxels( void )
 unsigned int Microenvironment::number_of_voxel_faces( void )
 { return mesh.voxel_faces.size(); } 
 
+std::pair<double, double> Microenvironment::get_subdomain_x_limits( void ) const
+{
+	return std::make_pair(mesh.local_bounding_box[0] - (mesh.dx/2.0), mesh.local_bounding_box[3] + (mesh.dx/2.0));
+}
+
 void Microenvironment::write_to_matlab( std::string filename )
 {
 	int number_of_data_entries = mesh.voxels.size();

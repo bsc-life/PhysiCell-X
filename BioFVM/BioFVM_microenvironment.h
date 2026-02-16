@@ -52,6 +52,7 @@
 #include "BioFVM_mesh.h"
 #include "BioFVM_agent_container.h"
 #include "BioFVM_MultiCellDS.h"
+#include <utility>
 
 #include "../DistPhy/DistPhy_Environment.h"
 #include "../DistPhy/DistPhy_Cartesian.h"
@@ -214,6 +215,7 @@ class Microenvironment
 	unsigned int number_of_densities( void ); 
 	unsigned int number_of_voxels( void ); 
 	unsigned int number_of_voxel_faces( void ); 
+	std::pair<double, double> get_subdomain_x_limits( void ) const;
 
  	
 	void auto_choose_diffusion_decay_solver( void ); 

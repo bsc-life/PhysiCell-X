@@ -409,7 +409,7 @@ void Cell::pack_cell(std::vector<char>& snd_buffer, int& len_buffer, int &positi
 		
 #ifdef ADDON_PHYSIBOSS
 
-		if(this->phenotype.intracellular != NULL)			//Added by Gaurav Saxena
+		if(this->phenotype.intracellular != NULL)
 			if (this->phenotype.intracellular->intracellular_type.compare("maboss") == 0) 
 			{
 				MaBoSSIntracellular* t_intracellular = static_cast<MaBoSSIntracellular*>(this->phenotype.intracellular); 
