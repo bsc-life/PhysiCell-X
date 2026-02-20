@@ -58,7 +58,7 @@ void Cell::pack(std::vector<char>& snd_buffer, int& len_buffer, int &position){
         temp_str = "not-maboss";
                 
 	pack_buff(temp_str, snd_buffer, len_buffer, position);
-			
+	
 		
 #ifdef ADDON_PHYSIBOSS
 
@@ -159,8 +159,8 @@ void Cell::unpack(std::vector<char>& rcv_buffer, int& len_buffer, int& position)
 
    this->state.unpack(rcv_buffer, len_buffer, position);
 
-   this->phenotype.unpack(rcv_buffer, len_buffer, position);    
-
+   this->phenotype.unpack(rcv_buffer, len_buffer, position);
+   
     
 	// Unpack intracellular_type string first
 	unpack_buff(temp_str, rcv_buffer, len_buffer, position);
@@ -236,6 +236,13 @@ void Cell::unpack(std::vector<char>& rcv_buffer, int& len_buffer, int& position)
 	unpack_buff(*(this->fraction_transferred_when_ingested), rcv_buffer, len_buffer, position);
 	unpack_buff(this->type, rcv_buffer, len_buffer, position);
 	unpack_buff(this->velocity, rcv_buffer, len_buffer, position);
+
+    Cell_Definition* pCD = find_cell_definition(this->type);
+    if(pCD != NULL)
+    {
+        this->phenotype.cycle.sync_to_cycle_model(pCD->functions.cycle_model);
+    }
+
 } 
 
 #include <iostream>

@@ -2050,6 +2050,8 @@ void vaporize_teleported_cell(int index)
 	pDeleteMe->remove_all_attached_cells(); 			//newly added statement 
 	// 1.11.0
 	pDeleteMe->remove_all_spring_attachments(); 
+	// Ensure neighbors drop stale pointers before this cell is removed from all_cells.
+	pDeleteMe->remove_self_from_all_neighbors();
 	
 	//NO NEED to release substrates as the cell is ONLY moving to another sub-domain and is not dying
 	
@@ -3420,6 +3422,7 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 
 					pCell->unpack(rcv_buf_right, size_right, position_right);
 					++right;
+
 					pCell->assign_position(pCell->position[0], pCell->position[1], pCell->position[2], world, cart_topo);
 					/*
 					std::cout << "\t\t\t\t[Rank " << world.rank << " ] Unpacked cell ID: " << pCell->ID << " at position: (" 
@@ -3445,6 +3448,7 @@ void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 
 					pCell->unpack(rcv_buf_left, size_left, position_left);
 
+					
 					pCell->assign_position(pCell->position[0], pCell->position[1], pCell->position[2], world, cart_topo);
 					++left;
 					/*
