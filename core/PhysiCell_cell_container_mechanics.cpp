@@ -120,17 +120,17 @@ void Cell_Container::exchange_mechanics_halos(mpi_Environment &world, mpi_Cartes
     pack_moore_info(world, cart_topo);
 #ifdef MECHS_TIME 
     auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
     if (world.rank == 0)
-        std::cout << "\t\t\tPack Moore info: " << duration.count() << " milliseconds"<< std::endl;
+        std::cout << "\t\t\tPack Moore info: " << duration.count() << " microseconds"<< std::endl;
     start = std::chrono::high_resolution_clock::now();
 #endif 
     pack_cell_interact_info(world, cart_topo);
 #ifdef MECHS_TIME
     end = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
     if (world.rank == 0)
-        std::cout << "\t\t\tPack cell interact info: " << duration.count() << " milliseconds"<< std::endl;
+        std::cout << "\t\t\tPack cell interact info: " << duration.count() << " microseconds"<< std::endl;
 #endif
 }
 
@@ -152,7 +152,7 @@ void Cell_Container::evaluate_cell_cell_interactions(double time_since_last_mech
 void Cell_Container::update_cell_potentials(double time_since_last_mechanics,  mpi_Environment &world, mpi_Cartesian &cart_topo){
 
     // Boundary data must be exchanged before calling this routine.
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(guided)
     for( int i=0; i < (*all_cells).size(); i++ )
     {
         Cell* pC = (*all_cells)[i];

@@ -515,36 +515,33 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 		}
 		#ifdef MECHS_TIME 
 		auto end_part = std::chrono::high_resolution_clock::now();
-		auto duration_part = std::chrono::duration_cast<std::chrono::milliseconds>(end_part - start_part);
-		if (world.rank == 0)
-			std::cout << "\t\tCompute gradients: " << duration_part.count() << " milliseconds"<< std::endl;
+		auto duration_part = std::chrono::duration_cast<std::chrono::microseconds>(end_part - start_part);
+		double gradient_time = duration_part.count();
+			
 
 		start_part = std::chrono::high_resolution_clock::now();
 		#endif
 		exchange_mechanics_halos(world, cart_topo);
 		#ifdef MECHS_TIME
 		end_part = std::chrono::high_resolution_clock::now();
-		duration_part = std::chrono::duration_cast<std::chrono::milliseconds>(end_part - start_part);
-		if (world.rank == 0)
-			std::cout << "\t\tCompute mechanics halos: " << duration_part.count() << " milliseconds"<< std::endl;
+		duration_part = std::chrono::duration_cast<std::chrono::microseconds>(end_part - start_part);
+		double halo_time = duration_part.count();
 
 		start_part = std::chrono::high_resolution_clock::now();
 		#endif
 		update_cell_potentials(time_since_last_mechanics,  world, cart_topo);
 		#ifdef MECHS_TIME
 		end_part = std::chrono::high_resolution_clock::now();
-		duration_part = std::chrono::duration_cast<std::chrono::milliseconds>(end_part - start_part);
-		if (world.rank == 0)
-			std::cout << "\t\tUpdate potentials: " << duration_part.count() << " milliseconds"<< std::endl;
+		duration_part = std::chrono::duration_cast<std::chrono::microseconds>(end_part - start_part);
+		double potential_time = duration_part.count();
 		
 		start_part = std::chrono::high_resolution_clock::now();
 		#endif
 		evaluate_cell_cell_interactions(time_since_last_mechanics,  world, cart_topo);
 		#ifdef MECHS_TIME
 		end_part = std::chrono::high_resolution_clock::now();
-		duration_part = std::chrono::duration_cast<std::chrono::milliseconds>(end_part - start_part);
-		if (world.rank == 0)
-			std::cout << "\t\tEvaluate cell-cell interactions: " << duration_part.count() << " milliseconds"<< std::endl; 
+		duration_part = std::chrono::duration_cast<std::chrono::microseconds>(end_part - start_part);
+		double interactions_time = duration_part.count();
 		
 		start_part = std::chrono::high_resolution_clock::now();
 		#endif
@@ -557,9 +554,9 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 		}
 		#ifdef MECHS_TIME 
 		end_part = std::chrono::high_resolution_clock::now();
-		duration_part = std::chrono::duration_cast<std::chrono::milliseconds>(end_part - start_part);
-		if (world.rank == 0)
-			std::cout << "\t\tClear dummy cells: " << duration_part.count() << " milliseconds"<< std::endl; 
+		duration_part = std::chrono::duration_cast<std::chrono::microseconds>(end_part - start_part);
+		double clear_dummy_time = duration_part.count();
+			
 
 		start_part = std::chrono::high_resolution_clock::now();
 		#endif
@@ -583,18 +580,18 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 		//cout << "\t\t[Rank " << world.rank << " ] Crossed after update_position: " << crossed_this_step << std::endl;
 		#ifdef MECHS_TIME
 		end_part = std::chrono::high_resolution_clock::now();
-		duration_part = std::chrono::duration_cast<std::chrono::milliseconds>(end_part - start_part);
-		if (world.rank == 0)
-			std::cout << "\t\tUpdate positions: " << duration_part.count() << " milliseconds"<< std::endl; 
+		duration_part = std::chrono::duration_cast<std::chrono::microseconds>(end_part - start_part);
+		double update_position_time = duration_part.count();
+			
 		
 		start_part = std::chrono::high_resolution_clock::now();
-		 #endif
+		#endif
 		pack(all_cells, world, cart_topo);
 		#ifdef MECHS_TIME
 		end_part = std::chrono::high_resolution_clock::now();
-		duration_part = std::chrono::duration_cast<std::chrono::milliseconds>(end_part - start_part);
-		if (world.rank == 0)
-			std::cout << "\t\tPack cells: " << duration_part.count() << " milliseconds"<< std::endl; 
+		duration_part = std::chrono::duration_cast<std::chrono::microseconds>(end_part - start_part);
+		double pack_time = duration_part.count();
+			
 		#endif
 
 		for(int i=0; i < (*all_cells).size(); i++)
@@ -617,54 +614,65 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
     #endif
 	//Checking for uniqueness ends
 		//std::cout << "\t\t[Rank " << world.rank << " ][" << no_cells_cross_left << " || " << no_cells_cross_right <<" ] " << std::endl; 
-		cart_topo.Send_and_Receive_Cells(no_cells_cross_left,  position_left,  snd_buf_left,
-       															 no_cells_cross_right, position_right, snd_buf_right,
-       															 no_of_cells_from_left,  rcv_buf_left,
-       															 no_of_cells_from_right, rcv_buf_right,
-       															 world
-    														);
+	cart_topo.Send_and_Receive_Cells(no_cells_cross_left,  position_left,  snd_buf_left,
+																no_cells_cross_right, position_right, snd_buf_right,
+																no_of_cells_from_left,  rcv_buf_left,
+																no_of_cells_from_right, rcv_buf_right,
+																world
+														);
 	#ifdef MECHS_TIME
 	end_part = std::chrono::high_resolution_clock::now();
-	duration_part = std::chrono::duration_cast<std::chrono::milliseconds>(end_part - start_part);
-	if (world.rank == 0)
-		std::cout << "\t\tSend/Receive cells: " << duration_part.count() << " milliseconds"<< std::endl;
+	duration_part = std::chrono::duration_cast<std::chrono::microseconds>(end_part - start_part);
+	double transfer_time = duration_part.count();
+		
 	start_part = std::chrono::high_resolution_clock::now();
 	#endif 
     unpack(world, cart_topo);
 	#ifdef MECHS_TIME
 	end_part = std::chrono::high_resolution_clock::now();
-		duration_part = std::chrono::duration_cast<std::chrono::milliseconds>(end_part - start_part);
-		if (world.rank == 0)
-			std::cout << "\t\tUnpack cells: " << duration_part.count() << " milliseconds"<< std::endl; 
+	duration_part = std::chrono::duration_cast<std::chrono::microseconds>(end_part - start_part);
+	double unpack_time = duration_part.count();
+			
 	#endif														
 
-		// Update cell indices in the container because some cells 'could' have moved to new voxels
-		#ifdef MECHS_TIME
-		start_part = std::chrono::high_resolution_clock::now();
-		#endif
-		for( int i=0; i < (*all_cells).size(); i++ )
-			if(!(*all_cells)[i]->is_out_of_domain && (*all_cells)[i]->is_movable)
-				(*all_cells)[i]->update_voxel_in_container(world, cart_topo);
-		#ifdef MECHS_TIME
-		end_part = std::chrono::high_resolution_clock::now();
-		duration_part = std::chrono::duration_cast<std::chrono::milliseconds>(end_part - start_part);
-		if (world.rank == 0)
-			std::cout << "\t\tUpdate cell indices in container: " << duration_part.count() << " milliseconds"<< std::endl; 					//Changed to parallel version
-			last_mechanics_time=t;
-			end = std::chrono::high_resolution_clock::now();
-			duration = end - start;
-			time_mechs += duration.count();
-			if (world.rank == 0)
-				std::cout << "Mechanics block total: " << duration.count() << " ms" << std::endl;
-		}
-		#else
-		last_mechanics_time=t;
-		end = std::chrono::high_resolution_clock::now();
-		duration = end - start;
-		time_mechs += duration.count();
-		}
-		#endif
-
+	// Update cell indices in the container because some cells 'could' have moved to new voxels
+	#ifdef MECHS_TIME
+	start_part = std::chrono::high_resolution_clock::now();
+	#endif
+	for( int i=0; i < (*all_cells).size(); i++ )
+		if(!(*all_cells)[i]->is_out_of_domain && (*all_cells)[i]->is_movable)
+			(*all_cells)[i]->update_voxel_in_container(world, cart_topo);
+	#ifdef MECHS_TIME
+	end_part = std::chrono::high_resolution_clock::now();
+	duration_part = std::chrono::duration_cast<std::chrono::microseconds>(end_part - start_part);
+	double voxels_update_time = duration_part.count();
+	last_mechanics_time=t;
+	end = std::chrono::high_resolution_clock::now();
+	duration = end - start;
+	time_mechs += duration.count();
+	if (world.rank == 0) 
+	{
+		std::cout << "Mechanics block total: " << duration.count() << " ms" << std::endl;
+		std::cout << "\t\tCompute gradients: " << gradient_time << " milliseconds"<< std::endl;
+		std::cout << "\t\tCompute mechanics halos: " << halo_time << " milliseconds"<< std::endl;
+		std::cout << "\t\tCompute potentials: " << potential_time << " milliseconds"<< std::endl;
+		std::cout << "\t\tEvaluate interactions: " << interactions_time << " milliseconds"<< std::endl;
+		std::cout << "\t\tClear dummy cells: " << clear_dummy_time << " milliseconds"<< std::endl;
+		std::cout << "\t\tUpdate positions: " << update_position_time << " milliseconds"<< std::endl;
+		std::cout << "\t\tPack cells: " << pack_time << " milliseconds"<< std::endl; 
+		std::cout << "\t\tSend/Receive cells: " << transfer_time << " milliseconds"<< std::endl;  
+		std::cout << "\t\tUnpack cells: " << unpack_time << " milliseconds"<< std::endl; 
+		std::cout << "\t\tUpdate cell indices in container: " << voxels_update_time << " milliseconds"<< std::endl; 
+	}
+	
+	#else
+	last_mechanics_time=t;
+	end = std::chrono::high_resolution_clock::now();
+	duration = end - start;
+	time_mechs += duration.count();
+	
+	#endif
+	}
 	initialzed=true;
 	return;
 }
@@ -883,129 +891,116 @@ void Cell_Container::pack_moore_info(mpi_Environment &world, mpi_Cartesian &cart
 
 void Cell_Container::pack_cell_interact_info(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
-
-	/*--------------------------------------------------------------*/
-	/* 4 variables below are data members of class Cell_Container 	*/
-	/* These are used in sending packed cells also - use carefully	*/
-	/*--------------------------------------------------------------*/
-	position_left = 0;									//Must be initialized to 0
-	position_right = 0;									//Must be initialized to 0
-	snd_buf_left.resize(0); 											//When we enter function again, this is reset
-	snd_buf_right.resize(0);											//Reset the others also
+	position_left = 0;
+	position_right = 0;
+	snd_buf_left.resize(0);
+	snd_buf_right.resize(0);
 
 	int z_dim = underlying_mesh.z_coordinates.size();
 	int y_dim = underlying_mesh.y_coordinates.size();
 	int x_dim = underlying_mesh.x_coordinates.size();
 
+	std::vector<int> snd_buf_left_sizes(y_dim * z_dim, 0);
+	std::vector<int> snd_buf_right_sizes(y_dim * z_dim, 0);	
+	std::vector<vector<char>> snd_buf_left_per_voxel(y_dim * z_dim);
+	std::vector<vector<char>> snd_buf_right_per_voxel(y_dim * z_dim);
+
 	int len_snd_buf_left  	 = 0;
 	int len_snd_buf_right 	 = 0;
 
+	auto start = std::chrono::high_resolution_clock::now();
+
+	const size_t header_voxel = 2 * sizeof(int); // global_mesh_index
+	const size_t per_cell_bytes = 3 * sizeof(int) + 1 * sizeof(bool) + 10 * sizeof(double) + 2 * underlying_mesh.n_substrates * sizeof(double);
 	// Reserve enough space up-front to avoid repeated reallocations while packing.
-	if(world.rank > 0)
-	{
-		size_t estimated = 0;
-		for(int k=0; k<z_dim; k++)
-		{
-			for(int j=0; j<y_dim; j++)
-			{
-				uint local_vxl_index = underlying_mesh.voxel_index(0, j, k);
-				int no_of_cells_in_vxl = agent_grid[local_vxl_index].size();
-				estimated += 2 * sizeof(int) + 4 * sizeof(double);
-				estimated += static_cast<size_t>(no_of_cells_in_vxl) * (2 * sizeof(int) + 8 * sizeof(double));
-			}
-		}
-		snd_buf_left.reserve(estimated);
-	}
-	if(world.rank < world.size-1)
-	{
-		size_t estimated = 0;
-		for(int k=0; k<z_dim; k++)
-		{
-			for(int j=0; j<y_dim; j++)
-			{
-				uint local_vxl_index = underlying_mesh.voxel_index(x_dim-1, j, k);
-				int no_of_cells_in_vxl = agent_grid[local_vxl_index].size();
-				estimated += 2 * sizeof(int) + 4 * sizeof(double);
-				estimated += static_cast<size_t>(no_of_cells_in_vxl) * (2 * sizeof(int) + 8 * sizeof(double));
-			}
-		}
-		snd_buf_right.reserve(estimated);
-	}
 
-	const int per_cell_bytes = 3 * sizeof(int) + 1 * sizeof(bool) + 10 * sizeof(double) + 2 * underlying_mesh.n_substrates * sizeof(double);
+	std::vector<int> offsets_left((y_dim * z_dim)+1, 0);
+	std::vector<int> offsets_right((y_dim * z_dim)+1, 0);
 
-	// First pass: compute total buffer sizes to avoid repeated reallocations while packing.
-	if(world.rank > 0) 
-	{
+
+	auto start_offsets = std::chrono::high_resolution_clock::now();
+	if (world.rank > 0) {
+		int i = 0;
+		int prev_buff_size = 0;
 		for(int j=0; j< y_dim; j++) 
 		{
 			for(int k=0; k<z_dim; k++)
 			{
 				int local_vxl_inex = underlying_mesh.voxel_index(0, j, k);
 				int no_of_cells_in_vxl 	= agent_grid[local_vxl_inex].size();
-				len_snd_buf_left += 2 * sizeof(int);
-				len_snd_buf_left += per_cell_bytes * no_of_cells_in_vxl;
+				int buff_size = header_voxel + no_of_cells_in_vxl * per_cell_bytes;
+				offsets_left[i] = prev_buff_size;
+				prev_buff_size += buff_size;
+				i++;
 			}
 		}
+		offsets_left[i] = prev_buff_size; // Sentinel value to simplify buffer packing
 	}
-
-	if(world.rank < world.size-1)
-	{
-		for(int j=0; j<y_dim; j++)
-		{
-			for(int k=0; k<z_dim; k++)
-			{
-				int local_vxl_inex 	= underlying_mesh.voxel_index(underlying_mesh.x_coordinates.size()-1, j, k);
-				int no_of_cells_in_vxl 	= agent_grid[local_vxl_inex].size();
-				len_snd_buf_right += 2 * sizeof(int);
-				len_snd_buf_right += per_cell_bytes * no_of_cells_in_vxl;
-			}
-		}
-	}
-
-	snd_buf_left.resize(len_snd_buf_left);
-	snd_buf_right.resize(len_snd_buf_right);
-	position_left = 0;
-	position_right = 0;
-
-	/*---------------------*/
-	/* Data Packing first  */
-	/*---------------------*/
-
-	/* Data Packing of the left boundary voxel cells of all processes except rank = 0 */
-
-	if(world.rank > 0) 
-	{
+	if (world.rank < world.size-1) {
+		int i = 0;
+		int prev_buff_size = 0;
 		for(int j=0; j< y_dim; j++) 
 		{
 			for(int k=0; k<z_dim; k++)
 			{
+				int local_vxl_inex = underlying_mesh.voxel_index(x_dim - 1, j, k);
+				int no_of_cells_in_vxl 	= agent_grid[local_vxl_inex].size();
+				int buff_size = header_voxel + no_of_cells_in_vxl * per_cell_bytes;
+				offsets_right[i] = prev_buff_size;
+				prev_buff_size += buff_size;
+				i++;
+			}
+		}
+		offsets_right[i] = prev_buff_size; // Sentinel value to simplify buffer packing
+	}
+	auto end_offsets = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double, std::micro> duration_offsets = end_offsets - start_offsets;
+	
+	std::cout << "[Rank " << world.rank << "]: Time to compute offsets: " << duration_offsets.count() << " microseconds" << std::endl;
+	
+	snd_buf_left.resize(offsets_left.back());
+	snd_buf_right.resize(offsets_right.back());
+	position_left = 0;
+	position_right = 0;
+	len_snd_buf_left = snd_buf_left.size();
+	len_snd_buf_right = snd_buf_right.size();
+
+	start = std::chrono::high_resolution_clock::now();
+
+	if(world.rank > 0) 
+	{
+		#pragma omp parallel for collapse(2)
+		for(int j=0; j< y_dim; j++) 
+		{
+			for(int k=0; k<z_dim; k++)
+			{
+				int thd_offset = offsets_left[j * z_dim + k];
 				int local_vxl_inex = underlying_mesh.voxel_index(0, j, k);
 				int global_mesh_index = underlying_mesh.voxels[local_vxl_inex].global_mesh_index;
 				int no_of_cells_in_vxl 	= agent_grid[local_vxl_inex].size();
 
-				MPI_Pack(&global_mesh_index,  1, MPI_INT,  snd_buf_left.data(), len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-				MPI_Pack(&no_of_cells_in_vxl, 1, MPI_INT,  snd_buf_left.data(), len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+				MPI_Pack(&global_mesh_index,  1, MPI_INT,  snd_buf_left.data(), len_snd_buf_left, &thd_offset, MPI_COMM_WORLD);
+				MPI_Pack(&no_of_cells_in_vxl, 1, MPI_INT,  snd_buf_left.data(), len_snd_buf_left, &thd_offset, MPI_COMM_WORLD);
 
 				for(int vec_len=0; vec_len < no_of_cells_in_vxl; vec_len++)
 				{
 					Cell *pCell = agent_grid[local_vxl_inex][vec_len];
 
-					MPI_Pack(&pCell->ID, 1, MPI_INT, snd_buf_left.data(), len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->type, 1, MPI_INT, snd_buf_left.data(), len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.death.dead, 1, MPI_C_BOOL, snd_buf_left.data(), len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->ID, 1, MPI_INT, snd_buf_left.data(), len_snd_buf_left, &thd_offset, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->type, 1, MPI_INT, snd_buf_left.data(), len_snd_buf_left, &thd_offset, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->phenotype.death.dead, 1, MPI_C_BOOL, snd_buf_left.data(), len_snd_buf_left, &thd_offset, MPI_COMM_WORLD);
 					if (pCell->position.size() != 3) std::cout << "Ghost cell rank " << world.rank << " ID " << pCell->ID << std::endl;
- 					MPI_Pack(&pCell->position[0] , 3, MPI_DOUBLE, snd_buf_left.data(), len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->state.number_of_nuclei, 1, MPI_INT, snd_buf_left.data(), len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.volume.total, 1, MPI_DOUBLE, snd_buf_left.data(), len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.volume.cytoplasmic_fluid,  1, MPI_DOUBLE, snd_buf_left.data(), len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.volume.nuclear_fluid,  1, MPI_DOUBLE, snd_buf_left.data(), len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.volume.cytoplasmic_solid,  1, MPI_DOUBLE, snd_buf_left.data(), len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.volume.nuclear_solid,  1, MPI_DOUBLE, snd_buf_left.data(), len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-					MPI_Pack(&(*pCell->internalized_substrates)[0],underlying_mesh.n_substrates, MPI_DOUBLE, snd_buf_left.data(), len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.volume.target_solid_cytoplasmic,  1, MPI_DOUBLE, snd_buf_left.data(), len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.volume.target_solid_nuclear,  1, MPI_DOUBLE, snd_buf_left.data(), len_snd_buf_left, &position_left, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.molecular.fraction_transferred_when_ingested[0],  underlying_mesh.n_substrates, MPI_DOUBLE, snd_buf_left.data(), len_snd_buf_left, &position_left, MPI_COMM_WORLD);
+ 					MPI_Pack(&pCell->position[0] , 3, MPI_DOUBLE, snd_buf_left.data(), len_snd_buf_left, &thd_offset, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->state.number_of_nuclei, 1, MPI_INT, snd_buf_left.data(), len_snd_buf_left, &thd_offset, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->phenotype.volume.total, 1, MPI_DOUBLE, snd_buf_left.data(), len_snd_buf_left, &thd_offset, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->phenotype.volume.cytoplasmic_fluid,  1, MPI_DOUBLE, snd_buf_left.data(), len_snd_buf_left, &thd_offset, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->phenotype.volume.nuclear_fluid,  1, MPI_DOUBLE, snd_buf_left.data(), len_snd_buf_left, &thd_offset, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->phenotype.volume.cytoplasmic_solid,  1, MPI_DOUBLE, snd_buf_left.data(), len_snd_buf_left, &thd_offset, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->phenotype.volume.nuclear_solid,  1, MPI_DOUBLE, snd_buf_left.data(), len_snd_buf_left, &thd_offset, MPI_COMM_WORLD);
+					MPI_Pack(&(*pCell->internalized_substrates)[0],underlying_mesh.n_substrates, MPI_DOUBLE, snd_buf_left.data(), len_snd_buf_left, &thd_offset, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->phenotype.volume.target_solid_cytoplasmic,  1, MPI_DOUBLE, snd_buf_left.data(), len_snd_buf_left, &thd_offset, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->phenotype.volume.target_solid_nuclear,  1, MPI_DOUBLE, snd_buf_left.data(), len_snd_buf_left, &thd_offset, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->phenotype.molecular.fraction_transferred_when_ingested[0],  underlying_mesh.n_substrates, MPI_DOUBLE, snd_buf_left.data(), len_snd_buf_left, &thd_offset, MPI_COMM_WORLD);
 				}
 			}
 		}
@@ -1015,64 +1010,78 @@ void Cell_Container::pack_cell_interact_info(mpi_Environment &world, mpi_Cartesi
 
 if(world.rank < world.size-1)
 	{
+		#pragma omp parallel for collapse(2)
 		for(int j=0; j<y_dim; j++)
 		{
 			for(int k=0; k<z_dim; k++)
 			{
+				int thd_offset = offsets_right[j * z_dim + k];
 				int local_vxl_inex 	= underlying_mesh.voxel_index(underlying_mesh.x_coordinates.size()-1, j, k);
 				int global_mesh_index = underlying_mesh.voxels[local_vxl_inex].global_mesh_index;
 				int no_of_cells_in_vxl 	= agent_grid[local_vxl_inex].size();
 
-				MPI_Pack(&global_mesh_index,  1, MPI_INT, snd_buf_right.data(), len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-				MPI_Pack(&no_of_cells_in_vxl, 1, MPI_INT, snd_buf_right.data(), len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+				MPI_Pack(&global_mesh_index,  1, MPI_INT, snd_buf_right.data(), len_snd_buf_right, &thd_offset, MPI_COMM_WORLD);
+				MPI_Pack(&no_of_cells_in_vxl, 1, MPI_INT, snd_buf_right.data(), len_snd_buf_right, &thd_offset, MPI_COMM_WORLD);
 
 				for(int vec_len=0; vec_len < no_of_cells_in_vxl; vec_len++)
 				{
 					Cell *pCell = agent_grid[local_vxl_inex][vec_len];
 
-					MPI_Pack(&pCell->ID, 1, MPI_INT, snd_buf_right.data(), len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->type, 1, MPI_INT, snd_buf_right.data(), len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.death.dead, 1, MPI_C_BOOL, snd_buf_right.data(), len_snd_buf_right, &position_right, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->ID, 1, MPI_INT, snd_buf_right.data(), len_snd_buf_right, &thd_offset, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->type, 1, MPI_INT, snd_buf_right.data(), len_snd_buf_right, &thd_offset, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->phenotype.death.dead, 1, MPI_C_BOOL, snd_buf_right.data(), len_snd_buf_right, &thd_offset, MPI_COMM_WORLD);
 					if (pCell->position.size() != 3) std::cout << "Ghost cell rank " << world.rank << " ID " << pCell->ID << std::endl;
-					MPI_Pack(&pCell->position[0] , 3, MPI_DOUBLE, snd_buf_right.data(), len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->state.number_of_nuclei, 1, MPI_INT, snd_buf_right.data(), len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.volume.total, 1, MPI_DOUBLE, snd_buf_right.data(), len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.volume.cytoplasmic_fluid,  1, MPI_DOUBLE, snd_buf_right.data(), len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.volume.nuclear_fluid,  1, MPI_DOUBLE, snd_buf_right.data(), len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.volume.cytoplasmic_solid,  1, MPI_DOUBLE, snd_buf_right.data(), len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.volume.nuclear_solid,  1, MPI_DOUBLE, snd_buf_right.data(), len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-					MPI_Pack(&(*pCell->internalized_substrates)[0],underlying_mesh.n_substrates, MPI_DOUBLE, snd_buf_right.data(), len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.volume.target_solid_cytoplasmic,  1, MPI_DOUBLE, snd_buf_right.data(), len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.volume.target_solid_nuclear,  1, MPI_DOUBLE, snd_buf_right.data(), len_snd_buf_right, &position_right, MPI_COMM_WORLD);
-					MPI_Pack(&pCell->phenotype.molecular.fraction_transferred_when_ingested[0], underlying_mesh.n_substrates, MPI_DOUBLE, snd_buf_right.data(), len_snd_buf_right, &position_right, MPI_COMM_WORLD );
+					MPI_Pack(&pCell->position[0] , 3, MPI_DOUBLE, snd_buf_right.data(), len_snd_buf_right, &thd_offset, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->state.number_of_nuclei, 1, MPI_INT, snd_buf_right.data(), len_snd_buf_right, &thd_offset, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->phenotype.volume.total, 1, MPI_DOUBLE, snd_buf_right.data(), len_snd_buf_right, &thd_offset, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->phenotype.volume.cytoplasmic_fluid,  1, MPI_DOUBLE, snd_buf_right.data(), len_snd_buf_right, &thd_offset, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->phenotype.volume.nuclear_fluid,  1, MPI_DOUBLE, snd_buf_right.data(), len_snd_buf_right, &thd_offset, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->phenotype.volume.cytoplasmic_solid,  1, MPI_DOUBLE, snd_buf_right.data(), len_snd_buf_right, &thd_offset, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->phenotype.volume.nuclear_solid,  1, MPI_DOUBLE, snd_buf_right.data(), len_snd_buf_right, &thd_offset, MPI_COMM_WORLD);
+					MPI_Pack(&(*pCell->internalized_substrates)[0],underlying_mesh.n_substrates, MPI_DOUBLE, snd_buf_right.data(), len_snd_buf_right, &thd_offset, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->phenotype.volume.target_solid_cytoplasmic,  1, MPI_DOUBLE, snd_buf_right.data(), len_snd_buf_right, &thd_offset, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->phenotype.volume.target_solid_nuclear,  1, MPI_DOUBLE, snd_buf_right.data(), len_snd_buf_right, &thd_offset, MPI_COMM_WORLD);
+					MPI_Pack(&pCell->phenotype.molecular.fraction_transferred_when_ingested[0], underlying_mesh.n_substrates, MPI_DOUBLE, snd_buf_right.data(), len_snd_buf_right, &thd_offset, MPI_COMM_WORLD );
 				}
 			}
 		}
 	}
+	
 
+	auto end = std::chrono::high_resolution_clock::now();
+	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+	std::cout << "[Rank " << world.rank << "]:  pack cell interaction info: " << duration.count() << " microseconds" << std::endl;
 	/*---------------------------------------------------*/
 	/* Sending and Receiving of buffers across processes */
-	/* Send to MPI_PROC_NULL as well, don't use 'if'		 */
+	/* Send to MPI_PROC_NULL as well, don't use 'if'	 */
 	/*---------------------------------------------------*/
 
+	std::vector<int> offsets_from_left_process(y_dim * z_dim + 1, 0); // +1 for sentinel
+	std::vector<int> offsets_from_right_process(y_dim * z_dim + 1, 0); // +1 for sentinel
 	int size_of_data_recvd_from_right_process = 0;
 	int size_of_data_recvd_from_left_process  = 0;
 	MPI_Request snd_req[2], rcv_req[2];
 
+
+
+	start = std::chrono::high_resolution_clock::now();
 	/* Send to left, Receive from right: MPI_PROC_NULL<----R0<-----R1<----R2<----R3 */
 
-	MPI_Irecv(&size_of_data_recvd_from_right_process, 1, MPI_INT, cart_topo.X_RIGHT, 1111, cart_topo.mpi_cart_comm, &rcv_req[0]);
-	MPI_Isend(&position_left,  1, MPI_INT, cart_topo.X_LEFT,  1111, cart_topo.mpi_cart_comm, &snd_req[0]);
+	MPI_Irecv(offsets_from_right_process.data(),  (y_dim*z_dim) + 1, MPI_INT, cart_topo.X_RIGHT, 1111, cart_topo.mpi_cart_comm, &rcv_req[0]);
+	MPI_Isend(offsets_left.data(),  (y_dim*z_dim) + 1, MPI_INT, cart_topo.X_LEFT,  1111, cart_topo.mpi_cart_comm, &snd_req[0]);
 
 	/* Send to right, Receive from left: R0----->R1---->R2---->R3--->MPI_PROC_NULL */
 
-	MPI_Irecv(&size_of_data_recvd_from_left_process, 1, MPI_INT, cart_topo.X_LEFT, 2222, cart_topo.mpi_cart_comm, &rcv_req[1]);
-	MPI_Isend(&position_right,  1, MPI_INT, cart_topo.X_RIGHT, 2222, cart_topo.mpi_cart_comm, &snd_req[1]);
+	MPI_Irecv(offsets_from_left_process.data(),  (y_dim*z_dim) + 1, MPI_INT, cart_topo.X_LEFT, 2222, cart_topo.mpi_cart_comm, &rcv_req[1]);
+	MPI_Isend(offsets_right.data(),  (y_dim*z_dim) + 1, MPI_INT, cart_topo.X_RIGHT, 2222, cart_topo.mpi_cart_comm, &snd_req[1]);
 
 	MPI_Waitall(2, snd_req, MPI_STATUSES_IGNORE);
 	MPI_Waitall(2, rcv_req, MPI_STATUSES_IGNORE);
 
 	/* Resize the actual buffers that will contain the data */
+
+	size_of_data_recvd_from_right_process = offsets_from_right_process.back();
+	size_of_data_recvd_from_left_process  = offsets_from_left_process.back();
 
 	if(world.rank < world.size-1)
 		rcv_buf_right.resize(size_of_data_recvd_from_right_process);
@@ -1096,6 +1105,10 @@ if(world.rank < world.size-1)
 	MPI_Waitall(2, snd_req, MPI_STATUSES_IGNORE);
 	MPI_Waitall(2, rcv_req, MPI_STATUSES_IGNORE);
 
+	end = std::chrono::high_resolution_clock::now();
+	duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+	std::cout << "[Rank " << world.rank << "]:  transfer cell interaction info: " << duration.count() << " microseconds" << std::endl;
+
 	/*--------------------------------------------------------------------------*/
 	/* Now tackle unpacking of cells in a special class called Moore_Voxel_Info */
 	/*--------------------------------------------------------------------------*/
@@ -1104,6 +1117,7 @@ if(world.rank < world.size-1)
 
 	/* std::vector<Moore_Voxel_Info> mbfr (moore boundary from right [process]), similarly mbfl */
 	/* is declared in PhysiCell_cell_container.h as a public data member 												*/
+	start = std::chrono::high_resolution_clock::now();
 
 	ivfr.resize(y_dim * z_dim);
 	ivfl.resize(y_dim * z_dim);
@@ -1119,8 +1133,8 @@ if(world.rank < world.size-1)
 	position_right = 0;		//Was used in Packing but re-used here, its a data member (remember)
 	position_left = 0; 		//Was used in Packing but r-used here, its a data member (remember)
 
-	int size_right = size_of_data_recvd_from_right_process;	//For convenience
-	int size_left =  size_of_data_recvd_from_left_process; 	//For convenience
+	int size_right = offsets_from_right_process.back();	//For convenience
+	int size_left =  offsets_from_left_process.back(); 	//For convenience
 
 	um_ivfr.clear();
 	um_ivfl.clear();
@@ -1133,10 +1147,12 @@ if(world.rank < world.size-1)
 
 	if(world.rank < world.size-1)
 	{
+		#pragma omp parallel for
 		for(int vxl_ctr=0; vxl_ctr<y_dim*z_dim; vxl_ctr++)
 		{
-			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &ivfr[vxl_ctr].global_mesh_index, 1, MPI_INT, MPI_COMM_WORLD);
-			MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &ivfr[vxl_ctr].no_of_cells_in_vxl, 1, MPI_INT, MPI_COMM_WORLD);
+			int thd_offset = offsets_from_right_process[vxl_ctr];
+			MPI_Unpack(&rcv_buf_right[0], size_right, &thd_offset, &ivfr[vxl_ctr].global_mesh_index, 1, MPI_INT, MPI_COMM_WORLD);
+			MPI_Unpack(&rcv_buf_right[0], size_right, &thd_offset, &ivfr[vxl_ctr].no_of_cells_in_vxl, 1, MPI_INT, MPI_COMM_WORLD);
 
 			/* Now resize vector moore_cells using no_of_cells_in_vxl unpacked above */
 
@@ -1145,26 +1161,26 @@ if(world.rank < world.size-1)
 			//std::cout << "Rank " << world.rank << " rcv voxel " <<  ivfr[vxl_ctr].global_mesh_index << " with " << ivfr[vxl_ctr].no_of_cells_in_vxl << " cells" << std::endl;
 			for(int cell_ctr=0; cell_ctr<no_of_cells_in_vxl; cell_ctr++)
 			{
-				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &ivfr[vxl_ctr].cells[cell_ctr].ID, 1, MPI_INT, MPI_COMM_WORLD);
-				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &ivfr[vxl_ctr].cells[cell_ctr].type, 1, MPI_INT, MPI_COMM_WORLD);
-				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &ivfr[vxl_ctr].cells[cell_ctr].dead, 1, MPI_C_BOOL, MPI_COMM_WORLD);
+				MPI_Unpack(&rcv_buf_right[0], size_right, &thd_offset, &ivfr[vxl_ctr].cells[cell_ctr].ID, 1, MPI_INT, MPI_COMM_WORLD);
+				MPI_Unpack(&rcv_buf_right[0], size_right, &thd_offset, &ivfr[vxl_ctr].cells[cell_ctr].type, 1, MPI_INT, MPI_COMM_WORLD);
+				MPI_Unpack(&rcv_buf_right[0], size_right, &thd_offset, &ivfr[vxl_ctr].cells[cell_ctr].dead, 1, MPI_C_BOOL, MPI_COMM_WORLD);
 				ivfr[vxl_ctr].cells[cell_ctr].position.resize(3);
-				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &ivfr[vxl_ctr].cells[cell_ctr].position[0], 3, MPI_DOUBLE, MPI_COMM_WORLD);
-				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &ivfr[vxl_ctr].cells[cell_ctr].number_of_nuclei, 1, MPI_INT, MPI_COMM_WORLD);
-				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &ivfr[vxl_ctr].cells[cell_ctr].phenotype_volume, 1, MPI_DOUBLE, MPI_COMM_WORLD);
-				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &ivfr[vxl_ctr].cells[cell_ctr].cytoplasmic_fluid, 1, MPI_DOUBLE, MPI_COMM_WORLD);
-				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &ivfr[vxl_ctr].cells[cell_ctr].nuclear_fluid, 1, MPI_DOUBLE, MPI_COMM_WORLD);
-				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &ivfr[vxl_ctr].cells[cell_ctr].cytoplasmic_solid, 1, MPI_DOUBLE, MPI_COMM_WORLD);
-				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &ivfr[vxl_ctr].cells[cell_ctr].nuclear_solid, 1, MPI_DOUBLE, MPI_COMM_WORLD);
+				MPI_Unpack(&rcv_buf_right[0], size_right, &thd_offset, &ivfr[vxl_ctr].cells[cell_ctr].position[0], 3, MPI_DOUBLE, MPI_COMM_WORLD);
+				MPI_Unpack(&rcv_buf_right[0], size_right, &thd_offset, &ivfr[vxl_ctr].cells[cell_ctr].number_of_nuclei, 1, MPI_INT, MPI_COMM_WORLD);
+				MPI_Unpack(&rcv_buf_right[0], size_right, &thd_offset, &ivfr[vxl_ctr].cells[cell_ctr].phenotype_volume, 1, MPI_DOUBLE, MPI_COMM_WORLD);
+				MPI_Unpack(&rcv_buf_right[0], size_right, &thd_offset, &ivfr[vxl_ctr].cells[cell_ctr].cytoplasmic_fluid, 1, MPI_DOUBLE, MPI_COMM_WORLD);
+				MPI_Unpack(&rcv_buf_right[0], size_right, &thd_offset, &ivfr[vxl_ctr].cells[cell_ctr].nuclear_fluid, 1, MPI_DOUBLE, MPI_COMM_WORLD);
+				MPI_Unpack(&rcv_buf_right[0], size_right, &thd_offset, &ivfr[vxl_ctr].cells[cell_ctr].cytoplasmic_solid, 1, MPI_DOUBLE, MPI_COMM_WORLD);
+				MPI_Unpack(&rcv_buf_right[0], size_right, &thd_offset, &ivfr[vxl_ctr].cells[cell_ctr].nuclear_solid, 1, MPI_DOUBLE, MPI_COMM_WORLD);
 				ivfr[vxl_ctr].cells[cell_ctr].internalized_substrates.resize(underlying_mesh.n_substrates);
-				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &ivfr[vxl_ctr].cells[cell_ctr].internalized_substrates[0], underlying_mesh.n_substrates, MPI_DOUBLE, MPI_COMM_WORLD);
-				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &ivfr[vxl_ctr].cells[cell_ctr].target_solid_cytoplasmic, 1, MPI_DOUBLE, MPI_COMM_WORLD);
-				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &ivfr[vxl_ctr].cells[cell_ctr].target_solid_nuclear, 1, MPI_DOUBLE, MPI_COMM_WORLD);
+				MPI_Unpack(&rcv_buf_right[0], size_right, &thd_offset, &ivfr[vxl_ctr].cells[cell_ctr].internalized_substrates[0], underlying_mesh.n_substrates, MPI_DOUBLE, MPI_COMM_WORLD);
+				MPI_Unpack(&rcv_buf_right[0], size_right, &thd_offset, &ivfr[vxl_ctr].cells[cell_ctr].target_solid_cytoplasmic, 1, MPI_DOUBLE, MPI_COMM_WORLD);
+				MPI_Unpack(&rcv_buf_right[0], size_right, &thd_offset, &ivfr[vxl_ctr].cells[cell_ctr].target_solid_nuclear, 1, MPI_DOUBLE, MPI_COMM_WORLD);
 				ivfr[vxl_ctr].cells[cell_ctr].fraction_transferred_when_ingested.resize(underlying_mesh.n_substrates);
-				MPI_Unpack(&rcv_buf_right[0], size_right, &position_right, &ivfr[vxl_ctr].cells[cell_ctr].fraction_transferred_when_ingested[0], underlying_mesh.n_substrates, MPI_DOUBLE, MPI_COMM_WORLD);
+				MPI_Unpack(&rcv_buf_right[0], size_right, &thd_offset, &ivfr[vxl_ctr].cells[cell_ctr].fraction_transferred_when_ingested[0], underlying_mesh.n_substrates, MPI_DOUBLE, MPI_COMM_WORLD);
 				
 			}
-
+			  #pragma omp critical
 			  um_ivfr[ivfr[vxl_ctr].global_mesh_index]=ivfr[vxl_ctr];
 
 		}
@@ -1177,10 +1193,12 @@ if(world.rank < world.size-1)
 
 	if(world.rank > 0)
 	{
+		#pragma omp parallel for
 		for(int vxl_ctr=0; vxl_ctr<y_dim*z_dim; vxl_ctr++)
 		{
-			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &ivfl[vxl_ctr].global_mesh_index, 1, MPI_INT, MPI_COMM_WORLD);
-			MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &ivfl[vxl_ctr].no_of_cells_in_vxl, 1, MPI_INT, MPI_COMM_WORLD);
+			int thd_offset = offsets_from_left_process[vxl_ctr];
+			MPI_Unpack(&rcv_buf_left[0], size_left, &thd_offset, &ivfl[vxl_ctr].global_mesh_index, 1, MPI_INT, MPI_COMM_WORLD);
+			MPI_Unpack(&rcv_buf_left[0], size_left, &thd_offset, &ivfl[vxl_ctr].no_of_cells_in_vxl, 1, MPI_INT, MPI_COMM_WORLD);
 
 			/* Now resize vector moore_cells using no_of_cells_in_vxl unpacked above */
 
@@ -1189,33 +1207,38 @@ if(world.rank < world.size-1)
 			//std::cout << "Rank " << world.rank << " rcv voxel " <<  ivfl[vxl_ctr].global_mesh_index << " with " << ivfl[vxl_ctr].no_of_cells_in_vxl << " cells" << std::endl;
 			for(int cell_ctr=0; cell_ctr<no_of_cells_in_vxl; cell_ctr++)
 			{
-				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &ivfl[vxl_ctr].cells[cell_ctr].ID, 1, MPI_INT, MPI_COMM_WORLD);
-				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &ivfl[vxl_ctr].cells[cell_ctr].type, 1, MPI_INT, MPI_COMM_WORLD);
-				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &ivfl[vxl_ctr].cells[cell_ctr].dead, 1, MPI_C_BOOL, MPI_COMM_WORLD);
+				MPI_Unpack(&rcv_buf_left[0], size_left, &thd_offset, &ivfl[vxl_ctr].cells[cell_ctr].ID, 1, MPI_INT, MPI_COMM_WORLD);
+				MPI_Unpack(&rcv_buf_left[0], size_left, &thd_offset, &ivfl[vxl_ctr].cells[cell_ctr].type, 1, MPI_INT, MPI_COMM_WORLD);
+				MPI_Unpack(&rcv_buf_left[0], size_left, &thd_offset, &ivfl[vxl_ctr].cells[cell_ctr].dead, 1, MPI_C_BOOL, MPI_COMM_WORLD);
 				ivfl[vxl_ctr].cells[cell_ctr].position.resize(3);
-				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &ivfl[vxl_ctr].cells[cell_ctr].position[0], 3, MPI_DOUBLE, MPI_COMM_WORLD);
-				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &ivfl[vxl_ctr].cells[cell_ctr].number_of_nuclei, 1, MPI_INT, MPI_COMM_WORLD);
-				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &ivfl[vxl_ctr].cells[cell_ctr].phenotype_volume, 1, MPI_DOUBLE, MPI_COMM_WORLD);
-				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &ivfl[vxl_ctr].cells[cell_ctr].cytoplasmic_fluid, 1, MPI_DOUBLE, MPI_COMM_WORLD);
-				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &ivfl[vxl_ctr].cells[cell_ctr].nuclear_fluid, 1, MPI_DOUBLE, MPI_COMM_WORLD);
-				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &ivfl[vxl_ctr].cells[cell_ctr].cytoplasmic_solid, 1, MPI_DOUBLE, MPI_COMM_WORLD);
-				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &ivfl[vxl_ctr].cells[cell_ctr].nuclear_solid, 1, MPI_DOUBLE, MPI_COMM_WORLD);
+				MPI_Unpack(&rcv_buf_left[0], size_left, &thd_offset, &ivfl[vxl_ctr].cells[cell_ctr].position[0], 3, MPI_DOUBLE, MPI_COMM_WORLD);
+				MPI_Unpack(&rcv_buf_left[0], size_left, &thd_offset, &ivfl[vxl_ctr].cells[cell_ctr].number_of_nuclei, 1, MPI_INT, MPI_COMM_WORLD);
+				MPI_Unpack(&rcv_buf_left[0], size_left, &thd_offset, &ivfl[vxl_ctr].cells[cell_ctr].phenotype_volume, 1, MPI_DOUBLE, MPI_COMM_WORLD);
+				MPI_Unpack(&rcv_buf_left[0], size_left, &thd_offset, &ivfl[vxl_ctr].cells[cell_ctr].cytoplasmic_fluid, 1, MPI_DOUBLE, MPI_COMM_WORLD);
+				MPI_Unpack(&rcv_buf_left[0], size_left, &thd_offset, &ivfl[vxl_ctr].cells[cell_ctr].nuclear_fluid, 1, MPI_DOUBLE, MPI_COMM_WORLD);
+				MPI_Unpack(&rcv_buf_left[0], size_left, &thd_offset, &ivfl[vxl_ctr].cells[cell_ctr].cytoplasmic_solid, 1, MPI_DOUBLE, MPI_COMM_WORLD);
+				MPI_Unpack(&rcv_buf_left[0], size_left, &thd_offset, &ivfl[vxl_ctr].cells[cell_ctr].nuclear_solid, 1, MPI_DOUBLE, MPI_COMM_WORLD);
 				ivfl[vxl_ctr].cells[cell_ctr].internalized_substrates.resize(underlying_mesh.n_substrates);
-				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &ivfl[vxl_ctr].cells[cell_ctr].internalized_substrates[0], underlying_mesh.n_substrates, MPI_DOUBLE, MPI_COMM_WORLD);
-				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &ivfl[vxl_ctr].cells[cell_ctr].target_solid_cytoplasmic, 1, MPI_DOUBLE, MPI_COMM_WORLD);
-				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &ivfl[vxl_ctr].cells[cell_ctr].target_solid_nuclear, 1, MPI_DOUBLE, MPI_COMM_WORLD);
+				MPI_Unpack(&rcv_buf_left[0], size_left, &thd_offset, &ivfl[vxl_ctr].cells[cell_ctr].internalized_substrates[0], underlying_mesh.n_substrates, MPI_DOUBLE, MPI_COMM_WORLD);
+				MPI_Unpack(&rcv_buf_left[0], size_left, &thd_offset, &ivfl[vxl_ctr].cells[cell_ctr].target_solid_cytoplasmic, 1, MPI_DOUBLE, MPI_COMM_WORLD);
+				MPI_Unpack(&rcv_buf_left[0], size_left, &thd_offset, &ivfl[vxl_ctr].cells[cell_ctr].target_solid_nuclear, 1, MPI_DOUBLE, MPI_COMM_WORLD);
 				ivfl[vxl_ctr].cells[cell_ctr].fraction_transferred_when_ingested.resize(underlying_mesh.n_substrates);
-				MPI_Unpack(&rcv_buf_left[0], size_left, &position_left, &ivfl[vxl_ctr].cells[cell_ctr].fraction_transferred_when_ingested[0], underlying_mesh.n_substrates, MPI_DOUBLE, MPI_COMM_WORLD);
+				MPI_Unpack(&rcv_buf_left[0], size_left, &thd_offset, &ivfl[vxl_ctr].cells[cell_ctr].fraction_transferred_when_ingested[0], underlying_mesh.n_substrates, MPI_DOUBLE, MPI_COMM_WORLD);
 			}
-
+			#pragma omp critical
 			um_ivfl[ivfl[vxl_ctr].global_mesh_index]=ivfl[vxl_ctr];
 		}
 	}
+
+	end = std::chrono::high_resolution_clock::now();
+	duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+	std::cout << "[Rank " << world.rank << "]:  unpack cell interaction info: " << duration.count() << " microseconds" << std::endl;
 	//std::cout << "Rank " << world.rank << " has received cell information" << std::endl;
 	/* Now one step is left: Need to map the global mesh index to a specific Moor_Voxel_Info object */
 	/* i.e. declare map_glbl_indx_to_Moore_Voxel_Info_object[global_mesh_index]=mbfl[vxl_ctr] 			*/
 	/* Similarly for mbfr as well 																																	*/
 	/* Declare: std::unordered_map<int, Moore_Voxel_Info> in PhysiCell_cell_container.h 						*/
+	
 }
 
 void Cell_Container::cell_cell_interaction_with_border(std::vector<Interacting_Voxel> *iv){

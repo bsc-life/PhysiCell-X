@@ -21,6 +21,9 @@
 
 
 #include "./tnf_boolean_model_interface.h"
+#include "../addons/PhysiBoSS/src/maboss_intracellular.h"
+
+#include <algorithm>
 
 using namespace PhysiCell; 
 
@@ -65,11 +68,21 @@ void update_boolean_model_inputs( Cell* pCell, Phenotype& phenotype, double dt )
 
 void update_cell_from_boolean_model(Cell* pCell, Phenotype& phenotype, double dt)
 {	
-    static int nTNF_external = microenvironment.find_density_index( "tnf" );
-    static int nTNF_export_rate = pCell->custom_data.find_variable_index( "TFN_net_production_rate" );
 
-    static int apoptosis_model_index = phenotype.death.find_death_model_index( "Apoptosis" );
-    static int necrosis_model_index = phenotype.death.find_death_model_index( "Necrosis" );
+    
+    static int necrosis_index = phenotype.death.find_death_model_index( PhysiCell_constants::necrosis_death_model ); 
+    static int apoptosis_index = phenotype.death.find_death_model_index( PhysiCell_constants::apoptosis_death_model );
+    static int cycle_start_index = live.find_phase_index( PhysiCell_constants::live ); 
+    static int cycle_end_index = live.find_phase_index( PhysiCell_constants::live );  
+
+    static int nTNF_external = microenvironment.find_density_index( "tnf" );      
+    static int nTNF_export_rate = pCell->custom_data.find_variable_index( "TNF_net_production_rate" );
+    static int death_decay_idx = pCell->custom_data.find_variable_index( "death_commitment_decay" );
+
+
+    static float necrosis_rate = pCell->custom_data["necrosis_rate"];
+    static float apoptosis_rate = pCell->custom_data["apoptosis_rate"];
+    static float death_commitment_decay = pCell->custom_data["death_decay_idx"];
     
     // Getting the state of the boolean model readouts (Readout can be in the XML)
     bool apoptosis = pCell->phenotype.intracellular->get_boolean_variable_value( "Apoptosis" );
@@ -77,32 +90,41 @@ void update_cell_from_boolean_model(Cell* pCell, Phenotype& phenotype, double dt
     bool survival =pCell->phenotype.intracellular->get_boolean_variable_value( "Survival" );
     bool NFkB = pCell->phenotype.intracellular->get_boolean_variable_value( "NFkB" );
 	
-	if ( apoptosis ) 
-    {
-		pCell->start_death(apoptosis_model_index);
-		return;
-	}
 
-	if ( nonACD ) 
-    {
-		pCell->start_death(necrosis_model_index);				
-		return;
+    if ( apoptosis ) {
+        // pCell->start_death(apoptosis_index);
+        phenotype.death.rates[apoptosis_index] = apoptosis_rate;
+	} else {
+        phenotype.death.rates[apoptosis_index] -= apoptosis_rate * death_commitment_decay;
+        if (phenotype.death.rates[apoptosis_index] < 0)
+            phenotype.death.rates[apoptosis_index] = 0;
+    }
+
+    if ( nonACD ) {
+        // pCell->start_death(necrosis_index);
+        phenotype.death.rates[necrosis_index] = necrosis_rate;
 	}
+    else {
+        phenotype.death.rates[necrosis_index] -= necrosis_rate * death_commitment_decay;
+        if (phenotype.death.rates[necrosis_index] < 0)
+            phenotype.death.rates[necrosis_index] = 0;
+    } 
+    
 
 	if ( survival && pCell->phenotype.cycle.current_phase_index() == PhysiCell_constants::Ki67_negative ) 
     { 
-        pCell->phenotype.cycle.advance_cycle(pCell, phenotype, dt); 		
+        pCell->phenotype.cycle.advance_cycle(pCell, phenotype, dt); 
     }
 
     // If NFkB node is active produce some TNF
-	if ( NFkB )	
+    if ( NFkB )	
     { 
         phenotype.secretion.net_export_rates[nTNF_external] = pCell->custom_data[nTNF_export_rate]; 
     } else 
     {
         phenotype.secretion.net_export_rates[nTNF_external] = 0;
     }
-    
+    // update_cell_and_death_parameters_O2_based(pCell, phenotype, dt);
     return;
 }
 
@@ -141,8 +163,8 @@ void tnf_bm_interface_main(Cell* pCell, Phenotype& phenotype, double dt)
 
         //next_physiboss_run
         double noise = NormalRandom(0, 2.5);
-        noise = max(-5, noise);
-        noise = min(5, noise);
+        noise = std::max(-5.0, noise);
+        noise = std::min(5.0, noise);
         physiboss->next_physiboss_run += noise;
 
         // update the cell fate based on the boolean outputs
@@ -153,4 +175,14 @@ void tnf_bm_interface_main(Cell* pCell, Phenotype& phenotype, double dt)
     }
 
     return;
+}
+
+
+void update_behaviors(Cell* pCell, Phenotype& phenotype, double dt) 
+{
+        // update the cell fate based on the boolean outputs
+        update_cell_from_boolean_model(pCell, phenotype, dt);
+
+        // Get track of some boolean node values for debugging
+        update_monitor_variables(pCell);
 }
