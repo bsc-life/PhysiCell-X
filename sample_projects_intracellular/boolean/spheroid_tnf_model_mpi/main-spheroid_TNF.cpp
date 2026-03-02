@@ -172,6 +172,16 @@ int main( int argc, char* argv[] )
 	
 	double tnf_pulse_timer = tnf_pulse_period;
 	double tnf_pulse_injection_timer = tnf_pulse_duration * 0.5; // tnf_pulse_duration; // -1;
+
+	double tnf_pulse_period = parameters.doubles("tnf_pulse_period");
+	double tnf_pulse_duration = parameters.doubles("tnf_pulse_duration");
+	double tnf_pulse_concentration = parameters.doubles("tnf_pulse_concentration");
+	double time_remove_tnf = parameters.doubles("time_remove_tnf");
+	double membrane_lenght = parameters.doubles("membrane_length");
+	
+	
+	double tnf_pulse_timer = tnf_pulse_period;
+	double tnf_pulse_injection_timer = tnf_pulse_duration * 0.5; // tnf_pulse_duration; // -1;
 	static int tnf_idx = microenvironment.find_density_index("tnf");	
 	
 	/*
@@ -197,8 +207,10 @@ int main( int argc, char* argv[] )
 	// Calling the parallel version of Cell Container creation 
 	Cell_Container* cell_container = create_cell_container_for_microenvironment( microenvironment, mechanics_voxel_size, world, cart_topo );
 	std::string (*substrate_coloring_function)(double, double, double) = paint_by_density_percentage;
+	std::string (*substrate_coloring_function)(double, double, double) = paint_by_density_percentage;
 	//----> Users typically start modifying here. START USERMODS 
 	
+	create_cell_types( world, cart_topo );
 	create_cell_types( world, cart_topo );
 	
 	//Calling the parallel version of setup_tissue(...) 
@@ -219,7 +231,7 @@ int main( int argc, char* argv[] )
 	
 	//Use the parallel version of the function for XML file writing
 	if (PhysiCell_settings.enable_full_saves == true )
-		//save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo ); 
+		save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo ); 
 	
 	//Save SVG cross section through z = 0, after setting its length bar to 200 microns 
 	PhysiCell_SVG_options.length_bar = 200; 
@@ -230,7 +242,7 @@ int main( int argc, char* argv[] )
 	sprintf( filename , "%s/initial.svg" , PhysiCell_settings.folder.c_str() );
 	
 	//Use the parallel version of the function for SVG plot file
-	//SVG_plot_mpi( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function, substrate_coloring_function, world, cart_topo );
+	SVG_plot_mpi( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function, substrate_coloring_function, world, cart_topo );
 
 		
 	//Set the performance timers 
@@ -296,13 +308,17 @@ int main( int argc, char* argv[] )
 				{	
 					
 					sprintf( filename , "%s/snapshot%08u.svg" , PhysiCell_settings.folder.c_str() , PhysiCell_globals.SVG_output_index ); 
-					//SVG_plot_mpi( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function, substrate_coloring_function, world, cart_topo );
+					SVG_plot_mpi( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function, substrate_coloring_function, world, cart_topo );
 					
 					PhysiCell_globals.SVG_output_index++; 
 					PhysiCell_globals.next_SVG_save_time  += PhysiCell_settings.SVG_save_interval;
 				}
 			}
 
+			/*
+			  Custom add-ons could potentially go here. 
+			*/			
+			if ( PhysiCell_globals.current_time >= tnf_pulse_timer )
 			/*
 			  Custom add-ons could potentially go here. 
 			*/			
@@ -350,11 +366,11 @@ int main( int argc, char* argv[] )
 	sprintf( filename , "%s/final" , PhysiCell_settings.folder.c_str() );
 	if (PhysiCell_settings.enable_full_saves == true) 
 	{
-	//	save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo ); 
+		save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo ); 
 	}
 	
 	sprintf( filename , "%s/final.svg" , PhysiCell_settings.folder.c_str() ); 
-	//SVG_plot_mpi( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function, substrate_coloring_function, world, cart_topo );
+	SVG_plot_mpi( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function, substrate_coloring_function, world, cart_topo );
 
 
 	
