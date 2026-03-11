@@ -66,7 +66,7 @@ list-projects:
 	@echo "                 cancer-immune-sample virus-macrophage-sample pred-prey-mpi pred-prey-farmer"
 	@echo ""
 	@echo "Sample intracellular projects: ode-energy-sample physiboss-cell-lines-sample cancer-metabolism-sample"
-	@echo "physiboss-cell-lines-mpi physiboss-tnf-model physiboss-tnf-model-mpi"
+	@echo "physiboss-cell-lines-mpi physiboss-tnf-model physiboss-tnf-model-mpi alajuela"
 	@echo ""
 	
 # ---- non-intracellular projects 	
@@ -225,6 +225,15 @@ cancer-metabolism-sample:
 	cp ./sample_projects_intracellular/fba/cancer_metabolism/Makefile ./
 	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml
 	cp ./sample_projects_intracellular/fba/cancer_metabolism/config/* ./config/
+
+alajuela:
+	cp ./sample_projects_intracellular/boolean/alajuela/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects_intracellular/boolean/alajuela/main.cpp ./main.cpp
+	cp Makefile Makefile-backup
+	cp ./sample_projects_intracellular/boolean/alajuela/Makefile ./
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml
+	cp ./sample_projects_intracellular/boolean/alajuela/config/* ./config/
 	
 # early examples for convergence testing 
 

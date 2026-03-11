@@ -105,7 +105,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
         //std::ofstream file(M.timing_csv, std::ios::app);
         uint32_t size = world.size;
         uint32_t rank = world.rank;
-        uint granurality = 1;
+        uint granurality = world.size * 2;
         if (M.granurality >= 1)
             granurality = M.granurality;
         double t_strt_set, t_end_set;

@@ -1,0 +1,51 @@
+\begin{thebibliography}{5}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Estragues-Muñoz et~al.(2026)Estragues-Muñoz, Alvarez, Montagud,
+  Jimenez-Gonzalez, and
+  Valencia]{estraguesmunoz2026novelscalablehighperformance}
+J.-L. Estragues-Muñoz, C.~Alvarez, A.~Montagud, D.~Jimenez-Gonzalez, and
+  A.~Valencia.
+\newblock A novel scalable high performance diffusion solver for multiscale
+  cell simulations, 2026.
+\newblock URL \url{https://arxiv.org/abs/2602.05017}.
+
+\bibitem[Ghaffarizadeh et~al.(2016)Ghaffarizadeh, Friedman, and
+  Macklin]{ref:BioFVM}
+A.~Ghaffarizadeh, S.~H. Friedman, and P.~Macklin.
+\newblock {BioFVM}: an efficient, parallelized diffusive transport solver for
+  3-{D} biological simulations.
+\newblock \emph{Bioinformatics}, 32\penalty0 (8):\penalty0 1256--8, 2016.
+\newblock \doi{10.1093/bioinformatics/btv730}.
+\newblock URL \url{http://dx.doi.org/10.1093/bioinformatics/btv730}.
+
+\bibitem[Ghaffarizadeh et~al.(2018)Ghaffarizadeh, Heiland, Friedman,
+  Mumenthaler, and Macklin]{ref:PhysiCell}
+A.~Ghaffarizadeh, R.~Heiland, S.~H. Friedman, S.~M. Mumenthaler, and
+  P.~Macklin.
+\newblock {PhysiCell}: an open source physics-based cell simulator for 3-{D}
+  multicellular systems.
+\newblock \emph{PLoS Comput. Biol.}, 14\penalty0 (2):\penalty0 e1005991, 2018.
+\newblock \doi{10.1371/journal.pcbi.1005991}.
+\newblock URL \url{http://dx.doi.org/10.1371/journal.pcbi.1005991}.
+
+\bibitem[Kapoulkine(2016)]{ref:pugixml}
+A.~Kapoulkine.
+\newblock {pugixml: Light-weight, simple and fast XML parser for C++ with XPath
+  support}, 2016.
+\newblock URL \url{https://github.com/zeux/pugixml}.
+
+\bibitem[Saxena et~al.(2021)Saxena, Ponce-de Leon, Montagud, Vicente~Dorca, and
+  Valencia]{saxena2021biofvm}
+G.~Saxena, M.~Ponce-de Leon, A.~Montagud, D.~Vicente~Dorca, and A.~Valencia.
+\newblock {BioFVM-X: An MPI+ OpenMP 3-D Simulator for Biological Systems}.
+\newblock In \emph{International Conference on Computational Methods in Systems
+  Biology}, pages 266--279. Springer, 2021.
+\newblock URL
+  \url{https://link.springer.com/chapter/10.1007/978-3-030-85633-5_18}.
+
+\end{thebibliography}

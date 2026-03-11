@@ -330,6 +330,7 @@ class Cell_Container : public BioFVM::Agent_Container
 	std::unordered_map<int, Interacting_Voxel> um_ivfr; //um_mbfr[globa_mesh_index]=Moore_Voxel_Info[index]
 
 	std::vector<Interacting_Cell_Info> get_neighbour_interacting_cells(Cell* pCell, mpi_Environment &world, mpi_Cartesian &cart_topo);
+	std::vector<Moore_Cell_Info> get_moore_neighbour_cells(Cell* pCell, mpi_Environment &world, mpi_Cartesian &cart_topo);
 };
 
 int find_escaping_face_index(Cell* agent);

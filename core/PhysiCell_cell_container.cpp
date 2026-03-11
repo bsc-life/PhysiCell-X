@@ -529,6 +529,10 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 
 		start_part = std::chrono::high_resolution_clock::now();
 		#endif
+
+		// update velocities 
+
+
 		update_cell_potentials(time_since_last_mechanics,  world, cart_topo);
 		#ifdef MECHS_TIME
 		end_part = std::chrono::high_resolution_clock::now();
@@ -537,7 +541,7 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 		
 		start_part = std::chrono::high_resolution_clock::now();
 		#endif
-		evaluate_cell_cell_interactions(time_since_last_mechanics,  world, cart_topo);
+		//evaluate_cell_cell_interactions(time_since_last_mechanics,  world, cart_topo);
 		#ifdef MECHS_TIME
 		end_part = std::chrono::high_resolution_clock::now();
 		duration_part = std::chrono::duration_cast<std::chrono::microseconds>(end_part - start_part);
@@ -577,7 +581,6 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 				crossed_this_step++;
 			}
 		}
-		//cout << "\t\t[Rank " << world.rank << " ] Crossed after update_position: " << crossed_this_step << std::endl;
 		#ifdef MECHS_TIME
 		end_part = std::chrono::high_resolution_clock::now();
 		duration_part = std::chrono::duration_cast<std::chrono::microseconds>(end_part - start_part);
@@ -694,8 +697,8 @@ void Cell_Container::pack_moore_voxel(uint voxel_index, std::vector<char>& snd_b
 	/* Pack the global voxel index, no. of cells in the voxel, 	 */
 	/* voxel centers, and max_cell_interactive_distance_in_voxel */
 
-	len_buffer = len_buffer + 2 * sizeof(int) + 4 * sizeof(double);
-	snd_buffer.resize(len_buffer);
+	//len_buffer = len_buffer + 2 * sizeof(int) + 4 * sizeof(double);
+	//snd_buffer.resize(len_buffer);
 
 	MPI_Pack(&global_mesh_index, 	1, MPI_INT, 	 &snd_buffer[0], len_buffer, &position, MPI_COMM_WORLD);
 	MPI_Pack(&no_of_cells_in_vxl, 1, MPI_INT, 	 &snd_buffer[0], len_buffer, &position, MPI_COMM_WORLD);
@@ -708,8 +711,8 @@ void Cell_Container::pack_moore_voxel(uint voxel_index, std::vector<char>& snd_b
 	{
 		Cell *pCell = agent_grid[voxel_index][vec_len];
 
-		len_buffer = len_buffer + 2 * sizeof(int) + 8 * sizeof(double);
-		snd_buffer.resize(len_buffer);
+		//len_buffer = len_buffer + 2 * sizeof(int) + 8 * sizeof(double);
+		//snd_buffer.resize(len_buffer);
 
 		MPI_Pack(&pCell->ID, 																							 			 1, MPI_INT, 		&snd_buffer[0], len_buffer, &position, MPI_COMM_WORLD);
 		MPI_Pack(&pCell->position[0], 																		 			 3, MPI_DOUBLE, &snd_buffer[0], len_buffer, &position, MPI_COMM_WORLD);
@@ -744,20 +747,62 @@ void Cell_Container::pack_moore_info(mpi_Environment &world, mpi_Cartesian &cart
 	int len_snd_buf_left  	 = 0;
 	int len_snd_buf_right 	 = 0;
 
-	/*---------------------*/
-	/* Data Packing first  */
-	/*---------------------*/
+	int positions_send = (z_dim * y_dim) + 1;		
+	std::vector<int> left_positions (positions_send, 0);		//This will store the starting position of each voxel's data in the left buffer
+	std::vector<int> right_positions (positions_send, 0);	//This will store the starting position of each voxel's data in the right buffer
 
-	/* Data Packing of the left boundary voxel cells of all processes except rank = 0 */
+	int header_size =  2 * sizeof(int) + 4 * sizeof(double);
+	int cell_info_size = 2 * sizeof(int) + 8 * sizeof(double);
 
 	if(world.rank > 0) 
 	{
+		int i = 1;
+		left_positions[0] = 0;
+		int prev = 0;		
 		for(int k=0; k<z_dim; k++)
 		{
 			for(int j=0; j<y_dim; j++)
 			{
 				uint local_vxl_index = underlying_mesh.voxel_index(0, j, k);
-				pack_moore_voxel(local_vxl_index, snd_buf_left, len_snd_buf_left, position_left);
+				left_positions[i] = prev + header_size + cell_info_size * agent_grid[local_vxl_index].size();
+				prev = left_positions[i];
+				i++;	
+			}
+		}
+		len_snd_buf_left = prev;		//Total length of the left buffer is the starting position of the last voxel's data + size of the last voxel's data
+	}
+
+	if(world.rank < world.size-1)
+	{
+		int i = 1;
+		int prev = 0;
+		right_positions[0] = 0;
+		for(int k=0; k<z_dim; k++)
+		{
+			for(int j=0; j<y_dim; j++)
+			{
+				uint local_vxl_index = underlying_mesh.voxel_index(x_dim-1, j, k);
+				right_positions[i] = prev + header_size + cell_info_size * agent_grid[local_vxl_index].size();
+				prev = right_positions[i];
+				i++;	
+			}
+		}
+		len_snd_buf_right = prev;		//Total length of the right buffer is the starting position of the last voxel's data + size of the last voxel's data
+	}
+
+	snd_buf_left.resize(len_snd_buf_left);
+	snd_buf_right.resize(len_snd_buf_right);
+
+	if(world.rank > 0) 
+	{
+		#pragma omp parallel for collapse(2)
+		for(int k=0; k<z_dim; k++)
+		{
+			for(int j=0; j<y_dim; j++)
+			{
+				int position_index = k * y_dim + j;		//Index to access left_positions vector
+				uint local_vxl_index = underlying_mesh.voxel_index(0, j, k);
+				pack_moore_voxel(local_vxl_index, snd_buf_left, len_snd_buf_left, left_positions[position_index]);
 			}
 		}
 	}
@@ -767,12 +812,14 @@ void Cell_Container::pack_moore_info(mpi_Environment &world, mpi_Cartesian &cart
 
 	if(world.rank < world.size-1)
 	{
+		#pragma omp parallel for collapse(2)
 		for(int k=0; k<z_dim; k++)
 		{
 			for(int j=0; j<y_dim; j++)
 			{
+				int position_index = k * y_dim + j;		//Index to access right_positions vector
 				uint local_vxl_index = underlying_mesh.voxel_index(x_dim-1, j, k);
-				pack_moore_voxel(local_vxl_index, snd_buf_right, len_snd_buf_right, position_right);
+				pack_moore_voxel(local_vxl_index, snd_buf_right, len_snd_buf_right, right_positions[position_index]);
 			}
 		}
 	}
@@ -789,12 +836,12 @@ void Cell_Container::pack_moore_info(mpi_Environment &world, mpi_Cartesian &cart
 	/* Send to left, Receive from right: MPI_PROC_NULL<----R0<-----R1<----R2<----R3 */
 
 	MPI_Irecv(&size_of_data_recvd_from_right_process, 1, MPI_INT, cart_topo.X_RIGHT, 1111, cart_topo.mpi_cart_comm, &rcv_req[0]);
-	MPI_Isend(&position_left,  1, MPI_INT, cart_topo.X_LEFT,  1111, cart_topo.mpi_cart_comm, &snd_req[0]);
+	MPI_Isend(&len_snd_buf_left,  1, MPI_INT, cart_topo.X_LEFT,  1111, cart_topo.mpi_cart_comm, &snd_req[0]);
 
 	/* Send to right, Receive from left: R0----->R1---->R2---->R3--->MPI_PROC_NULL */
 
 	MPI_Irecv(&size_of_data_recvd_from_left_process, 1, MPI_INT, cart_topo.X_LEFT, 2222, cart_topo.mpi_cart_comm, &rcv_req[1]);
-	MPI_Isend(&position_right,  1, MPI_INT, cart_topo.X_RIGHT, 2222, cart_topo.mpi_cart_comm, &snd_req[1]);
+	MPI_Isend(&len_snd_buf_right,  1, MPI_INT, cart_topo.X_RIGHT, 2222, cart_topo.mpi_cart_comm, &snd_req[1]);
 
 	MPI_Waitall(2, snd_req, MPI_STATUSES_IGNORE);
 	MPI_Waitall(2, rcv_req, MPI_STATUSES_IGNORE);
@@ -956,7 +1003,7 @@ void Cell_Container::pack_cell_interact_info(mpi_Environment &world, mpi_Cartesi
 	auto end_offsets = std::chrono::high_resolution_clock::now();
 	std::chrono::duration<double, std::micro> duration_offsets = end_offsets - start_offsets;
 	
-	std::cout << "[Rank " << world.rank << "]: Time to compute offsets: " << duration_offsets.count() << " microseconds" << std::endl;
+	//std::cout << "[Rank " << world.rank << "]: Time to compute offsets: " << duration_offsets.count() << " microseconds" << std::endl;
 	
 	snd_buf_left.resize(offsets_left.back());
 	snd_buf_right.resize(offsets_right.back());
@@ -1050,7 +1097,7 @@ if(world.rank < world.size-1)
 
 	auto end = std::chrono::high_resolution_clock::now();
 	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-	std::cout << "[Rank " << world.rank << "]:  pack cell interaction info: " << duration.count() << " microseconds" << std::endl;
+	//std::cout << "[Rank " << world.rank << "]:  pack cell interaction info: " << duration.count() << " microseconds" << std::endl;
 	/*---------------------------------------------------*/
 	/* Sending and Receiving of buffers across processes */
 	/* Send to MPI_PROC_NULL as well, don't use 'if'	 */
@@ -1107,7 +1154,7 @@ if(world.rank < world.size-1)
 
 	end = std::chrono::high_resolution_clock::now();
 	duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-	std::cout << "[Rank " << world.rank << "]:  transfer cell interaction info: " << duration.count() << " microseconds" << std::endl;
+	//std::cout << "[Rank " << world.rank << "]:  transfer cell interaction info: " << duration.count() << " microseconds" << std::endl;
 
 	/*--------------------------------------------------------------------------*/
 	/* Now tackle unpacking of cells in a special class called Moore_Voxel_Info */
@@ -1232,7 +1279,7 @@ if(world.rank < world.size-1)
 
 	end = std::chrono::high_resolution_clock::now();
 	duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-	std::cout << "[Rank " << world.rank << "]:  unpack cell interaction info: " << duration.count() << " microseconds" << std::endl;
+	//std::cout << "[Rank " << world.rank << "]:  unpack cell interaction info: " << duration.count() << " microseconds" << std::endl;
 	//std::cout << "Rank " << world.rank << " has received cell information" << std::endl;
 	/* Now one step is left: Need to map the global mesh index to a specific Moor_Voxel_Info object */
 	/* i.e. declare map_glbl_indx_to_Moore_Voxel_Info_object[global_mesh_index]=mbfl[vxl_ctr] 			*/

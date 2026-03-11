@@ -221,10 +221,7 @@ Microenvironment::Microenvironment(std::string name)
 void Microenvironment::add_dirichlet_node( int voxel_index, std::vector<double>& value )
 {
 	mesh.voxels[voxel_index].is_Dirichlet=true;
-	/*
-	dirichlet_indices.push_back( voxel_index );
-	dirichlet_value_vectors.push_back( value ); 
-	*/
+	dirichlet_voxels.push_back( voxel_index );
 	
 	dirichlet_value_vectors[voxel_index] = value; // .assign( mesh.voxels.size(), one ); 
 	
@@ -235,6 +232,7 @@ void Microenvironment::update_dirichlet_node( int voxel_index , std::vector<doub
 {
 	mesh.voxels[voxel_index].is_Dirichlet = true; 
 	dirichlet_value_vectors[voxel_index] = new_value; 
+	
 	
 	return; 
 }
@@ -307,19 +305,10 @@ bool Microenvironment::get_substrate_dirichlet_activation( int substrate_index, 
 
 void Microenvironment::apply_dirichlet_conditions( void )
 {
-	/*
-	#pragma omp parallel for 
-	for( unsigned int i=0 ; i < dirichlet_indices.size() ; i++ )
-	{ density_vector( dirichlet_indices[i] ) = dirichlet_value_vectors[i]; }
-	*/
 
 	#pragma omp parallel for 
 	for( unsigned int i=0 ; i < mesh.voxels.size() ;i++ )
 	{
-		/*
-		if( mesh.voxels[i].is_Dirichlet == true )
-		{ density_vector(i) = dirichlet_value_vectors[i]; }
-		*/
 		if( mesh.voxels[i].is_Dirichlet == true )
 		{
 			for( unsigned int j=0; j < dirichlet_value_vectors[i].size(); j++ )
@@ -328,6 +317,29 @@ void Microenvironment::apply_dirichlet_conditions( void )
 				if( dirichlet_activation_vectors[i][j] == true )
 				{
 					density_vector(i)[j] = dirichlet_value_vectors[i][j]; 
+				}
+			}
+	
+		}
+	}
+	return; 
+}
+
+void Microenvironment::apply_dirichlet_conditions_fast( void )
+{
+
+	#pragma omp parallel for 
+	for( unsigned int i=0 ; i < dirichlet_voxels.size() ;i++ )
+	{
+		int voxel_index = dirichlet_voxels[i];
+		if( mesh.voxels[voxel_index].is_Dirichlet == true )
+		{
+			for( unsigned int j=0; j < dirichlet_value_vectors[voxel_index].size(); j++ )
+			{
+				// if( dirichlet_activation_vector[j] == true )
+				if( dirichlet_activation_vectors[voxel_index][j] == true )
+				{
+					density_vector(voxel_index)[j] = dirichlet_value_vectors[voxel_index][j]; 
 				}
 			}
 	

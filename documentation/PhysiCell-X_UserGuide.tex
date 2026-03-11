@@ -1,6 +1,6 @@
 \documentclass[12pt]{article}
-\newcommand{\Version}{0.1} 
-\newcommand{\PhysiCellBaseVersion}{1.9.0}
+\newcommand{\Version}{1.14.0} 
+\newcommand{\PhysiCellBaseVersion}{1.14.2}
 \newcommand{\ReleaseDate}{\today} 
 
 \usepackage[letterpaper,margin=0.5in,bottom=0.75in]{geometry}
@@ -105,10 +105,10 @@ urlcolor=blue
 
 \author{
 \textbf{PhysiCell-X Project}\\
-\texttt{Gaurav Saxena, Miguel Ponce-de-Leon, Arnau Montagud,} \\ 
+\texttt{Jose Estragués, Gaurav Saxena, Miguel Ponce-de-Leon, Arnau Montagud,} \\ 
 \texttt{David Vicente Dorca} \textit{and} \texttt{Alfonso Valencia}}
 \title{
-\includegraphics[width=0.5\textwidth]{/Users/sepultrite7432/Downloads/documentation/images/PhysiCell-X-Logo.png}~
+\includegraphics[width=0.5\textwidth]{./images/PhysiCell-X-Logo.png}~
 \\[0.1cm]
 User Guide (Version \Version)}
 \date{\textit{Revision:} \ReleaseDate}%\today}
@@ -140,25 +140,29 @@ The current version of PhysiCell-X is {\Version} and it is based on PhysiCell ve
 \end{tcolorbox}
 
 \subsection{Layers in PhysiCell-X}
-PhysiCell-X can be visualized as being made up of two layers. The first layer BioFVM-X \cite{saxena2021biofvm} solves the diffusion equations of substrates in the micro-environment. The second layer is PhysiCell-X itself and takes care of the movement, growth, decay, division, chemical and mechanical interaction and death of cells (agents) etc. BioFVM-X has been released separately and is available at:
-\begin{enumerate}
-    \item \href{https://zenodo.org/record/5044998#.YfjVwi8RppQ}{Zenodo} 
-    and
-    \item \href{https://gitlab.bsc.es/gsaxena/biofvm_x}{GitLab} (a detailed tutorial\footnote{We encourage you to read this tutorial as it will \textit{also} help you understand how to run examples in PhysiCell-X} to run examples can be found here)
-\end{enumerate}
-The latest version of BioFVM-X also forms part of PhysiCell-X. It can kindly be noted that the stand-alone version of BioFVM-X available at the links above is \textit{different} from the version of BioFVM-X that comes bundled with PhysiCell-X. This is because the design of BioFVM-X has evolved as PhysiCell-X evolved. 
-\subsection{Parallel Macroscopic Design}
+PhysiCell-X has two principal components: diffusion library BioFVM and core functionalities from PhysiCell. MPI versions of BioFVM \cite{saxena2021biofvm, estraguesmunoz2026novelscalablehighperformance} solves the diffusion equations of substrates in the micro-environment. The second layer is PhysiCell-X itself and takes care of the movement, growth, decay, division, chemical and mechanical interaction and death of cells (agents). 
+\subsection{Distributing PhysiCell Simulations}
+This section describes in plain English the fundamental concepts and architectural modifications that were implemented to transform the original sequential and shared-memory parallel PhysiCell codebase into a distributed-memory application capable of running efficiently across multiple computing nodes. We explain the intuition and design rationale behind the key changes made to support spatial domain decomposition, inter-process communication for data exchange, and load balancing in large-scale multicellular simulations. Understanding these concepts is essential for effectively deploying PhysiCell-X on high-performance computing systems and interpreting performance characteristics of your simulations.
 \subsubsection{An Analogy}
-We describe the high level parallel design with the help of a non-technical analogy of a "Partitioned Aquarium". Imagine a large aquarium in the shape of a cuboid. It is filled with fish, water, nutrients that we use to feed the fish and everything that you can imagine in an aquarium. The aquarium is equivalent to our \textit{3-D domain}. The fish which can grow, move, die, ingest/secrete nutrients, interact with other fish and so on are equivalent to the \textit{cells} or \textit{agents}. The water and the dissolved/undissolved nutrients and other things present are like the \textit{micro-environment}. Now, further imagine that we place fictitious partitions in the aquarium which do not let the water/nutrients from one sub-part move to another sub-part but the fish can move from one sub-part to another \textit{adjacent} sub-part through these partitions. These sub-partitions of the aquarium are equivalent to our sub-domains. Thus, the micro-environment in a sub-domain cannot move to the adjacent sub-domain \textit{but} the cells or agents \textit{can} move to \textit{adjacent} sub-domains. Further, instead of keeping a single person to manage the aquarium, we hire one person each to manage each of the sub-partitions. Each of these persons \textit{independently} manages one sub-partition. A person here is equivalent to an \textit{Operating System process} (more specifically an \textit{MPI process}) and the sub-partition is equivalent to a sub-domain. To take things further, each of these persons can hire additional people under them to manage the sub-partition. These \textit{additional} people are like \textit{OpenMP threads} which run within an MPI process.     
+We describe the high level parallel design with the help of a non-technical analogy of a "Partitioned Aquarium". Imagine a large aquarium in the shape of a cuboid. It is filled with fish, water, nutrients that we use to feed the fish and everything that you can imagine in an aquarium. The aquarium is equivalent to our \textit{3-D domain}. The fish which can grow, move, die, ingest/secrete nutrients, interact with other fish and so on are equivalent to the \textit{cells} or \textit{agents}. The water and the dissolved/undissolved nutrients and other things present are like the \textit{micro-environment}. Now, further imagine that we place fictitious partitions in the aquarium which do not let the water/nutrients from one sub-part move to another sub-part but the fish can move from one sub-part to another \textit{adjacent} sub-part through these partitions. These sub-partitions of the aquarium are equivalent to our sub-domains. Thus, the micro-environment in a sub-domain cannot move to the adjacent sub-domain \textit{but} the cells or agents \textit{can} move to \textit{adjacent} sub-domains. Further, instead of keeping a single person to manage the aquarium, we hire one person each to manage each of the sub-partitions. Each of these persons \textit{independently} manages one sub-partition. A person here is equivalent to an \textit{Operating System process} (more specifically an \textit{MPI process}) and the sub-partition is equivalent to a sub-domain. To take things further, each of these persons can hire additional people under them to manage the sub-partition. These \textit{additional} people are like \textit{OpenMP threads} which run within an MPI process. 
+One fish can move freely from one sub-partition of the aquarion to the adjacent (left or right). In this case, the person managing the sub-partition sends the information gathered of this agent and send it to the person (MPI process) managing the adjacent sub-partition the fish has crossed. 
+Similarly, adjacent MPI processes coordinate information exchange of the micro-environment at the boundaries its sub-domains during the diffusion of nutrients in the space.
 \subsubsection{Domain Partitioning}
 Figure \ref{fig:domain_partitioning} formally illustrates the aforementioned analogy. It shows a 3-D domain and the directions of the axes. The domain is divided in the X-direction \textit{only} among the MPI processes i.e. the 3-D domain is partitioned in a single dimension only (1-D domain partitioning - imagine slices of a bread). It is important to note that the direction of the axes of BioFVM-X/PhysiCell-X is different from the directions of the axes of MPI Cartesian Topology\footnote{An MPI Cartesian Topology is a \textit{virtual} arrangement of processes.}. In this specific case, the whole 3-D domain is partitioned among 4 MPI processes (shown in gray, green, blue and red). This Cartesian Topology is $1 \times 4 \times 1$, indicating that we have 1 MPI process in the X-direction, 4 in the Y-direction and 1 in the Z-direction. Please note we have 4 processes in the Y-direction of the MPI Cartesian Topology because \textit{the X-axis of BioFVM-X/PhysiCell-X is equivalent to the Y-axis of the MPI Topology}. Each of these sub-partitions (formally called sub-domains) can be located with the help of MPI Cartesian coordinates. Process 0 (formally called Rank 0) has coordinates $(0,0,0)$, process 1 (Rank 1) has $(0,1,0)$, process 2 (Rank 2) has $(0,2,0)$ and process 4 (Rank 3) has coordinates $(0,3,0)$. Within each sub-domain managed by a single MPI process, the wavy, dark, solid lines indicate OpenMP threads.  
 
 \subsubsection{Mapping to Hardware}
 Each sub-domain has a different and independent micro-environment which is managed by a single MPI process. Multiple OpenMP threads can exist within each MPI process. \textit{Typically}, to obtain a good performance from PhysiCell-X, one would run a single MPI process per socket and one OpenMP thread per core. For example, if a node of an HPC cluster consists of 2 sockets and each socket has 24 cores then we \textit{typically} would run 2 MPI processes per node i.e. one MPI process per socket and then run 24 OpenMP threads per socket i.e. one OpenMP thread per hardware core. Please note that this is \textit{not} a rule and sometimes we also run 1 MPI process per node and 48 OpenMP threads per MPI process. 
 
+\begin{tcolorbox}[enhanced,attach boxed title to top center={yshift=-3mm,yshifttext=-1mm},
+  colback=blue!5!white,colframe=blue!75!black,colbacktitle=red!80!black,
+  title=IMPORTANT,fonttitle=\bfseries,
+  boxed title style={size=small,colframe=red!50!black} ]
+  Hardware mapping is \textbf{strongly relevant} for achieving optimal performance of PhysiCell-X simulations. Suboptimal mapping strategies—such as placing multiple MPI processes on the same socket without considering NUMA effects, or assigning OpenMP threads to cores that share L3 cache inefficiently—can result in significant performance degradation. We strongly recommend profiling your specific hardware configuration and measuring wall-clock time across different mapping strategies before running large-scale production simulations. Additionally, consider the simulation size (grid size and number of agents) when chosing the amount of hardware resources.
+\end{tcolorbox}
+
 \begin{figure}
     \centering
-    \includegraphics[width=0.8\textwidth]{/Users/sepultrite7432/Downloads/documentation/images/Domain_Partitioning.png}
+    \includegraphics[width=0.8\textwidth]{./images/Domain_Partitioning.png}
     \caption{1-D domain partitioning in the X-direction for a 3-D domain}
     \label{fig:domain_partitioning}
 \end{figure}
@@ -177,11 +181,11 @@ Please see the original User documentation of PhysiCell for instructions on how 
   colback=blue!5!white,colframe=blue!75!black,colbacktitle=red!80!black,
   title=IMPORTANT,fonttitle=\bfseries,
   boxed title style={size=small,colframe=red!50!black} ]
-  We have tested the parallelized examples extensively using GCC 8.1.0 compiler and OpenMPI 3.1.1.
+  We have tested the parallelized examples extensively using GCC 13.2.0 compiler and OpenMPI 4.1.5.
 \end{tcolorbox}
  
 \section{MPI processes, Voxels and Divisibility}
-The 3-D simulation domain in PhysiCell-X is divided into Voxels (Volumetric Pixels). Voxels generally are cubic (but they can be a cuboid as well). Thus, for example if the domain length in the X, Y and Z direction is [-500,+500], [-500,+500] and [-500,+500], respectively and the Voxel (cubic) dimension is 20, then we have $\frac{500 - (-500)}{25} = \frac{1000}{20}=50$ voxels \textit{each} in the X, Y and Z-directions. As described in the previous section, PhysiCell-X implements 1-D domain partitioning in the X-direction and due to a limitation in our implementation (will be removed in future versions), the total number of Voxels in the X-direction should be perfectly divisible by the total number of MPI processes. Thus, in the case above, we cannot have 3 MPI processes as 3 does not perfectly divide 50. However, we can have 2, 10, or even 25 MPI processes as these divide 50 voxels perfectly. It can be noted that this limitation exists \textit{only} in the X-direction and \textit{not} in the Y or Z directions. There is no restriction on the number of OpenMP threads within a single MPI process. Further, there are two types of meshes in PhysiCell (or PhysiCell-X) i.e. a \textit{diffusion mesh} and a \textit{mechanical mesh}. The size of the voxels for \textit{each} of these meshes is defined separately. It is important that the perfect divisibility condition should hold for \textit{both} the types of meshes.    
+The 3-D simulation domain in PhysiCell-X is divided into Voxels (Volumetric Pixels). Voxels generally are cubic (but they can be a cuboid as well). Thus, for example if the domain length in the X, Y and Z direction is [-500,+500], [-500,+500] and [-500,+500], respectively and the Voxel (cubic) dimension is 20, then we have $\frac{500 - (-500)}{25} = \frac{1000}{20}=50$ voxels \textit{each} in the X, Y and Z-directions. Thus, in the case above, we cannot have 3 MPI processes as 3 does not perfectly divide 50. However, we can have 2, 10, or even 25 MPI processes as these divide 50 voxels perfectly. It can be noted that this limitation exists \textit{only} in the X-direction and \textit{not} in the Y or Z directions. There is no restriction on the number of OpenMP threads within a single MPI process. Further, there are two types of meshes in PhysiCell (or PhysiCell-X) i.e. a \textit{diffusion mesh} and a \textit{mechanical mesh}. The size of the voxels for \textit{each} of these meshes is defined separately. It is important that the perfect divisibility condition should hold for \textit{both} the types of meshes.    
 We will return to this concept when we show how to run examples and specify parameters in PhysiCell-X.    
 
 \begin{tcolorbox}[enhanced,attach boxed title to top center={yshift=-3mm,yshifttext=-1mm},
@@ -189,8 +193,7 @@ We will return to this concept when we show how to run examples and specify para
   title=IMPORTANT,fonttitle=\bfseries,
   boxed title style={size=small,colframe=red!50!black} ]
   \begin{enumerate}
-  \item The total number of voxels in the X-direction must be perfectly divisible by the total number of MPI processes. 
-  \item Condition 1 above applies to both Diffusion and Mechanical voxels. 
+  \item Diffsion voxel and Mechanical voxel must perfectly divide the domain size.
   \item Size of Diffusion voxel must be $\leq$ size of Mechanical voxel.
   \end{enumerate}
 \end{tcolorbox}

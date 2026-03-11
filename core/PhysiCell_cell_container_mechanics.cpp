@@ -45,6 +45,44 @@ Moore_Voxel_Info::Moore_Voxel_Info(std::vector<char>& buffer, int size, int &pos
 }
 
 
+std::vector<Moore_Cell_Info> Cell_Container::get_moore_neighbour_cells(Cell* pCell, mpi_Environment &world, mpi_Cartesian &cart_topo){
+    std::vector<Moore_Cell_Info> neighbours;
+    int x_dim = pCell->get_container()->underlying_mesh.x_coordinates.size(); 
+    int y_dim = pCell->get_container()->underlying_mesh.y_coordinates.size();
+    int z_dim = pCell->get_container()->underlying_mesh.z_coordinates.size();
+    
+    int local_vxl_inex = pCell->get_current_mechanics_voxel_index();
+    int position_voxel = (local_vxl_inex / (z_dim * y_dim));
+
+    if (position_voxel == 0  && world.rank > 0) { //left edge
+        int yx_index = local_vxl_inex %(y_dim*z_dim);
+        std::vector<int> moore_list = pCell->get_container()->underlying_mesh.moore_connected_voxel_global_indices_left[yx_index];
+        for(int i=0; i<moore_list.size(); i++)
+        {
+            Moore_Voxel_Info &mvi = um_mbfl.at(moore_list[i]);
+                
+            for(int cell_ctr=0; cell_ctr<mvi.moore_cells.size(); cell_ctr++) {
+                //pCell->add_potentials(mvi.cells[cell_ctr], world, cart_topo); 
+                neighbours.push_back(mvi.moore_cells[cell_ctr]);
+            }
+        } 
+    } 
+    else if (position_voxel == (x_dim-1) && (world.rank < world.size-1)) { //right edge
+        int yx_index = local_vxl_inex %(y_dim*z_dim);
+        std::vector<int> moore_list = pCell->get_container()->underlying_mesh.moore_connected_voxel_global_indices_right[yx_index];
+        for(int i=0; i<moore_list.size(); i++)
+        {
+            Moore_Voxel_Info &mvi = um_mbfr.at(moore_list[i]);
+                
+            for(int cell_ctr=0; cell_ctr<mvi.moore_cells.size(); cell_ctr++) {
+                //pCell->add_potentials(mvi.cells[cell_ctr], world, cart_topo); 
+                neighbours.push_back(mvi.moore_cells[cell_ctr]);
+            }
+        } 
+    }
+    return neighbours;
+}
+
 std::vector<Interacting_Cell_Info> Cell_Container::get_neighbour_interacting_cells(Cell* pCell, mpi_Environment &world, mpi_Cartesian &cart_topo){
     std::vector<Interacting_Cell_Info> neighbours;
     int x_dim = pCell->get_container()->underlying_mesh.x_coordinates.size(); 
@@ -98,7 +136,7 @@ void Cell_Container::evaluate_cell_elastic_interactions( PhysiCell::Cell *pCell 
 
     int max_elastic = pCell->phenotype.mechanics.maximum_number_of_attachments;
     int done_elastic = pCell->state.spring_attachments.size();
-    vector<Interacting_Cell_Info> neighbours = get_neighbour_interacting_cells(pCell, world, cart_topo);
+    vector<Moore_Cell_Info> neighbours = get_moore_neighbour_cells(pCell, world, cart_topo);
     
      double attachment_probability = pCell->phenotype.mechanics.attachment_rate * dt_mec; 
     int i = 0;
@@ -125,7 +163,7 @@ void Cell_Container::exchange_mechanics_halos(mpi_Environment &world, mpi_Cartes
         std::cout << "\t\t\tPack Moore info: " << duration.count() << " microseconds"<< std::endl;
     start = std::chrono::high_resolution_clock::now();
 #endif 
-    pack_cell_interact_info(world, cart_topo);
+    //pack_cell_interact_info(world, cart_topo);
 #ifdef MECHS_TIME
     end = std::chrono::high_resolution_clock::now();
     duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
@@ -164,20 +202,17 @@ void Cell_Container::update_cell_potentials(double time_since_last_mechanics,  m
         if( pC->functions.custom_cell_rule && pC->is_out_of_domain == false )
 			{ pC->functions.custom_cell_rule( pC,pC->phenotype,time_since_last_mechanics ); } //No parallelism necessary yet
 
-        if( PhysiCell_settings.disable_automated_spring_adhesions == false ) 
-		{
-            if( pC->is_movable )
+        if( pC->is_movable )
+        {
+            if(pC->functions.update_velocity_parallel && pC->is_out_of_domain == false)
             {
-                if(pC->functions.update_velocity_parallel && pC->is_out_of_domain == false && pC->is_movable)
-                {
-                    pC->functions.update_velocity_parallel( pC, pC->phenotype, time_since_last_mechanics, world, cart_topo);
-                }
-
+                pC->functions.update_velocity_parallel( pC, pC->phenotype, time_since_last_mechanics, world, cart_topo);
+            }
+            if( PhysiCell_settings.disable_automated_spring_adhesions == false ) 
+            {
                 evaluate_cell_elastic_interactions( pC , time_since_last_mechanics, world, cart_topo);
-                
             }
         }
-    
     }	
 }
 };

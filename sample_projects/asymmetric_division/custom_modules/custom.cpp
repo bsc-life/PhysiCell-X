@@ -136,7 +136,7 @@ void create_cell_types( DistPhy::mpi::mpi_Environment &world, DistPhy::mpi::mpi_
 	return; 
 }
 
-void setup_microenvironment( DistPhy::mpi::mpi_Environment &world, DistPhy::mpi::mpi_Cartesian &cart_topo)
+void setup_microenvironment( mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
 	// set domain parameters 
 	

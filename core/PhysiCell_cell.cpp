@@ -3316,6 +3316,9 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 	/* IMPORTANT: CANNOT USE #pragma omp for HERE AS ALL THREADS WILL WRITE TO THE SAME SHARED BUFFER */
 	int left = 0;
 	int right = 0;
+	int right_prev, left_prev;
+	left_prev = 0;
+	right_prev = 0;
 	for(int i=0; i<(*all_cells).size();i++)
 	{
 		pCell = (*all_cells)[i];

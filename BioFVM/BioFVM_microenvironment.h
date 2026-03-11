@@ -153,6 +153,7 @@ class Microenvironment
 	   on a voxel-by-voxel basis */ 
 	   
 	std::vector< std::vector<bool> > dirichlet_activation_vectors;
+	std::vector<int> dirichlet_voxels;
 	
 	/*=====================================================================================*/
 	/* 											TILL HERE 																										 */
@@ -310,7 +311,8 @@ class Microenvironment
 	void update_dirichlet_node( int voxel_index , std::vector<double>& new_value ); 
 	void update_dirichlet_node( int voxel_index , int substrate_index , double new_value );
 	void remove_dirichlet_node( int voxel_index ); 
-	void apply_dirichlet_conditions( void ); 
+	void apply_dirichlet_conditions( void );
+	void apply_dirichlet_conditions_fast( void );  
 	void apply_dirichlet_boundaries_conditions( int rank, int size ); 
 
 	void set_substrate_dirichlet_activation( int substrate_index , bool new_value ); 
