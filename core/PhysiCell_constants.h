@@ -77,29 +77,29 @@ namespace PhysiCell
 class PhysiCell_constants
 {
  public:
-	static const double pi;
+	static constexpr double pi=3.1415926535897932384626433832795;
 	
 	static constexpr double cell_removal_threshold_volume = 20; // 20 cubic microns -- about 1% of typical cell 
-	static const int keep_pushed_out_cells_in_outer_voxel;
-	static const int solid_boundary;
-	static const int default_boundary_condition_for_pushed_out_agents;		
+	static const int keep_pushed_out_cells_in_outer_voxel = 1;
+	static const int solid_boundary = 2;
+	static const int default_boundary_condition_for_pushed_out_agents  = keep_pushed_out_cells_in_outer_voxel;		
 	
-	static const int deterministic_necrosis;
-	static const int stochastic_necrosis;
+	static const int deterministic_necrosis = 0;
+	static const int stochastic_necrosis = 1;
 
-	static const int mesh_min_x_index;
-	static const int mesh_min_y_index;
-	static const int mesh_min_z_index;
-	static const int mesh_max_x_index;
-	static const int mesh_max_y_index;
-	static const int mesh_max_z_index;			
+	static const int mesh_min_x_index = 0;
+	static const int mesh_min_y_index = 1;
+	static const int mesh_min_z_index = 2;
+	static const int mesh_max_x_index = 3;
+	static const int mesh_max_y_index = 4;
+	static const int mesh_max_z_index = 5;			
 	
-	static const int mesh_lx_face_index;
-	static const int mesh_ly_face_index;
-	static const int mesh_lz_face_index;
-	static const int mesh_ux_face_index;
-	static const int mesh_uy_face_index;
-	static const int mesh_uz_face_index;
+	static const int mesh_lx_face_index = 0;
+	static const int mesh_ly_face_index = 1;
+	static const int mesh_lz_face_index = 2;
+	static const int mesh_ux_face_index = 3;
+	static const int mesh_uy_face_index = 4;
+	static const int mesh_uz_face_index = 5;
 	
 	// currently recognized cell cycle models 
 	static const int advanced_Ki67_cycle_model;

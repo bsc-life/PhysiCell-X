@@ -77,7 +77,7 @@
 namespace PhysiCell
 {
 	
-class Variable
+class Variable //UPDATED
 {
  private:
 	friend std::ostream& operator<<(std::ostream& os, const Variable& v); // done 
@@ -85,11 +85,15 @@ class Variable
 	std::string name; 
 	double value; 
 	std::string units; 
-	
+	bool conserved_quantity;
+
 	Variable(); 
+
+	void pack(std::vector<char>& snd_buffer, int& len_buffer, int &position);
+	void unpack(std::vector<char>& rcv_buffer, int& len_buffer, int &position);
 };
 
-class Vector_Variable
+class Vector_Variable //UPDATED
 {
  private:
 	friend std::ostream& operator<<(std::ostream& os, const Vector_Variable& v); // done 
@@ -97,12 +101,15 @@ class Vector_Variable
  public:
 	std::string name; 
 	std::vector<double> value; 
-	std::string units; 
+	std::string units;
+	bool conserved_quantity; 
 	
-	Vector_Variable(); 
+	Vector_Variable();
+	void pack(std::vector<char>& snd_buffer, int& len_buffer, int &position); 
+	void unpack(std::vector<char>& rcv_buffer, int& len_buffer, int &position);
 };
 
-class Custom_Cell_Data
+class Custom_Cell_Data //updated
 {
  private:
 	std::unordered_map<std::string,int> name_to_index_map; 
@@ -136,7 +143,9 @@ class Custom_Cell_Data
 	/* Gaurav Saxena wrote this to help with printing the {Key,Value} in this unordered map */
 	/*======================================================================================*/
 	
-	std::unordered_map<std::string,int> & get_name_to_index_map(); 
+	std::unordered_map<std::string,int> & get_name_to_index_map();
+	void pack(std::vector<char>& snd_buffer, int& len_buffer, int &position); 
+	void unpack(std::vector<char>& rcv_buffer, int& len_buffer, int &position); 
 };
 
 }; 

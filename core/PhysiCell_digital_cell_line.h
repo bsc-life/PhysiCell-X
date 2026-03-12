@@ -82,14 +82,14 @@
 
 namespace PhysiCell{
 
-class Microenvironment_Sample
+class Microenvironment_Sample //Updated
 {
 public:
 	std::vector<std::string> variables; 
 	std::vector<double> densities; 
 };
 
-class Geometry{
+class Geometry{ //Updated
 public:
 	double radius; 
 	double nuclear_radius; 
@@ -98,7 +98,7 @@ public:
 	bool polarized; 
 };
 
-class Volume{
+class Volume{ //Updated
 public:
 	double total;
 	double solid;
@@ -130,7 +130,7 @@ public:
 	double calcified_fraction;
 };
 
-class Phase{
+class Phase{ //Updated
 public:
 	int code; 
 	std::string name; 
@@ -148,7 +148,7 @@ public:
 	double volume_change_timescale_F;
 };
 
-class Cycle{
+class Cycle{ //updated
 public: 
 	int cycle_model; 
 	std::string cycle_model_name; 
@@ -170,31 +170,31 @@ public:
 	double calcification_rate; 
 };*/
 
-class Motility{
+class Motility{ //Update
 public:
 	std::vector<double> gradient_correlations; 
 	double mean_speed; 
 };
 
-class Uptake_Rates{
+class Uptake_Rates{ //Update
 public:
 	std::vector<std::string> variables; 
 	std::vector<double> rates; 
 }; 
 
-class Secretion_Rates{
+class Secretion_Rates{ //Updated
 public:
 	std::vector<std::string> variables; 
 	std::vector<double> rates; 
 };
 
-class Secretion_Saturation_Densities{
+class Secretion_Saturation_Densities{ //Updated
 public: 
 	std::vector<std::string> variables; 
 	std::vector<double> densities; 
 }; 
 
-class Full_Phenotype{
+class Full_Phenotype{ //Updated
 private: 
 	std::unordered_map<int, int> * phase_indices_map;
 public:
@@ -222,7 +222,7 @@ public:
 	int get_current_phase_code(void); 
 };
 
-class Cell_Line{
+class Cell_Line{ //updated
 public:
 	std::string name; 
 	std::vector<std::string> phenotype_names; 
@@ -239,4 +239,4 @@ void set_endothelial_cell_line( Cell_Line& DCL );
 	
 }; 
 
-#endif
+#endif //Updated

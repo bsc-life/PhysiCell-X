@@ -1,0 +1,49 @@
+This is BibTeX, Version 0.99d (TeX Live 2022/dev/Debian)
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: PhysiCell-X_UserGuide.aux
+The style file: abbrvnat.bst
+Database file #1: references.bib
+Warning--entry type for "ref:pugixml" isn't style-file defined
+--line 51 of file references.bib
+You've used 5 entries,
+            2773 wiz_defined-function locations,
+            630 strings with 5948 characters,
+and the built_in function-call counts, 2747 in all, are:
+= -- 244
+> -- 184
+< -- 2
++ -- 62
+- -- 57
+* -- 239
+:= -- 426
+add.period$ -- 21
+call.type$ -- 5
+change.case$ -- 34
+chr.to.int$ -- 5
+cite$ -- 10
+duplicate$ -- 106
+empty$ -- 202
+format.name$ -- 62
+if$ -- 572
+int.to.chr$ -- 1
+int.to.str$ -- 1
+missing$ -- 3
+newline$ -- 38
+num.names$ -- 20
+pop$ -- 69
+preamble$ -- 1
+purify$ -- 29
+quote$ -- 0
+skip$ -- 93
+stack$ -- 0
+substring$ -- 88
+swap$ -- 15
+text.length$ -- 1
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 55
+warning$ -- 0
+while$ -- 21
+width$ -- 0
+write$ -- 81
+(There was 1 warning)

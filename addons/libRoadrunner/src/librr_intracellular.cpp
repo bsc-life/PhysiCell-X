@@ -182,7 +182,7 @@ void RoadRunnerIntracellular::start()
         std::cerr << kdx << ") " << vptr->Data[kdx] << std::endl;
     }
     //std::cerr << "----------  end start() -------------\n";
-
+    rrc::freeVector(vptr);
     // return 0;
 }
 
@@ -287,6 +287,7 @@ double RoadRunnerIntracellular::get_parameter_value(std::string param_name)
     // double res = this->result->Data[offset];
     double res = vptr->Data[offset];
     //std::cout << "    res = " << res << std::endl;
+    rcc::freeVector(vptr);
 	return res;
 }
 	
@@ -300,6 +301,7 @@ void RoadRunnerIntracellular::set_parameter_value(std::string species_name, doub
     vptr->Data[idx] = value;
 	// rrc::setFloatingSpeciesConcentrations(pCell->phenotype.molecular.model_rr, vptr);
 	rrc::setFloatingSpeciesConcentrations(this->rrHandle, vptr);
+    rrc::freeVector(vptr);
     // return 0;
 }
 

@@ -71,29 +71,17 @@
 using namespace BioFVM;
 using namespace PhysiCell;
 
-// declare the cell types 
-
-static Cell_Definition worker_cell; 
-static Cell_Definition cargo_cell; 
-static Cell_Definition director_cell; 
-static Cell_Definition linker_cell; 
-
-static int worker_ID = 0;
-static int cargo_ID = 1;
-static int linker_ID = 2; 
-static int director_ID = 3;
-
 // set up the microenvironment 
 
-void setup_microenvironment( void ); // done 
+void setup_microenvironment( mpi_Environment& world, mpi_Cartesian& cart_topo ); // done 
 
 // set up the cell types 
 
-void create_cell_types( void );
+void create_cell_types( mpi_Environment& world, mpi_Cartesian& cart_topo );
 
 // set up the problem geometry 
 
-void setup_tissue( void ); 
+void setup_tissue( mpi_Environment& world, mpi_Cartesian& cart_topo); 
 
 // coloring functions 
 

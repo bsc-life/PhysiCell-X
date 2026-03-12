@@ -52,6 +52,7 @@
 #include "BioFVM_mesh.h"
 #include "BioFVM_agent_container.h"
 #include "BioFVM_MultiCellDS.h"
+#include <utility>
 
 #include "../DistPhy/DistPhy_Environment.h"
 #include "../DistPhy/DistPhy_Cartesian.h"
@@ -109,7 +110,7 @@ class Microenvironment
 	std::vector<double> thomas_neg_constant1y; 
 	std::vector<double> thomas_neg_constant1z; 
 	bool thomas_setup_done; 
-	int thomas_i_jump; 
+	
 	int thomas_j_jump; 
 	int thomas_k_jump; 
 	std::vector<double> thomas_constant1; 
@@ -152,6 +153,7 @@ class Microenvironment
 	   on a voxel-by-voxel basis */ 
 	   
 	std::vector< std::vector<bool> > dirichlet_activation_vectors;
+	std::vector<int> dirichlet_voxels;
 	
 	/*=====================================================================================*/
 	/* 											TILL HERE 																										 */
@@ -162,6 +164,7 @@ class Microenvironment
  public:
 	//Diffusion-decay 3D solver blocking parameter
 	int granurality;
+	int thomas_i_jump; 
 
 	std::vector<double> *p_density_vectors = &temporary_density_vectors1; // Jose
 	
@@ -213,6 +216,7 @@ class Microenvironment
 	unsigned int number_of_densities( void ); 
 	unsigned int number_of_voxels( void ); 
 	unsigned int number_of_voxel_faces( void ); 
+	std::pair<double, double> get_subdomain_x_limits( void ) const;
 
  	
 	void auto_choose_diffusion_decay_solver( void ); 
@@ -307,7 +311,8 @@ class Microenvironment
 	void update_dirichlet_node( int voxel_index , std::vector<double>& new_value ); 
 	void update_dirichlet_node( int voxel_index , int substrate_index , double new_value );
 	void remove_dirichlet_node( int voxel_index ); 
-	void apply_dirichlet_conditions( void ); 
+	void apply_dirichlet_conditions( void );
+	void apply_dirichlet_conditions_fast( void );  
 	void apply_dirichlet_boundaries_conditions( int rank, int size ); 
 
 	void set_substrate_dirichlet_activation( int substrate_index , bool new_value ); 
@@ -453,6 +458,10 @@ class Microenvironment_Options
 	/*========================================*/
 	
 	std::vector<double> initial_condition_vector; 
+
+	bool initial_condition_from_file_enabled;
+	std::string initial_condition_file_type;
+	std::string initial_condition_file;
 	
 	bool simulate_2D; 
 	std::vector<double> X_range; 
@@ -477,6 +486,10 @@ void initialize_microenvironment( void );
 /* Parallel prototype of initialize_microenvironment() */
 /*===================================================*/
 void initialize_microenvironment( mpi_Environment &world, mpi_Cartesian &cart_topo );
+
+void load_initial_conditions_from_matlab( std::string filename ); //Not done
+void load_initial_conditions_from_csv( std::string filename ); //Not done
+void get_row_from_substrate_initial_condition_csv(std::vector<int> &voxel_set, const std::string line, const std::vector<int> substrate_indices, const bool header_provided);//not done
 
 };
 

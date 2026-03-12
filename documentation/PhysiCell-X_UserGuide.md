@@ -1,13 +1,13 @@
 
 ![image](./images/PhysiCell-X-Logo.png)
 
-## User Guide (Version 0.1)
+## User Guide (Version 1.14.0)
 
 **PhysiCell-X Project**
 
-Gaurav Saxena, Miguel Ponce-de-Leon, Arnau Montagud,David Vicente Dorca and Alfonso Valencia
+Jose-Luis Estragués Muñoz, Gaurav Saxena, Miguel Ponce-de-Leon, Arnau Montagud,David Vicente Dorca and Alfonso Valencia
 
-Revision: _16 March, 2022_
+Revision: _20 February, 2026_
 
 
 [[_TOC_]]
@@ -26,7 +26,7 @@ Thus, the aim of PhysiCell-X is to remove the memory limitation, reduce the time
 
 ## The Current Version
 
-The current version of PhysiCell-X is 0.1 and it is based on PhysiCell version 1.9.0. Please note the following very carefully.
+The current version of PhysiCell-X is 1.14.0 and it is based on PhysiCell version 1.14.2. Please note the following very carefully.
 
 -   The User Guide for PhysiCell-X is to be used in conjunction with the User Guide for PhysiCell (till version 1.9.0). The User Guide for PhysiCell contains many details which are *not* reproduced here to avoid unnecessary duplication.
 
@@ -34,25 +34,16 @@ The current version of PhysiCell-X is 0.1 and it is based on PhysiCell version 1
 
 -   PhysiCell-X uses MPI for distributed parallelization and OpenMP shared-memory parallelization was already available in PhysiCell. Thus, PhysiCell actually uses hybrid parallelization i.e. MPI + OpenMP.
 
--   A (very) small set of features available in PhysiCell version 1.9.0 are *not* available in PhysiCell-X. We will list out all such functionalities in a *separate section*. As the future versions of PhysiCell-X are released, we will try our best to incorporate these features.
-
-> **IMPORTANT**
-
-> Please use *this* User Guide in *conjunction* with the User Guide for PhysiCell (till version 1.9.0). The User Guide for PhysiCell contains several details which are *not* reproduced here.
-
 ## Layers in PhysiCell-X
 
 PhysiCell-X can be visualized as being made up of two layers. 
-The first layer BioFVM-X [4] solves the diffusion equations of substrates in the micro-environment. 
-The second layer is PhysiCell-X itself and takes care of the movement, growth, decay, division, chemical and mechanical interaction and death of cells (agents) etc. BioFVM-X has been released separately and is available at:
+The first layer BioFVM-B [5] solves the diffusion equations of substrates in the micro-environment. 
+The second layer is PhysiCell-X itself and takes care of the movement, growth, decay, division, chemical and mechanical interaction and death of cells (agents) etc. BioFVM-B has been released separately and is available at:
 
-1.  [Zenodo](https://zenodo.org/record/5044998#.YfjVwi8RppQ) and
+1.  [GitHub](https://github.com/bsc-life/BioFVM-B)
 
-2.  [GitLab](https://gitlab.bsc.es/gsaxena/biofvm_x) (a detailed tutorial $^1$ to run examples can be found here)
+The latest version of BioFVM-B also forms part of PhysiCell-X. 
 
-The latest version of BioFVM-X also forms part of PhysiCell-X. 
-It can kindly be noted that the stand-alone version of BioFVM-X available at the links above is *different* from the version of BioFVM-X that comes bundled with PhysiCell-X. 
-This is because the design of BioFVM-X has evolved as PhysiCell-X evolved.
 
 ## Parallel Macroscopic Design
 
@@ -77,14 +68,14 @@ These *additional* people are like *OpenMP threads* which run within an MPI proc
 Figure [\[fig:domain\_partitioning\]](#fig:domain_partitioning){reference-type="ref" reference="fig:domain_partitioning"} formally illustrates the aforementioned analogy. 
 It shows a 3-D domain and the directions of the axes. 
 The domain is divided in the X-direction *only* among the MPI processes i.e. the 3-D domain is partitioned in a single dimension only (1-D domain partitioning - imagine slices of a bread). 
-It is important to note that the direction of the axes of BioFVM-X/PhysiCell-X is different from the directions of the axes of MPI Cartesian Topology $^2$.
+It is important to note that the direction of the axes of BioFVM-B/PhysiCell-X is different from the directions of the axes of MPI Cartesian Topology $^2$.
 In this specific case, the whole 3-D domain is partitioned among 4 MPI processes (shown in gray, green, blue and red). This Cartesian Topology is $1 \times 4 \times 1$, indicating that we have 1 MPI process in the X-direction, 4 in the Y-direction and 1 in the Z-direction. 
-Please note we have 4 processes in the Y-direction of the MPI Cartesian Topology because *the X-axis of BioFVM-X/PhysiCell-X is equivalent to the Y-axis of the MPI Topology*. 
+Please note we have 4 processes in the Y-direction of the MPI Cartesian Topology because *the X-axis of BioFVM-B/PhysiCell-X is equivalent to the Y-axis of the MPI Topology*. 
 Each of these sub-partitions (formally called sub-domains) can be located with the help of MPI Cartesian coordinates.
 Process 0 (formally called Rank 0) has coordinates $(0,0,0)$, process 1 (Rank 1) has $(0,1,0)$, process 2 (Rank 2) has $(0,2,0)$ and process 4 (Rank 3) has coordinates $(0,3,0)$. 
 Within each sub-domain managed by a single MPI process, the wavy, dark, solid lines indicate OpenMP threads.
 
-### Mapping to Hardware
+### Mapping to Hardware (To be revised)
 
 Each sub-domain has a different and independent micro-environment which
 is managed by a single MPI process. Multiple OpenMP threads can exist
@@ -123,7 +114,7 @@ converting SVG images to PNG, JPEG or creating a movie from SVG files.
 
 > **📝 IMPORTANT**
 
-> We have tested the parallelized examples extensively using GCC 8.1.0 compiler and OpenMPI 3.1.1.
+> We have tested the parallelized examples extensively using GCC 13.2.0 compiler and OpenMPI 4.1.5 and Marenostrum 5 supercomputer.
 
 # MPI processes, Voxels and Divisibility
 
@@ -132,28 +123,19 @@ The 3-D simulation domain in PhysiCell-X is divided into Voxels
 cuboid as well). Thus, for example if the domain length in the X, Y and
 Z direction is \[-500,+500\], \[-500,+500\] and \[-500,+500\],
 respectively and the Voxel (cubic) dimension is 20, then we have
-$\frac{500 - (-500)}{25} = \frac{1000}{20}=50$ voxels *each* in the X, Y
+$\frac{500 - (-500)}{20} = \frac{1000}{20}=50$ voxels *each* in the X, Y
 and Z-directions. As described in the previous section, PhysiCell-X
-implements 1-D domain partitioning in the X-direction and due to a
-limitation in our implementation (will be removed in future versions),
-the total number of Voxels in the X-direction should be perfectly
-divisible by the total number of MPI processes. Thus, in the case above,
-we cannot have 3 MPI processes as 3 does not perfectly divide 50.
-However, we can have 2, 10, or even 25 MPI processes as these divide 50
-voxels perfectly. It can be noted that this limitation exists *only* in
-the X-direction and *not* in the Y or Z directions. There is no
-restriction on the number of OpenMP threads within a single MPI process.
+implements 1-D domain partitioning in the X-direction. Because of this, tissues that are not homogeneously distributed across the domain can create workload imbalances for the simulation engine, for example when simulating a spheroid. 
+
+There is no restriction on the number of OpenMP threads within a single MPI process.
 Further, there are two types of meshes in PhysiCell (or PhysiCell-X)
 i.e. a *diffusion mesh* and a *mechanical mesh*. The size of the voxels
-for *each* of these meshes is defined separately. It is important that
-the perfect divisibility condition should hold for *both* the types of
-meshes. We will return to this concept when we show how to run examples
-and specify parameters in PhysiCell-X.
+for *each* of these meshes is defined separately.
 
 > **📝 IMPORTANT**
-> 1.  The total number of voxels in the X-direction must be perfectly divisible by the total number of MPI processes.
-> 2.  Condition 1 above applies to both Diffusion and Mechanical voxels.
-> 3.  Size of Diffusion voxel must be $\leq$ size of Mechanical voxel.
+> 1.  Load unbalances between MPI processes can be caused by the topology of the tissue.  
+> 2.  Size of Diffusion voxel must be $\leq$ size of Mechanical voxel.
+> 3.  All MPI processes must contain at least 1 cell. 
 
 # Code-base organization 
 
@@ -161,7 +143,7 @@ Inside the parent directory of PhysiCell-X, there are multiple
 directories. Some directories which users would frequently need to deal
 with are:
 
--   `config:` This directory is used for providing the inputs to the application. We use a file named `PhysiCell_settings.xml` to provide *most* of the input parameters. We say *most* because there are some parameters that *can* be provided in the file that contains the `main()` function of C++ (whatever that file is named).
+-   `config:` This directory is used for providing the inputs to the application. We use a file named `PhysiCell_settings.xml` to provide *most* of the input parameters. We say *most* because certain behaviours can be hardwired within the project.
 
 -   `custom_modules:` This directory is where the custom code created by the user is put that is specific to an example that the user is working with. *Typically*, the file is named `PhysiCell_custom.cpp` and `PhysiCell_custom.h`.
 
@@ -169,7 +151,7 @@ with are:
 
 There are multiple other directories which *typically* a user will not need to interact with. Some directories are:
 
-1.  `BioFVM:` This includes a working copy of the BioFVM/BioFVM-X multi-substrate diffusion code [2; 4]. BioFVM distributions also include pugixml (an efficient cross-platform XML parser) [3].
+1.  `BioFVM:` This includes a working copy of the BioFVM/BioFVM-B multi-substrate diffusion code [2; ]. BioFVM distributions also include pugixml (an efficient cross-platform XML parser) [3].
 
 2.  `core:` contains the core library files for PhysiCell/PhysiCell-X. The `modules` directory also contains some core files. In the future the developers plan to remove the `modules` directory.
 

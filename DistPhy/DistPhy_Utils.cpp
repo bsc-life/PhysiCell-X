@@ -31,7 +31,7 @@ namespace DistPhy
             int local_y_voxels = global_y_voxels/dims[0];
             int local_z_voxels = global_z_voxels/dims[2]; 
             
-            for(int i=0; i<= generated_list.size()-1; i++)
+            for(size_t i=0; i < generated_list.size(); i++)
             {
                 /*-----------------------------------------------------------*/
                 /* temp_points[] are only used to calculate the process rank */

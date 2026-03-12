@@ -72,12 +72,12 @@
 
 #include "../BioFVM/BioFVM.h"
 #include "./PhysiCell_phenotype.h"
-#include "./PhysiCell_cell_container.h"
 #include "./PhysiCell_constants.h"
 
 #include "../modules/PhysiCell_settings.h"
 
 #include "./PhysiCell_standard_models.h"
+#include "./PhysiCell_rules.h"
 
 #include <unordered_map>
 
@@ -86,7 +86,12 @@ using namespace BioFVM;
 using namespace DistPhy::mpi; 
 
 namespace PhysiCell{
+
+//Performance 
+
 class Cell_Container;
+class Moore_Cell_Info;
+class Interacting_Cell_Info;
 
 class Cell_Parameters
 {
@@ -116,6 +121,9 @@ class Cell_Parameters
 	int necrosis_type; // deprecate 
 	
 	Cell_Parameters(); 
+
+	void pack(std::vector<char>& snd_buffer, int& len_buffer, int &position);
+	void unpack(std::vector<char>& rcv_buffer, int& len_buffer, int &position);
 }; 
 
 class Cell_Definition
@@ -124,6 +132,8 @@ class Cell_Definition
  public: 
 	int type; 
 	std::string name; 
+
+	bool is_movable;
  
 	Microenvironment* pMicroenvironment; 
 	
@@ -143,16 +153,26 @@ class Cell_State
 {
  private:
  public:
-	std::vector<Cell*> attached_cells; 
+	std::vector<Cell*> attached_cells;
+	std::vector<Cell*> spring_attachments;  
 
-	std::vector<Cell*> neighbors; // not currently tracked! 
+	std::vector<Cell*> neighbors; 
 	std::vector<double> orientation;
 	
 	double simple_pressure; 
 	
 	int number_of_attached_cells( void ); 
 	
-	Cell_State(); 
+	int number_of_nuclei; 
+
+	//double damage; 
+	double total_attack_time; 
+	bool contact_with_basement_membrane; // not implemented yet 
+
+	Cell_State();
+	
+	void pack(vector<char>& snd_buffer, int& len_buffer, int& position);
+	void unpack(vector<char>& rcv_buffer, int& len_buffer, int& position);
 };
 
 class Cell : public Basic_Agent 
@@ -199,6 +219,12 @@ class Cell : public Basic_Agent
 	
 	bool crossed_to_left_subdomain; 
 	bool crossed_to_right_subdomain;
+
+	void print_parameters(std::ofstream& outFile);
+
+	void unpack(std::vector<char>& rcv_buffer, int& len_buffer, int& position);
+	void pack(std::vector<char>& rcv_buffer, int& len_buffer, int& position);
+	void initialize_random(); //testing purposes only
 	
 	void flag_for_division( void ); // done 
 	void flag_for_removal( void ); // done 
@@ -243,7 +269,8 @@ class Cell : public Basic_Agent
 /*=======================================================================*/
 /* Parallel prototype of assign_position */
 /*=======================================================================*/
-	bool assign_position(double x, double y, double z, mpi_Environment &world, mpi_Cartesian &cart_topo);	
+	bool assign_position(double x, double y, double z, mpi_Environment &world, mpi_Cartesian &cart_topo);
+	bool assign_position(std::vector<double> new_position, mpi_Environment &world, mpi_Cartesian &cart_topo);	
 	
 	void set_total_volume(double);
 	
@@ -287,11 +314,27 @@ class Cell : public Basic_Agent
 	void copy_data(Cell *);
 	
 	void ingest_cell( Cell* pCell_to_eat ); // for use in predation, e.g., immune cells 
+	void attack_cell( Cell* pCell_to_attack , double dt ); 
+	void fuse_cell( Cell* pCell_to_fuse); // done 
+
+	//MPI versions
+	void ingest_cell( Interacting_Cell_Info * pCell_to_eat ); // for use in predation, e.g., immune cells 
+	void attack_cell( Interacting_Cell_Info * pCell_to_attack , double dt ); //done
+	void fuse_cell( Interacting_Cell_Info * pCell_to_fuse, mpi_Environment &world, mpi_Cartesian &cart_topo ); // done 
+
+	void was_fused();//done
+	void was_attacked(double damage_suffered, double time_attacked); //done
+	void was_ingested(); //done
 
 	void attach_cell( Cell* pAddMe ); // done 
 	void detach_cell( Cell* pRemoveMe ); // done 
 	void remove_all_attached_cells( void ); // done 
 
+	void remove_self_from_all_neighbors( void );
+
+	void attach_cell_as_spring( Cell* pAddMe ); 
+	void detach_cell_as_spring( Cell* pRemoveMe ); 
+	void remove_all_spring_attachments( void ); 
 	// I want to eventually deprecate this, by ensuring that 
 	// critical BioFVM and PhysiCell data elements are synced when they are needed 
 	
@@ -311,8 +354,10 @@ class Cell : public Basic_Agent
 	/*=============================================================*/
 	void print_cell(mpi_Environment &world);
 };
-Cell* create_cell( void );  
+
+Cell* create_cell( Cell* (*custom_instantiate)() = NULL);  
 Cell* create_cell( Cell_Definition& cd ); 
+Cell* create_cell( Cell_Definition& cd ,  int p_ID);  
 
 
 /*=======================================================================*/
@@ -320,7 +365,11 @@ Cell* create_cell( Cell_Definition& cd );
 /* Analogous serial version does not exist for this parallel prototype 	 */
 /*=======================================================================*/
 
-Cell* create_cell(int cell_id); 
+Cell* create_cell( int p_ID );
+Cell* create_cell( Cell* (*custom_instantiate)(),  int p_ID );
+
+
+
 
 /*===============================================================================================================*/
 /* Parallel prototype of creat_cell(Cell_Definition &cd) ---> Cell *create_cell(Cell_Definition &cd, int my_ID); */
@@ -355,24 +404,33 @@ extern std::unordered_map<std::string,Cell_Definition*> cell_definitions_by_name
 extern std::unordered_map<int,Cell_Definition*> cell_definitions_by_type; 
 extern std::vector<Cell_Definition*> cell_definitions_by_index; // works
 
-void display_cell_definitions( std::ostream& os ); // done
+extern std::unordered_map<std::string,int> cell_definition_indices_by_name; 
+extern std::unordered_map<int,int> cell_definition_indices_by_type;
+
+void display_cell_definitions( std::ostream& os, mpi_Environment& world, mpi_Cartesian& cart_topo); // done
 void build_cell_definitions_maps( void ); // done
+void prebuild_cell_definition_index_maps( void ); // done 
 
 Cell_Definition* find_cell_definition( std::string search_string ); // done 
 Cell_Definition* find_cell_definition( int search_type );
+
+int find_cell_definition_index( std::string search_string );
+int find_cell_definition_index( int search_type );
 
 Cell_Definition& get_cell_definition( std::string search_string ); // done 
 Cell_Definition& get_cell_definition( int search_type );
 
 Cell_Definition* initialize_cell_definition_from_pugixml( pugi::xml_node cd_node ); 
-void initialize_cell_definitions_from_pugixml( pugi::xml_node root ); 
-void initialize_cell_definitions_from_pugixml( void );
+void initialize_cell_definitions_from_pugixml( pugi::xml_node root, mpi_Environment world, mpi_Cartesian cart_topo ); 
+void initialize_cell_definitions_from_pugixml( mpi_Environment world, mpi_Cartesian cart_topo );
 
 extern std::vector<double> (*cell_division_orientation)(void);
 
 void attach_cells( Cell* pCell_1, Cell* pCell_2 );
 void detach_cells( Cell* pCell_1 , Cell* pCell_2 );
 
+void attach_cells_as_spring( Cell* pCell_1, Cell* pCell_2 );
+void detach_cells_as_spring( Cell* pCell_1 , Cell* pCell_2 );
 
 std::vector<Cell*> find_nearby_cells( Cell* pCell ); // new in 1.8.0
 std::vector<Cell*> find_nearby_interacting_cells( Cell* pCell ); // new in 1.8.0

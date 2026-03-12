@@ -137,7 +137,7 @@ class General_Mesh
 	// each voxel[k] has a list of connected voxels -- helpful for some numerical methods 
 	std::vector< std::vector<int> > connected_voxel_indices;
     
-  /*-------------------------------------------------------------------------------*/
+  /*-----------------------------------------------------------------------------*/
   /* Need to specify global indices connected_voxel_global_indices (Gaurav Saxena) */
   /*-------------------------------------------------------------------------------*/
     std::vector< std::vector<int> > connected_voxel_global_indices; //(added by Gaurav Saxena)
@@ -256,7 +256,8 @@ class Cartesian_Mesh : public General_Mesh
 	int x_size;
 	int y_size;
 	int z_size;
-	int n_substrates; 
+
+	int n_substrates;
 
 	double local_x_start;
 	double local_y_start;

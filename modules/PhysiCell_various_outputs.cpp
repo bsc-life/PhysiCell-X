@@ -33,7 +33,7 @@
 #                                                                             #
 # BSD 3-Clause License (see https://opensource.org/licenses/BSD-3-Clause)     #
 #                                                                             #
-# Copyright (c) 2015-2018, Paul Macklin and the PhysiCell Project             #
+# Copyright (c) 2015-2025, Paul Macklin and the PhysiCell Project             #
 # All rights reserved.                                                        #
 #                                                                             #
 # Redistribution and use in source and binary forms, with or without          #
@@ -70,13 +70,14 @@
 
 #include "./PhysiCell_settings.h"
 
+#include <iostream>
+#include <fstream>
+#include <unistd.h>
+
 namespace PhysiCell{
 
 int writePov(std::vector<Cell*> all_cells, double timepoint, double scale)
 {
-	/*----------------------------------------------------------------*/
-	/* Gaurav Saxena added these 2 static variables as present in v1.7*/
-	/*----------------------------------------------------------------*/
 	static int TUMOR_TYPE=0; 
 	static int VESSEL_TYPE=1; 
 	
@@ -122,6 +123,62 @@ int writePov(std::vector<Cell*> all_cells, double timepoint, double scale)
 	return 0;
 }
 
+int writePov(std::vector<Cell*> all_cells, double timepoint, double scale,mpi_Environment &world, mpi_Cartesian &cart_topo )
+{
+	static int TUMOR_TYPE=0; 
+	static int VESSEL_TYPE=1; 
+	
+	std::string filename; 
+	filename.resize( 1024 ); 
+//	sprintf( (char*) filename.c_str() , "output//cells_%i.pov" , (int)round(timepoint) ); 
+	sprintf( (char*) filename.c_str() , "%s/cells_%i.pov" , PhysiCell_settings.folder.c_str() ,  (int)round(timepoint) ); 
+	std::ofstream povFile (filename.c_str(), std::ofstream::out);
+	if (world.rank == 0) {
+		povFile<<"#include \"colors.inc\" \n";
+		povFile<<"#include \"header.inc\" \n";
+	}
+	
+	for (int ser_ctr = 0; ser_ctr < world.size; ser_ctr++) {
+		if (world.rank == ser_ctr) {
+			for(int i=0;i<all_cells.size();i++)
+			{
+				std::string _nameCore;
+
+				if( all_cells[i]->phenotype.cycle.pCycle_Model )
+				{
+					int code= all_cells[i]->phenotype.cycle.current_phase().code;
+					if (code ==PhysiCell_constants::Ki67_positive_premitotic || code==PhysiCell_constants::Ki67_positive_postmitotic || code==PhysiCell_constants::Ki67_positive || code==PhysiCell_constants::Ki67_negative || code==PhysiCell_constants::live)
+						_nameCore="LIVE";
+					else if (code==PhysiCell_constants::apoptotic)
+						_nameCore="APOP";
+					else if (code==PhysiCell_constants::necrotic_swelling || code==PhysiCell_constants::necrotic_lysed || code==PhysiCell_constants::necrotic)
+						_nameCore="NEC";
+					else if (code==PhysiCell_constants::debris)
+						_nameCore="DEBR";
+					else
+						_nameCore="MISC";
+				}
+				else if(all_cells[i]->type==TUMOR_TYPE)
+					_nameCore="LIVE";
+				else if(all_cells[i]->type==VESSEL_TYPE)
+					_nameCore="ENDO";
+				else
+					_nameCore="MISC";
+				std::string center= "<" + std::to_string(all_cells[i]->position[0]/scale) + "," + std::to_string(all_cells[i]->position[1]/scale) +","+ std::to_string(all_cells[i]->position[2]/scale) +">";
+				std::string core = "sphere {\n\t" + center + "\n\t " + std::to_string( all_cells[i]->phenotype.geometry.radius/scale) + "\n\t FinishMacro ( " + center +","+ _nameCore+ "Finish,"+ _nameCore + "*1)\n}\n";
+				povFile<< core;		
+			}
+		}
+		MPI_Barrier(cart_topo.mpi_cart_comm);
+	}
+	
+	if (world.rank == world.size - 1) {
+		povFile<<"#include \"footer.inc\" \n";
+		povFile.close();
+	}	
+	return 0;
+}
+
 int writeCellReport(std::vector<Cell*> all_cells, double timepoint)
 {
 	std::string filename; 
@@ -141,6 +198,38 @@ int writeCellReport(std::vector<Cell*> all_cells, double timepoint)
 		all_cells[i]->phenotype.volume.cytoplasmic_solid<<"\t"<<all_cells[i]->phenotype.volume.calcified_fraction<<"\t"<<phenotype_code<< 
 		// "\t"<< all_cells[i]->phenotype.cycle.phases[all_cells[i]->phenotype.current_phase_index].elapsed_time <<std::endl;		
 		"\t"<< all_cells[i]->phenotype.cycle.data.elapsed_time_in_phase <<std::endl;		
+	}
+	povFile.close();
+	return 0;
+}
+
+int writeCellReport(std::vector<Cell*> all_cells, double timepoint, mpi_Environment &world, mpi_Cartesian &cart_topo )
+{
+	std::string filename; 
+	filename.resize( 1024 ); 
+//	sprintf( (char*) filename.c_str() , "output//cells_%i.txt" , (int)round(timepoint) ); 
+	sprintf( (char*) filename.c_str() , "%s/cells_%i.txt" , PhysiCell_settings.folder.c_str() , (int)round(timepoint) ); 
+	std::ofstream povFile (filename.c_str(), std::ofstream::out);
+	if (IOProcessor(world)) {
+		povFile<<"\tID\tx\ty\tz\tradius\tvolume_total\tvolume_nuclear_fluid\tvolume_nuclear_solid\tvolume_cytoplasmic_fluid\tvolume_cytoplasmic_solid\tvolume_calcified_fraction\tphenotype\telapsed_time\n";
+	}
+	int phenotype_code;
+	
+	for (int ser_ctr = 0; ser_ctr < world.size; ser_ctr++) {
+		if (world.rank == ser_ctr) {
+			for(int i=0;i<all_cells.size();i++)
+			{
+				phenotype_code = all_cells[i]->phenotype.cycle.current_phase().code;
+				// phenotype_code = phases.size()>0?all_cells[i]->phenotype.cycle.phases[all_cells[i]->phenotype.current_phase_index].code:-1;
+				povFile<<i<<"\t"<<all_cells[i]->ID<<"\t"<<all_cells[i]->position[0]<<"\t" << all_cells[i]->position[1] <<"\t"<< all_cells[i]->position[2]<<"\t";
+				povFile<<all_cells[i]->phenotype.geometry.radius<<"\t"<<all_cells[i]->phenotype.volume.total<<"\t"<<all_cells[i]->phenotype.volume.nuclear_fluid
+				<<"\t"<<all_cells[i]->phenotype.volume.nuclear_solid<<"\t"<<all_cells[i]->phenotype.volume.cytoplasmic_fluid<<"\t"<<
+				all_cells[i]->phenotype.volume.cytoplasmic_solid<<"\t"<<all_cells[i]->phenotype.volume.calcified_fraction<<"\t"<<phenotype_code<< 
+				// "\t"<< all_cells[i]->phenotype.cycle.phases[all_cells[i]->phenotype.current_phase_index].elapsed_time <<std::endl;		
+				"\t"<< all_cells[i]->phenotype.cycle.data.elapsed_time_in_phase <<std::endl;		
+			}
+		}
+		MPI_Barrier(cart_topo.mpi_cart_comm);
 	}
 	povFile.close();
 	return 0;
@@ -173,6 +262,15 @@ void display_simulation_status( std::ostream& os )
 /* Parallel version of the function above */
 /*----------------------------------------*/
 
+double getProcessMemoryGB() {
+    std::ifstream statm("/proc/self/statm");
+    long rssPages = 0;
+    statm >> rssPages >> rssPages; // second value is RSS (resident set size)
+    long pageSize = sysconf(_SC_PAGESIZE); // in bytes
+    double memUsedGB = (rssPages * pageSize) / (1024.0 * 1024.0 * 1024.0);
+    return memUsedGB;
+}
+
 void display_simulation_status( std::ostream& os, mpi_Environment &world, mpi_Cartesian &cart_topo )
 {
 	if(IOProcessor(world))
@@ -187,21 +285,48 @@ void display_simulation_status( std::ostream& os, mpi_Environment &world, mpi_Ca
 	int global_cells; 
 	MPI_Reduce(&local_cells, &global_cells, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm); 
 	
+	double global_total, global_time_diff, global_time_mech, global_time_pheno, global_time_intracell;
+	double local_ram = getProcessMemoryGB();
+	double global_ram = 0.0;
+	
+	MPI_Reduce(&time_diff, &global_time_diff, 1, MPI_DOUBLE, MPI_MAX, 0, cart_topo.mpi_cart_comm);
+	MPI_Reduce(&time_diff, &global_time_diff, 1, MPI_DOUBLE, MPI_MAX, 0, cart_topo.mpi_cart_comm);
+	MPI_Reduce(&time_mechs, &global_time_mech, 1, MPI_DOUBLE, MPI_MAX, 0, cart_topo.mpi_cart_comm);
+	MPI_Reduce(&time_pheno, &global_time_pheno, 1, MPI_DOUBLE, MPI_MAX, 0, cart_topo.mpi_cart_comm);
+	MPI_Reduce(&time_intracell, &global_time_intracell, 1, MPI_DOUBLE, MPI_MAX, 0, cart_topo.mpi_cart_comm);
+	MPI_Reduce(&local_ram, &global_ram, 1, MPI_DOUBLE, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+
 	if(IOProcessor(world))
 	{	
+
 		os << "total agents: " << global_cells << std::endl; 
 	
 		os << "interval wall time: ";
 		BioFVM::TOC();
 		BioFVM::display_stopwatch_value( os , BioFVM::stopwatch_value() ); 
-		os << std::endl; 
+		os <<  " | "  << global_ram << "GB "  << std::endl; 
 		BioFVM::TIC(); 
-	
+
+		double global_total= global_time_diff + global_time_mech + global_time_pheno + global_time_intracell;
+		os << "time scales: ";
+		os << " diff " << (global_time_diff/ global_total) * 100 << "% | ";
+		os << " mechs " << (global_time_mech/ global_total) * 100 << "% | ";
+		os << " pheno " << (global_time_pheno/ global_total) * 100 << "% | ";
+		os << " intracell " << (global_time_intracell/ global_total) * 100 << "%  " << std::endl;
+		
+		
+
+		
 		os << "total wall time: "; 
 		BioFVM::RUNTIME_TOC();
 		BioFVM::display_stopwatch_value( os , BioFVM::runtime_stopwatch_value() ); 
 		os << std::endl << std::endl;
 	} 
+
+	time_diff = 0.0;
+	time_mechs = 0.0;
+	time_pheno = 0.0;
+	time_intracell = 0.0;
 	
 	return;
 }
@@ -238,6 +363,37 @@ void log_output(double t, int output_index, Microenvironment microenvironment, s
 	filename.resize( strlen( filename.c_str() ) ); 
 	// std::cout << "\tWriting to file " << filename << " ... " << std::endl; 
 	// microenvironment.write_to_matlab( filename ); 
+	
+	return;
+}
+
+void log_output(double t, int output_index, Microenvironment microenvironment, std::ofstream& report_file, mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	double scale=1000;
+
+	int global_num_new_cells= 0;
+	int global_num_deaths=0;
+	int global_cells = 0;
+	int local_cells  = all_cells->size();
+
+	MPI_Reduce(&((Cell_Container *)microenvironment.agent_container)->num_divisions_in_current_step, &global_num_new_cells, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+	MPI_Reduce(&((Cell_Container *)microenvironment.agent_container)->num_deaths_in_current_step, &global_num_deaths, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+	MPI_Reduce(&local_cells, &global_cells, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+	std::cout << "time: "<<t<<std::endl;
+	
+	std::cout<<"total number of agents (newly born, deaths): " << global_cells <<"("<<global_num_new_cells<<", "<<global_num_deaths<<")" << std::endl; 
+	report_file<<t<<"\t"<<(*all_cells).size()<<"\t"<<global_num_new_cells<<"\t"<<global_num_deaths<<"\t"<<BioFVM::stopwatch_value()<< std::endl; 
+
+	
+	((Cell_Container *)microenvironment.agent_container)->num_divisions_in_current_step=0;
+	((Cell_Container *)microenvironment.agent_container)->num_deaths_in_current_step=0;
+	writePov(*all_cells, t, scale, world, cart_topo);
+	writeCellReport(*all_cells, t, world, cart_topo);
+	std::string filename; 
+	filename.resize( 1024 , '\0' ); 
+	sprintf( (char*) filename.c_str() , "output%08d.mat" , output_index ); 
+	filename.resize( strlen( filename.c_str() ) ); 
+
 	
 	return;
 }

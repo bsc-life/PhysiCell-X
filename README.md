@@ -1,8 +1,8 @@
 # PhysiCell-X: A Distributed-Shared Parallel Version of PhysiCell
 
-**Version:** 0.1
+**Version:** 1.14
 
-**Release date:** 15 March 2022
+**Release date:** 15 March 2026
 
 **Reference:**
 
@@ -11,6 +11,10 @@
 	(b) Saxena, Gaurav, Miguel Ponce-de-Leon, Arnau Montagud, David Vicente Dorca, and Alfonso Valencia. 
 	"BioFVM-X: An MPI+ OpenMP 3-D Simulator for Biological Systems."
 	In International Conference on Computational Methods in Systems Biology, pp. 266-279. Springer, Cham, 2021.
+
+	(c) Jose-Luis Estragues-Munoz, Carlos Alvarez, Arnau Montagud, Daniel Jimenez-Gonzalez, and Alfonso Valencia. 
+	"A Novel Scalable High Performance diffusion solver for multiscale cell simulations."
+	In preprint
 
 **User Guide:** PhysiCell-X_UserGuide.pdf in the documentation folder (use in conjunction with the PhysiCell documentation). 
 
