@@ -2484,7 +2484,11 @@ void load_initial_conditions_from_csv(std::string filename)
 void initialize_microenvironment( mpi_Environment &world, mpi_Cartesian &cart_topo )
 {
 	int coords[3];     //To store mpi_coords[] array for convenience - later needed for setting Dirichlet conditions
+<<<<<<< HEAD
+  	int dims[3];       //To store mpi_dims[] array for convenience - later needed for Dirichlet conditions
+=======
     int dims[3];       //To store mpi_dims[] array for convenience - later needed for Dirichlet conditions
+>>>>>>> dev_biofvmb
 	
 	// create and name a microenvironment; 
 	microenvironment.name = default_microenvironment_options.name;
@@ -2518,9 +2522,9 @@ void initialize_microenvironment( mpi_Environment &world, mpi_Cartesian &cart_to
 		default_microenvironment_options.Z_range[1] = default_microenvironment_options.dz/2.0;
 	}
 	microenvironment.resize_space( default_microenvironment_options.X_range[0], default_microenvironment_options.X_range[1] , 
-		default_microenvironment_options.Y_range[0], default_microenvironment_options.Y_range[1], 
-		default_microenvironment_options.Z_range[0], default_microenvironment_options.Z_range[1], 
-		default_microenvironment_options.dx,default_microenvironment_options.dy,default_microenvironment_options.dz, world, cart_topo );
+	default_microenvironment_options.Y_range[0], default_microenvironment_options.Y_range[1], 
+	default_microenvironment_options.Z_range[0], default_microenvironment_options.Z_range[1], 
+	default_microenvironment_options.dx,default_microenvironment_options.dy,default_microenvironment_options.dz, world, cart_topo );
 		
 	// set units
 	microenvironment.spatial_units = default_microenvironment_options.spatial_units;

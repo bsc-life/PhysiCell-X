@@ -155,7 +155,7 @@ int main( int argc, char* argv[] )
 	/* PhysiCell setup */ 
  	
 	// set mechanics voxel size, mechanical voxel size >= diffusion voxel size
-	double mechanics_voxel_size = 30;
+	double mechanics_voxel_size = 20;
 	
 /*---------------------------------------------------------*/
 /* Calling the parallel version of Cell Container creation */
@@ -196,6 +196,14 @@ int main( int argc, char* argv[] )
 	// Set the performance timers 
 	BioFVM::RUNTIME_TIC();
 	BioFVM::TIC();
+	std::ofstream report_file;
+	if( world.rank == 0 )
+	{
+        sprintf(filename , "%s/simulation_report.tsv" , PhysiCell_settings.folder.c_str() );
+        report_file.open(filename);     // create the data log file 
+        report_file << "timepoint";
+        report_file << "\tbasic_agents\tcell_agents\talive\tdead\tapoptotic\tnecrotic" << std::endl;
+	}
 	
 	// Main loop of the program
 	try 
@@ -207,7 +215,20 @@ int main( int argc, char* argv[] )
 			{
 				// Use the parallel version of the function now 
 				display_simulation_status( std::cout, world, cart_topo );
-				 	
+				double timepoint        = PhysiCell_globals.current_time;
+				int basic_agents        = total_basic_agent_count(world, cart_topo);
+				int cell_agents         = total_cell_agent_count(world, cart_topo);
+                int alive               = total_live_cell_count(world, cart_topo);
+                int dead                = total_dead_cell_count(world, cart_topo);
+                int apoptotic           = total_apoptosis_cell_count(world, cart_topo);
+                int necrotic            = total_necrosis_cell_count(world, cart_topo);
+
+				if( world.rank == 0) 
+				{
+                    report_file << PhysiCell_globals.current_time;
+                    report_file << "\t"<< basic_agents  << "\t" << cell_agents << "\t" << alive;
+					report_file << "\t" << dead << "\t" << apoptotic << "\t" << necrotic <<std::endl;
+				}
 				if( PhysiCell_settings.enable_full_saves == true )
 				{	
 					sprintf( filename , "%s/output%08u" , PhysiCell_settings.folder.c_str(),  PhysiCell_globals.full_output_index ); 

@@ -109,11 +109,11 @@ namespace DistPhy
            }
            else
            {
-              if(mc.my_no_of_cell_IDs > 0)
-              {
-                  MPI_Irecv(&mc.my_cell_IDs[0], mc.my_no_of_cell_IDs, MPI_INT, 0, 1111, cart_topo.mpi_cart_comm, &rcv_req);
-                  MPI_Wait(&rcv_req, MPI_STATUS_IGNORE);
-              }
+                if(mc.my_no_of_cell_IDs > 0)
+                {
+                    MPI_Irecv(&mc.my_cell_IDs[0], mc.my_no_of_cell_IDs, MPI_INT, 0, 1111, cart_topo.mpi_cart_comm, &rcv_req);
+                    MPI_Wait(&rcv_req, MPI_STATUS_IGNORE);
+                }
            }
            
            /*---------------------------------------------------------------------------------------------------------------------*/
@@ -146,6 +146,27 @@ namespace DistPhy
                   MPI_Wait(&rcv_req, MPI_STATUS_IGNORE);
               }
            }
+		// the above was commented out in development branch, keeping it in case its needed
+           /*
+            if(world.rank == 0) {
+                for(int i=1; i<=world.size-1; i++) {
+                    if(cp.no_of_IDs_all_procs[i] > 0) {
+                        MPI_Isend(&cp.cell_types_all_procs[i][0], cp.no_of_IDs_all_procs[i], MPI_INT, i, 3333, cart_topo.mpi_cart_comm, &snd_req[i]); 
+                        MPI_Wait(&snd_req[i], MPI_STATUS_IGNORE);
+                    }
+                }
+
+               
+               for(int i=0; i<=cp.no_of_IDs_all_procs[0]-1; i++)
+                   mc.my_cell_types[i] = cp.cell_types_all_procs[0][i]; 
+           }
+           else {
+                if(mc.my_no_of_cell_IDs > 0) {
+                    MPI_Irecv(&mc.my_cell_types[0], mc.my_no_of_cell_IDs, MPI_INT, 0, 3333, cart_topo.mpi_cart_comm, &rcv_req);
+                    MPI_Wait(&rcv_req, MPI_STATUS_IGNORE);
+                }
+           }
+           */
            
            
         }

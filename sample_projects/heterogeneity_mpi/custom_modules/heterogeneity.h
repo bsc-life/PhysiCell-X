@@ -72,8 +72,8 @@ using namespace BioFVM;
 using namespace PhysiCell;
 
 // custom cell phenotype function to scale immunostimulatory factor with hypoxia 
-void tumor_cell_phenotype_with_oncoprotein( Cell* pCell, Phenotype& phenotype, double dt ); 
-
+// void tumor_cell_phenotype_with_oncoprotein( Cell* pCell, Phenotype& phenotype, double dt ); 
+void tumor_cell_phenotype_with_oncoprotein( Cell* pCell, Phenotype& phenotype, double dt,mpi_Environment &world, mpi_Cartesian &cart_topo);
 // set the tumor cell properties, then call the function 
 // to set up the tumor cells 
 void create_cell_types( mpi_Environment &world, mpi_Cartesian &cart_topo );
@@ -90,8 +90,22 @@ void setup_microenvironment(mpi_Environment &world, mpi_Cartesian &cart_topo);
 
 std::vector<std::string> heterogeneity_coloring_function( Cell* );
 
+<<<<<<< HEAD
 void phenotype_function( Cell* pCell, Phenotype& phenotype, double dt ); 
 
 void custom_function( Cell* pCell, Phenotype& phenotype , double dt );
 
 void contact_function( Cell* pMe, Phenotype& phenoMe , Cell* pOther, Phenotype& phenoOther , double dt );  
+=======
+// Added by TD
+int total_basic_agent_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
+int total_cell_agent_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
+int total_live_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
+int total_dead_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
+int total_necrosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
+int total_apoptosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
+int total_dead_but_ghost(mpi_Environment &world, mpi_Cartesian &cart_topo);
+int total_apoptosis_not_codealive(mpi_Environment &world, mpi_Cartesian &cart_topo);
+int total_apoptosis_and_codealive(mpi_Environment &world, mpi_Cartesian &cart_topo);
+int total_necrotic_ghost(mpi_Environment &world, mpi_Cartesian &cart_topo);
+>>>>>>> master

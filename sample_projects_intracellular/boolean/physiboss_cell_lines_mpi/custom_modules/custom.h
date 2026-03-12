@@ -103,4 +103,11 @@ void pre_update_intracellular( Cell* pCell, Phenotype& phenotype, double dt );
 void post_update_intracellular( Cell* pCell, Phenotype& phenotype, double dt );
 void color_node(Cell* pCell);
 
+
+int total_basic_agent_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
+int total_cell_agent_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
+int total_live_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
+int total_dead_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
+int total_necrosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
+int total_apoptosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
 #endif

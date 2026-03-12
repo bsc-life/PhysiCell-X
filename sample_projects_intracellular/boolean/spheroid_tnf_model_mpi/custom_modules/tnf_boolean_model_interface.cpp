@@ -26,60 +26,65 @@
 #include <algorithm>
 
 using namespace PhysiCell; 
+using namespace DistPhy::mpi;
 
 Submodel_Information tnf_bm_interface_info;
 
 void tnf_boolean_model_interface_setup()
 {
     tnf_bm_interface_info.name = "TNF Boolean model interface"; 
-	tnf_bm_interface_info.version = "0.2.0";
+    tnf_bm_interface_info.version = "0.2.0";
 	
-    tnf_bm_interface_info.main_function= tnf_bm_interface_main; 
+    tnf_bm_interface_info.main_function= update_phenotype_with_signaling; 
 
-	// These are just auxiliary variables to keep track of some BN nodes
-	tnf_bm_interface_info.cell_variables.push_back( "tnf_node" );
+    // These are just auxiliary variables to keep track of some BN nodes
+    tnf_bm_interface_info.cell_variables.push_back( "tnf_node" );
     tnf_bm_interface_info.cell_variables.push_back( "fadd_node" );
     tnf_bm_interface_info.cell_variables.push_back( "nfkb_node" );
 
-	tnf_bm_interface_info.register_model();
+    tnf_bm_interface_info.register_model();
 }
-
 
 void update_boolean_model_inputs( Cell* pCell, Phenotype& phenotype, double dt )
 {
-    if( pCell->phenotype.death.dead == true )
-	{ return; } 
-
-    static int nR_EB = pCell->custom_data.find_variable_index( "bound_external_TNFR" ); 
+    static int nR_EB          = pCell->custom_data.find_variable_index( "bound_external_TNFR" ); 
     static int nTNF_threshold = pCell->custom_data.find_variable_index( "TNFR_activation_threshold" );
 
     // This if the step transfer function used to update the state of boolean model inputs
     // using the state of the receptor dynamics model. The continuos value thresholded is
     // the total TNF-recptor complex (doi:10.1016/j.cellsig.2010.08.016)
-    if ( pCell->custom_data[nR_EB] > pCell->custom_data[nTNF_threshold] )
-	{ pCell->phenotype.intracellular->set_boolean_variable_value("TNF", 1); }
-	else
-    { pCell->phenotype.intracellular->set_boolean_variable_value("TNF", 0); }
+
+    if ( pCell->custom_data[nR_EB] >= pCell->custom_data[nTNF_threshold] )
+        pCell->phenotype.intracellular->set_boolean_variable_value("TNF", 1);
+    else
+        pCell->phenotype.intracellular->set_boolean_variable_value("TNF", 0);
 
     return;
-
 }
-
 
 void update_cell_from_boolean_model(Cell* pCell, Phenotype& phenotype, double dt)
 {	
 
+<<<<<<< HEAD
     
+=======
+    static int nTNF_external = microenvironment.find_density_index( "tnf" );      
+    static int nTNF_export_rate = pCell->custom_data.find_variable_index( "TNF_net_production_rate" );
+    static int death_decay_idx = pCell->custom_data.find_variable_index( "death_commitment_decay" );
+>>>>>>> master
     static int necrosis_index = phenotype.death.find_death_model_index( PhysiCell_constants::necrosis_death_model ); 
     static int apoptosis_index = phenotype.death.find_death_model_index( PhysiCell_constants::apoptosis_death_model );
     static int cycle_start_index = live.find_phase_index( PhysiCell_constants::live ); 
     static int cycle_end_index = live.find_phase_index( PhysiCell_constants::live );  
 
+<<<<<<< HEAD
     static int nTNF_external = microenvironment.find_density_index( "tnf" );      
     static int nTNF_export_rate = pCell->custom_data.find_variable_index( "TNF_net_production_rate" );
     static int death_decay_idx = pCell->custom_data.find_variable_index( "death_commitment_decay" );
 
 
+=======
+>>>>>>> master
     static float necrosis_rate = pCell->custom_data["necrosis_rate"];
     static float apoptosis_rate = pCell->custom_data["apoptosis_rate"];
     static float death_commitment_decay = pCell->custom_data["death_decay_idx"];
@@ -94,8 +99,14 @@ void update_cell_from_boolean_model(Cell* pCell, Phenotype& phenotype, double dt
     if ( apoptosis ) {
         // pCell->start_death(apoptosis_index);
         phenotype.death.rates[apoptosis_index] = apoptosis_rate;
+<<<<<<< HEAD
 	} else {
         phenotype.death.rates[apoptosis_index] -= apoptosis_rate * death_commitment_decay;
+=======
+		return;
+	} else {
+        phenotype.death.rates[apoptosis_index] -= phenotype.death.rates[apoptosis_index] * death_commitment_decay;
+>>>>>>> master
         if (phenotype.death.rates[apoptosis_index] < 0)
             phenotype.death.rates[apoptosis_index] = 0;
     }
@@ -103,9 +114,16 @@ void update_cell_from_boolean_model(Cell* pCell, Phenotype& phenotype, double dt
     if ( nonACD ) {
         // pCell->start_death(necrosis_index);
         phenotype.death.rates[necrosis_index] = necrosis_rate;
+<<<<<<< HEAD
 	}
     else {
         phenotype.death.rates[necrosis_index] -= necrosis_rate * death_commitment_decay;
+=======
+		return;
+	}
+    else {
+        phenotype.death.rates[necrosis_index] -= phenotype.death.rates[necrosis_index] * death_commitment_decay;
+>>>>>>> master
         if (phenotype.death.rates[necrosis_index] < 0)
             phenotype.death.rates[necrosis_index] = 0;
     } 
@@ -128,37 +146,25 @@ void update_cell_from_boolean_model(Cell* pCell, Phenotype& phenotype, double dt
     return;
 }
 
-
-void update_monitor_variables(Cell* pCell )
+// custom cell phenotype function to run PhysiBoSS when is needed
+void update_phenotype_with_signaling(Cell *pCell, Phenotype &phenotype, double dt)
 {
-	static int index_tnf_node = pCell->custom_data.find_variable_index("tnf_node");
-	static int index_fadd_node = pCell->custom_data.find_variable_index("fadd_node");
-	static int index_nfkb_node = pCell->custom_data.find_variable_index("nfkb_node");
-
-	pCell->custom_data[index_nfkb_node] = pCell->phenotype.intracellular->get_boolean_variable_value( "NFkB" ) ;
-	pCell->custom_data[index_tnf_node] =pCell->phenotype.intracellular->get_boolean_variable_value("TNF");
-	pCell->custom_data[index_fadd_node] = pCell->phenotype.intracellular->get_boolean_variable_value("FADD");
-
-    return;
-}
-
-
-void tnf_bm_interface_main(Cell* pCell, Phenotype& phenotype, double dt)
-{
-    if( phenotype.death.dead == true )
+	if( phenotype.death.dead == true )
 	{
 		pCell->functions.update_phenotype = NULL;
+        pCell->functions.update_phenotype_parallel = NULL;
 		return;
 	}
 
-    if ( pCell->phenotype.intracellular->need_update() )			
+    if ( pCell->phenotype.intracellular->need_update() )
     {
         // First we update the Boolean Model inputs
-        update_boolean_model_inputs(pCell, phenotype, dt );		
-    
-        // Run maboss to update the boolean state of the cell
+        update_boolean_model_inputs(pCell, phenotype, dt );
+        
+		// Run maboss to update the boolean state of the cell
         pCell->phenotype.intracellular->update();
         
+<<<<<<< HEAD
         MaBoSSIntracellular* physiboss = static_cast<MaBoSSIntracellular*> (pCell->phenotype.intracellular);
 
         //next_physiboss_run
@@ -169,14 +175,19 @@ void tnf_bm_interface_main(Cell* pCell, Phenotype& phenotype, double dt)
 
         // update the cell fate based on the boolean outputs
         update_cell_from_boolean_model(pCell, phenotype, dt);	
+=======
+		// update the cell fate based on the boolean outputs
+        update_cell_from_boolean_model(pCell, phenotype, dt);
+>>>>>>> master
 
         // Get track of some boolean node values for debugging
-        update_monitor_variables(pCell);																					
+        update_monitor_variables(pCell);
     }
 
     return;
 }
 
+<<<<<<< HEAD
 
 void update_behaviors(Cell* pCell, Phenotype& phenotype, double dt) 
 {
@@ -186,3 +197,24 @@ void update_behaviors(Cell* pCell, Phenotype& phenotype, double dt)
         // Get track of some boolean node values for debugging
         update_monitor_variables(pCell);
 }
+=======
+// Parallel version of the above function
+void update_phenotype_with_signaling(Cell *pCell, Phenotype &phenotype, double dt, mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+    update_phenotype_with_signaling(pCell, phenotype, dt);
+    return;
+}
+
+void update_monitor_variables(Cell* pCell )
+{
+	static int index_tnf_node  = pCell->custom_data.find_variable_index("tnf_node");
+	static int index_fadd_node = pCell->custom_data.find_variable_index("fadd_node");
+	static int index_nfkb_node = pCell->custom_data.find_variable_index("nfkb_node");
+
+	pCell->custom_data[index_tnf_node] = pCell->phenotype.intracellular->get_boolean_variable_value("TNF");
+	pCell->custom_data[index_fadd_node] = pCell->phenotype.intracellular->get_boolean_variable_value("FADD");
+    pCell->custom_data[index_nfkb_node] = pCell->phenotype.intracellular->get_boolean_variable_value( "NFkB" ) ;
+
+    return;
+}
+>>>>>>> master

@@ -65,23 +65,22 @@
 ###############################################################################
 */
 
-/*================================================================================
-+ If you use PhysiCell-X in your project, we would really appreciate if you can  +
-+																																							   +
-+ [1] Cite the PhysiCell-X repository by giving its URL												   +
-+																																							   +
-+ [2] Cite BioFVM-X: 																													   +
+/*===================================================================================*
++ If you use PhysiCell-X in your project, we would really appreciate if you can 	 +
++																					 +
++ [1] Cite the PhysiCell-X repository by giving its URL								 +
++																					 +
++ [2] Cite BioFVM-X: 																 +
 +		Saxena, Gaurav, Miguel Ponce-de-Leon, Arnau Montagud, David Vicente Dorca,   +
 +		and Alfonso Valencia. "BioFVM-X: An MPI+ OpenMP 3-D Simulator for Biological + 
 +		Systems." In International Conference on Computational Methods in Systems    +
-+		Biology, pp. 266-279. Springer, Cham, 2021. 																 +
-=================================================================================*/
++		Biology, pp. 266-279. Springer, Cham, 2021. 								 +
+*====================================================================================*/
 
 #include "../core/PhysiCell.h"
 #include "../modules/PhysiCell_standard_modules.h" 
 #include "./tnf_receptor_dynamics.h"
 #include "./tnf_boolean_model_interface.h"
-
 
 #include "../addons/PhysiBoSS/src/maboss_network.h"
 
@@ -95,72 +94,78 @@ struct init_record
 	float z;
 	float radius;
 	int phase;
-	double elapsed_time;
 };
 
+<<<<<<< HEAD
 // setup functions to help us along 
 void create_cell_types( mpi_Environment &world, mpi_Cartesian &cart_topo );
 void setup_tissue( void );
+=======
+// setup functions to help us along 
+void create_cell_types( void );
+>>>>>>> master
 
 /*======================================*/
 /* Parallel prototype of setup_tissue() */
 /*======================================*/
-
 void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &cart_topo); 
-
-// set up the BioFVM microenvironment 
-void setup_microenvironment( void ); 
+// set up the intial cells 
+void setup_tissue( void );
 
 /*================================================*/
 /* Parallel prototype of setup_microenvironment() */
 /*================================================*/
-
 void setup_microenvironment(mpi_Environment &world, mpi_Cartesian &cart_topo);
-
-// custom pathology coloring function 
-std::vector<std::string> my_coloring_function( Cell* );
-
-// custom cell phenotype function to update cell fate based on the BM and the 
-// tnf receptor model dynamics
-void tumor_cell_phenotype_with_signaling( Cell* pCell, Phenotype& phenotype, double dt );
-
-// function to keep updated some cell custom variables
-void update_monitor_variables( Cell* pCell );
+// set up the BioFVM microenvironment 
+void setup_microenvironment( void ); 
 
 // helper function to read init files
 std::vector<init_record> read_init_file(std::string filename, char delimiter, bool header);
 
+// helper function to calculate cell positions within a sphere
+std::vector<std::vector<double>> create_cell_sphere_positions(double cell_radius, double sphere_radius);
+
 // helper function that calculates phere volume
 inline float sphere_volume_from_radius(float radius) {return 4/3 * PhysiCell_constants::pi * std::pow(radius, 3);}
+
+/*===============================================*/
+/* Parallel prototype of inject_density_sphere() */
+/*===============================================*/
+void inject_density_sphere( int density_index, double concentration, double membrane_lenght, 
+							mpi_Environment &world, mpi_Cartesian &cart_topo );
 
 // helper function to inject density surrounding a spheroid
 void inject_density_sphere(int density_index, double concentration, double membrane_lenght);
 
+/*===============================================*/
+/* Parallel prototype of remove_density() */
+/*===============================================*/
+void remove_density( int density_index, mpi_Environment &world, mpi_Cartesian &cart_topo );
+
 // helper function to remove a density
 void remove_density( int density_index );
 
-// function to create a message
-// std::string cells_message_builder(std::vector<Cell*> all_cells, double timepoint);
-
-double total_live_cell_count();
+// custom pathology coloring function 
+std::vector<std::string> my_coloring_function( Cell* );
 
 /*===============================================*/
 /* Parallel prototype of total_live_cell_count() */
 /*===============================================*/
-double total_live_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
+int total_basic_agent_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
+int total_cell_agent_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
+int total_live_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
+int total_dead_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
+int total_necrosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
+int total_apoptosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
 
+double get_total_tnf(mpi_Environment &world, mpi_Cartesian &cart_topo);
 
-double total_dead_cell_count();
+double total_custom_variable_live(std::string var_name, mpi_Environment &world, mpi_Cartesian &cart_topo);
 
-/*===============================================*/
-/* Parallel prototype of total_dead_cell_count() */
-/*===============================================*/
-double total_dead_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
+double total_active_TNF_receptor(mpi_Environment &world, mpi_Cartesian &cart_topo);
+double total_free_TNF_receptor(mpi_Environment &world, mpi_Cartesian &cart_topo);
+double total_internalized_TNF_receptor(mpi_Environment &world, mpi_Cartesian &cart_topo);
 
-double total_necrosis_cell_count();
-
-/*===================================================*/
-/* Parallel prototype of total_necrosis_cell_count() */
-/*===================================================*/
-double total_necrosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
-
+double total_active_TNF_node(mpi_Environment &world, mpi_Cartesian &cart_topo);
+double total_active_FADD_node(mpi_Environment &world, mpi_Cartesian &cart_topo);
+double total_active_NFKb_node(mpi_Environment &world, mpi_Cartesian &cart_topo);

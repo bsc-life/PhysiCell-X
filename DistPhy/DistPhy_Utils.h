@@ -25,6 +25,7 @@ namespace DistPhy
             
             std::vector<std::vector<double>> cell_coords_all_procs; 
             std::vector<std::vector<int>>    cell_IDs_all_procs; 
+            // std::vector<std::vector<int>> cell_types_all_procs;
             std::vector<int>                 no_of_IDs_all_procs; 
             
         public:
@@ -43,7 +44,9 @@ namespace DistPhy
         public:
             std::vector<double> my_cell_coords;
             std::vector<int>    my_cell_IDs;
+            // std::vector<int> my_cell_types
             int                 my_no_of_cell_IDs; 
+
         };
         
         void distribute_cell_positions(mpi_CellPositions &cp, mpi_MyCells &mc, mpi_Environment &world, mpi_Cartesian &cart_topo); 

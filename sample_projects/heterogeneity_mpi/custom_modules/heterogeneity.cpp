@@ -121,6 +121,7 @@ void create_cell_types( mpi_Environment &world, mpi_Cartesian &cart_topo )
 
 	setup_signal_behavior_dictionaries(world, cart_topo); 
 
+<<<<<<< HEAD
 	/* 
 	   Put any modifications to individual cell definitions here. 
 	   
@@ -130,6 +131,13 @@ void create_cell_types( mpi_Environment &world, mpi_Cartesian &cart_topo )
 	cell_defaults.functions.update_phenotype = phenotype_function; 
 	cell_defaults.functions.custom_cell_rule = custom_function; 
 	cell_defaults.functions.contact_function = contact_function; 
+=======
+	// Set the default cell type to no phenotype updates 
+	cell_defaults.functions.update_phenotype_parallel = tumor_cell_phenotype_with_oncoprotein;
+	cell_defaults.functions.update_phenotype = tumor_cell_phenotype_with_oncoprotein; 
+	cell_defaults.name = "cancer cell"; 
+	cell_defaults.type = 0; 
+>>>>>>> master
 	
 	static int oxygen_ID = microenvironment.find_density_index( "oxygen" );
 	
@@ -140,7 +148,21 @@ void create_cell_types( mpi_Environment &world, mpi_Cartesian &cart_topo )
 	pCD->parameters.o2_reference = 38; 
 
 	
+<<<<<<< HEAD
 	display_cell_definitions( std::cout, world, cart_topo );
+=======
+	build_cell_definitions_maps(); //Uncommenting it
+	
+	display_cell_definitions( std::cout );
+	//  <------ will print using all processes, thus disabled
+	
+	/*---------------------------------------------------------------------------------------*/
+	/* display_cell_definitions(...) has been disabled above as the printing will be done by */
+	/* ALL processes. If you want to print (for checking, testing etc.) then create a new 	 */
+	/* version of void create_cell_types(mpi_Environment &world, mpi_Cartesian &cart_topo)	 */
+	/* and then use the IOProcessor(world) function to print using ONLY the root process  	 */
+	/*---------------------------------------------------------------------------------------*/
+>>>>>>> master
 
 	return; 
 }
@@ -172,6 +194,124 @@ void setup_microenvironment(mpi_Environment &world, mpi_Cartesian &cart_topo)
 	return; 
 }	
 
+<<<<<<< HEAD
+=======
+
+void setup_tissue( void )
+{
+	// place a cluster of tumor cells at the center 
+	
+	double cell_radius = cell_defaults.phenotype.geometry.radius; 
+	double cell_spacing = 0.95 * 2.0 * cell_radius; 
+	
+	double tumor_radius = parameters.doubles( "tumor_radius" ); // 250.0; 
+	std::cout << "tumor_radius " << tumor_radius << std::endl; 
+
+	// Parameter<double> temp; 
+	
+	int i = parameters.doubles.find_index( "tumor_radius" ); 
+	std::cout << "parameters.doubles.find_index(tumor_radius );  " << i << std::endl; 
+	
+	Cell* pCell = NULL; 
+	
+	double x = 0.0; 
+	double x_outer = tumor_radius; 
+	double y = 0.0; 
+	
+	double p_mean = parameters.doubles( "oncoprotein_mean" ); 
+	double p_sd = parameters.doubles( "oncoprotein_sd" ); 
+	double p_min = parameters.doubles( "oncoprotein_min" ); 
+	double p_max = parameters.doubles( "oncoprotein_max" ); 
+	
+	int n = 0; 
+	while( y < tumor_radius )
+	{
+		x = 0.0; 
+		if( n % 2 == 1 )
+		{ x = 0.5*cell_spacing; }
+		x_outer = sqrt( tumor_radius*tumor_radius - y*y ); 
+		
+		while( x < x_outer )
+		{
+			pCell = create_cell(); // tumor cell 
+			pCell->assign_position( x , y , 0.0 );
+			pCell->custom_data[0] = NormalRandom( p_mean, p_sd );
+			if( pCell->custom_data[0] < p_min )
+			{ pCell->custom_data[0] = p_min; }
+			if( pCell->custom_data[0] > p_max )
+			{ pCell->custom_data[0] = p_max; }
+			
+			if( fabs( y ) > 0.01 )
+			{
+				pCell = create_cell(); // tumor cell 
+				pCell->assign_position( x , -y , 0.0 );
+				pCell->custom_data[0] = NormalRandom( p_mean, p_sd );
+				if( pCell->custom_data[0] < p_min )
+				{ pCell->custom_data[0] = p_min; }
+				if( pCell->custom_data[0] > p_max )
+				{ pCell->custom_data[0] = p_max; }				
+			}
+			
+			if( fabs( x ) > 0.01 )
+			{ 
+				pCell = create_cell(); // tumor cell 
+				pCell->assign_position( -x , y , 0.0 );
+				pCell->custom_data[0] = NormalRandom( p_mean, p_sd );
+				if( pCell->custom_data[0] < p_min )
+				{ pCell->custom_data[0] = p_min; }
+				if( pCell->custom_data[0] > p_max )
+				{ pCell->custom_data[0] = p_max; }
+		
+				if( fabs( y ) > 0.01 )
+				{
+					pCell = create_cell(); // tumor cell 
+					pCell->assign_position( -x , -y , 0.0 );
+					pCell->custom_data[0] = NormalRandom( p_mean, p_sd );
+					if( pCell->custom_data[0] < p_min )
+					{ pCell->custom_data[0] = p_min; }
+					if( pCell->custom_data[0] > p_max )
+					{ pCell->custom_data[0] = p_max; }
+				}
+			}
+			x += cell_spacing; 
+			
+		}
+		
+		y += cell_spacing * sqrt(3.0)/2.0; 
+		n++; 
+	}
+	
+	double sum = 0.0; 
+	double min = 9e9; 
+	double max = -9e9; 
+	for( int i=0; i < all_cells->size() ; i++ )
+	{
+		double r = (*all_cells)[i]->custom_data[0]; 
+		sum += r;
+		if( r < min )
+		{ min = r; } 
+		if( r > max )
+		{ max = r; }
+	}
+	double mean = sum / ( all_cells->size() + 1e-15 ); 
+	// compute standard deviation 
+	sum = 0.0; 
+	for( int i=0; i < all_cells->size(); i++ )
+	{
+		sum +=  ( (*all_cells)[i]->custom_data[0] - mean )*( (*all_cells)[i]->custom_data[0] - mean ); 
+	}
+	double standard_deviation = sqrt( sum / ( all_cells->size() - 1.0 + 1e-15 ) ); 
+	
+	std::cout << std::endl << "Oncoprotein summary: " << std::endl
+			  << "===================" << std::endl; 
+	std::cout << "mean: " << mean << std::endl; 
+	std::cout << "standard deviation: " << standard_deviation << std::endl; 
+	std::cout << "[min max]: [" << min << " " << max << "]" << std::endl << std::endl; 
+	
+	return; 
+}
+
+>>>>>>> master
 /*-------------------------------------------------------------------*/
 /* Miguel Ponce-de-Leon's function for generating positions of cells */
 /*-------------------------------------------------------------------*/
@@ -269,10 +409,17 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 	double cell_radius = pCD->phenotype.geometry.radius; 
 	double cell_spacing = 0.95 * 2.0 * cell_radius; 
 	
+<<<<<<< HEAD
 	double tumor_radius = parameters.doubles( "tumor_radius" );
 	
 	//int i = parameters.doubles.find_index( "tumor_radius" ); 
 	
+=======
+	double tumor_radius = parameters.doubles( "tumor_radius" ); // 250.0; now changed to 150 in PhysiCell_settings.xml file	
+	int i = parameters.doubles.find_index( "tumor_radius" ); 
+	std::cout << "tumor_radius " << tumor_radius << std::endl; 
+	std::cout << "parameters.doubles.find_index(tumor_radius );  " << i << std::endl;
+>>>>>>> master
 	Cell* pCell = NULL; 
     
     std::vector<std::vector<double>> positions;		 
@@ -434,6 +581,29 @@ void tumor_cell_phenotype_with_oncoprotein( Cell* pCell, Phenotype& phenotype, d
 	
 	return; 
 }
+void tumor_cell_phenotype_with_oncoprotein( Cell* pCell, Phenotype& phenotype, double dt,mpi_Environment &world, mpi_Cartesian &cart_topo )
+{
+	update_cell_and_death_parameters_O2_based(pCell,phenotype,dt);
+	
+	// If cell is dead, don't bother with future phenotype changes. 
+	
+	if( phenotype.death.dead == true )
+	{
+		pCell->functions.update_phenotype = NULL; 		
+		return; 
+	}
+
+	// Multiply proliferation rate by the oncoprotein 
+	
+	static int cycle_start_index = live.find_phase_index( PhysiCell_constants::live ); 
+	static int cycle_end_index = live.find_phase_index( PhysiCell_constants::live ); 
+	static int oncoprotein_i = pCell->custom_data.find_variable_index( "oncoprotein" ); 
+
+	phenotype.cycle.data.transition_rate( cycle_start_index ,cycle_end_index ) *= pCell->custom_data[oncoprotein_i] ; 
+	
+	return; 
+}
+
 
 std::vector<std::string> heterogeneity_coloring_function( Cell* pCell )
 {
@@ -486,4 +656,174 @@ std::vector<std::string> heterogeneity_coloring_function( Cell* pCell )
 	}	
 	
 	return output; 
+}
+int total_basic_agent_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	int local_count = all_basic_agents.size();
+	int global_count;
+	MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+	return global_count;
+}
+
+
+
+int total_cell_agent_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	int local_count = (*all_cells).size();
+	int global_count;
+	MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+	return global_count;
+}
+
+
+// Cell count functions
+int total_live_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	int local_count = 0;
+	#pragma omp parallel for reduction (+: local_count )
+	for (int i = 0; i < (*all_cells).size(); i++)
+	{
+		Cell* pCell = (*all_cells)[i];
+		if(pCell->phenotype.death.dead==false)
+		{ local_count++;; }
+	}
+	int global_count;
+	MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+	return global_count;
+}
+
+int total_dead_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+    int local_count = 0;
+    #pragma omp parallel for reduction (+: local_count )
+    for (int i = 0; i < (*all_cells).size(); i++)
+    {
+        Cell* pCell = (*all_cells)[i];
+        if(pCell->phenotype.death.dead==true)
+        { local_count++; }
+    }
+    int global_count;
+    MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+    return global_count;
+}
+
+int total_necrosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	int local_count = 0;
+	#pragma omp parallel for reduction (+: local_count )
+	for (int i = 0; i < (*all_cells).size(); i++)
+	{
+		Cell* pCell = (*all_cells)[i];
+		if( pCell->phenotype.death.dead==false )
+		{ continue; }
+		if( pCell->phenotype.cycle.current_phase().code == PhysiCell_constants::necrotic_swelling || 
+			pCell->phenotype.cycle.current_phase().code == PhysiCell_constants::necrotic_lysed || 
+			pCell->phenotype.cycle.current_phase().code == PhysiCell_constants::necrotic )	
+		{ local_count++; }
+	}
+	int global_count;
+	MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+	return global_count;
+}
+
+int total_apoptosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{	
+	int local_count = 0;
+	#pragma omp parallel for reduction (+: local_count )
+	for (int i = 0; i < (*all_cells).size(); i++)
+	{
+		Cell* pCell = (*all_cells)[i];
+		if( pCell->phenotype.death.dead==false )
+		{ continue; }
+		if( pCell->phenotype.cycle.current_phase().code == PhysiCell_constants::apoptotic)
+		{ local_count++; }
+	}
+	int global_count;
+	MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+	return global_count;
+}
+
+
+int total_dead_but_ghost(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{	
+	int local_count = 0;
+	#pragma omp parallel for reduction (+: local_count )
+	for (int i = 0; i < (*all_cells).size(); i++)
+	{
+		Cell* pCell = (*all_cells)[i];
+		if( pCell->phenotype.death.dead==false )
+		{ continue; }
+		if( pCell->phenotype.cycle.current_phase().code != PhysiCell_constants::apoptotic &&
+			pCell->phenotype.cycle.current_phase().code != PhysiCell_constants::necrotic_swelling && 
+			pCell->phenotype.cycle.current_phase().code != PhysiCell_constants::necrotic_lysed && 
+			pCell->phenotype.cycle.current_phase().code != PhysiCell_constants::necrotic )
+		{ local_count++; 
+			// std::cout<<pCell->phenotype.cycle.current_phase().code<<" Line written by Rank:"<<world.rank<<std::endl;
+		}
+	}
+	int global_count;
+	MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+	return global_count;
+}
+
+
+int total_apoptosis_not_codealive(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{	
+	int local_count = 0;
+	#pragma omp parallel for reduction (+: local_count )
+	for (int i = 0; i < (*all_cells).size(); i++)
+	{
+		Cell* pCell = (*all_cells)[i];
+		if( pCell->phenotype.death.dead==false )
+		{ continue; }
+		if( pCell->phenotype.cycle.current_phase().code == PhysiCell_constants::apoptotic && pCell->phenotype.cycle.current_phase().code != 14 )
+		{ local_count++; 
+			// std::cout<<pCell->phenotype.cycle.current_phase().code<<" Line written by Rank:"<<world.rank<<std::endl;
+		}
+	}
+	int global_count;
+	MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+	return global_count;
+}
+
+int total_apoptosis_and_codealive(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{	
+	int local_count = 0;
+	#pragma omp parallel for reduction (+: local_count )
+	for (int i = 0; i < (*all_cells).size(); i++)
+	{
+		Cell* pCell = (*all_cells)[i];
+		if( pCell->phenotype.death.dead==false )
+		{ continue; }
+		if( pCell->phenotype.cycle.current_phase().code == PhysiCell_constants::apoptotic && pCell->phenotype.cycle.current_phase().code == 14 )
+		{ local_count++; 
+			// std::cout<<pCell->phenotype.cycle.current_phase().code<<" Line written by Rank:"<<world.rank<<std::endl;
+		}
+	}
+	int global_count;
+	MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+	return global_count;
+}
+int total_necrotic_ghost(mpi_Environment &world, mpi_Cartesian &cart_topo){
+	int local_count = 0;
+	#pragma omp parallel for reduction (+: local_count )
+	for (int i = 0; i < (*all_cells).size(); i++)
+	{
+		Cell* pCell = (*all_cells)[i];
+		if( pCell->phenotype.death.dead==false )
+		{ continue; }
+		if( pCell->phenotype.cycle.current_phase().code == PhysiCell_constants::necrotic_swelling && 
+			pCell->phenotype.cycle.current_phase().code == PhysiCell_constants::necrotic_lysed && 
+			pCell->phenotype.cycle.current_phase().code == PhysiCell_constants::necrotic)
+			{
+				if(pCell->phenotype.cycle.current_phase().code == 14)
+					{local_count++; }
+			}
+		
+	}
+	int global_count;
+	MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+	return global_count;
+
+
 }
