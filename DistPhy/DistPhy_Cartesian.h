@@ -31,6 +31,8 @@ namespace DistPhy
        								int cells_to_right, int size_right, std::vector<char> & snd_buf_right,
        								int & cells_from_left,  std::vector<char> &rcv_buf_left,
        								int & cells_from_right, std::vector<char> &rcv_buf_right,
+       								std::vector<int> & snd_pos_left, std::vector<int> & snd_pos_right,
+       								std::vector<int> & rcv_pos_left, std::vector<int> & rcv_pos_right,
        								mpi_Environment &world
        							); 
         };

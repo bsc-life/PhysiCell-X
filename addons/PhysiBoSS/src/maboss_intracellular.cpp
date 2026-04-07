@@ -35,6 +35,7 @@ MaBoSSIntracellular::MaBoSSIntracellular(MaBoSSIntracellular* copy)
 	time_stochasticity = copy->time_stochasticity;
 	inherit_state = copy->inherit_state;
 	inherit_nodes = copy->inherit_nodes;
+	start_time = copy->start_time;
 	initial_values = copy->initial_values;
 	mutations = copy->mutations;
 	parameters = copy->parameters;
@@ -42,26 +43,29 @@ MaBoSSIntracellular::MaBoSSIntracellular(MaBoSSIntracellular* copy)
 	indicesOfOutputs = copy->indicesOfOutputs;
 	listOfInputs = copy->listOfInputs;
 	listOfOutputs = copy->listOfOutputs;
-	
-	if (copy->maboss.has_init()) {
-		maboss.init_maboss(copy->bnd_filename, copy->cfg_filename);
-		maboss.mutate(mutations);
-		maboss.set_initial_values(initial_values);
-		maboss.set_parameters(parameters);
-		maboss.set_update_time_step(copy->time_step);
-		maboss.set_discrete_time(copy->discrete_time, copy->time_tick);
-		maboss.set_scaling(copy->scaling);
-		maboss.set_time_stochasticity(copy->time_stochasticity);
-		maboss.restart_node_values();
-		indicesOfInputs.clear();
-		for (const auto& input: listOfInputs) {
-			indicesOfInputs.push_back(PhysiCell::find_signal_index(input.second.physicell_name));
-		}
-		indicesOfOutputs.clear();
-		for (const auto& output: listOfOutputs) {
-			indicesOfOutputs.push_back(PhysiCell::find_behavior_index(output.second.physicell_name));
-		}
-	}	
+}
+
+void MaBoSSIntracellular::initialize_maboss()
+{
+	if( maboss.has_init() )
+	{ return; }
+
+	maboss.init_maboss(bnd_filename, cfg_filename);
+	maboss.set_initial_values(initial_values);
+	maboss.mutate(mutations);
+	maboss.set_parameters(parameters);
+	maboss.set_update_time_step(time_step);
+	maboss.set_discrete_time(discrete_time, time_tick);
+	maboss.set_scaling(scaling);
+	maboss.set_time_stochasticity(time_stochasticity);
+
+	indicesOfInputs.clear();
+	for( const auto& input : listOfInputs )
+	{ indicesOfInputs.push_back(PhysiCell::find_signal_index(input.second.physicell_name)); }
+
+	indicesOfOutputs.clear();
+	for( const auto& output : listOfOutputs )
+	{ indicesOfOutputs.push_back(PhysiCell::find_behavior_index(output.second.physicell_name)); }
 }
 
 void MaBoSSIntracellular::update_inputs(PhysiCell::Cell* cell, PhysiCell::Phenotype& phenotype, double dt)
@@ -157,9 +161,6 @@ void MaBoSSIntracellular::initialize_intracellular_from_pugixml(pugi::xml_node& 
 		}
 	}
 
-	maboss.init_maboss(bnd_filename, cfg_filename);
-	maboss.set_initial_values(initial_values);
-
 	pugi::xml_node node_settings = node.child( "settings" );
 	if ( node_settings ) {
 
@@ -185,8 +186,6 @@ void MaBoSSIntracellular::initialize_intracellular_from_pugixml(pugi::xml_node& 
 			}
 		}
 		
-		maboss.mutate(mutations);
-
 		pugi::xml_node node_parameters = node_settings.child( "parameters" );
 		if( node_parameters )
 		{
@@ -207,20 +206,16 @@ void MaBoSSIntracellular::initialize_intracellular_from_pugixml(pugi::xml_node& 
 			}
 		}
 
-		maboss.set_parameters(parameters);	
-
 		pugi::xml_node node_timestep = node_settings.child( "time_step" ); 
 		pugi::xml_node node_intracellular_dt = node_settings.child( "intracellular_dt" ); 
 		if( node_intracellular_dt )
 		{ 
 			time_step = PhysiCell::xml_get_my_double_value( node_intracellular_dt );
-			maboss.set_update_time_step(time_step);
 
 		} else if ( node_timestep ) 
 		{
 			std::cout << "The setting timestep in parameter is deprecated and will be removed in future versions. Please switch to intracellular_name !" << std::endl;
 			time_step = PhysiCell::xml_get_my_double_value( node_timestep );
-			maboss.set_update_time_step(time_step);
 		}
 		
 		pugi::xml_node node_discretetime = node_settings.child( "discrete_time" ); 
@@ -230,21 +225,18 @@ void MaBoSSIntracellular::initialize_intracellular_from_pugixml(pugi::xml_node& 
 		{ 
 			discrete_time = PhysiCell::xml_get_my_bool_value( node_discretetime );		
 			time_tick = PhysiCell::xml_get_my_double_value( node_timetick );
-			maboss.set_discrete_time(discrete_time, time_tick);
 		}
 
 		pugi::xml_node node_scaling = node_settings.child( "scaling" ); 
 		if( node_scaling )
 		{ 
 			scaling = PhysiCell::xml_get_my_double_value( node_scaling );
-			maboss.set_scaling(scaling);
 		}
 
 		pugi::xml_node node_time_stochasticity = node_settings.child( "time_stochasticity" );
 		if( node_time_stochasticity )
 		{
 			time_stochasticity = PhysiCell::xml_get_my_double_value( node_time_stochasticity );
-			maboss.set_time_stochasticity(time_stochasticity);
 		}
 
 		pugi::xml_node node_inheritance = node_settings.child( "inheritance" );
@@ -281,13 +273,11 @@ void MaBoSSIntracellular::initialize_intracellular_from_pugixml(pugi::xml_node& 
 	{ 
 		std::cout << "The intracellular_dt needs to be defined inside the settings tag. Please update your settings as this will become incompatible in future versions" << std::endl;
 		time_step = PhysiCell::xml_get_my_double_value( node_intracellular_dt );
-		maboss.set_update_time_step(time_step);
 
 	} else if ( node_timestep ) 
 	{
 		std::cout << "The setting timestep in parameter is deprecated and will be removed in future versions. Please update your settings using intracellular_dt !" << std::endl;
 		time_step = PhysiCell::xml_get_my_double_value( node_timestep );
-		maboss.set_update_time_step(time_step);
 	}
 	
 	pugi::xml_node node_discretetime = node.child( "discrete_time" ); 
@@ -299,7 +289,6 @@ void MaBoSSIntracellular::initialize_intracellular_from_pugixml(pugi::xml_node& 
 		std::cout << "The time_tick needs to be defined inside the settings tag. Please update your settings as this will become incompatible in future versions" << std::endl;
 		discrete_time = PhysiCell::xml_get_my_bool_value( node_discretetime );		
 		time_tick = PhysiCell::xml_get_my_double_value( node_timetick );
-		maboss.set_discrete_time(discrete_time, time_tick);
 	}
 
 	pugi::xml_node node_scaling = node.child( "scaling" ); 
@@ -307,7 +296,6 @@ void MaBoSSIntracellular::initialize_intracellular_from_pugixml(pugi::xml_node& 
 	{ 
 		std::cout << "The scaling needs to be defined inside the settings tag. Please update your settings as this will become incompatible in future versions" << std::endl;
 		scaling = PhysiCell::xml_get_my_double_value( node_scaling );
-		maboss.set_scaling(scaling);
 	}
 
 	pugi::xml_node node_time_stochasticity = node.child( "time_stochasticity" );
@@ -315,7 +303,6 @@ void MaBoSSIntracellular::initialize_intracellular_from_pugixml(pugi::xml_node& 
 	{
 		std::cout << "The time stochasticity needs to be defined inside the settings tag. Please update your settings as this will become incompatible in future versions" << std::endl;
 		time_stochasticity = PhysiCell::xml_get_my_double_value( node_time_stochasticity );
-		maboss.set_time_stochasticity(time_stochasticity);
 	}
 
 
@@ -337,8 +324,6 @@ void MaBoSSIntracellular::initialize_intracellular_from_pugixml(pugi::xml_node& 
 		}
 	}
 	
-	maboss.mutate(mutations);
-
 	pugi::xml_node node_parameters = node.child( "parameters" );
 	if( node_parameters )
 	{
@@ -353,9 +338,6 @@ void MaBoSSIntracellular::initialize_intracellular_from_pugixml(pugi::xml_node& 
 			node_parameter = node_parameter.next_sibling( "parameter" ); 
 		}
 	}
-
-	maboss.set_parameters(parameters);	
-
 	// Mappings
 
 	pugi::xml_node node_mappings = node.child( "mapping" );
@@ -738,9 +720,9 @@ void MaBoSSIntracellular::unpack(std::vector<char>& buffer, int len_buffer, int&
 
 	// Unpack maboss
 	maboss.init_maboss(bnd_filename, cfg_filename);
-    this->maboss.unpack(buffer, len_buffer, position); //todo
+    this->maboss.unpack(buffer, len_buffer, position); 
 	maboss.mutate(mutations);
-	maboss.set_parameters(parameters);
+	//maboss.set_parameters(parameters);
 	maboss.set_time_stochasticity(time_stochasticity);
 	maboss.set_scaling(scaling);
 	maboss.set_discrete_time(discrete_time, time_tick);

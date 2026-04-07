@@ -53,6 +53,7 @@ class MaBoSSIntracellular : public PhysiCell::Intracellular { //UPDATED
 	MaBoSSIntracellular(std::vector<char>& buffer, int& len_buffer, int& position);
 	void pack(std::vector<char>& buffer, int& len_buffer, int& position);
 	void unpack(std::vector<char>& buffer, int len_buffer, int& position);
+	void initialize_maboss();
 	
 	Intracellular* clone() {
 		return static_cast<Intracellular*>(new MaBoSSIntracellular(this));
@@ -64,16 +65,19 @@ class MaBoSSIntracellular : public PhysiCell::Intracellular { //UPDATED
 	void initialize_intracellular_from_pugixml(pugi::xml_node& node);
 	
 	void start() {
+		this->initialize_maboss();
 		this->maboss.restart_node_values();
 		this->next_physiboss_run = std::max(this->start_time, PhysiCell::PhysiCell_globals.current_time);
 	}
 	
 	void update() {
+		this->initialize_maboss();
 		this->maboss.run_simulation();
 		this->next_physiboss_run += this->maboss.get_time_to_update();
 	}
 
 	void update(PhysiCell::Cell * cell, PhysiCell::Phenotype& phenotype, double dt) {
+		this->initialize_maboss();
 		this->update_inputs(cell, phenotype, dt);
 		this->maboss.run_simulation();
 		this->update_outputs(cell, phenotype, dt);
@@ -85,6 +89,8 @@ class MaBoSSIntracellular : public PhysiCell::Intracellular { //UPDATED
 	}
 	
 	void inherit(PhysiCell::Cell * cell) {
+		this->initialize_maboss();
+		static_cast<MaBoSSIntracellular*>(cell->phenotype.intracellular)->initialize_maboss();
 		maboss.inherit_state(
 			static_cast<MaBoSSIntracellular*>(cell->phenotype.intracellular)->maboss.get_maboss_state(), 
 			inherit_state, inherit_nodes
@@ -94,10 +100,12 @@ class MaBoSSIntracellular : public PhysiCell::Intracellular { //UPDATED
 	void update_outputs(PhysiCell::Cell * cell, PhysiCell::Phenotype& phenotype, double dt);
 
 	bool has_variable(std::string name) {
+		this->initialize_maboss();
 		return this->maboss.has_node(name);
 	}
 	
 	bool get_boolean_variable_value(std::string name) {
+		this->initialize_maboss();
 		return this->maboss.get_node_value(name);
 	}
 	
@@ -111,22 +119,27 @@ class MaBoSSIntracellular : public PhysiCell::Intracellular { //UPDATED
 	}
 
 	void set_boolean_variable_value(std::string name, bool value) {
+		this->initialize_maboss();
 		this->maboss.set_node_value(name, value);
 	}
 	
 	double get_parameter_value(std::string name) {
+		this->initialize_maboss();
 		return this->maboss.get_parameter_value(name);
 	}
 	
 	void set_parameter_value(std::string name, double value) {
+		this->initialize_maboss();
 		this->maboss.set_parameter_value(name, value);
 	}
 	
 	std::string get_state() {
+		this->initialize_maboss();
 		return this->maboss.get_state();
 	}
 	
 	void print_current_nodes(){
+		this->initialize_maboss();
 		this->maboss.print_nodes();
 	}
 

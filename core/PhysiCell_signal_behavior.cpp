@@ -67,9 +67,126 @@
  
 #include "./PhysiCell_signal_behavior.h"
 
+#include <unordered_set>
+
 using namespace BioFVM; 
 
 namespace PhysiCell{
+
+namespace {
+
+int current_signal_behavior_rank( void )
+{
+	int rank = -1;
+	int initialized = 0;
+	MPI_Initialized( &initialized );
+	if( initialized )
+	{ MPI_Comm_rank( MPI_COMM_WORLD , &rank ); }
+	return rank;
+}
+
+void log_invalid_contact_neighbor_cycle( Cell* pOwner, Cell* pNeighbor , const char* reason , bool repaired )
+{
+	static std::unordered_set<long long> logged_neighbor_ids;
+	bool should_log = ( pNeighbor == NULL );
+
+	#pragma omp critical(physicell_contact_signal_cycle_log)
+	{
+		if( pNeighbor != NULL )
+		{ should_log = logged_neighbor_ids.insert( static_cast<long long>(pNeighbor->ID) ).second; }
+
+		if( should_log )
+		{
+			std::cerr << "Warning: skipping invalid dead-neighbor phase lookup in signal behavior contact classification"
+			          << " rank=" << current_signal_behavior_rank();
+
+			if( pOwner != NULL )
+			{
+				std::cerr << " owner_ID=" << pOwner->ID
+				          << " owner_type=" << pOwner->type
+				          << " owner_type_name=" << pOwner->type_name;
+			}
+
+			if( pNeighbor != NULL )
+			{
+				std::cerr << " neighbor_ID=" << pNeighbor->ID
+				          << " neighbor_type=" << pNeighbor->type
+				          << " neighbor_type_name=" << pNeighbor->type_name
+				          << " neighbor_dead=" << pNeighbor->phenotype.death.dead
+				          << " neighbor_phase_index=" << pNeighbor->phenotype.cycle.data.current_phase_index
+				          << " cycle_ptr=" << pNeighbor->phenotype.cycle.pCycle_Model
+				          << " cycle_data_ptr=" << pNeighbor->phenotype.cycle.data.pCycle_Model;
+			}
+
+			std::cerr << " repaired=" << repaired
+			          << " reason=" << reason
+			          << std::endl;
+		}
+	}
+}
+
+bool get_safe_dead_neighbor_phase_code( Cell* pOwner, Cell* pNeighbor , int& phase_code )
+{
+	if( pNeighbor == NULL )
+	{
+		log_invalid_contact_neighbor_cycle( pOwner, pNeighbor , "null neighbor pointer" , false );
+		return false;
+	}
+
+	bool repaired = false;
+	Cycle& cycle = pNeighbor->phenotype.cycle;
+
+	if( cycle.data.pCycle_Model == NULL )
+	{
+		if( cycle.pCycle_Model != NULL )
+		{
+			cycle.data.pCycle_Model = cycle.pCycle_Model;
+			repaired = true;
+		}
+		else
+		{
+			int death_model_index = pNeighbor->phenotype.death.current_death_model_index;
+			if( death_model_index >= 0 &&
+			    death_model_index < static_cast<int>(pNeighbor->phenotype.death.models.size()) &&
+			    pNeighbor->phenotype.death.models[death_model_index] != NULL )
+			{
+				Cycle_Model* pDeathModel = pNeighbor->phenotype.death.models[death_model_index];
+				cycle.pCycle_Model = pDeathModel;
+				cycle.data.pCycle_Model = pDeathModel;
+				repaired = true;
+			}
+		}
+	}
+
+	Cycle_Model* pModel = cycle.data.pCycle_Model;
+	if( pModel == NULL )
+	{
+		log_invalid_contact_neighbor_cycle( pOwner, pNeighbor , "null cycle model pointer" , repaired );
+		return false;
+	}
+
+	if( cycle.data.current_phase_index < 0 )
+	{
+		log_invalid_contact_neighbor_cycle( pOwner, pNeighbor , "negative current phase index" , repaired );
+		return false;
+	}
+
+	if( cycle.data.current_phase_index >= static_cast<int>(pModel->phases.size()) )
+	{
+		log_invalid_contact_neighbor_cycle( pOwner, pNeighbor , "current phase index out of bounds" , repaired );
+		return false;
+	}
+
+	phase_code = pModel->phases[cycle.data.current_phase_index].code;
+	if( repaired )
+	{
+		log_invalid_contact_neighbor_cycle( pOwner, pNeighbor , "restored missing cycle model pointer" , true );
+	}
+
+	return true;
+}
+
+} // namespace
 
 std::vector<double> signal_scales; 
 
@@ -787,16 +904,27 @@ std::vector<double> get_signals( Cell* pCell )
 	for( int i=0; i < pCell->state.neighbors.size(); i++ )
 	{
 		Cell* pC = pCell->state.neighbors[i]; 
+		if( pC == NULL )
+		{
+			log_invalid_contact_neighbor_cycle( pCell, pC , "null neighbor pointer" , false );
+			continue;
+		}
+
 		if( pC->phenotype.death.dead == true )
 		{
-			dead_cells++; 
-			if(pC->phenotype.cycle.current_phase().code == PhysiCell_constants::apoptotic )
-			{ apop_cells++; }
+			dead_cells++;
 
-			if( pC->phenotype.cycle.current_phase().code == PhysiCell_constants::necrotic_swelling || 
-				pC->phenotype.cycle.current_phase().code == PhysiCell_constants::necrotic_lysed || 
-				pC->phenotype.cycle.current_phase().code == PhysiCell_constants::necrotic )
-			{ necro_cells++; }	
+			int phase_code = -1;
+			if( get_safe_dead_neighbor_phase_code( pCell, pC, phase_code ) )
+			{
+	            if( phase_code == PhysiCell_constants::apoptotic )
+	            { apop_cells++; }
+
+	            if( phase_code == PhysiCell_constants::necrotic_swelling || 
+	                phase_code == PhysiCell_constants::necrotic_lysed || 
+	                phase_code == PhysiCell_constants::necrotic )
+	            { necro_cells++; }
+			}
 		} 
 		else
 		{ live_cells++; } 
@@ -909,16 +1037,27 @@ std::vector<double> get_cell_contact_signals( Cell* pCell )
 	for( int i=0; i < pCell->state.neighbors.size(); i++ )
 	{
 		Cell* pC = pCell->state.neighbors[i]; 
+		if( pC == NULL )
+		{
+			log_invalid_contact_neighbor_cycle( pCell, pC , "null neighbor pointer" , false );
+			continue;
+		}
+
 		if( pC->phenotype.death.dead == true )
 		{
-			dead_cells++; 
-            if(pC->phenotype.cycle.current_phase().code == PhysiCell_constants::apoptotic )
-            { apop_cells++; }
+			dead_cells++;
 
-            if( pC->phenotype.cycle.current_phase().code == PhysiCell_constants::necrotic_swelling || 
-                pC->phenotype.cycle.current_phase().code == PhysiCell_constants::necrotic_lysed || 
-                pC->phenotype.cycle.current_phase().code == PhysiCell_constants::necrotic )
-            { necro_cells++; }  	
+			int phase_code = -1;
+			if( get_safe_dead_neighbor_phase_code( pCell, pC, phase_code ) )
+			{
+	            if( phase_code == PhysiCell_constants::apoptotic )
+	            { apop_cells++; }
+
+	            if( phase_code == PhysiCell_constants::necrotic_swelling || 
+	                phase_code == PhysiCell_constants::necrotic_lysed || 
+	                phase_code == PhysiCell_constants::necrotic )
+	            { necro_cells++; }
+			}
 		} 
 		else
 		{ live_cells++; } 
@@ -1047,21 +1186,32 @@ double get_single_signal( Cell* pCell, int index )
 		int necro_cells = 0; 
 		int other_dead_cells = 0; 
 		int live_cells = 0; 
-		for( int i=0; i < pCell->state.neighbors.size(); i++ )
-		{
-			Cell* pC = pCell->state.neighbors[i]; 
-			if( pC->phenotype.death.dead == true )
+			for( int i=0; i < pCell->state.neighbors.size(); i++ )
 			{
-				dead_cells++;
-				if(pC->phenotype.cycle.current_phase().code == PhysiCell_constants::apoptotic )
-				{ apop_cells++; }
-				if( pC->phenotype.cycle.current_phase().code == PhysiCell_constants::necrotic_swelling || 
-					pC->phenotype.cycle.current_phase().code == PhysiCell_constants::necrotic_lysed || 
-					pC->phenotype.cycle.current_phase().code == PhysiCell_constants::necrotic )
-				{ necro_cells++; }  				
-			} 
-			else
-			{ live_cells++; } 
+				Cell* pC = pCell->state.neighbors[i]; 
+				if( pC == NULL )
+				{
+					log_invalid_contact_neighbor_cycle( pCell, pC , "null neighbor pointer" , false );
+					continue;
+				}
+
+				if( pC->phenotype.death.dead == true )
+				{
+					dead_cells++;
+
+					int phase_code = -1;
+					if( get_safe_dead_neighbor_phase_code( pCell, pC, phase_code ) )
+					{
+						if( phase_code == PhysiCell_constants::apoptotic )
+						{ apop_cells++; }
+						if( phase_code == PhysiCell_constants::necrotic_swelling || 
+							phase_code == PhysiCell_constants::necrotic_lysed || 
+							phase_code == PhysiCell_constants::necrotic )
+						{ necro_cells++; }
+					}
+				} 
+				else
+				{ live_cells++; } 
 			int nCT = cell_definition_indices_by_type[pC->type]; 
 			counts[nCT] += 1; 
 		}

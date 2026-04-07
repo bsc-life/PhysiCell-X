@@ -277,6 +277,8 @@ Cell_State::Cell_State()
 	orientation.resize( 3 , 0.0 );
 
 	simple_pressure = 0.0;
+	mechanics_neighbor_candidates = 0;
+	mechanics_neighbor_interactions = 0;
 	
 	attached_cells.clear();
 	spring_attachments.clear(); 
@@ -1633,6 +1635,7 @@ void Cell::add_potentials(Cell* other_agent)
 		temp_a *= effective_adhesion;
 
 		temp_r -= temp_a;
+		state.mechanics_neighbor_interactions += 1;
 		state.neighbors.push_back(other_agent);
 	}
 	/////////////////////////////////////////////////////////////////
@@ -1742,6 +1745,7 @@ void Cell::add_potentials(Moore_Cell_Info &other_agent, mpi_Environment &world, 
 		temp_a *= effective_adhesion;
 
 		temp_r -= temp_a;
+		state.mechanics_neighbor_interactions += 1;
 	}
 	/////////////////////////////////////////////////////////////////
 	if( fabs(temp_r) < 1e-16 )
@@ -1856,7 +1860,8 @@ Cell* create_cell( Cell_Definition& cd )
 	pNew->parameters = cd.parameters;
 	pNew->functions = cd.functions;
 
-	pNew->phenotype = cd.phenotype;
+	if( &cd != &cell_defaults )
+	{ pNew->phenotype = cd.phenotype; }
 	if (pNew->phenotype.intracellular)
 		pNew->phenotype.intracellular->start();
 
@@ -1893,7 +1898,8 @@ Cell* create_cell( Cell_Definition& cd, int pID )
 	pNew->parameters = cd.parameters;
 	pNew->functions = cd.functions;
 
-	pNew->phenotype = cd.phenotype;
+	if( &cd != &cell_defaults )
+	{ pNew->phenotype = cd.phenotype; }
 	if (pNew->phenotype.intracellular)
 		pNew->phenotype.intracellular->start();
 
@@ -3260,86 +3266,6 @@ if (this->phenotype.intracellular != NULL) {
 
 }
 
-void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world, mpi_Cartesian &cart_topo)
-{
-
-	int len_snd_buf_left  	 = 0;
-	int len_snd_buf_right 	 = 0;
-
-	int 	temp_int;
-	double 	temp_double;
-	std::string temp_str;
-	std::unordered_map<std::string, int> :: iterator it;
-	Cell *pCell;
-
-
-	int len_int  = 0;
-	int len_double  = 0;
-	int len_str = 0;
-	int len_vector = 0;
-
-	position_left 			= 0;					//Must be initialized to 0
-	position_right 			= 0;					//Must be initialized to 0
-	no_cells_cross_left  	= 0;					//Must be initialized to 0
-	no_cells_cross_right	= 0;					//Must be initialized to 0
-	no_of_cells_from_right 	= 0;
-	no_of_cells_from_left 	= 0;
-
-	snd_buf_left.resize(0); 					//When we enter function again, this is reset
-	snd_buf_right.resize(0);					//Reset the others also
-	rcv_buf_left.resize(0);
-	rcv_buf_right.resize(0);
-
-
-	/*--------------------------------------------------------------------------------*/
-	/* First count the number of cells crossing to left subdomain and right subdomain */
-	/*--------------------------------------------------------------------------------*/
-
-	for(int i=0; i<(*all_cells).size();i++)
-	{
-		pCell = (*all_cells)[i];
-		if(pCell->crossed_to_left_subdomain == true)
-			no_cells_cross_left++;
-		if(pCell->crossed_to_right_subdomain == true)
-			no_cells_cross_right++;
-	}
-
-	/*-----------------------------------------------------------------------------------*/
-	/* There is no need to pack crossed_to_left_subdomain and crossed_to_right_subdomain */
-	/* as we send these two fields as the First Communication between MPI processes. 	 */
-	/* Also try to send the length of the buffer to be allocated when sending.			 */
-	/*-----------------------------------------------------------------------------------*/
-
-  //std::cout<<"Total cells crossing to left in Rank "<<world.rank<<":"<<no_cells_cross_left<<std::endl;
-	//std::cout<<"Total cells crossing to right in Rank "<<world.rank<<":"<<no_cells_cross_right<<std::endl;
-
-	/* IMPORTANT: CANNOT USE #pragma omp for HERE AS ALL THREADS WILL WRITE TO THE SAME SHARED BUFFER */
-	int left = 0;
-	int right = 0;
-	int right_prev, left_prev;
-	left_prev = 0;
-	right_prev = 0;
-	for(int i=0; i<(*all_cells).size();i++)
-	{
-		pCell = (*all_cells)[i];
-
-		if(pCell->crossed_to_left_subdomain == true)
-		{
-			pCell->pack(snd_buf_left, len_snd_buf_left, position_left);
-			left++;
-		}
-		else if(pCell->crossed_to_right_subdomain == true)
-		{
-			pCell->pack(snd_buf_right, len_snd_buf_right, position_right);
-			right++;
-		}
-	}
-
- }
-
-		
-
-
 void Cell::remove_self_from_all_neighbors( void )
 {
 	Cell* pCell = this; 
@@ -3370,98 +3296,6 @@ void Cell::remove_self_from_all_neighbors( void )
 	return; 
 }
 
-void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
-{
-
-		/*---------------------------------------------------------------------------*/
-		/* position_left/right are members of class Cell_Container and contain the 	 */
-		/* size of the buffers to be sent to the left and right neighbour, respect.	 */
-		/* Since their purpose gets over after packing and sending/receiving, they	 */
-		/* can be used for storing the position we are at in the recv buffers				 */
-		/* (See beginning of Cell_Container::pack() function for 10 data members		 */
-		/* relevant to packing, sending/receiving, unpacking data)  								 */
-		/*---------------------------------------------------------------------------*/
-
-		position_left  = 0;
-		position_right = 0;
-
-		/* Temporary variables to help in unpacking */
-
-		
-		int size_left, size_right;
-		int cell_ID;
-		double cell_position[3];
-
-		int 	 				temp_int;
-		double 				temp_double;
-		std::string 	temp_str;
-		char 					*temp_char_array;
-		double 				*temp_double_array;
-		int 					temp_key_value[2];
-
-		std::unordered_map<std::string, int> :: iterator it;
-		std::vector<double> temp_double_vector;
-
-		int len_int 		 		= 0;
-		int len_double 	 		= 0;
-		int len_str 		 		= 0;
-		int len_vector	 		= 0;
-		int len_vector_nest = 0;
-		
-		int right = 0;
-		int left = 0;
-		if(no_of_cells_from_right > 0)
-		{
-			size_right = rcv_buf_right.size();
-
-			/*-------------------------------------------------------------------------------------------------*/
-			/* IMPORTANT: need to start a for(int i=0; i<no_of_cells_from_right; i++) here BUT cannot put this */
-			/* loop BEFORE completing the unpacking, as the next cell would get filled with wrong values 			 */
-			/* so complete unpacking of 1 cell first THEN put the loop 																				 */
-			/*-------------------------------------------------------------------------------------------------*/
-				for(int loop_ctr = 0; loop_ctr < no_of_cells_from_right; loop_ctr++)
-				{
-					Cell *pCell = create_cell(cell_ID);
-
-					pCell->unpack(rcv_buf_right, size_right, position_right);
-					++right;
-
-					pCell->assign_position(pCell->position[0], pCell->position[1], pCell->position[2], world, cart_topo);
-					/*
-					std::cout << "\t\t\t\t[Rank " << world.rank << " ] Unpacked cell ID: " << pCell->ID << " at position: (" 
-					          << pCell->position[0] << "," << pCell->position[1] << "," << pCell->position[2] << ")  velocity: (" 
-					          << pCell->velocity[0] << "," << pCell->velocity[1] << "," << pCell->velocity[2] << ") from RIGHT" 
-					          << std::endl;*/
-		 		}	 
-		}
-
-		if(no_of_cells_from_left > 0)
-		{
-			 size_left = rcv_buf_left.size();
-
-			/*-------------------------------------------------------------------------------------------------*/
-			/* IMPORTANT: need to start a for(int i=0; i<no_of_cells_from_left; i++) here BUT cannot put this */
-			/* loop BEFORE completing the unpacking, as the next cell would get filled with wrong values 			 */
-			/* so complete unpacking of 1 cell first THEN put the loop 																				 */
-			/*-------------------------------------------------------------------------------------------------*/
-
-				for(int loop_ctr = 0; loop_ctr < no_of_cells_from_left; loop_ctr++)
-				{
-					Cell *pCell = create_cell(cell_ID);
-
-					pCell->unpack(rcv_buf_left, size_left, position_left);
-
-					
-					pCell->assign_position(pCell->position[0], pCell->position[1], pCell->position[2], world, cart_topo);
-					++left;
-					/*
-					std::cout << "\t\t\t\t[Rank " << world.rank << " ] Unpacked cell ID: " << pCell->ID << " at position: (" 
-					          << pCell->position[0] << "," << pCell->position[1] << "," << pCell->position[2] << ")  velocity: (" 
-					          << pCell->velocity[0] << "," << pCell->velocity[1] << "," << pCell->velocity[2] << ") from LEFT" 
-					          << std::endl;*/
-				}
-		} 
-}
 
 bool cell_definitions_by_name_constructed = false;
 
@@ -4917,15 +4751,14 @@ Cell_Definition* initialize_cell_definition_from_pugixml( pugi::xml_node cd_node
 		
 #ifdef ADDON_PHYSIBOSS
 		if (model_type == "maboss") {
-			// If it has already be copied
-			if (pParent != NULL && pParent->phenotype.intracellular != NULL) {
-				pCD->phenotype.intracellular->initialize_intracellular_from_pugixml(node);
-				
-			// Otherwise we need to create a new one
-			} else {
-				MaBoSSIntracellular* pIntra = new MaBoSSIntracellular(node);
-				pCD->phenotype.intracellular = pIntra->getIntracellularModel();
+			if( pCD->phenotype.intracellular != NULL )
+			{
+				delete pCD->phenotype.intracellular;
+				pCD->phenotype.intracellular = NULL;
 			}
+
+			MaBoSSIntracellular* pIntra = new MaBoSSIntracellular(node);
+			pCD->phenotype.intracellular = pIntra->getIntracellularModel();
 		}
 #endif
 
@@ -5310,4 +5143,4 @@ int find_cell_definition_index( int search_type )
 	return -1; 
 }  
 
-};s
+};

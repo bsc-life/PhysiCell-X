@@ -25,6 +25,10 @@ ifneq ($(OS), Windows_NT)
 	LDL_FLAG = -ldl
 endif
 
+ifeq ($(shell uname -s),Linux)
+	LINK_FLAGS := -no-pie
+endif
+
 LIB := -L$(CUR_DIR)/$(MABOSS_DIR)/lib -lMaBoSS-static $(LDL_FLAG)
 INC := -DADDON_PHYSIBOSS -I$(CUR_DIR)/$(MABOSS_DIR)/include -DMAXNODES=$(MABOSS_MAX_NODES)
 
@@ -32,6 +36,17 @@ INC := -DADDON_PHYSIBOSS -I$(CUR_DIR)/$(MABOSS_DIR)/include -DMAXNODES=$(MABOSS_
 ifeq ($(shell expr $(MABOSS_MAX_NODES) '>' 64), 1)
 LIB := -L$(CUR_DIR)/$(MABOSS_DIR)/lib -lMaBoSS_$(MABOSS_MAX_NODES)n-static $(LDL_FLAG)
 endif
+
+USE_JEMALLOC ?= 0
+JEMALLOC_LIB :=
+
+ifeq ($(USE_JEMALLOC),1)
+	# jemalloc include/library directories are expected to come from the
+	# environment, e.g. CPLUS_INCLUDE_PATH and LIBRARY_PATH.
+	JEMALLOC_LIB += -Wl,--no-as-needed -ljemalloc -Wl,--as-needed
+endif
+
+LIB += $(JEMALLOC_LIB)
 
 ARCH := native # best auto-tuning
 # ARCH := core2 # a reasonably safe default for most CPUs since 2007
@@ -52,9 +67,11 @@ ARCH := native # best auto-tuning
 # ARCH := nocona #64-bit pentium 4 or later 
 
 # CFLAGS := -march=$(ARCH) -Ofast -s -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11
-CFLAGS := -march=$(ARCH) -O3 -fomit-frame-pointer -mfpmath=both -m64 -std=c++11 -g -fopenmp
+CFLAGS := -march=$(ARCH) -O3 -fomit-frame-pointer -mfpmath=both -m64 -std=c++11 -g -fopenmp -DADDON_PHYSIBOSS -DMECHS_TIME
 
-COMPILE_COMMAND := $(CC) $(CFLAGS) 
+# Any TU that includes PhysiBoSS headers must see the same MAXNODES value,
+# otherwise inline virtual methods can be emitted with an incompatible layout.
+COMPILE_COMMAND := $(CC) $(CFLAGS) $(INC)
 
 DistPhy_OBJECTS:= DistPhy_Environment.o DistPhy_Cartesian.o DistPhy_Utils.o DistPhy_Collective.o
 
@@ -71,6 +88,8 @@ PhysiCell_pugixml.o PhysiCell_settings.o PhysiCell_pathology_SVG.o PhysiCell_geo
 
 # put your custom objects here (they should be in the custom_modules directory)
 
+PhysiBoSS_OBJECTS := maboss_network.o maboss_intracellular.o
+
 PhysiCell_custom_module_OBJECTS := custom.o tnf_boolean_model_interface.o
 
 pugixml_OBJECTS := pugixml.o
@@ -83,7 +102,7 @@ name:
 	@echo "\n\nExecutable name is " $(PROGRAM_NAME) " \n"
 	
 all: MaBoSS main.cpp $(ALL_OBJECTS)
-	$(COMPILE_COMMAND) $(INC) -o $(PROGRAM_NAME) $(ALL_OBJECTS) main.cpp $(LIB)
+	$(COMPILE_COMMAND) $(LINK_FLAGS) -o $(PROGRAM_NAME) $(ALL_OBJECTS) main.cpp $(LIB)
 
 # PhysiCell core components	
 DistPhy_Environment.o: ./DistPhy/DistPhy_Environment.cpp
@@ -105,7 +124,7 @@ PhysiCell_digital_cell_line.o: ./core/PhysiCell_digital_cell_line.cpp
 	$(COMPILE_COMMAND) -c ./core/PhysiCell_digital_cell_line.cpp
 
 PhysiCell_cell.o: ./core/PhysiCell_cell.cpp
-	$(COMPILE_COMMAND) $(INC) -c ./core/PhysiCell_cell.cpp
+	$(COMPILE_COMMAND) -c ./core/PhysiCell_cell.cpp
 
 PhysiCell_cell_mpi.o: ./core/PhysiCell_cell_mpi.cpp
 	$(COMPILE_COMMAND) -c ./core/PhysiCell_cell_mpi.cpp 
@@ -208,16 +227,16 @@ else
 endif
 
 maboss_network.o: ./addons/PhysiBoSS/src/maboss_network.cpp
-	$(COMPILE_COMMAND) $(INC) -c ./addons/PhysiBoSS/src/maboss_network.cpp
+	$(COMPILE_COMMAND) -c ./addons/PhysiBoSS/src/maboss_network.cpp
 
 maboss_intracellular.o: ./addons/PhysiBoSS/src/maboss_intracellular.cpp
-	$(COMPILE_COMMAND) $(INC) -c ./addons/PhysiBoSS/src/maboss_intracellular.cpp
+	$(COMPILE_COMMAND) -c ./addons/PhysiBoSS/src/maboss_intracellular.cpp
 
-custom.o: ./custom_modules/custom.cpp 
-	$(COMPILE_COMMAND) $(INC) -c ./custom_modules/custom.cpp
+custom.o: ./custom_modules/custom.cpp
+	$(COMPILE_COMMAND) -c ./custom_modules/custom.cpp
 	
-tnf_boolean_model_interface.o: ./custom_modules/tnf_boolean_model_interface.cpp 
-	$(COMPILE_COMMAND) $(INC) -c ./custom_modules/tnf_boolean_model_interface.cpp
+tnf_boolean_model_interface.o: ./custom_modules/tnf_boolean_model_interface.cpp
+	$(COMPILE_COMMAND) -c ./custom_modules/tnf_boolean_model_interface.cpp
 
 # cleanup
 

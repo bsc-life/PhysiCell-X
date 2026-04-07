@@ -249,12 +249,59 @@ void display_simulation_status( std::ostream& os )
 	BioFVM::display_stopwatch_value( os , BioFVM::stopwatch_value() ); 
 	os << std::endl; 
 	BioFVM::TIC(); 
-	
+
+	os << "MaBoSS updates: " << count_maboss_updates << " | avg wall time/update: ";
+	if( count_maboss_updates > 0 )
+	{
+		os << ( time_maboss_update / count_maboss_updates ) / 1000.0 << " ms";
+	}
+	else
+	{
+		os << "n/a";
+	}
+	os << std::endl;
+
+#ifdef MECHS_TIME
+	if( count_mechanics_timing_steps > 0 )
+	{
+		const double avg_scale = 1.0 / static_cast<double>( count_mechanics_timing_steps ) / 1000.0;
+		os << "MECHS_TIME avg/step: "
+			<< "gradients " << time_mechs_gradient_total * avg_scale << " ms | "
+			<< "halos " << time_mechs_halo_total * avg_scale << " ms | "
+			<< "potentials " << time_mechs_potential_total * avg_scale << " ms" << std::endl;
+		os << "                    "
+			<< "interactions " << time_mechs_interactions_total * avg_scale << " ms | "
+			<< "clear dummy " << time_mechs_clear_dummy_total * avg_scale << " ms | "
+			<< "positions " << time_mechs_update_position_total * avg_scale << " ms" << std::endl;
+		os << "                    "
+			<< "pack " << time_mechs_pack_total * avg_scale << " ms | "
+			<< "transfer " << time_mechs_transfer_total * avg_scale << " ms | "
+			<< "unpack " << time_mechs_unpack_total * avg_scale << " ms | "
+			<< "voxel update " << time_mechs_voxels_update_total * avg_scale << " ms" << std::endl;
+	}
+#endif
+		
 	os << "total wall time: "; 
 	BioFVM::RUNTIME_TOC();
 	BioFVM::display_stopwatch_value( os , BioFVM::runtime_stopwatch_value() ); 
 	os << std::endl << std::endl; 
-	
+
+	time_maboss_update = 0.0;
+	count_maboss_updates = 0;
+#ifdef MECHS_TIME
+	time_mechs_gradient_total = 0.0;
+	time_mechs_halo_total = 0.0;
+	time_mechs_potential_total = 0.0;
+	time_mechs_interactions_total = 0.0;
+	time_mechs_clear_dummy_total = 0.0;
+	time_mechs_update_position_total = 0.0;
+	time_mechs_pack_total = 0.0;
+	time_mechs_transfer_total = 0.0;
+	time_mechs_unpack_total = 0.0;
+	time_mechs_voxels_update_total = 0.0;
+	count_mechanics_timing_steps = 0;
+#endif
+		
 	return;
 }
 
@@ -286,14 +333,26 @@ void display_simulation_status( std::ostream& os, mpi_Environment &world, mpi_Ca
 	MPI_Reduce(&local_cells, &global_cells, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm); 
 	
 	double global_total, global_time_diff, global_time_mech, global_time_pheno, global_time_intracell;
+	double global_time_mech_sum = 0.0;
+	double global_time_maboss_update = 0.0;
 	double local_ram = getProcessMemoryGB();
 	double global_ram = 0.0;
+	unsigned long long global_maboss_updates = 0;
+	unsigned long long global_mechanics_cells = 0;
+	unsigned long long global_mechanics_neighbor_candidates = 0;
+	unsigned long long global_mechanics_neighbor_interactions = 0;
 	
 	MPI_Reduce(&time_diff, &global_time_diff, 1, MPI_DOUBLE, MPI_MAX, 0, cart_topo.mpi_cart_comm);
 	MPI_Reduce(&time_diff, &global_time_diff, 1, MPI_DOUBLE, MPI_MAX, 0, cart_topo.mpi_cart_comm);
 	MPI_Reduce(&time_mechs, &global_time_mech, 1, MPI_DOUBLE, MPI_MAX, 0, cart_topo.mpi_cart_comm);
+	MPI_Reduce(&time_mechs, &global_time_mech_sum, 1, MPI_DOUBLE, MPI_SUM, 0, cart_topo.mpi_cart_comm);
 	MPI_Reduce(&time_pheno, &global_time_pheno, 1, MPI_DOUBLE, MPI_MAX, 0, cart_topo.mpi_cart_comm);
 	MPI_Reduce(&time_intracell, &global_time_intracell, 1, MPI_DOUBLE, MPI_MAX, 0, cart_topo.mpi_cart_comm);
+	MPI_Reduce(&time_maboss_update, &global_time_maboss_update, 1, MPI_DOUBLE, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+	MPI_Reduce(&count_maboss_updates, &global_maboss_updates, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+	MPI_Reduce(&count_mechanics_cells, &global_mechanics_cells, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+	MPI_Reduce(&count_mechanics_neighbor_candidates, &global_mechanics_neighbor_candidates, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM, 0, cart_topo.mpi_cart_comm);
+	MPI_Reduce(&count_mechanics_neighbor_interactions, &global_mechanics_neighbor_interactions, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM, 0, cart_topo.mpi_cart_comm);
 	MPI_Reduce(&local_ram, &global_ram, 1, MPI_DOUBLE, MPI_SUM, 0, cart_topo.mpi_cart_comm);
 
 	if(IOProcessor(world))
@@ -307,17 +366,74 @@ void display_simulation_status( std::ostream& os, mpi_Environment &world, mpi_Ca
 		os <<  " | "  << global_ram << "GB "  << std::endl; 
 		BioFVM::TIC(); 
 
-		double global_total= global_time_diff + global_time_mech + global_time_pheno + global_time_intracell;
-		os << "time scales: ";
-		os << " diff " << (global_time_diff/ global_total) * 100 << "% | ";
-		os << " mechs " << (global_time_mech/ global_total) * 100 << "% | ";
-		os << " pheno " << (global_time_pheno/ global_total) * 100 << "% | ";
-		os << " intracell " << (global_time_intracell/ global_total) * 100 << "%  " << std::endl;
-		
-		
+			double global_total= global_time_diff + global_time_mech + global_time_pheno + global_time_intracell;
+			os << "time scales: ";
+			os << " diff " << (global_time_diff/ global_total) * 100 << "% | ";
+			os << " mechs " << (global_time_mech/ global_total) * 100 << "% | ";
+			os << " pheno " << (global_time_pheno/ global_total) * 100 << "% | ";
+			os << " intracell " << (global_time_intracell/ global_total) * 100 << "%  " << std::endl;
+			
+			os << "MaBoSS updates: " << global_maboss_updates << " | avg wall time/update: ";
+			if( global_maboss_updates > 0 )
+			{
+				os << ( global_time_maboss_update / global_maboss_updates ) / 1000.0 << " ms";
+			}
+			else
+			{
+				os << "n/a";
+			}
+			os << std::endl;
 
-		
-		os << "total wall time: "; 
+			os << "Mechanics cells: " << global_mechanics_cells << " | avg wall time/cell: ";
+			if( global_mechanics_cells > 0 )
+			{
+				os << ( global_time_mech_sum / global_mechanics_cells ) / 1000.0 << " ms";
+			}
+			else
+			{
+				os << "n/a";
+			}
+			os << " | avg candidate neighbors/cell: ";
+			if( global_mechanics_cells > 0 )
+			{
+				os << static_cast<double>( global_mechanics_neighbor_candidates ) / static_cast<double>( global_mechanics_cells );
+			}
+			else
+			{
+				os << "n/a";
+			}
+			os << " | avg interacting neighbors/cell: ";
+			if( global_mechanics_cells > 0 )
+			{
+				os << static_cast<double>( global_mechanics_neighbor_interactions ) / static_cast<double>( global_mechanics_cells );
+			}
+			else
+			{
+				os << "n/a";
+			}
+			os << std::endl;
+
+#ifdef MECHS_TIME
+			if( count_mechanics_timing_steps > 0 )
+			{
+				const double avg_scale = 1.0 / static_cast<double>( count_mechanics_timing_steps ) / 1000.0;
+				os << "MECHS_TIME avg/step: "
+					<< "gradients " << time_mechs_gradient_total * avg_scale << " ms | "
+					<< "halos " << time_mechs_halo_total * avg_scale << " ms | "
+					<< "potentials " << time_mechs_potential_total * avg_scale << " ms" << std::endl;
+				os << "                    "
+					<< "interactions " << time_mechs_interactions_total * avg_scale << " ms | "
+					<< "clear dummy " << time_mechs_clear_dummy_total * avg_scale << " ms | "
+					<< "positions " << time_mechs_update_position_total * avg_scale << " ms" << std::endl;
+				os << "                    "
+					<< "pack " << time_mechs_pack_total * avg_scale << " ms | "
+					<< "transfer " << time_mechs_transfer_total * avg_scale << " ms | "
+					<< "unpack " << time_mechs_unpack_total * avg_scale << " ms | "
+					<< "voxel update " << time_mechs_voxels_update_total * avg_scale << " ms" << std::endl;
+			}
+#endif
+			
+			os << "total wall time: "; 
 		BioFVM::RUNTIME_TOC();
 		BioFVM::display_stopwatch_value( os , BioFVM::runtime_stopwatch_value() ); 
 		os << std::endl << std::endl;
@@ -327,7 +443,25 @@ void display_simulation_status( std::ostream& os, mpi_Environment &world, mpi_Ca
 	time_mechs = 0.0;
 	time_pheno = 0.0;
 	time_intracell = 0.0;
-	
+	time_maboss_update = 0.0;
+	count_maboss_updates = 0;
+	count_mechanics_cells = 0;
+	count_mechanics_neighbor_candidates = 0;
+	count_mechanics_neighbor_interactions = 0;
+#ifdef MECHS_TIME
+	time_mechs_gradient_total = 0.0;
+	time_mechs_halo_total = 0.0;
+	time_mechs_potential_total = 0.0;
+	time_mechs_interactions_total = 0.0;
+	time_mechs_clear_dummy_total = 0.0;
+	time_mechs_update_position_total = 0.0;
+	time_mechs_pack_total = 0.0;
+	time_mechs_transfer_total = 0.0;
+	time_mechs_unpack_total = 0.0;
+	time_mechs_voxels_update_total = 0.0;
+	count_mechanics_timing_steps = 0;
+#endif
+		
 	return;
 }
 

@@ -625,6 +625,8 @@ void standard_update_cell_velocity( Cell* pCell, Phenotype& phenotype, double dt
 	}
 	
 	pCell->state.simple_pressure = 0.0; 
+	pCell->state.mechanics_neighbor_candidates = 0;
+	pCell->state.mechanics_neighbor_interactions = 0;
 	pCell->state.neighbors.clear(); // new 1.8.0
 	
 	//First check the neighbors in my current voxel
@@ -632,6 +634,9 @@ void standard_update_cell_velocity( Cell* pCell, Phenotype& phenotype, double dt
 	std::vector<Cell*>::iterator end = pCell->get_container()->agent_grid[pCell->get_current_mechanics_voxel_index()].end();
 	for(neighbor = pCell->get_container()->agent_grid[pCell->get_current_mechanics_voxel_index()].begin(); neighbor != end; ++neighbor)
 	{
+		if( *neighbor == pCell )
+		{ continue; }
+		pCell->state.mechanics_neighbor_candidates += 1;
 		pCell->add_potentials(*neighbor);
 	}
 	std::vector<int>::iterator neighbor_voxel_index;
@@ -648,6 +653,7 @@ void standard_update_cell_velocity( Cell* pCell, Phenotype& phenotype, double dt
 		end = pCell->get_container()->agent_grid[*neighbor_voxel_index].end();
 		for(neighbor = pCell->get_container()->agent_grid[*neighbor_voxel_index].begin();neighbor != end; ++neighbor)
 		{
+			pCell->state.mechanics_neighbor_candidates += 1;
 			pCell->add_potentials(*neighbor);
 		}
 	}
@@ -677,12 +683,17 @@ void standard_update_cell_velocity( Cell* pCell, Phenotype& phenotype, double dt
 	}
 	
 	pCell->state.simple_pressure = 0.0; 
+	pCell->state.mechanics_neighbor_candidates = 0;
+	pCell->state.mechanics_neighbor_interactions = 0;
 	pCell->state.neighbors.clear();
 	//First check the neighbors in my current voxel
 	std::vector<Cell*>::iterator neighbor;
 	std::vector<Cell*>::iterator end = pCell->get_container()->agent_grid[pCell->get_current_mechanics_voxel_index()].end();
 	for(neighbor = pCell->get_container()->agent_grid[pCell->get_current_mechanics_voxel_index()].begin(); neighbor != end; ++neighbor)
 	{
+		if( *neighbor == pCell )
+		{ continue; }
+		pCell->state.mechanics_neighbor_candidates += 1;
 		pCell->add_potentials(*neighbor);
 	}
 	
@@ -700,6 +711,7 @@ void standard_update_cell_velocity( Cell* pCell, Phenotype& phenotype, double dt
 		end = pCell->get_container()->agent_grid[*neighbor_voxel_index].end();
 		for(neighbor = pCell->get_container()->agent_grid[*neighbor_voxel_index].begin();neighbor != end; ++neighbor)
 		{
+			pCell->state.mechanics_neighbor_candidates += 1;
 			pCell->add_potentials(*neighbor);
 		}
 	}
@@ -759,6 +771,7 @@ void standard_update_cell_velocity( Cell* pCell, Phenotype& phenotype, double dt
 					continue;
 					
 				for(int cell_ctr=0; cell_ctr<mvi.moore_cells.size(); cell_ctr++) {
+					pCell->state.mechanics_neighbor_candidates += 1;
 					pCell->add_potentials(mvi.moore_cells[cell_ctr], world, cart_topo); 
 				}
 				
@@ -787,6 +800,7 @@ void standard_update_cell_velocity( Cell* pCell, Phenotype& phenotype, double dt
 					continue;
 					
 				for(int cell_ctr=0; cell_ctr<mvi.moore_cells.size(); cell_ctr++) {
+					pCell->state.mechanics_neighbor_candidates += 1;
 					pCell->add_potentials(mvi.moore_cells[cell_ctr], world, cart_topo);
 				}
 					 

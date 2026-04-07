@@ -136,12 +136,11 @@ Microenvironment::Microenvironment()
 
 	//diffusion_decay_solver_mpi = diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING;
 
-	/*------------------------------------------------------------------------------*/
-	/* Added this statment such that the new function pointer points to the new			*/
-	/* parallel prototype of the 3-D solver function. 															*/
-	/*------------------------------------------------------------------------------*/
+		/*------------------------------------------------------------------------------*/
+		/* Keep MPI runs on the AVX-enabled 3-D diffusion solver by default. 						*/
+		/*------------------------------------------------------------------------------*/
 
-	diffusion_decay_solver_mpi = diffusion_decay_solver__constant_coefficients_LOD_3D_AVX256D; 
+		diffusion_decay_solver_mpi = diffusion_decay_solver__constant_coefficients_LOD_3D_AVX256D; 
 
 	mesh.resize(1,1,1); 
 	
@@ -210,11 +209,9 @@ Microenvironment::Microenvironment()
 	return; 
 }
 
-Microenvironment::Microenvironment(std::string name)
-{	
-	Microenvironment();
-	this->name=name;
-	
+Microenvironment::Microenvironment(std::string name) : Microenvironment()
+{
+	this->name = name;
 	return; 
 }
 
@@ -762,6 +759,8 @@ void Microenvironment::add_density( void )
 {
 	// fix in PhysiCell preview November 2017 
 	// default_microenvironment_options.use_oxygen_as_first_field = false; 
+
+	unsigned int old_number_of_densities = number_of_densities();
 	
 	// update 1, 0 
 	zero.push_back( 0.0 ); 
@@ -776,9 +775,9 @@ void Microenvironment::add_density( void )
 	decay_rates.push_back( 0.0 ); 
 	
 	// update sources and such 
-	for( unsigned int i=1; i <= number_of_voxels() ; i++ )
+	for( unsigned int i = number_of_voxels(); i > 0 ; i-- )
 	{
-		int density_index = i * number_of_densities();
+		unsigned int density_index = i * old_number_of_densities;
 		std::vector<double>::iterator it1 = temporary_density_vectors1.begin();
 		std::vector<double>::iterator it2 = temporary_density_vectors2.begin();
 		it1 += density_index;
@@ -891,6 +890,8 @@ void Microenvironment::add_density( std::string name , std::string units )
 {
 	// fix in PhysiCell preview November 2017 
 	// default_microenvironment_options.use_oxygen_as_first_field = false; 
+
+	unsigned int old_number_of_densities = number_of_densities();
 	
 	// update 1, 0 
 	zero.push_back( 0.0 ); 
@@ -905,9 +906,9 @@ void Microenvironment::add_density( std::string name , std::string units )
 	decay_rates.push_back( 0.0 ); 
 	
 	// update sources and such 
-	for( unsigned int i=1; i <= number_of_voxels() ; i++ )
+	for( unsigned int i = number_of_voxels(); i > 0 ; i-- )
 	{
-		int density_index = i * number_of_densities();
+		unsigned int density_index = i * old_number_of_densities;
 		std::vector<double>::iterator it1 = temporary_density_vectors1.begin();
 		std::vector<double>::iterator it2 = temporary_density_vectors2.begin();
 		it1 += density_index;
@@ -966,6 +967,8 @@ void Microenvironment::add_density( std::string name , std::string units, double
 {
 	// fix in PhysiCell preview November 2017 
 	// default_microenvironment_options.use_oxygen_as_first_field = false; 
+
+	unsigned int old_number_of_densities = number_of_densities();
 	
 	// update 1, 0 
 	zero.push_back( 0.0 ); 
@@ -980,9 +983,9 @@ void Microenvironment::add_density( std::string name , std::string units, double
 	decay_rates.push_back( decay_rate ); 
 	
 	// update sources and such 
-	for( unsigned int i=1; i <= number_of_voxels() ; i++ )
+	for( unsigned int i = number_of_voxels(); i > 0 ; i-- )
 	{
-		int density_index = i * number_of_densities();
+		unsigned int density_index = i * old_number_of_densities;
 		std::vector<double>::iterator it1 = temporary_density_vectors1.begin();
 		std::vector<double>::iterator it2 = temporary_density_vectors2.begin();
 		it1 += density_index;
@@ -1235,11 +1238,11 @@ void Microenvironment::write_to_matlab( std::string filename )
 		// densities  
 
 		//Jose: can be optimezed by eliminating the loop
-		for( unsigned int j=0 ; j < number_of_densities() ; j++)
-		{ 
-			fwrite( (char*) &(p_density_vectors[density_index]) , sizeof(double) , 1 , fp ); 
-		  	++density_index;
-		}
+			for( unsigned int j=0 ; j < number_of_densities() ; j++)
+			{ 
+				fwrite( (char*) &((*p_density_vectors)[density_index]) , sizeof(double) , 1 , fp ); 
+			  	++density_index;
+			}
 	}
 
 	fclose( fp ); 
@@ -2484,11 +2487,7 @@ void load_initial_conditions_from_csv(std::string filename)
 void initialize_microenvironment( mpi_Environment &world, mpi_Cartesian &cart_topo )
 {
 	int coords[3];     //To store mpi_coords[] array for convenience - later needed for setting Dirichlet conditions
-<<<<<<< HEAD
   	int dims[3];       //To store mpi_dims[] array for convenience - later needed for Dirichlet conditions
-=======
-    int dims[3];       //To store mpi_dims[] array for convenience - later needed for Dirichlet conditions
->>>>>>> dev_biofvmb
 	
 	// create and name a microenvironment; 
 	microenvironment.name = default_microenvironment_options.name;
