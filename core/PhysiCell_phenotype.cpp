@@ -72,6 +72,10 @@
 #include "./PhysiCell_utilities.h"
 #include "./MPI_helper.h"
 
+#ifdef ADDON_PHYSIBOSS
+#include "../addons/PhysiBoSS/src/maboss_intracellular.h"
+#endif
+
 
 using namespace BioFVM; 
 
@@ -1583,14 +1587,23 @@ void Molecular::sync_to_microenvironment( Microenvironment* pNew_Microenvironmen
 
 void Molecular::sync_to_cell( Basic_Agent* pCell )
 {
-	delete pCell->internalized_substrates;
-	pCell->internalized_substrates = &internalized_total_substrates;
+	if( pCell->internalized_substrates != &internalized_total_substrates )
+	{
+		delete pCell->internalized_substrates;
+		pCell->internalized_substrates = &internalized_total_substrates;
+	}
 	
-	delete pCell->fraction_released_at_death;
-	pCell->fraction_released_at_death = &fraction_released_at_death; 
+	if( pCell->fraction_released_at_death != &fraction_released_at_death )
+	{
+		delete pCell->fraction_released_at_death;
+		pCell->fraction_released_at_death = &fraction_released_at_death; 
+	}
 	
-	delete pCell->fraction_transferred_when_ingested; 
-	pCell->fraction_transferred_when_ingested = &fraction_transferred_when_ingested; 
+	if( pCell->fraction_transferred_when_ingested != &fraction_transferred_when_ingested )
+	{
+		delete pCell->fraction_transferred_when_ingested; 
+		pCell->fraction_transferred_when_ingested = &fraction_transferred_when_ingested; 
+	}
 
 	return; 
 }
@@ -1758,6 +1771,13 @@ Phenotype::~Phenotype()
 
 Phenotype& Phenotype::operator=(const Phenotype &p ) 
 { 
+	if( this == &p )
+	{ return *this; }
+
+	Intracellular* new_intracellular = NULL;
+	if( p.intracellular != NULL )
+	{ new_intracellular = p.intracellular->clone(); }
+
 		
 	flagged_for_division = p.flagged_for_division;
 	flagged_for_removal = p.flagged_for_removal;
@@ -1769,18 +1789,13 @@ Phenotype& Phenotype::operator=(const Phenotype &p )
 	mechanics = p.mechanics;
 	motility = p.motility;
 	secretion = p.secretion;
-	
+
 	molecular = p.molecular;
 
 	cell_integrity = p.cell_integrity; 
 	
 	delete intracellular;
-	
-	if (p.intracellular != NULL)
-		{intracellular = p.intracellular->clone();}
-	else {
-		intracellular = NULL;
-	}
+	intracellular = new_intracellular;
 
 	cell_interactions = p.cell_interactions; 
 	cell_transformations = p.cell_transformations; 	
@@ -1868,17 +1883,31 @@ void Phenotype::unpack(std::vector<char>& rcv_buffer, int& len_buffer, int& posi
 	std::string temp_str;
                 
 	unpack_buff(temp_str, rcv_buffer, len_buffer, position);
-			
-#ifdef ADDON_PHYSIBOSS
 
-	if(this->phenotype.intracellular != NULL)			//Added by Gaurav Saxena
-		if (this->phenotype.intracellular->intracellular_type.compare("maboss") == 0) 
+	if (temp_str == "not-maboss")
+	{
+		if (this->intracellular != NULL)
 		{
-			MaBoSSIntracellular* t_intracellular = static_cast<MaBoSSIntracellular*>(this->phenotype.intracellular); 
-			t_intracellular->unpack(rcv_buffer, len_buffer, position);	
+			delete this->intracellular;
+			this->intracellular = NULL;
 		}
-				
+	}
+	else
+	{
+#ifdef ADDON_PHYSIBOSS
+		if (temp_str.compare("maboss") == 0)
+		{
+			if (this->intracellular == NULL || this->intracellular->intracellular_type.compare("maboss") != 0)
+			{
+				delete this->intracellular;
+				this->intracellular = new MaBoSSIntracellular();
+			}
+
+			MaBoSSIntracellular* t_intracellular = static_cast<MaBoSSIntracellular*>(this->intracellular);
+			t_intracellular->unpack(rcv_buffer, len_buffer, position);
+		}
 #endif
+	}
 
 	this->cell_interactions.unpack(rcv_buffer, len_buffer, position);
 

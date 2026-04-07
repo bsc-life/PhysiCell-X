@@ -6,17 +6,25 @@
 /* Default constructor */
 void MaBoSSNetwork::init_maboss( std::string networkFile, std::string configFile)
 {
+	if (this->engine != NULL) {
+		delete this->engine;
+		this->engine = NULL;
+	}
+
 	if (this->network != NULL) {
 		delete this->network;
+		this->network = NULL;
 	}
 	
 	if (this->config != NULL) {
 		delete this->config;
+		this->config = NULL;
 	}
-	
-	if (this->engine != NULL) {
-		delete this->engine;
-	}
+
+	this->nodesByName.clear();
+	this->parametersByName.clear();
+	this->state = NetworkState();
+	this->output_mask = NetworkState();
 	
 	try{
 		

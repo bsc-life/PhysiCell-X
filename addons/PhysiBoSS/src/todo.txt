@@ -1,7 +1,0 @@
-Jose Luis 28 de mayo
-
-1) Hay que hacer una clase helper_mpi que sirva para MPI_pack varias estructuras de datos desde int, vector<T> , string, map<{int,string,}, {bool, string,etc}>
-
-2) Voy por maboss_intracellular:341 y me toca empacar la classe MaboSSNetwork en maboss_network.h
-
-3) Test enviar una celula -> esto significa que hemos actualizado el core de physicell

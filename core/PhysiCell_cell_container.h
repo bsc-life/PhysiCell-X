@@ -82,6 +82,22 @@ using namespace DistPhy::mpi;
 
 namespace PhysiCell{
 extern double time_diff, time_mechs, time_pheno, time_intracell;
+extern double time_maboss_update;
+extern double time_mechs_gradient_total;
+extern double time_mechs_halo_total;
+extern double time_mechs_potential_total;
+extern double time_mechs_interactions_total;
+extern double time_mechs_clear_dummy_total;
+extern double time_mechs_update_position_total;
+extern double time_mechs_pack_total;
+extern double time_mechs_transfer_total;
+extern double time_mechs_unpack_total;
+extern double time_mechs_voxels_update_total;
+extern unsigned long long count_maboss_updates;
+extern unsigned long long count_mechanics_cells;
+extern unsigned long long count_mechanics_neighbor_candidates;
+extern unsigned long long count_mechanics_neighbor_interactions;
+extern unsigned long long count_mechanics_timing_steps;
 class Cell;
 
 /*==========================================================================================*/
@@ -193,6 +209,10 @@ class Cell_Container : public BioFVM::Agent_Container
 	std::vector<char> snd_buf_right;
 	std::vector<char> rcv_buf_left;
 	std::vector<char> rcv_buf_right;
+	std::vector<int> snd_pos_left; //To store the position of each cell's data in the snd_buf_left
+	std::vector<int> snd_pos_right; //To store the position of each cell's data in the snd_buf_right
+	std::vector<int> rcv_pos_left; //To store the position of each cell's data in the rcv_buf_left
+	std::vector<int> rcv_pos_right; //To store the position of each cell's data in the rcv_buf_right
 	
 	/*--------------------------------------------------------------------------------------------------*/
 	/* Added by Gaurav Saxena																																						*/
@@ -283,6 +303,7 @@ class Cell_Container : public BioFVM::Agent_Container
 	
 	void pack(std::vector<Cell*> *all_cells, mpi_Environment &world, mpi_Cartesian &cart_topo);
 	void unpack(mpi_Environment &world, mpi_Cartesian &cart_topo); //As of now this is a dummy function
+	void unpack_parallel(mpi_Environment &world, mpi_Cartesian &cart_topo);
 	void send(Cell* pCell,int position,std::vector<char> snd_buf,mpi_Environment &world, mpi_Cartesian &cart_topo);
 
 	/*------------------------------------------------------------------------*/

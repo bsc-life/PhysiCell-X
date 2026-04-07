@@ -22,5 +22,7 @@ core/doubts.txt
 
 #Results
 output/
+logs/
 
 .DS_Store
+.codex

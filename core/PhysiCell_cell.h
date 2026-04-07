@@ -160,6 +160,8 @@ class Cell_State
 	std::vector<double> orientation;
 	
 	double simple_pressure; 
+	unsigned int mechanics_neighbor_candidates;
+	unsigned int mechanics_neighbor_interactions;
 	
 	int number_of_attached_cells( void ); 
 	
@@ -224,6 +226,8 @@ class Cell : public Basic_Agent
 
 	void unpack(std::vector<char>& rcv_buffer, int& len_buffer, int& position);
 	void pack(std::vector<char>& rcv_buffer, int& len_buffer, int& position);
+	void unpack_light(std::vector<char>& rcv_buffer, int& len_buffer, int& position);
+	void pack_light(std::vector<char>& rcv_buffer, int& len_buffer, int& position);
 	void initialize_random(); //testing purposes only
 	
 	void flag_for_division( void ); // done 

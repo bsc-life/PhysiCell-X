@@ -152,24 +152,8 @@ void Cell_Container::evaluate_cell_elastic_interactions( PhysiCell::Cell *pCell 
 
 void Cell_Container::exchange_mechanics_halos(mpi_Environment &world, mpi_Cartesian &cart_topo) {
     // Exchange ghost cells for mechanical potentials and cell-cell interactions once per mechanics step.
-#ifdef MECHS_TIME 
-    auto start = std::chrono::high_resolution_clock::now();
-#endif
     pack_moore_info(world, cart_topo);
-#ifdef MECHS_TIME 
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-    if (world.rank == 0)
-        std::cout << "\t\t\tPack Moore info: " << duration.count() << " microseconds"<< std::endl;
-    start = std::chrono::high_resolution_clock::now();
-#endif 
     //pack_cell_interact_info(world, cart_topo);
-#ifdef MECHS_TIME
-    end = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-    if (world.rank == 0)
-        std::cout << "\t\t\tPack cell interact info: " << duration.count() << " microseconds"<< std::endl;
-#endif
 }
 
 void Cell_Container::evaluate_cell_cell_interactions(double time_since_last_mechanics,  mpi_Environment &world, mpi_Cartesian &cart_topo) {
@@ -215,4 +199,355 @@ void Cell_Container::update_cell_potentials(double time_since_last_mechanics,  m
         }
     }	
 }
-};
+
+void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+
+	int len_snd_buf_left  	 = 0;
+	int len_snd_buf_right 	 = 0;
+
+	int 	temp_int;
+	double 	temp_double;
+	std::string temp_str;
+	std::unordered_map<std::string, int> :: iterator it;
+	Cell *pCell;
+
+
+	int len_int  = 0;
+	int len_double  = 0;
+	int len_str = 0;
+	int len_vector = 0;
+
+	position_left 			= 0;					//Must be initialized to 0
+	position_right 			= 0;					//Must be initialized to 0
+	no_cells_cross_left  	= 0;					//Must be initialized to 0
+	no_cells_cross_right	= 0;					//Must be initialized to 0
+	no_of_cells_from_right 	= 0;
+	no_of_cells_from_left 	= 0;
+
+	snd_buf_left.resize(0); 					//When we enter function again, this is reset
+	snd_buf_right.resize(0);					//Reset the others also
+	rcv_buf_left.resize(0);
+	rcv_buf_right.resize(0);
+    snd_pos_left.resize(0);
+    snd_pos_right.resize(0);
+    rcv_pos_left.resize(0);
+    rcv_pos_right.resize(0);
+
+
+	/*--------------------------------------------------------------------------------*/
+	/* First count the number of cells crossing to left subdomain and right subdomain */
+	/*--------------------------------------------------------------------------------*/
+
+	for(int i=0; i<(*all_cells).size();i++)
+	{
+		pCell = (*all_cells)[i];
+		if(pCell->crossed_to_left_subdomain == true)
+			no_cells_cross_left++;
+		if(pCell->crossed_to_right_subdomain == true)
+			no_cells_cross_right++;
+	}
+
+    snd_pos_left.resize(no_cells_cross_left);
+    snd_pos_right.resize(no_cells_cross_right);
+	/*-----------------------------------------------------------------------------------*/
+	/* There is no need to pack crossed_to_left_subdomain and crossed_to_right_subdomain */
+	/* as we send these two fields as the First Communication between MPI processes. 	 */
+	/* Also try to send the length of the buffer to be allocated when sending.			 */
+	/*-----------------------------------------------------------------------------------*/
+
+  //std::cout<<"Total cells crossing to left in Rank "<<world.rank<<":"<<no_cells_cross_left<<std::endl;
+	//std::cout<<"Total cells crossing to right in Rank "<<world.rank<<":"<<no_cells_cross_right<<std::endl;
+
+	/* IMPORTANT: CANNOT USE #pragma omp for HERE AS ALL THREADS WILL WRITE TO THE SAME SHARED BUFFER */
+	int left = 0;
+	int right = 0;
+	int right_prev, left_prev;
+	left_prev = 0;
+	right_prev = 0;
+	for(int i=0; i<(*all_cells).size();i++)
+	{
+		pCell = (*all_cells)[i];
+
+		if(pCell->crossed_to_left_subdomain == true)
+		{
+            snd_pos_left[left] = position_left;
+			//pCell->pack(snd_buf_left, len_snd_buf_left, position_left);
+			pCell->pack_light(snd_buf_left, len_snd_buf_left, position_left);
+			left++;
+		}
+		else if(pCell->crossed_to_right_subdomain == true)
+		{
+            snd_pos_right[right] = position_right;
+			//pCell->pack(snd_buf_right, len_snd_buf_right, position_right);
+			pCell->pack_light(snd_buf_right, len_snd_buf_right, position_right);
+			right++;
+		}
+	}
+ }
+
+		
+
+
+
+
+void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+
+		/*---------------------------------------------------------------------------*/
+		/* position_left/right are members of class Cell_Container and contain the 	 */
+		/* size of the buffers to be sent to the left and right neighbour, respect.	 */
+		/* Since their purpose gets over after packing and sending/receiving, they	 */
+		/* can be used for storing the position we are at in the recv buffers				 */
+		/* (See beginning of Cell_Container::pack() function for 10 data members		 */
+		/* relevant to packing, sending/receiving, unpacking data)  								 */
+		/*---------------------------------------------------------------------------*/
+
+		position_left  = 0;
+		position_right = 0;
+
+		/* Temporary variables to help in unpacking */
+
+		
+		int size_left, size_right;
+		int cell_ID = 0;
+		double cell_position[3];
+
+		int 	 				temp_int;
+		double 				temp_double;
+		std::string 	temp_str;
+		char 					*temp_char_array;
+		double 				*temp_double_array;
+		int 					temp_key_value[2];
+
+		std::unordered_map<std::string, int> :: iterator it;
+		std::vector<double> temp_double_vector;
+
+		int len_int 		 		= 0;
+		int len_double 	 		= 0;
+		int len_str 		 		= 0;
+		int len_vector	 		= 0;
+		int len_vector_nest = 0;
+		
+		int right = 0;
+		int left = 0;
+		auto start_time = std::chrono::high_resolution_clock::now();
+		if(no_of_cells_from_right > 0)
+		{
+			size_right = rcv_buf_right.size();
+
+			/*-------------------------------------------------------------------------------------------------*/
+			/* IMPORTANT: need to start a for(int i=0; i<no_of_cells_from_right; i++) here BUT cannot put this */
+			/* loop BEFORE completing the unpacking, as the next cell would get filled with wrong values 			 */
+			/* so complete unpacking of 1 cell first THEN put the loop 																				 */
+			/*-------------------------------------------------------------------------------------------------*/
+                //#pragma omp parallel for
+				for(int loop_ctr = 0; loop_ctr < no_of_cells_from_right; loop_ctr++)
+				{
+					Cell *pCell = create_cell(cell_ID);
+                    
+                    //int  pos = rcv_pos_right[loop_ctr]; 
+
+					//pCell->unpack(rcv_buf_right, size_right, position_right);
+					pCell->unpack_light(rcv_buf_right, size_right, position_right);
+					++right;
+
+					pCell->assign_position(pCell->position[0], pCell->position[1], pCell->position[2], world, cart_topo);
+					/*
+					std::cout << "\t\t\t\t[Rank " << world.rank << " ] Unpacked cell ID: " << pCell->ID << " at position: (" 
+					          << pCell->position[0] << "," << pCell->position[1] << "," << pCell->position[2] << ")  velocity: (" 
+					          << pCell->velocity[0] << "," << pCell->velocity[1] << "," << pCell->velocity[2] << ") from RIGHT" 
+					          << std::endl;*/
+		 		}	 
+		}
+
+		if(no_of_cells_from_left > 0)
+		{
+			 size_left = rcv_buf_left.size();
+
+			/*-------------------------------------------------------------------------------------------------*/
+			/* IMPORTANT: need to start a for(int i=0; i<no_of_cells_from_left; i++) here BUT cannot put this */
+			/* loop BEFORE completing the unpacking, as the next cell would get filled with wrong values 			 */
+			/* so complete unpacking of 1 cell first THEN put the loop 																				 */
+			/*-------------------------------------------------------------------------------------------------*/
+                //#pragma omp parallel for
+				for(int loop_ctr = 0; loop_ctr < no_of_cells_from_left; loop_ctr++)
+				{
+					Cell *pCell = create_cell(cell_ID);
+
+                    int  pos = rcv_pos_left[loop_ctr];
+
+					//pCell->unpack(rcv_buf_left, size_left, position_left);
+					pCell->unpack_light(rcv_buf_left, size_left, position_left);
+					
+					pCell->assign_position(pCell->position[0], pCell->position[1], pCell->position[2], world, cart_topo);
+					++left;
+					/*
+					std::cout << "\t\t\t\t[Rank " << world.rank << " ] Unpacked cell ID: " << pCell->ID << " at position: (" 
+					          << pCell->position[0] << "," << pCell->position[1] << "," << pCell->position[2] << ")  velocity: (" 
+					          << pCell->velocity[0] << "," << pCell->velocity[1] << "," << pCell->velocity[2] << ") from LEFT" 
+					          << std::endl;*/
+				}
+		}
+		auto end_time = std::chrono::high_resolution_clock::now();
+		auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
+		/*
+		if (no_of_cells_from_left + no_of_cells_from_right > 0) {
+			std::cout << "\t [Rank " << world.rank << " ] Unpacking completed in avg time per cell " << duration.count()/(no_of_cells_from_left+no_of_cells_from_right) << " microseconds. " << std::endl;
+			std::cout << "\t [Rank " << world.rank << " ] Unpacking completed total time " << duration.count() << " microseconds for cells: " << no_of_cells_from_left + no_of_cells_from_right << std::endl;
+		}*/
+}
+
+void Cell_Container::unpack_parallel(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	int len_rcv_buf_left = rcv_buf_left.size();
+	int len_rcv_buf_right = rcv_buf_right.size();
+
+	std::vector<Cell*> new_cells_from_left(no_of_cells_from_left, nullptr);
+	std::vector<Cell*> new_cells_from_right(no_of_cells_from_right, nullptr);
+	auto start_time = std::chrono::high_resolution_clock::now();
+	#pragma omp parallel for schedule(static)
+	for( int i = 0; i < no_of_cells_from_left; i++ )
+	{
+		// Use the received byte offsets to unpack independent cells concurrently.
+		Cell* pCell = new Cell(0);
+		int pos = rcv_pos_left[i];
+		//pCell->unpack(rcv_buf_left, len_rcv_buf_left, pos);
+		pCell->unpack_light(rcv_buf_left, len_rcv_buf_left, pos);
+		new_cells_from_left[i] = pCell;
+	}
+
+	#pragma omp parallel for schedule(static)
+	for( int i = 0; i < no_of_cells_from_right; i++ )
+	{
+		Cell* pCell = new Cell(0);
+		int pos = rcv_pos_right[i];
+		//pCell->unpack(rcv_buf_right, len_rcv_buf_right, pos);
+		pCell->unpack_light(rcv_buf_right, len_rcv_buf_right, pos);
+		new_cells_from_right[i] = pCell;
+	}
+	auto end_time = std::chrono::high_resolution_clock::now();
+	auto duration_part = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
+	/*
+	if (no_of_cells_from_left + no_of_cells_from_right > 0) {
+		std::cout << "\t [Rank " << world.rank << " ] Unpacking completed in avg time per cell " << duration_part.count()/(no_of_cells_from_left+no_of_cells_from_right) << " microseconds. " << std::endl;
+		std::cout << "\t [Rank " << world.rank << " ] Unpacking completed total time " << duration_part.count() << " microseconds for cells: " << no_of_cells_from_left + no_of_cells_from_right << std::endl;
+	}*/
+	// Integration into global cell storage and mechanics voxels remains serialized
+	// because all_cells and agent_grid are shared mutable containers.
+	start_time = std::chrono::high_resolution_clock::now();
+	for( int i = 0; i < no_of_cells_from_right; i++ )
+	{
+		Cell* pCell = new_cells_from_right[i];
+		(*all_cells).push_back( pCell );
+		pCell->index = (*all_cells).size() - 1;
+		pCell->assign_position(pCell->position[0], pCell->position[1], pCell->position[2], world, cart_topo);
+	}
+
+	for( int i = 0; i < no_of_cells_from_left; i++ )
+	{
+		Cell* pCell = new_cells_from_left[i];
+		(*all_cells).push_back( pCell );
+		pCell->index = (*all_cells).size() - 1;
+		pCell->assign_position(pCell->position[0], pCell->position[1], pCell->position[2], world, cart_topo);
+	}
+	end_time = std::chrono::high_resolution_clock::now();
+	auto duration_integration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
+	//if (no_of_cells_from_left + no_of_cells_from_right > 0) {
+	//	std::cout << "\t [Rank " << world.rank << " ] Integration of unpacked cells completed in avg time per cell " << duration_integration.count()/(no_of_cells_from_left+no_of_cells_from_right) << " microseconds. " << std::endl;
+	//	std::cout << "\t [Rank " << world.rank << " ] Integration of unpacked cells completed total time " << duration_integration.count() << " microseconds for cells: " << no_of_cells_from_left + no_of_cells_from_right << std::endl;
+	//}
+}
+
+/*
+void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+
+	int len_snd_buf_left  	 = 0;
+	int len_snd_buf_right 	 = 0;
+
+	Cell*pCell;
+
+	position_left 			 		= 0;					//Must be initialized to 0
+	position_right 			 		= 0;					//Must be initialized to 0
+	no_cells_cross_left  		= 0;					//Must be initialized to 0
+	no_cells_cross_right		= 0;					//Must be initialized to 0
+	no_of_cells_from_right 	= 0;
+	no_of_cells_from_left 	= 0;
+
+	snd_buf_left.resize(0); 					//When we enter function again, this is reset
+	snd_buf_right.resize(0);					//Reset the others also
+	rcv_buf_left.resize(0);
+	rcv_buf_right.resize(0);
+    snd_pos_left.clear();
+    snd_pos_right.clear();
+
+	for(int i=0; i<(*all_cells).size();i++)
+	{
+		pCell = (*all_cells)[i];
+		if(pCell->crossed_to_left_subdomain == true)
+			no_cells_cross_left++;
+		if(pCell->crossed_to_right_subdomain == true)
+			no_cells_cross_right++;
+	}
+
+    snd_pos_left.reserve(no_cells_cross_left);
+    snd_pos_right.reserve(no_cells_cross_right);
+    
+    int right = 0;
+    int left = 0;
+	
+	for(int i=0; i<(*all_cells).size();i++)
+	{
+		pCell = (*all_cells)[i];
+
+		if(pCell->crossed_to_left_subdomain == true){
+            snd_pos_left[left] = position_left;
+			pCell->pack(snd_buf_left, len_snd_buf_left, position_left);
+			left++;
+		}
+		if(pCell->crossed_to_right_subdomain == true){
+            snd_pos_right[right] = position_right;
+			pCell->pack(snd_buf_right, len_snd_buf_right, position_right);
+			right++;
+		}
+    }
+ }
+
+ void Cell_Container::unpack( mpi_Environment &world, mpi_Cartesian &cart_topo){
+
+    std::vector<Cell*> new_cells_from_left;
+    std::vector<Cell*> new_cells_from_right;
+
+    int len_rcv_buf_left = rcv_buf_left.size(); 
+    int len_rcv_buf_right = rcv_buf_right.size();
+
+    for (int i = 0; i < no_of_cells_from_left; ++i)
+    {
+        Cell* new_cell = new Cell();
+        new_cell->unpack(rcv_buf_left, len_rcv_buf_left, rcv_pos_left[i] );
+        new_cells_from_left.push_back(new_cell);
+    }
+    for (int i = 0; i < no_of_cells_from_right; ++i)
+    {
+        Cell* new_cell = new Cell();
+        new_cell->unpack(rcv_buf_right, len_rcv_buf_right, rcv_pos_right[i]);
+        new_cells_from_right.push_back(new_cell);
+    }
+
+    for (Cell* cell : new_cells_from_left)
+    {
+        cell->assign_position(cell->position);
+        (*all_cells).push_back(cell);
+    }
+    for (Cell* cell : new_cells_from_right)
+    {
+        cell->assign_position(cell->position);
+        (*all_cells).push_back(cell);
+    }
+
+ }
+
+*/
+
+} // namespace PhysiCell

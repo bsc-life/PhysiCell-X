@@ -87,7 +87,7 @@
 	</domain>
 	
 	<overall>
-		<max_time units="min">2000</max_time> <!-- 300000 -->
+		<max_time units="min">300000</max_time> <!-- 1 days * 24 h * 60 min -->
 		<time_units>min</time_units>
 		<space_units>micron</space_units>
 	
@@ -101,10 +101,10 @@
 	</parallel> 
 	
 	<save>
-		<folder>%%output%%</folder> <!-- use . for root --> 
+		<folder>output_0</folder> <!-- use . for root --> 
 
 		<full_data>
-			<interval units="min">100</interval>
+			<interval units="min">1000</interval>
 			<enable>true</enable>
 		</full_data>
 		
@@ -146,11 +146,11 @@
  		
  	<variable name="drug_A" units="dimensionless" ID="1">
       <physical_parameter_set>
-			<diffusion_coefficient units="micron^2/min">1000</diffusion_coefficient>
+			<diffusion_coefficient units="micron^2/min">2000</diffusion_coefficient>
 			<decay_rate units="1/min">0.1</decay_rate> 
     	</physical_parameter_set>
     	<initial_condition units="mmHg">0</initial_condition>
-		<Dirichlet_boundary_condition units="mmHg" enabled="true">0</Dirichlet_boundary_condition>
+		<Dirichlet_boundary_condition units="mmHg" enabled="false">0</Dirichlet_boundary_condition>
 		<Dirichlet_options>
 			<boundary_value ID="xmin" enabled="false">0</boundary_value>
 			<boundary_value ID="xmax" enabled="false">0</boundary_value>
@@ -719,7 +719,7 @@
 		<blood_source_file type="string" units="">./config/cilindro_enndo.tsv</blood_source_file>
 	
 		
-		<drug_conc type="double" units="" description="">%%C%%</drug_conc> 
+		<drug_conc type="double" units="" description="">2.5e-05</drug_conc> 
 
 		
 		<hill_coeff_pressure type="double" units="1/min">15.0</hill_coeff_pressure>

@@ -23,6 +23,620 @@
 
 using namespace PhysiCell;
 
+namespace
+{
+
+void sync_secretion_to_cell(Cell* pCell)
+{
+	if( pCell->secretion_rates != &(pCell->phenotype.secretion.secretion_rates) )
+	{
+		delete pCell->secretion_rates;
+		delete pCell->uptake_rates;
+		delete pCell->saturation_densities;
+		delete pCell->net_export_rates;
+
+		pCell->secretion_rates = &(pCell->phenotype.secretion.secretion_rates);
+		pCell->uptake_rates = &(pCell->phenotype.secretion.uptake_rates);
+		pCell->saturation_densities = &(pCell->phenotype.secretion.saturation_densities);
+		pCell->net_export_rates = &(pCell->phenotype.secretion.net_export_rates);
+	}
+}
+
+void restore_cell_from_definition(Cell* pCell, Cell_Definition* pCD)
+{
+	if( pCD == NULL )
+	{
+		return;
+	}
+
+	pCell->type = pCD->type;
+	pCell->type_name = pCD->name;
+	pCell->custom_data = pCD->custom_data;
+	pCell->parameters = pCD->parameters;
+	pCell->functions = pCD->functions;
+	pCell->phenotype = pCD->phenotype;
+	pCell->is_movable = pCD->is_movable;
+
+	pCell->phenotype.cycle.sync_to_cycle_model( pCD->functions.cycle_model );
+
+	BioFVM::Microenvironment* pMicroenvironment = pCell->get_microenvironment();
+	if( pMicroenvironment != NULL )
+	{
+		pCell->phenotype.sync_to_microenvironment( pMicroenvironment );
+	}
+
+	pCell->phenotype.motility.sync_to_current_microenvironment();
+	pCell->phenotype.mechanics.sync_to_cell_definitions();
+	pCell->phenotype.cell_interactions.sync_to_cell_definitions();
+	pCell->phenotype.cell_transformations.sync_to_cell_definitions();
+	pCell->phenotype.cycle.asymmetric_division.sync_to_cell_definitions();
+	pCell->phenotype.molecular.sync_to_cell( pCell );
+	sync_secretion_to_cell( pCell );
+}
+
+struct Cycle_Model_Selector
+{
+	int kind;
+	int death_model_index;
+	int code;
+	std::string name;
+};
+
+bool cycle_model_matches(Cycle_Model* pModel, const Cycle_Model_Selector& selector)
+{
+	if( pModel == NULL )
+	{
+		return false;
+	}
+
+	return pModel->code == selector.code && pModel->name == selector.name;
+}
+
+bool cycle_model_matches_loose(Cycle_Model* pModel, const Cycle_Model_Selector& selector)
+{
+	if( pModel == NULL )
+	{
+		return false;
+	}
+
+	return pModel->code == selector.code || pModel->name == selector.name;
+}
+
+Cycle_Model* definition_main_cycle_model(Cell_Definition* pCD)
+{
+	if( pCD == NULL )
+	{
+		return NULL;
+	}
+
+	return &(pCD->functions.cycle_model);
+}
+
+Cycle_Model* definition_death_cycle_model(Cell_Definition* pCD, int death_model_index)
+{
+	if( pCD == NULL )
+	{
+		return NULL;
+	}
+
+	if( death_model_index < 0 ||
+		death_model_index >= static_cast<int>( pCD->phenotype.death.models.size() ) )
+	{
+		return NULL;
+	}
+
+	return pCD->phenotype.death.models[death_model_index];
+}
+
+Cycle_Model_Selector make_cycle_model_selector(Cell* pCell)
+{
+	Cycle_Model_Selector selector;
+	selector.kind = 0;
+	selector.death_model_index = -1;
+	selector.code = -1;
+	selector.name.clear();
+
+	if( pCell == NULL )
+	{
+		return selector;
+	}
+
+	Cycle_Model* pModel = pCell->phenotype.cycle.pCycle_Model;
+	if( pModel == NULL )
+	{
+		pModel = &(pCell->functions.cycle_model);
+	}
+
+	if( pModel == &(pCell->functions.cycle_model) )
+	{
+		selector.kind = 0;
+	}
+	else
+	{
+		selector.kind = 2;
+		for( int i = 0 ; i < static_cast<int>( pCell->phenotype.death.models.size() ) ; i++ )
+		{
+			if( pCell->phenotype.death.models[i] == pModel )
+			{
+				selector.kind = 1;
+				selector.death_model_index = i;
+				break;
+			}
+		}
+	}
+
+	if( pModel != NULL )
+	{
+		selector.code = pModel->code;
+		selector.name = pModel->name;
+	}
+
+	return selector;
+}
+
+void pack_cycle_model_selector_light(Cell* pCell, std::vector<char>& buffer, int& len_buffer, int& position)
+{
+	Cycle_Model_Selector selector = make_cycle_model_selector( pCell );
+	pack_buff( selector.kind , buffer, len_buffer, position );
+	pack_buff( selector.death_model_index , buffer, len_buffer, position );
+	pack_buff( selector.code , buffer, len_buffer, position );
+	pack_buff( selector.name , buffer, len_buffer, position );
+}
+
+Cycle_Model_Selector unpack_cycle_model_selector_light(std::vector<char>& buffer, int& len_buffer, int& position)
+{
+	Cycle_Model_Selector selector;
+	selector.kind = 0;
+	selector.death_model_index = -1;
+	selector.code = -1;
+
+	unpack_buff( selector.kind , buffer, len_buffer, position );
+	unpack_buff( selector.death_model_index , buffer, len_buffer, position );
+	unpack_buff( selector.code , buffer, len_buffer, position );
+	unpack_buff( selector.name , buffer, len_buffer, position );
+
+	return selector;
+}
+
+Cycle_Model* resolve_cycle_model_selector(Cell_Definition* pCD, const Cycle_Model_Selector& selector)
+{
+	if( pCD == NULL )
+	{
+		return NULL;
+	}
+
+	Cycle_Model* pMainModel = definition_main_cycle_model( pCD );
+
+	if( selector.kind == 1 )
+	{
+		Cycle_Model* pDeathModel = definition_death_cycle_model( pCD , selector.death_model_index );
+		if( pDeathModel != NULL )
+		{
+			return pDeathModel;
+		}
+	}
+
+	if( selector.kind == 0 )
+	{
+		return pMainModel;
+	}
+
+	if( cycle_model_matches( pMainModel , selector ) )
+	{
+		return pMainModel;
+	}
+
+	for( int i = 0 ; i < static_cast<int>( pCD->phenotype.death.models.size() ) ; i++ )
+	{
+		Cycle_Model* pDeathModel = definition_death_cycle_model( pCD , i );
+		if( cycle_model_matches( pDeathModel , selector ) )
+		{
+			return pDeathModel;
+		}
+	}
+
+	if( cycle_model_matches_loose( pMainModel , selector ) )
+	{
+		return pMainModel;
+	}
+
+	for( int i = 0 ; i < static_cast<int>( pCD->phenotype.death.models.size() ) ; i++ )
+	{
+		Cycle_Model* pDeathModel = definition_death_cycle_model( pCD , i );
+		if( cycle_model_matches_loose( pDeathModel , selector ) )
+		{
+			return pDeathModel;
+		}
+	}
+
+	return pMainModel;
+}
+
+Cycle_Model* resolve_cycle_model_from_definition_state(Cell* pCell, Cell_Definition* pCD)
+{
+	if( pCD == NULL )
+	{
+		return NULL;
+	}
+
+	Cycle_Model* pSelectedModel = NULL;
+	if( pCell != NULL )
+	{
+		pSelectedModel = pCell->phenotype.cycle.pCycle_Model;
+	}
+
+	Cycle_Model* pMainModel = definition_main_cycle_model( pCD );
+	if( pSelectedModel == pMainModel )
+	{
+		return pMainModel;
+	}
+
+	for( int i = 0 ; i < static_cast<int>( pCD->phenotype.death.models.size() ) ; i++ )
+	{
+		Cycle_Model* pDeathModel = definition_death_cycle_model( pCD , i );
+		if( pSelectedModel == pDeathModel )
+		{
+			return pDeathModel;
+		}
+	}
+
+	if( pCell != NULL )
+	{
+		if( pCell->phenotype.death.dead )
+		{
+			Cycle_Model* pDeathModel =
+				definition_death_cycle_model( pCD , pCell->phenotype.death.current_death_model_index );
+			if( pDeathModel != NULL )
+			{
+				return pDeathModel;
+			}
+		}
+
+		if( pSelectedModel != NULL )
+		{
+			Cycle_Model_Selector selector;
+			selector.kind = 2;
+			selector.death_model_index = pCell->phenotype.death.current_death_model_index;
+			selector.code = pSelectedModel->code;
+			selector.name = pSelectedModel->name;
+
+			Cycle_Model* pResolvedModel = resolve_cycle_model_selector( pCD , selector );
+			if( pResolvedModel != NULL )
+			{
+				return pResolvedModel;
+			}
+		}
+	}
+
+	return pMainModel;
+}
+
+void apply_cycle_model_safety_net(Cell* pCell, Cell_Definition* pCD)
+{
+	if( pCell == NULL )
+	{
+		return;
+	}
+
+	Cycle_Model* pModel = resolve_cycle_model_from_definition_state( pCell , pCD );
+	if( pModel == NULL )
+	{
+		return;
+	}
+
+	std::vector<std::vector<double>> received_transition_rates = pCell->phenotype.cycle.data.transition_rates;
+	int received_phase_index = pCell->phenotype.cycle.data.current_phase_index;
+	double received_elapsed_time = pCell->phenotype.cycle.data.elapsed_time_in_phase;
+
+	pCell->phenotype.cycle.sync_to_cycle_model( *pModel );
+
+	int phase_count = static_cast<int>( pModel->phases.size() );
+	int phase_link_count = static_cast<int>( pModel->phase_links.size() );
+	int transition_row_count = static_cast<int>( pCell->phenotype.cycle.data.transition_rates.size() );
+	int valid_phase_count = std::min( phase_count , std::min( phase_link_count , transition_row_count ) );
+	if( received_phase_index >= 0 && received_phase_index < valid_phase_count )
+	{
+		pCell->phenotype.cycle.data.current_phase_index = received_phase_index;
+		pCell->phenotype.cycle.data.elapsed_time_in_phase = std::max( 0.0 , received_elapsed_time );
+	}
+	else
+	{
+		if( valid_phase_count > 0 )
+		{
+			pCell->phenotype.cycle.data.current_phase_index =
+				std::min( std::max( 0 , pModel->default_phase_index ) , valid_phase_count - 1 );
+		}
+		else
+		{
+			pCell->phenotype.cycle.data.current_phase_index = 0;
+		}
+		pCell->phenotype.cycle.data.elapsed_time_in_phase = 0.0;
+	}
+
+	int row_count = std::min(
+		static_cast<int>( received_transition_rates.size() ),
+		static_cast<int>( pCell->phenotype.cycle.data.transition_rates.size() ) );
+	for( int i = 0 ; i < row_count ; i++ )
+	{
+		int col_count = std::min(
+			static_cast<int>( received_transition_rates[i].size() ),
+			static_cast<int>( pCell->phenotype.cycle.data.transition_rates[i].size() ) );
+		std::copy(
+			received_transition_rates[i].begin(),
+			received_transition_rates[i].begin() + col_count,
+			pCell->phenotype.cycle.data.transition_rates[i].begin() );
+	}
+}
+
+void pack_custom_data_values_light(Custom_Cell_Data& custom_data, std::vector<char>& buffer, int& len_buffer, int& position)
+{
+	int scalar_count = static_cast<int>( custom_data.variables.size() );
+	pack_buff( scalar_count , buffer, len_buffer, position );
+	for( const auto& variable : custom_data.variables )
+	{
+		pack_buff( variable.value , buffer, len_buffer, position );
+	}
+
+	int vector_count = static_cast<int>( custom_data.vector_variables.size() );
+	pack_buff( vector_count , buffer, len_buffer, position );
+	for( const auto& variable : custom_data.vector_variables )
+	{
+		pack_buff( variable.value , buffer, len_buffer, position );
+	}
+}
+
+void unpack_custom_data_values_light(Custom_Cell_Data& custom_data, std::vector<char>& buffer, int& len_buffer, int& position)
+{
+	int scalar_count = 0;
+	unpack_buff( scalar_count , buffer, len_buffer, position );
+	for( int i = 0 ; i < scalar_count ; i++ )
+	{
+		double value = 0.0;
+		unpack_buff( value , buffer, len_buffer, position );
+		if( i < static_cast<int>( custom_data.variables.size() ) )
+		{
+			custom_data.variables[i].value = value;
+		}
+	}
+
+	int vector_count = 0;
+	unpack_buff( vector_count , buffer, len_buffer, position );
+	for( int i = 0 ; i < vector_count ; i++ )
+	{
+		std::vector<double> value;
+		unpack_buff( value , buffer, len_buffer, position );
+		if( i < static_cast<int>( custom_data.vector_variables.size() ) )
+		{
+			custom_data.vector_variables[i].value = value;
+		}
+	}
+}
+
+void pack_cycle_light(Cycle& cycle, std::vector<char>& buffer, int& len_buffer, int& position)
+{
+	int transition_count = static_cast<int>( cycle.data.transition_rates.size() );
+	pack_buff( transition_count , buffer, len_buffer, position );
+	for( const auto& rates : cycle.data.transition_rates )
+	{
+		pack_buff( rates , buffer, len_buffer, position );
+	}
+
+	pack_buff( cycle.data.current_phase_index , buffer, len_buffer, position );
+	pack_buff( cycle.data.elapsed_time_in_phase , buffer, len_buffer, position );
+	pack_buff( cycle.asymmetric_division.asymmetric_division_probabilities , buffer, len_buffer, position );
+}
+
+void unpack_cycle_light(Cycle& cycle, std::vector<char>& buffer, int& len_buffer, int& position)
+{
+	int transition_count = 0;
+	unpack_buff( transition_count , buffer, len_buffer, position );
+	for( int i = 0 ; i < transition_count ; i++ )
+	{
+		std::vector<double> rates;
+		unpack_buff( rates , buffer, len_buffer, position );
+		if( i < static_cast<int>( cycle.data.transition_rates.size() ) )
+		{
+			cycle.data.transition_rates[i] = rates;
+		}
+	}
+
+	unpack_buff( cycle.data.current_phase_index , buffer, len_buffer, position );
+	unpack_buff( cycle.data.elapsed_time_in_phase , buffer, len_buffer, position );
+	unpack_buff( cycle.asymmetric_division.asymmetric_division_probabilities , buffer, len_buffer, position );
+}
+
+void pack_death_light(Death& death, std::vector<char>& buffer, int& len_buffer, int& position)
+{
+	pack_buff( death.rates , buffer, len_buffer, position );
+	pack_buff( death.dead , buffer, len_buffer, position );
+	pack_buff( death.current_death_model_index , buffer, len_buffer, position );
+}
+
+void unpack_death_light(Death& death, std::vector<char>& buffer, int& len_buffer, int& position)
+{
+	unpack_buff( death.rates , buffer, len_buffer, position );
+	unpack_buff( death.dead , buffer, len_buffer, position );
+	unpack_buff( death.current_death_model_index , buffer, len_buffer, position );
+}
+
+void pack_motility_light(Motility& motility, std::vector<char>& buffer, int& len_buffer, int& position)
+{
+	pack_buff( motility.is_motile , buffer, len_buffer, position );
+	pack_buff( motility.persistence_time , buffer, len_buffer, position );
+	pack_buff( motility.migration_speed , buffer, len_buffer, position );
+	pack_buff( motility.migration_bias_direction , buffer, len_buffer, position );
+	pack_buff( motility.migration_bias , buffer, len_buffer, position );
+	pack_buff( motility.restrict_to_2D , buffer, len_buffer, position );
+	pack_buff( motility.motility_vector , buffer, len_buffer, position );
+	pack_buff( motility.chemotaxis_index , buffer, len_buffer, position );
+	pack_buff( motility.chemotaxis_direction , buffer, len_buffer, position );
+	pack_buff( motility.chemotactic_sensitivities , buffer, len_buffer, position );
+}
+
+void unpack_motility_light(Motility& motility, std::vector<char>& buffer, int& len_buffer, int& position)
+{
+	unpack_buff( motility.is_motile , buffer, len_buffer, position );
+	unpack_buff( motility.persistence_time , buffer, len_buffer, position );
+	unpack_buff( motility.migration_speed , buffer, len_buffer, position );
+	unpack_buff( motility.migration_bias_direction , buffer, len_buffer, position );
+	unpack_buff( motility.migration_bias , buffer, len_buffer, position );
+	unpack_buff( motility.restrict_to_2D , buffer, len_buffer, position );
+	unpack_buff( motility.motility_vector , buffer, len_buffer, position );
+	unpack_buff( motility.chemotaxis_index , buffer, len_buffer, position );
+	unpack_buff( motility.chemotaxis_direction , buffer, len_buffer, position );
+	unpack_buff( motility.chemotactic_sensitivities , buffer, len_buffer, position );
+}
+
+void pack_intracellular_light(Phenotype& phenotype, std::vector<char>& buffer, int& len_buffer, int& position)
+{
+	std::string intracellular_type = "not-maboss";
+	if( phenotype.intracellular != NULL )
+	{
+		intracellular_type = phenotype.intracellular->intracellular_type;
+	}
+
+	pack_buff( intracellular_type , buffer, len_buffer, position );
+
+#ifdef ADDON_PHYSIBOSS
+	if( phenotype.intracellular != NULL && intracellular_type == "maboss" )
+	{
+		MaBoSSIntracellular* intracellular = static_cast<MaBoSSIntracellular*>( phenotype.intracellular );
+
+		int input_count = static_cast<int>( intracellular->listOfInputs.size() );
+		pack_buff( input_count , buffer, len_buffer, position );
+		for( const auto& input_pair : intracellular->listOfInputs )
+		{
+			pack_buff( input_pair.second.smoothed_value , buffer, len_buffer, position );
+		}
+
+		int output_count = static_cast<int>( intracellular->listOfOutputs.size() );
+		pack_buff( output_count , buffer, len_buffer, position );
+		for( const auto& output_pair : intracellular->listOfOutputs )
+		{
+			pack_buff( output_pair.second.probability , buffer, len_buffer, position );
+			pack_buff( output_pair.second.initialized , buffer, len_buffer, position );
+		}
+
+		intracellular->maboss.pack( buffer, len_buffer, position );
+		pack_buff( intracellular->next_physiboss_run , buffer, len_buffer, position );
+	}
+#endif
+}
+
+void unpack_intracellular_light(Phenotype& phenotype, std::vector<char>& buffer, int& len_buffer, int& position)
+{
+	std::string intracellular_type;
+	unpack_buff( intracellular_type , buffer, len_buffer, position );
+
+	if( intracellular_type == "not-maboss" )
+	{
+		if( phenotype.intracellular != NULL )
+		{
+			delete phenotype.intracellular;
+			phenotype.intracellular = NULL;
+		}
+		return;
+	}
+
+#ifdef ADDON_PHYSIBOSS
+	if( intracellular_type == "maboss" )
+	{
+		if( phenotype.intracellular == NULL || phenotype.intracellular->intracellular_type != "maboss" )
+		{
+			delete phenotype.intracellular;
+			phenotype.intracellular = new MaBoSSIntracellular();
+		}
+
+		MaBoSSIntracellular* intracellular = static_cast<MaBoSSIntracellular*>( phenotype.intracellular );
+
+		int input_count = 0;
+		unpack_buff( input_count , buffer, len_buffer, position );
+		auto input_it = intracellular->listOfInputs.begin();
+		for( int i = 0 ; i < input_count ; i++ )
+		{
+			double smoothed_value = 0.0;
+			unpack_buff( smoothed_value , buffer, len_buffer, position );
+			if( input_it != intracellular->listOfInputs.end() )
+			{
+				input_it->second.smoothed_value = smoothed_value;
+				++input_it;
+			}
+		}
+
+		int output_count = 0;
+		unpack_buff( output_count , buffer, len_buffer, position );
+		auto output_it = intracellular->listOfOutputs.begin();
+		for( int i = 0 ; i < output_count ; i++ )
+		{
+			double probability = 0.0;
+			bool initialized = false;
+			unpack_buff( probability , buffer, len_buffer, position );
+			unpack_buff( initialized , buffer, len_buffer, position );
+			if( output_it != intracellular->listOfOutputs.end() )
+			{
+				output_it->second.probability = probability;
+				output_it->second.initialized = initialized;
+				++output_it;
+			}
+		}
+
+		intracellular->initialize_maboss();
+		intracellular->maboss.unpack( buffer, len_buffer, position );
+		unpack_buff( intracellular->next_physiboss_run , buffer, len_buffer, position );
+		return;
+	}
+#endif
+}
+
+void pack_phenotype_light(Cell* pCell, std::vector<char>& buffer, int& len_buffer, int& position)
+{
+	Phenotype& phenotype = pCell->phenotype;
+
+	pack_buff( phenotype.flagged_for_division , buffer, len_buffer, position );
+	pack_buff( phenotype.flagged_for_removal , buffer, len_buffer, position );
+
+	pack_death_light( phenotype.death , buffer, len_buffer, position );
+	pack_cycle_model_selector_light( pCell , buffer, len_buffer, position );
+	pack_cycle_light( phenotype.cycle , buffer, len_buffer, position );
+	phenotype.volume.pack( buffer, len_buffer, position );
+	phenotype.geometry.pack( buffer, len_buffer, position );
+	pack_motility_light( phenotype.motility , buffer, len_buffer, position );
+	phenotype.secretion.pack( buffer, len_buffer, position );
+	phenotype.molecular.pack( buffer, len_buffer, position );
+	phenotype.cell_integrity.pack( buffer, len_buffer, position );
+	pack_intracellular_light( phenotype , buffer, len_buffer, position );
+	phenotype.cell_interactions.pack( buffer, len_buffer, position );
+	phenotype.cell_transformations.pack( buffer, len_buffer, position );
+}
+
+void unpack_phenotype_light(Cell* pCell, Cell_Definition* pCD, std::vector<char>& buffer, int& len_buffer, int& position)
+{
+	Phenotype& phenotype = pCell->phenotype;
+
+	unpack_buff( phenotype.flagged_for_division , buffer, len_buffer, position );
+	unpack_buff( phenotype.flagged_for_removal , buffer, len_buffer, position );
+
+	unpack_death_light( phenotype.death , buffer, len_buffer, position );
+	Cycle_Model_Selector selector = unpack_cycle_model_selector_light( buffer, len_buffer, position );
+	Cycle_Model* pModel = resolve_cycle_model_selector( pCD , selector );
+	if( pModel != NULL )
+	{
+		phenotype.cycle.sync_to_cycle_model( *pModel );
+	}
+	unpack_cycle_light( phenotype.cycle , buffer, len_buffer, position );
+	phenotype.volume.unpack( buffer, len_buffer, position );
+	phenotype.geometry.unpack( buffer, len_buffer, position );
+	unpack_motility_light( phenotype.motility , buffer, len_buffer, position );
+	phenotype.secretion.unpack( buffer, len_buffer, position );
+	phenotype.molecular.unpack( buffer, len_buffer, position );
+	phenotype.cell_integrity.unpack( buffer, len_buffer, position );
+	unpack_intracellular_light( phenotype , buffer, len_buffer, position );
+	phenotype.cell_interactions.unpack( buffer, len_buffer, position );
+	phenotype.cell_transformations.unpack( buffer, len_buffer, position );
+}
+
+} // namespace
+
 //To consider: USE MPI_Pack_size() to get the size of the packed buffer
 void Cell::pack(std::vector<char>& snd_buffer, int& len_buffer, int &position){
 
@@ -47,30 +661,6 @@ void Cell::pack(std::vector<char>& snd_buffer, int& len_buffer, int &position){
     this->state.pack(snd_buffer, len_buffer, position);
 
     this->phenotype.pack(snd_buffer, len_buffer, position);
-
-    //Pack intracellular addon
-
-     if (this->phenotype.intracellular != NULL) 											//this is NULL and NOT nullptr
-    {
-        temp_str = this->phenotype.intracellular->intracellular_type; 				//This was the original code
-    }
-    else
-        temp_str = "not-maboss";
-                
-	pack_buff(temp_str, snd_buffer, len_buffer, position);
-	
-		
-#ifdef ADDON_PHYSIBOSS
-
-    if(this->phenotype.intracellular != NULL)
-        if (this->phenotype.intracellular->intracellular_type.compare("maboss") == 0) 
-        {
-            MaBoSSIntracellular* t_intracellular = static_cast<MaBoSSIntracellular*>(this->phenotype.intracellular); 
-            t_intracellular->pack(snd_buffer, len_buffer, position);	
-        }
-				
-#endif
-
 
     pack_buff(this->is_out_of_domain, snd_buffer, len_buffer, position);
     
@@ -161,37 +751,6 @@ void Cell::unpack(std::vector<char>& rcv_buffer, int& len_buffer, int& position)
 
    this->phenotype.unpack(rcv_buffer, len_buffer, position);
    
-    
-	// Unpack intracellular_type string first
-	unpack_buff(temp_str, rcv_buffer, len_buffer, position);
-
-	if (temp_str != "not-maboss") {
-		// Allocate and create the intracellular object if not already created
-		if (this->phenotype.intracellular == NULL) {
-			//MaBoSSIntracellular intra = new MaBoSSIntracellular();
-			//this->phenotype.intracellular = intra;
-		}
-
-	#ifdef ADDON_PHYSIBOSS
-		if (this->phenotype.intracellular != NULL) {
-			if (temp_str.compare("maboss") == 0) {
-				MaBoSSIntracellular* t_intracellular = static_cast<MaBoSSIntracellular*>(this->phenotype.intracellular);
-				t_intracellular->unpack(rcv_buffer, len_buffer, position);
-			}
-			else {
-				// Handle other intracellular types or error as needed
-			}
-		}
-	#endif
-	}
-	else {
-		// No intracellular object, set pointer to NULL explicitly
-		if (this->phenotype.intracellular != NULL) {
-			delete this->phenotype.intracellular;
-			this->phenotype.intracellular = NULL;
-		}
-	}
-
 	unpack_buff(this->is_out_of_domain, rcv_buffer, len_buffer, position);
 
 	unpack_buff(this->is_movable, rcv_buffer, len_buffer, position);
@@ -244,6 +803,46 @@ void Cell::unpack(std::vector<char>& rcv_buffer, int& len_buffer, int& position)
     }
 
 } 
+
+void Cell::pack_light(std::vector<char>& snd_buffer, int& len_buffer, int& position)
+{
+	pack_buff( this->ID , snd_buffer, len_buffer, position );
+	pack_buff( this->type , snd_buffer, len_buffer, position );
+	pack_buff( this->position , snd_buffer, len_buffer, position );
+
+	pack_custom_data_values_light( this->custom_data , snd_buffer, len_buffer, position );
+	this->state.pack( snd_buffer, len_buffer, position );
+	pack_phenotype_light( this , snd_buffer, len_buffer, position );
+
+	pack_buff( this->is_out_of_domain , snd_buffer, len_buffer, position );
+	pack_buff( this->displacement , snd_buffer, len_buffer, position );
+	pack_buff( this->get_previous_velocity() , snd_buffer, len_buffer, position );
+	pack_buff( this->velocity , snd_buffer, len_buffer, position );
+}
+
+void Cell::unpack_light(std::vector<char>& rcv_buffer, int& len_buffer, int& position)
+{
+	unpack_buff( this->ID , rcv_buffer, len_buffer, position );
+	unpack_buff( this->type , rcv_buffer, len_buffer, position );
+
+	Cell_Definition* pCD = find_cell_definition( this->type );
+	restore_cell_from_definition( this , pCD );
+
+	unpack_buff( this->position , rcv_buffer, len_buffer, position );
+
+	unpack_custom_data_values_light( this->custom_data , rcv_buffer, len_buffer, position );
+	this->state.unpack( rcv_buffer, len_buffer, position );
+	unpack_phenotype_light( this , pCD , rcv_buffer, len_buffer, position );
+
+	unpack_buff( this->is_out_of_domain , rcv_buffer, len_buffer, position );
+	unpack_buff( this->displacement , rcv_buffer, len_buffer, position );
+	unpack_buff( this->get_previous_velocity() , rcv_buffer, len_buffer, position );
+	unpack_buff( this->velocity , rcv_buffer, len_buffer, position );
+
+	apply_cycle_model_safety_net( this , pCD );
+	this->set_total_volume( this->phenotype.volume.total );
+	this->set_is_volume_changed( true );
+}
 
 #include <iostream>
 #include <iomanip>  // for std::setprecision
@@ -397,7 +996,7 @@ void Cell::print_parameters(std::ofstream& outFile) {
 #ifdef ADDON_PHYSIBOSS
         if (this->phenotype.intracellular->intracellular_type == "maboss") {
             outFile << "  MaBoSS Intracellular object data (custom):\n";
-            this->phenotype.intracellular->print();  // Assuming it has a print method
+            //this->phenotype.intracellular->print();  // Assuming it has a print method
         }
 #endif
     } else {
@@ -930,4 +1529,3 @@ void Cell::initialize_random() {
     };
 
 }
-

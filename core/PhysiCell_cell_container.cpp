@@ -84,6 +84,22 @@ double time_intracell = 0.0;
 double time_pheno = 0.0;
 double time_mechs = 0.0;
 double time_diff = 0.0;
+double time_maboss_update = 0.0;
+double time_mechs_gradient_total = 0.0;
+double time_mechs_halo_total = 0.0;
+double time_mechs_potential_total = 0.0;
+double time_mechs_interactions_total = 0.0;
+double time_mechs_clear_dummy_total = 0.0;
+double time_mechs_update_position_total = 0.0;
+double time_mechs_pack_total = 0.0;
+double time_mechs_transfer_total = 0.0;
+double time_mechs_unpack_total = 0.0;
+double time_mechs_voxels_update_total = 0.0;
+unsigned long long count_maboss_updates = 0;
+unsigned long long count_mechanics_cells = 0;
+unsigned long long count_mechanics_neighbor_candidates = 0;
+unsigned long long count_mechanics_neighbor_interactions = 0;
+unsigned long long count_mechanics_timing_steps = 0;
 
 Cell_Container::Cell_Container()
 {
@@ -192,23 +208,40 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 
 	// intracellular update. called for every diffusion_dt, but actually depends on the intracellular_dt of each cell (as it can be noisy)
 
-	#pragma omp parallel for 
+	double interval_maboss_time = 0.0;
+	unsigned long long interval_maboss_updates = 0;
+	#pragma omp parallel for reduction(+:interval_maboss_time,interval_maboss_updates)
 	for( int i=0; i < (*all_cells).size(); i++ )
 	{
 		if( (*all_cells)[i]->is_out_of_domain == false && initialzed ) {
 
-			if( (*all_cells)[i]->phenotype.intracellular != NULL  && (*all_cells)[i]->phenotype.intracellular->need_update())
+			Intracellular* intracellular = (*all_cells)[i]->phenotype.intracellular;
+			if( intracellular != NULL  && intracellular->need_update())
 			{
 				if ((*all_cells)[i]->functions.pre_update_intracellular != NULL)
 					(*all_cells)[i]->functions.pre_update_intracellular( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
 
-				(*all_cells)[i]->phenotype.intracellular->update( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
+				if( intracellular->intracellular_type == "maboss" )
+				{
+					auto maboss_start = std::chrono::high_resolution_clock::now();
+					intracellular->update( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
+					auto maboss_end = std::chrono::high_resolution_clock::now();
+					std::chrono::duration<double, std::micro> maboss_duration = maboss_end - maboss_start;
+					interval_maboss_time += maboss_duration.count();
+					interval_maboss_updates += 1;
+				}
+				else
+				{
+					intracellular->update( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
+				}
 
 				if ((*all_cells)[i]->functions.post_update_intracellular != NULL)
 					(*all_cells)[i]->functions.post_update_intracellular( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
 			}
 		}
 	}
+	time_maboss_update += interval_maboss_time;
+	count_maboss_updates += interval_maboss_updates;
 
 	if( time_since_last_cycle > phenotype_dt_ - 0.5 * diffusion_dt_ || !initialzed)
 	{
@@ -297,6 +330,17 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 			Cell* pC = (*all_cells)[i]; 
 			if( pC->functions.update_velocity && pC->is_out_of_domain == false && pC->is_movable )
 			{ pC->functions.update_velocity( pC,pC->phenotype,time_since_last_mechanics ); }
+		}
+
+		for( int i=0; i < (*all_cells).size(); i++ )
+		{
+			Cell* pC = (*all_cells)[i];
+			if( pC->functions.update_velocity && pC->is_out_of_domain == false && pC->is_movable )
+			{
+				count_mechanics_cells += 1;
+				count_mechanics_neighbor_candidates += pC->state.mechanics_neighbor_candidates;
+				count_mechanics_neighbor_interactions += pC->state.mechanics_neighbor_interactions;
+			}
 		}
 
 		// new March 2023: 
@@ -400,17 +444,32 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 	static double mechanics_dt_tolerance = 0.001 * mechanics_dt_;
 
 	start = std::chrono::high_resolution_clock::now();
-	#pragma omp parallel for 
+	double interval_maboss_time = 0.0;
+	unsigned long long interval_maboss_updates = 0;
+	#pragma omp parallel for reduction(+:interval_maboss_time,interval_maboss_updates)
 	for( int i=0; i < (*all_cells).size(); i++ ) 
 	{
 		if( (*all_cells)[i]->is_out_of_domain == false && initialzed ) {
 
-			if( (*all_cells)[i]->phenotype.intracellular != NULL  && (*all_cells)[i]->phenotype.intracellular->need_update())
+			Intracellular* intracellular = (*all_cells)[i]->phenotype.intracellular;
+			if( intracellular != NULL  && intracellular->need_update())
 			{
 				if ((*all_cells)[i]->functions.pre_update_intracellular != NULL)
 					(*all_cells)[i]->functions.pre_update_intracellular( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
 
-				(*all_cells)[i]->phenotype.intracellular->update( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
+				if( intracellular->intracellular_type == "maboss" )
+				{
+					auto maboss_start = std::chrono::high_resolution_clock::now();
+					intracellular->update( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
+					auto maboss_end = std::chrono::high_resolution_clock::now();
+					std::chrono::duration<double, std::micro> maboss_duration = maboss_end - maboss_start;
+					interval_maboss_time += maboss_duration.count();
+					interval_maboss_updates += 1;
+				}
+				else
+				{
+					intracellular->update( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
+				}
 
 				if ((*all_cells)[i]->functions.post_update_intracellular != NULL)
 					(*all_cells)[i]->functions.post_update_intracellular( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
@@ -420,12 +479,14 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 	end = std::chrono::high_resolution_clock::now();
 	duration = end - start;
 	time_intracell += duration.count();
+	time_maboss_update += interval_maboss_time;
+	count_maboss_updates += interval_maboss_updates;
 
 	if( time_since_last_cycle > phenotype_dt_ - 0.5 * diffusion_dt_ || !initialzed )
 	{
 		// Reset the max_radius in each voxel. It will be filled in set_total_volume
 		// It might be better if we calculate it before mechanics each time
-		//std::fill(max_cell_interactive_distance_in_voxel.begin(), max_cell_interactive_distance_in_voxel.end(), 0.0);
+		std::fill(max_cell_interactive_distance_in_voxel.begin(), max_cell_interactive_distance_in_voxel.end(), 0.0);
 
 		if(!initialzed)
 		{
@@ -534,6 +595,23 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 
 
 		update_cell_potentials(time_since_last_mechanics,  world, cart_topo);
+		unsigned long long interval_mechanics_cells = 0;
+		unsigned long long interval_mechanics_neighbor_candidates = 0;
+		unsigned long long interval_mechanics_neighbor_interactions = 0;
+		#pragma omp parallel for reduction(+:interval_mechanics_cells,interval_mechanics_neighbor_candidates,interval_mechanics_neighbor_interactions)
+		for( int i=0; i < (*all_cells).size(); i++ )
+		{
+			Cell* pC = (*all_cells)[i];
+			if( pC->functions.update_velocity_parallel && pC->is_out_of_domain == false && pC->is_movable )
+			{
+				interval_mechanics_cells += 1;
+				interval_mechanics_neighbor_candidates += pC->state.mechanics_neighbor_candidates;
+				interval_mechanics_neighbor_interactions += pC->state.mechanics_neighbor_interactions;
+			}
+		}
+		count_mechanics_cells += interval_mechanics_cells;
+		count_mechanics_neighbor_candidates += interval_mechanics_neighbor_candidates;
+		count_mechanics_neighbor_interactions += interval_mechanics_neighbor_interactions;
 		#ifdef MECHS_TIME
 		end_part = std::chrono::high_resolution_clock::now();
 		duration_part = std::chrono::duration_cast<std::chrono::microseconds>(end_part - start_part);
@@ -621,6 +699,8 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 																no_cells_cross_right, position_right, snd_buf_right,
 																no_of_cells_from_left,  rcv_buf_left,
 																no_of_cells_from_right, rcv_buf_right,
+																snd_pos_left, snd_pos_right,
+																rcv_pos_left, rcv_pos_right,
 																world
 														);
 	#ifdef MECHS_TIME
@@ -630,7 +710,17 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 		
 	start_part = std::chrono::high_resolution_clock::now();
 	#endif 
-    unpack(world, cart_topo);
+	const int total_received_cells = no_of_cells_from_left + no_of_cells_from_right;
+	// Small receive batches do not amortize the OpenMP overhead. Switch once the
+	// number of migrated cells is large enough to benefit from concurrent unpack.
+	if( total_received_cells >= 10 )
+	{
+		unpack_parallel(world, cart_topo);
+	}
+	else
+	{
+		unpack(world, cart_topo);
+	}
 	#ifdef MECHS_TIME
 	end_part = std::chrono::high_resolution_clock::now();
 	duration_part = std::chrono::duration_cast<std::chrono::microseconds>(end_part - start_part);
@@ -645,30 +735,27 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 	for( int i=0; i < (*all_cells).size(); i++ )
 		if(!(*all_cells)[i]->is_out_of_domain && (*all_cells)[i]->is_movable)
 			(*all_cells)[i]->update_voxel_in_container(world, cart_topo);
-	#ifdef MECHS_TIME
-	end_part = std::chrono::high_resolution_clock::now();
-	duration_part = std::chrono::duration_cast<std::chrono::microseconds>(end_part - start_part);
-	double voxels_update_time = duration_part.count();
-	last_mechanics_time=t;
-	end = std::chrono::high_resolution_clock::now();
-	duration = end - start;
-	time_mechs += duration.count();
-	if (world.rank == 0) 
-	{
-		std::cout << "Mechanics block total: " << duration.count() << " ms" << std::endl;
-		std::cout << "\t\tCompute gradients: " << gradient_time << " milliseconds"<< std::endl;
-		std::cout << "\t\tCompute mechanics halos: " << halo_time << " milliseconds"<< std::endl;
-		std::cout << "\t\tCompute potentials: " << potential_time << " milliseconds"<< std::endl;
-		std::cout << "\t\tEvaluate interactions: " << interactions_time << " milliseconds"<< std::endl;
-		std::cout << "\t\tClear dummy cells: " << clear_dummy_time << " milliseconds"<< std::endl;
-		std::cout << "\t\tUpdate positions: " << update_position_time << " milliseconds"<< std::endl;
-		std::cout << "\t\tPack cells: " << pack_time << " milliseconds"<< std::endl; 
-		std::cout << "\t\tSend/Receive cells: " << transfer_time << " milliseconds"<< std::endl;  
-		std::cout << "\t\tUnpack cells: " << unpack_time << " milliseconds"<< std::endl; 
-		std::cout << "\t\tUpdate cell indices in container: " << voxels_update_time << " milliseconds"<< std::endl; 
-	}
-	
-	#else
+		#ifdef MECHS_TIME
+		end_part = std::chrono::high_resolution_clock::now();
+		duration_part = std::chrono::duration_cast<std::chrono::microseconds>(end_part - start_part);
+		double voxels_update_time = duration_part.count();
+		time_mechs_gradient_total += gradient_time;
+		time_mechs_halo_total += halo_time;
+		time_mechs_potential_total += potential_time;
+		time_mechs_interactions_total += interactions_time;
+		time_mechs_clear_dummy_total += clear_dummy_time;
+		time_mechs_update_position_total += update_position_time;
+		time_mechs_pack_total += pack_time;
+		time_mechs_transfer_total += transfer_time;
+		time_mechs_unpack_total += unpack_time;
+		time_mechs_voxels_update_total += voxels_update_time;
+		count_mechanics_timing_steps += 1;
+		last_mechanics_time=t;
+		end = std::chrono::high_resolution_clock::now();
+		duration = end - start;
+		time_mechs += duration.count();
+		
+		#else
 	last_mechanics_time=t;
 	end = std::chrono::high_resolution_clock::now();
 	duration = end - start;
