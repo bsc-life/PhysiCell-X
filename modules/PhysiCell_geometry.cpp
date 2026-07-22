@@ -892,7 +892,7 @@ void load_cells_csv( std::string filename )
 
 // New functions with x_range filtering
 
-Cell* process_csv_v2_line( std::string line , std::vector<std::string> labels, std::pair<double,double> x_range )
+Cell* process_csv_v2_line( std::string line , std::vector<std::string> labels, mpi_Environment &world, mpi_Cartesian &cart_topo, std::pair<double,double> x_range )
 {
 	// split the line into tokens 
 	std::vector< std::string > tokens; 
@@ -927,7 +927,7 @@ Cell* process_csv_v2_line( std::string line , std::vector<std::string> labels, s
 
 	// create the cell IF the definition was found 
 	Cell* pCell = create_cell( *pCD ); 
-	pCell->assign_position( position ); 
+	pCell->assign_position( position, world, cart_topo ); 
 
 	// now write any extra data 
 
@@ -986,7 +986,7 @@ Cell* process_csv_v2_line( std::string line , std::vector<std::string> labels, s
 	return pCell;  
 }
 
-void load_cells_csv_v1( std::string filename, std::pair<double,double> x_range )
+void load_cells_csv_v1( std::string filename, mpi_Environment &world, mpi_Cartesian &cart_topo, std::pair<double,double> x_range )
 {
 	std::ifstream file( filename, std::ios::in );
 	if( !file )
@@ -1026,7 +1026,7 @@ void load_cells_csv_v1( std::string filename, std::pair<double,double> x_range )
 		if( pCD != NULL )
 		{
 			Cell* pCell = create_cell( *pCD ); 
-			pCell->assign_position( position ); 
+			pCell->assign_position( position, world, cart_topo ); 
 		}
 		else
 		{
@@ -1038,7 +1038,7 @@ void load_cells_csv_v1( std::string filename, std::pair<double,double> x_range )
 	file.close(); 	
 }
 
-void load_cells_csv_v2( std::string filename, std::pair<double,double> x_range )
+void load_cells_csv_v2( std::string filename, mpi_Environment &world, mpi_Cartesian &cart_topo, std::pair<double,double> x_range )
 {
 	// open file 
 	std::ifstream file( filename, std::ios::in );
@@ -1062,7 +1062,7 @@ void load_cells_csv_v2( std::string filename, std::pair<double,double> x_range )
 
 	// process all remaining lines 
 	while (std::getline(file, line))
-	{ process_csv_v2_line(line, labels, x_range); }	
+	{ process_csv_v2_line(line, labels, world, cart_topo, x_range); }	
 
 	// close the file 
 	file.close(); 
@@ -1091,20 +1091,20 @@ void load_cells_csv( std::string filename, mpi_Environment &world, mpi_Cartesian
 	if( c == 'X' || c == 'x' )
 	{ 
 		// v2
-		return load_cells_csv_v2( filename, x_range ); 
+		return load_cells_csv_v2( filename, world, cart_topo, x_range ); 
 	}
 	else
 	{
 		// v1
-		return load_cells_csv_v1( filename, x_range ); 
+		return load_cells_csv_v1( filename, world, cart_topo, x_range ); 
 	}
 
 	return; 
 }
 
-bool load_cells_from_pugixml( mpi_Environment &world, mpi_Cartesian &cart_topo, std::pair<double,double> x_range )
+bool load_cells_from_pugixml( pugi::xml_node root, mpi_Environment &world, mpi_Cartesian &cart_topo, std::pair<double,double> x_range )
 {
-	pugi::xml_node node = physicell_config_root.child( "initial_conditions" ); 
+	pugi::xml_node node = root.child( "initial_conditions" );
 	if( !node )
 	{ 
 		if (IOProcessor(world))
@@ -1175,5 +1175,23 @@ bool load_cells_from_pugixml( mpi_Environment &world, mpi_Cartesian &cart_topo, 
 	return true; 
 }
 
-}; 
+bool load_cells_from_pugixml( pugi::xml_node root, mpi_Environment &world, mpi_Cartesian &cart_topo )
+{
+	std::pair<double,double> x_range(
+		microenvironment.mesh.local_bounding_box[0],
+		microenvironment.mesh.local_bounding_box[3] );
 
+	return load_cells_from_pugixml( root, world, cart_topo, x_range );
+}
+
+bool load_cells_from_pugixml( mpi_Environment &world, mpi_Cartesian &cart_topo )
+{
+	return load_cells_from_pugixml( physicell_config_root, world, cart_topo );
+}
+
+bool load_cells_from_pugixml( mpi_Environment &world, mpi_Cartesian &cart_topo, std::pair<double,double> x_range )
+{
+	return load_cells_from_pugixml( physicell_config_root, world, cart_topo, x_range );
+}
+
+}; 

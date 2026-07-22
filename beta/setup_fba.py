@@ -1,86 +1,98 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
-import sys, os
+import os
 import json
-import argparse
 import platform
 import urllib.request
+import tarfile
 import zipfile
+import sys
 
-def param_parser():
-    parser = argparse.ArgumentParser(description="")
-    parser.add_argument('--pkg', dest="pkg", required=True, help='Available packages', choices=PACKAGES)
-    parser.add_argument('--path', dest='path', default='addons/dFBA/ext', help='Default folder destination to install third-party libs if changed, Makefiles you be updated according')
-    return parser
+def get_os_arch():
+    """Determine the operating system and architecture."""
+    os_type = platform.system().lower()
+    arch = platform.machine().lower()
 
+    if os_type == 'linux':
+        return 'linux-x64' if arch in ('x86_64', 'amd64') else 'linux-x86'
+    elif os_type == 'darwin':
+        if arch == 'arm64':
+            return 'osx-arm64'
+        elif arch == 'x86_64':
+            return 'osx-x86_64'
+        print(f"Unsupported architecture: {os_type} : {arch}")
+        sys.exit(1)
+    elif os_type.startswith('win'):
+        return 'win64' if arch == 'amd64' else 'win32'
+    else:
+        print(f"Unsupported OS: {os_type}")
+        sys.exit(1)
 
-PACKAGES = ("coin-or", "libsbml")
-    
+def ensure_directory_exists(path):
+    """Create directory if it does not exist."""
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+def download_and_extract(url, dest_path, is_zip=False):
+    """Download and extract a package from a URL."""
+    # Ensure the destination directory exists
+    ensure_directory_exists(dest_path)
+
+    filename = url.split('/')[-1]
+    file_path = os.path.join(dest_path, filename)
+
+    # Download the file
+    print(f"Downloading {filename} from {url}...")
+    urllib.request.urlretrieve(url, file_path)
+
+    # Extract the file
+    print(f"Extracting {filename}...")
+    if is_zip:
+        with zipfile.ZipFile(file_path, 'r') as zip_ref:
+            zip_ref.extractall(dest_path)
+    else:
+        with tarfile.open(file_path, 'r:gz') as tar_ref:
+            tar_ref.extractall(dest_path)
+
+    # Clean up
+    os.remove(file_path)
+    print(f"{filename} installed successfully.\n")
 
 def main():
-    parser = param_parser()
-    args = parser.parse_args()
-    os_type = platform.system()
+    # Define paths
+    current_folder = os.path.abspath(os.path.dirname(__file__))
+    base_folder = os.path.abspath(os.path.join(current_folder, os.pardir))
+    default_libs_path = os.path.join(base_folder, "addons", "dFBA", "ext")
 
-    if os.path.exists(os.path.join(os.path.dirname(os.path.dirname(__file__)), "addons", "dFBA", "ext", args.pkg)):
-        print('\n%s already installed.\n' % args.pkg)
-        return
-
-    json_packages = os.path.join('beta', 'fba_packages.json')
-
-    packages_dict = {}
+    # Load package information
+    json_packages = os.path.join(base_folder, 'beta', 'fba_packages.json')
     with open(json_packages) as fh:
         packages_dict = json.load(fh)
 
-    if not os.path.exists(args.path):
-        print("Creating %s folder" % args.path, end=" ")
-        os.makedirs(args.path)
-        print("Ok!")
+    # Determine OS and architecture
+    arch = get_os_arch()
 
-    print("Moving to %s folder" % args.path)
-    os.chdir(args.path)
-      
-    arch = None  
-    if os_type.lower() == 'darwin':
-        arch = "osx"
-    elif os_type.lower().startswith("win"):
-        arch = "win64"
-    elif os_type.lower().startswith("linux"):
-        arch = "linux-x64"
-    else:
-        print("OS not supported !")
-        return
-            
-    pkg_dict = packages_dict[args.pkg][arch]
+    # Install packages
+    for pkg in ("coin-or", "libsbml"):
+        pkg_path = os.path.join(default_libs_path, pkg)
 
-    print("Fetching package:", end="")
-    print("- %s (%s)" % (args.pkg, arch))
-    print("Downaling from: %s" % pkg_dict['url'])
-    
-    def download_cb(blocknum, blocksize, totalsize):
-        readsofar = blocknum * blocksize
-        if totalsize > 0:
-            percent = readsofar * 1e2 / totalsize
-            s = "\r%5.1f%% %*d / %d" % (
-                percent, len(str(totalsize)), readsofar, totalsize)
-            sys.stderr.write(s)
-            if readsofar >= totalsize: # near the end
-                sys.stderr.write("\n")
-        else: # total size is unknown
-            sys.stderr.write("read %d\n" % (readsofar,))
+        # Skip download if package folder already exists and is populated
+        if os.path.exists(pkg_path) and os.listdir(pkg_path):
+            print(f"Package {pkg} is already installed. Skipping...")
+            continue
 
-    urllib.request.urlretrieve(pkg_dict['url'], pkg_dict['version'], download_cb)
+        # Ensure the package directory exists
+        ensure_directory_exists(pkg_path)
 
-    fname = pkg_dict["version"]
-    
-    print("Extracting package in %s... " % args.pkg, end=" ")
-    if fname.endswith("zip"):
-        archiver = zipfile.ZipFile(fname, 'r')
-        archiver.extractall(args.pkg)
-    
-    print("Ok!")
-    print("Dependency retrived correctly :-)\n")
+        pkg_dict = packages_dict.get(pkg, {}).get(arch)
+        if not pkg_dict:
+            print(f"No package information found for {pkg} on {arch}. Skipping...")
+            continue
+
+        url = pkg_dict['url']
+        is_zip = url.endswith("zip")
+        download_and_extract(url, pkg_path, is_zip)
 
 if __name__ == "__main__":
     main()

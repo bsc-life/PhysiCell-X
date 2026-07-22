@@ -12,15 +12,18 @@
 #include <vector>
 #include <map>
 
-class FBA_metabolite
+class dFBAMetabolite
 {
 	private:
 		std::string id;
 		std::string name;
 
 	public:
-		FBA_metabolite(std::string id);
-		~FBA_metabolite();
+		dFBAMetabolite(std::string id);
+		~dFBAMetabolite();
+
+		/** \brief Copy */
+		dFBAMetabolite(const dFBAMetabolite& copy);
 
 		const std::string& getId() const;
 

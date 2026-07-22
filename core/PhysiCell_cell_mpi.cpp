@@ -533,6 +533,14 @@ void pack_intracellular_light(Phenotype& phenotype, std::vector<char>& buffer, i
 		pack_buff( intracellular->next_physiboss_run , buffer, len_buffer, position );
 	}
 #endif
+#ifdef ADDON_PHYSIDFBA
+    if (phenotype.intracellular != NULL && intracellular_type == "dfba") {
+        PhysiCelldFBA::dFBAIntracellular* intracellular =
+			static_cast<PhysiCelldFBA::dFBAIntracellular*>(phenotype.intracellular);
+
+        intracellular->pack(buffer, len_buffer, position);
+    }
+#endif
 }
 
 void unpack_intracellular_light(Phenotype& phenotype, std::vector<char>& buffer, int& len_buffer, int& position)
@@ -597,6 +605,24 @@ void unpack_intracellular_light(Phenotype& phenotype, std::vector<char>& buffer,
 		unpack_buff( intracellular->next_physiboss_run , buffer, len_buffer, position );
 		return;
 	}
+#endif
+#ifdef ADDON_PHYSIDFBA
+if (intracellular_type == "dfba")
+{
+    if (phenotype.intracellular == NULL ||
+        phenotype.intracellular->intracellular_type != "dfba")
+    {
+        std::cerr << "ERROR: received dfba intracellular state, but receiver cell "
+                  << "was not restored from a dfba Cell_Definition." << std::endl;
+        exit(1);
+    }
+
+    PhysiCelldFBA::dFBAIntracellular* intracellular =
+        static_cast<PhysiCelldFBA::dFBAIntracellular*>(phenotype.intracellular);
+
+    intracellular->unpack(buffer, len_buffer, position);
+    return;
+}
 #endif
 }
 

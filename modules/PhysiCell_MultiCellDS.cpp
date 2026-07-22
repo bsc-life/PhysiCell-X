@@ -620,6 +620,7 @@ void add_PhysiCell_cells_to_open_xml_pugi_v2( pugi::xml_document& xml_dom, std::
 			"damage_repair_rate" , "1/min" , 1 ); 
 
 // custom 
+/*
 		for( int j=0 ; j < (*all_cells)[0]->custom_data.variables.size(); j++ )
 		{		
 			name = (*all_cells)[0]->custom_data.variables[j].name; 
@@ -637,6 +638,68 @@ void add_PhysiCell_cells_to_open_xml_pugi_v2( pugi::xml_document& xml_dom, std::
 			add_variable_to_labels( data_names,data_units,data_start_indices,data_sizes, 
 				name,units,size ); 
 		}
+*/
+		// custom: use a reliable source for labels so the legend is built even
+				// when the current MPI rank has no local cells (e.g., rank 0).
+			if ((*all_cells).size() > 0)
+			{
+				for( int j=0 ; j < (*all_cells)[0]->custom_data.variables.size(); j++ )
+				{       
+					name = (*all_cells)[0]->custom_data.variables[j].name; 
+					units = (*all_cells)[0]->custom_data.variables[j].units; 
+					add_variable_to_labels( data_names,data_units,data_start_indices,data_sizes, 
+						name,units,1 ); 
+				}
+
+				// custom vector variables 
+				for( int j=0 ; j < (*all_cells)[0]->custom_data.vector_variables.size(); j++)
+				{
+					name = (*all_cells)[0]->custom_data.vector_variables[j].name; 
+					units = (*all_cells)[0]->custom_data.vector_variables[j].units; 
+					size = (*all_cells)[0]->custom_data.vector_variables[j].value.size(); 
+					add_variable_to_labels( data_names,data_units,data_start_indices,data_sizes, 
+						name,units,size ); 
+				}
+			}
+			else if( cell_definitions_by_index.size() > 0 )
+			{
+				// fall back to the first cell definition's custom_data
+				Cell_Definition* pCD = cell_definitions_by_index[0];
+				for( int j=0 ; j < pCD->custom_data.variables.size(); j++ )
+				{
+					name = pCD->custom_data.variables[j].name;
+					units = pCD->custom_data.variables[j].units;
+					add_variable_to_labels( data_names,data_units,data_start_indices,data_sizes,
+						name,units,1 );
+				}
+				for( int j=0 ; j < pCD->custom_data.vector_variables.size(); j++ )
+				{
+					name = pCD->custom_data.vector_variables[j].name;
+					units = pCD->custom_data.vector_variables[j].units;
+					size = pCD->custom_data.vector_variables[j].value.size();
+					add_variable_to_labels( data_names,data_units,data_start_indices,data_sizes,
+						name,units,size );
+				}
+			}
+			else
+			{
+				// last resort: use cell_defaults
+				for( int j=0 ; j < cell_defaults.custom_data.variables.size(); j++ )
+				{
+					name = cell_defaults.custom_data.variables[j].name;
+					units = cell_defaults.custom_data.variables[j].units;
+					add_variable_to_labels( data_names,data_units,data_start_indices,data_sizes,
+						name,units,1 );
+				}
+				for( int j=0 ; j < cell_defaults.custom_data.vector_variables.size(); j++ )
+				{
+					name = cell_defaults.custom_data.vector_variables[j].name;
+					units = cell_defaults.custom_data.vector_variables[j].units;
+					size = cell_defaults.custom_data.vector_variables[j].value.size();
+					add_variable_to_labels( data_names,data_units,data_start_indices,data_sizes,
+						name,units,size );
+				}
+			}
 
 		cell_data_size = total_data_size( data_sizes ); 
 		legend_done = true; 

@@ -74,15 +74,14 @@
 #include <fstream>
 
 #include "./core/PhysiCell.h"
-#include "./modules/PhysiCell_standard_modules.h" 
+#include "./modules/PhysiCell_standard_modules.h"
 
-// put custom code modules here! 
+// put custom code modules here!
 
-#include "./custom_modules/custom.h" 
-	
+#include "./custom_modules/custom.h"
+
 using namespace BioFVM;
 using namespace PhysiCell;
-
 using namespace DistPhy::mpi;
 
 int main( int argc, char* argv[] )
@@ -95,173 +94,169 @@ int main( int argc, char* argv[] )
 	cart_topo.Find_Cartesian_Coordinates(world);
 	cart_topo.Find_Left_Right_Neighbours(world);
 
-
 	// load and parse settings file(s)
-	
-	bool XML_status = false; 
-	char copy_command [1024]; 
-	char copy_command_2 [1024]; 
+
+	bool XML_status = false;
+	char copy_command [1024];
+	char copy_command_2 [1024];
 	if( argc > 1 )
 	{
 		XML_status = load_PhysiCell_config_file( argv[1] , world);
 		if (IOProcessor(world)) {
-			sprintf( copy_command , "cp %s %s/PhysiCell_settings.xml" , argv[1] , PhysiCell_settings.folder.c_str() ); 
+			sprintf( copy_command , "cp %s %s/PhysiCell_settings.xml" , argv[1] , PhysiCell_settings.folder.c_str() );
 			sprintf( copy_command_2 , "cp %s %s" , argv[1] , PhysiCell_settings.folder.c_str() );
-		} 
-		 
+		}
 	}
 	else
 	{
 		XML_status = load_PhysiCell_config_file( "./config/PhysiCell_settings.xml" , world);
-
 		if (IOProcessor(world)) {
-			sprintf( copy_command , "cp ./config/PhysiCell_settings.xml %s" , PhysiCell_settings.folder.c_str() ); 
+			sprintf( copy_command , "cp ./config/PhysiCell_settings.xml %s" , PhysiCell_settings.folder.c_str() );
 		}
 	}
 	if( !XML_status )
 	{ exit(-1); }
-	
-	// copy config file to output directry 
+
+	// copy config file to output directry
 	if (IOProcessor(world)) {
-		system( copy_command ); 
+		system( copy_command );
 	}
-	
+
 	if( argc > 1 )
 	{
 		if (IOProcessor(world)) {
-			system( copy_command_2 ); 
-		} 
+			system( copy_command_2 );
+		}
 	}
-		
+
 	// OpenMP setup
 	omp_set_num_threads(PhysiCell_settings.omp_num_threads);
-	
-	// time setup 
-	std::string time_units = "min"; 
 
-	/* Microenvironment setup */ 
-	
-	setup_microenvironment(world, cart_topo); // modify this in the custom code 
-	
-	/* PhysiCell setup */ 
- 	
+	// time setup
+	std::string time_units = "min";
+
+	/* Microenvironment setup */
+
+	setup_microenvironment(world, cart_topo); // modify this in the custom code
+
+	/* PhysiCell setup */
+
 	// set mechanics voxel size, and match the data structure to BioFVM
-	double mechanics_voxel_size = 30; 
+	double mechanics_voxel_size = 30;
 	Cell_Container* cell_container = create_cell_container_for_microenvironment( microenvironment, mechanics_voxel_size , world, cart_topo);
-	
-	/* Users typically start modifying here. START USERMODS */ 
-	
+
+	/* Users typically start modifying here. START USERMODS */
+
 	create_cell_types(world, cart_topo);
-	
+
 	setup_tissue(world, cart_topo);
 
-	/* Users typically stop modifying here. END USERMODS */ 
-	
-	// set MultiCellDS save options 
+	/* Users typically stop modifying here. END USERMODS */
 
-	set_save_biofvm_mesh_as_matlab( true ); 
-	set_save_biofvm_data_as_matlab( true ); 
-	set_save_biofvm_cell_data( true ); 
+	// set MultiCellDS save options
+
+	set_save_biofvm_mesh_as_matlab( true );
+	set_save_biofvm_data_as_matlab( true );
+	set_save_biofvm_cell_data( true );
 	set_save_biofvm_cell_data_as_custom_matlab( true );
-	
-	// save a simulation snapshot 
-	
+
+	// save a simulation snapshot
+
 	char filename[1024];
-	sprintf( filename , "%s/initial" , PhysiCell_settings.folder.c_str() ); 
-	save_PhysiCell_to_MultiCellDS_v2( filename , microenvironment , PhysiCell_globals.current_time , world, cart_topo); 
-	
-	// save a quick SVG cross section through z = 0, after setting its 
-	// length bar to 200 microns 
+	sprintf( filename , "%s/initial" , PhysiCell_settings.folder.c_str() );
+	save_PhysiCell_to_MultiCellDS_v2( filename , microenvironment , PhysiCell_globals.current_time , world, cart_topo);
 
-	PhysiCell_SVG_options.length_bar = 200; 
+	// save a quick SVG cross section through z = 0, after setting its
+	// length bar to 200 microns
 
-	// for simplicity, set a pathology coloring function 
-	
-	std::vector<std::string> (*cell_coloring_function)(Cell*) = my_coloring_function; 
-	std::string (*substrate_coloring_function)(double, double, double) = paint_by_density_percentage; 
-	
-	sprintf( filename , "%s/initial.svg" , PhysiCell_settings.folder.c_str() ); 
+	PhysiCell_SVG_options.length_bar = 200;
+
+	// for simplicity, set a pathology coloring function
+
+	std::vector<std::string> (*cell_coloring_function)(Cell*) = my_coloring_function;
+	std::string (*substrate_coloring_function)(double, double, double) = paint_by_density_percentage;
+
+	sprintf( filename , "%s/initial.svg" , PhysiCell_settings.folder.c_str() );
 	SVG_plot_mpi( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function, substrate_coloring_function, world, cart_topo);
-	
-	sprintf( filename , "%s/legend.svg" , PhysiCell_settings.folder.c_str() ); 
-	 
+
+	sprintf( filename , "%s/legend.svg" , PhysiCell_settings.folder.c_str() );
 
 	if (IOProcessor(world)) {
 		create_plot_legend( filename , cell_coloring_function );
-		display_citations(); 
+		display_citations();
 	}
-	
-	// set the performance timers 
+
+	// set the performance timers
 
 	BioFVM::RUNTIME_TIC();
 	BioFVM::TIC();
-	
+
 	std::ofstream report_file;
 	if( PhysiCell_settings.enable_legacy_saves == true )
-	{	
+	{
 		if (IOProcessor(world)){
-			sprintf( filename , "%s/simulation_report.txt" , PhysiCell_settings.folder.c_str() ); 
-			
-			report_file.open(filename); 	// create the data log file 
+			sprintf( filename , "%s/simulation_report.txt" , PhysiCell_settings.folder.c_str() );
+
+			report_file.open(filename); 	// create the data log file
 			report_file<<"simulated time\tnum cells\tnum division\tnum death\twall time"<<std::endl;
 		}
 	}
-	
-	// main loop 
-	
-	try 
-	{		
+
+	// main loop
+
+	try
+	{
 		while( PhysiCell_globals.current_time < PhysiCell_settings.max_time + 0.1*diffusion_dt )
 		{
-			// save data if it's time. 
+			// save data if it's time.
 			if( PhysiCell_globals.current_time > PhysiCell_globals.next_full_save_time - 0.5 * diffusion_dt )
 			{
-				display_simulation_status( std::cout, world, cart_topo); 
+				display_simulation_status( std::cout, world, cart_topo);
 				if( PhysiCell_settings.enable_legacy_saves == true )
-				{	
+				{
 					log_output( PhysiCell_globals.current_time , PhysiCell_globals.full_output_index, microenvironment, report_file, world, cart_topo);
 				}
-				
+
 				if( PhysiCell_settings.enable_full_saves == true )
-				{	
-					sprintf( filename , "%s/output%08u" , PhysiCell_settings.folder.c_str(),  PhysiCell_globals.full_output_index ); 
-					
-					save_PhysiCell_to_MultiCellDS_v2( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo); 
+				{
+					sprintf( filename , "%s/output%08u" , PhysiCell_settings.folder.c_str(),  PhysiCell_globals.full_output_index );
+
+					save_PhysiCell_to_MultiCellDS_v2( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo);
 				}
-				
-				PhysiCell_globals.full_output_index++; 
+
+				PhysiCell_globals.full_output_index++;
 				PhysiCell_globals.next_full_save_time += PhysiCell_settings.full_save_interval;
 			}
-			
+
 			// save SVG plot if it's time
 			if( PhysiCell_globals.current_time > PhysiCell_globals.next_SVG_save_time - 0.5 * diffusion_dt )
 			{
 				if( PhysiCell_settings.enable_SVG_saves == true )
-				{	
-					sprintf( filename , "%s/snapshot%08u.svg" , PhysiCell_settings.folder.c_str() , PhysiCell_globals.SVG_output_index ); 
+				{
+					sprintf( filename , "%s/snapshot%08u.svg" , PhysiCell_settings.folder.c_str() , PhysiCell_globals.SVG_output_index );
 					SVG_plot_mpi( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function, substrate_coloring_function, world, cart_topo );
-					
-					PhysiCell_globals.SVG_output_index++; 
+
+					PhysiCell_globals.SVG_output_index++;
 					PhysiCell_globals.next_SVG_save_time  += PhysiCell_settings.SVG_save_interval;
 				}
 			}
 
 			// update the microenvironment
 			microenvironment.simulate_diffusion_decay( diffusion_dt, world, cart_topo);
-			
-			// run PhysiCell 
+
+			// run PhysiCell
 			((Cell_Container *)microenvironment.agent_container)->update_all_cells( PhysiCell_globals.current_time, world, cart_topo);
-			
+
 			/*
-			  Custom add-ons could potentially go here. 
+			  Custom add-ons could potentially go here.
 			*/
-			
+
 			PhysiCell_globals.current_time += diffusion_dt;
 		}
-		
+
 		if( PhysiCell_settings.enable_legacy_saves == true )
-		{			
-			log_output(PhysiCell_globals.current_time, PhysiCell_globals.full_output_index, microenvironment, report_file,world, cart_topo);
+		{
+			log_output(PhysiCell_globals.current_time, PhysiCell_globals.full_output_index, microenvironment, report_file, world, cart_topo);
 			report_file.close();
 		}
 	}
@@ -269,22 +264,23 @@ int main( int argc, char* argv[] )
 	{ // reference to the base of a polymorphic object
 		std::cout << e.what(); // information from length_error printed
 	}
-	
-	// save a final simulation snapshot 
-	
-	sprintf( filename , "%s/final" , PhysiCell_settings.folder.c_str() ); 
-	save_PhysiCell_to_MultiCellDS_v2( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo ); 
-	
-	sprintf( filename , "%s/final.svg" , PhysiCell_settings.folder.c_str() ); 
+
+	// save a final simulation snapshot
+
+	sprintf( filename , "%s/final" , PhysiCell_settings.folder.c_str() );
+	save_PhysiCell_to_MultiCellDS_v2( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo );
+
+	sprintf( filename , "%s/final.svg" , PhysiCell_settings.folder.c_str() );
 	SVG_plot_mpi( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function, substrate_coloring_function, world, cart_topo );
-	
-	// timer 
+
+	// timer
+
 	if (IOProcessor(world)) {
-		std::cout << std::endl << "Total simulation runtime: " << std::endl; 
-		BioFVM::display_stopwatch_value( std::cout , BioFVM::runtime_stopwatch_value() ); 
+		std::cout << std::endl << "Total simulation runtime: " << std::endl;
+		BioFVM::display_stopwatch_value( std::cout , BioFVM::runtime_stopwatch_value() );
 	}
-	
+
 	world.Finalize();
 
-	return 0; 
+	return 0;
 }

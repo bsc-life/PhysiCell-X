@@ -19,6 +19,7 @@ addons/PhysiBoSS/MaBoSS-env-2.0/
 addons/PhysiBoSS/MaBoSS-env-2.0
 addons/PhysiBoSS/MaBoSS/
 addons/PhysiBoSS/libMaBoSS-*.tar.gz
+addons/dFBA/ext/
 #Miscellaneous
 core/doubts.txt
 
