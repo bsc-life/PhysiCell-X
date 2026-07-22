@@ -599,6 +599,7 @@ void write_matlab4_header( int nrows, int ncols, std::string filename, std::stri
  
  
  MPI_File_open(cart_topo.mpi_cart_comm, char_filename, MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &fh); //Equivalent fp = fopen( filename.c_str() , "wb" );
+ MPI_File_set_size(fh, 0);
  
  unsigned int temp;
  unsigned int type_numeric_format = 0;                                                             // little-endian assumed for now!

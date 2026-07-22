@@ -100,8 +100,11 @@ void standard_cell_cell_interactions( Cell* pCell, Phenotype& phenotype, double 
 			std::vector<int> moore_list = pCell->get_container()->underlying_mesh.moore_connected_voxel_global_indices_left[yx_index];
 			for(int i=0; i<moore_list.size(); i++)
 			{
-				Interacting_Voxel &ivi = pCell->get_container()->um_ivfl.at(moore_list[i]);
-					
+				auto ivi_iter = pCell->get_container()->um_ivfl.find(moore_list[i]);
+				if( ivi_iter == pCell->get_container()->um_ivfl.end() )
+				{ continue; }
+				Interacting_Voxel &ivi = ivi_iter->second;
+
 				for(int cell_ctr=0; cell_ctr<ivi.cells.size(); cell_ctr++) {
 					
 					Interacting_Cell_Info * pC = &ivi.cells[cell_ctr];
@@ -157,8 +160,11 @@ void standard_cell_cell_interactions( Cell* pCell, Phenotype& phenotype, double 
 			std::vector<int> moore_list = pCell->get_container()->underlying_mesh.moore_connected_voxel_global_indices_right[yx_index];
 			for(int i=0; i<moore_list.size(); i++)
 			{
-				Interacting_Voxel &ivi = pCell->get_container()->um_ivfr.at(moore_list[i]);
-					
+				auto ivi_iter = pCell->get_container()->um_ivfr.find(moore_list[i]);
+				if( ivi_iter == pCell->get_container()->um_ivfr.end() )
+				{ continue; }
+				Interacting_Voxel &ivi = ivi_iter->second;
+
 				for(int cell_ctr=0; cell_ctr<ivi.cells.size(); cell_ctr++) {
 					
 					Interacting_Cell_Info * pC = &ivi.cells[cell_ctr]; 

@@ -181,17 +181,6 @@ void Cell_Container::update_all_cells(double t, mpi_Environment &world, mpi_Cart
 
 void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double mechanics_dt_ , double diffusion_dt_ )
 {
-	// secretions and uptakes. Syncing with BioFVM is automated.
-
-	#pragma omp parallel for
-	for( int i=0; i < (*all_cells).size(); i++ )
-	{
-		if( (*all_cells)[i]->is_out_of_domain == false )
-		{
-			(*all_cells)[i]->phenotype.secretion.advance( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
-		}
-	}
-
 	//if it is the time for running cell cycle, do it!
 	double time_since_last_cycle= t- last_cell_cycle_time;
 
@@ -203,7 +192,7 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 	double interval_maboss_time = 0.0;
 	unsigned long long interval_maboss_updates = 0;
 	#pragma omp parallel for reduction(+:interval_maboss_time,interval_maboss_updates)
-	for( int i=0; i < (*all_cells).size(); i++ )
+	for( int i=0; i < (*all_cells).size(); i++ ) 
 	{
 		if( (*all_cells)[i]->is_out_of_domain == false && initialzed ) {
 
@@ -234,6 +223,17 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 	}
 	time_maboss_update += interval_maboss_time;
 	count_maboss_updates += interval_maboss_updates;
+
+	// secretions and uptakes. Syncing with BioFVM is automated.
+
+	#pragma omp parallel for
+	for( int i=0; i < (*all_cells).size(); i++ )
+	{
+		if( (*all_cells)[i]->is_out_of_domain == false )
+		{
+			(*all_cells)[i]->phenotype.secretion.advance( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
+		}
+	}
 
 	if( time_since_last_cycle > phenotype_dt_ - 0.5 * diffusion_dt_ || !initialzed)
 	{
@@ -410,32 +410,13 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 /*----------------------------------------*/
 void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double mechanics_dt_ , double diffusion_dt_ , mpi_Environment &world, mpi_Cartesian &cart_topo )
 {
-	// secretions and uptakes. Syncing with BioFVM is automated.
-
-	/*===============================================================================*/
-	/* Nothing to be parallelized in phenotype.secretion.advance(...) function below */
-	/*===============================================================================*/
-	auto start = std::chrono::high_resolution_clock::now();
-	#pragma omp parallel for
-	for( int i=0; i < (*all_cells).size(); i++ )
-	{
-		if( (*all_cells)[i]->is_out_of_domain == false )
-		{
-			Cell* pC = (*all_cells)[i];
-			pC->phenotype.secretion.advance( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
-		}
-	}
-	auto end = std::chrono::high_resolution_clock::now();
-	std::chrono::duration<double, std::micro> duration = end - start;
-	time_diff += duration.count();
-
 	//if it is the time for running cell cycle, do it!
 	double time_since_last_cycle= t- last_cell_cycle_time;
 
 	static double phenotype_dt_tolerance = 0.001 * phenotype_dt_;
 	static double mechanics_dt_tolerance = 0.001 * mechanics_dt_;
 
-	start = std::chrono::high_resolution_clock::now();
+	auto start = std::chrono::high_resolution_clock::now();
 	double interval_maboss_time = 0.0;
 	unsigned long long interval_maboss_updates = 0;
 	#pragma omp parallel for reduction(+:interval_maboss_time,interval_maboss_updates)
@@ -468,11 +449,30 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 			}
 		}
 	}
-	end = std::chrono::high_resolution_clock::now();
-	duration = end - start;
+	auto end = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double, std::micro> duration = end - start;
 	time_intracell += duration.count();
 	time_maboss_update += interval_maboss_time;
 	count_maboss_updates += interval_maboss_updates;
+
+	// secretions and uptakes. Syncing with BioFVM is automated.
+
+	/*===============================================================================*/
+	/* Nothing to be parallelized in phenotype.secretion.advance(...) function below */
+	/*===============================================================================*/
+	start = std::chrono::high_resolution_clock::now();
+	#pragma omp parallel for
+	for( int i=0; i < (*all_cells).size(); i++ )
+	{
+		if( (*all_cells)[i]->is_out_of_domain == false )
+		{
+			Cell* pC = (*all_cells)[i];
+			pC->phenotype.secretion.advance( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
+		}
+	}
+	end = std::chrono::high_resolution_clock::now();
+	duration = end - start;
+	time_diff += duration.count();
 
 	if( time_since_last_cycle > phenotype_dt_ - 0.5 * diffusion_dt_ || !initialzed )
 	{

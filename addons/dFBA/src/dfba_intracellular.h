@@ -7,97 +7,242 @@
 #include <map>
 #include <iomanip>   // for setw
 
-#include "../../../core/PhysiCell.h"
-#include "../../../BioFVM/BioFVM.h"
-#include "../../../modules/PhysiCell_pugixml.h"
+#include <coin/CoinPackedMatrix.hpp>
+#include <coin/CoinPackedVector.hpp>
+#include <coin/ClpSimplex.hpp>
 
-#include "./FBA_model.h"
+#include "../../../core/PhysiCell.h"
+#include "../../../core/PhysiCell_phenotype.h"
+#include "../../../core/PhysiCell_cell.h"
+#include "../../../core/PhysiCell_utilities.h"
+#include "../../../modules/PhysiCell_pugixml.h"
+#include "../../../core/PhysiCell_constants.h"
+
+#include "dfba_Model.h"
+#include "dfba_Reaction.h"
+
 
 using namespace std;
 
+namespace PhysiCelldFBA {
 
-struct kinetic_parm
+static std::string PhysiCelldFBA_Version = "0.0.1"; 
+
+static double hours_to_minutes = 1.0 / 60.0;
+static float PI = PhysiCell::PhysiCell_constants::pi;
+static double fba_epsilon_tolerance = 1e-7;
+
+struct KineticParam
 {
 	string name;
-	string untis;
+	string units;
 	float value;
 };
 
-struct exchange_data
+struct ExchangeFluxData
 {
 	string density_name;
 	string fba_flux_id;
 	int density_index;
-	kinetic_parm Km;
-	kinetic_parm Vmax;
+	KineticParam Km;
+	KineticParam Vmax;
 };
 
-
+//stateless: fixed value from cell definition
+//stateful: updated during simulation
 class dFBAIntracellular : public PhysiCell::Intracellular 
 {
  private:
-    std::string sbml_filename;
-	FBA_model model;
-
- 	std::map<std::string, double> parameters;
-	std::map<std::string, exchange_data> substrate_exchanges;
-
-    double next_model_run = 0;
-
  public:
-	
+
+    double dfba_time_step = PhysiCell::diffusion_dt; 
+
+ 	std::string sbml_filename; //stateless
+	std::string objective_reaction; //stateless
+	double reference_volume = 0.0; //stateless
+	double cell_density = 0.0; //stateless
+	double max_growth_rate = 0; //stateless
+	double current_growth_rate = 0; //stateful
+	double next_dfba_run = 0; //stateful
+	bool use_metabolic_death = true; //stateless
+	std::string death_type; //stateless
+	std::string death_trigger_flux; //stateless
+	double death_flux_threshold = 0.0; //stateless
+	double death_rate_increase = 0.0; //stateless
+	bool flag_for_death = false; //stateful
+	dFBAModel sbml_model; //Reconstruct in new mpi process
+	bool is_initialized = false; //stateful
+ 
+	bool skip_standard_optimization = false; //stateful
+
+	double liter_micron_cubes_conversion = 1e15; // 1 liter = 1e15 micron^3
+
+	/** \brief map between density IDs and exchange reactions */
+	std::map<std::string, ExchangeFluxData> substrate_exchanges; //stateless
+
+	//MPI extensions
+
+	void pack(std::vector<char>& buffer, int& len_buffer, int& position);
+	void unpack(std::vector<char>& buffer, int& len_buffer, int& position);
 
     dFBAIntracellular();
 
 	dFBAIntracellular(pugi::xml_node& node);
 	
-	dFBAIntracellular(dFBAIntracellular* copy);
-	
-    // rwh: review this
-	Intracellular* clone()
-    {
-		dFBAIntracellular* clone = new dFBAIntracellular(this);
-		clone->sbml_filename = this->sbml_filename;
-		clone->substrate_exchanges = this->substrate_exchanges;
-		return static_cast<Intracellular*>(clone);
+	dFBAIntracellular(const dFBAIntracellular& copy);
+
+	//	~Intracellular();
+
+	// rwh: review this
+	Intracellular* clone(){
+		return static_cast<Intracellular*>(new dFBAIntracellular(*this));
 	}
 
 	Intracellular* getIntracellularModel() 
-        {
+	{
 		return static_cast<Intracellular*>(this);
 	}
 	
+    // ================  generic  ================
+	// This function parse the xml cell definition
 	void initialize_intracellular_from_pugixml(pugi::xml_node& node);
 	
-    void start();
+	// This function checks if it's time to update the model
+	bool need_update() { return PhysiCell::PhysiCell_globals.current_time + 0.0001 >= this->next_dfba_run; }
 
-	bool need_update();
-    
-	void update(){ };
+	// This function deals with inheritance from mother to daughter cells
+	void inherit(PhysiCell::Cell* cell){ return;};
 
-	void update(PhysiCell::Cell* pCell, PhysiCell::Phenotype& phenotype, double dt);
-    
-	int update_phenotype_parameters(PhysiCell::Phenotype& phenotype);
-	bool has_variable(std::string name) { return true; }
+	// Get value for model parameter
+	double get_parameter_value(std::string name) { return 0;}
+	
+	// Set value for model parameter
+	void set_parameter_value(std::string name, double value) { return; }
+
+	std::string get_state(){ return ""; }
+	
+	void display(std::ostream& os){ return; }
+
+	void start();
+
+	virtual void update();
+
+	void update(PhysiCell::Cell* cell, PhysiCell::Phenotype& phenotype, double dt){
+		 // STEP 1.
+		// date exchange fluxes lower bound using concentration values of the
+		// corresponding densities at the agent voxel
+		if (cell->phenotype.death.dead == false)
+		{
+			this->update_dfba_inputs(cell, phenotype, dt);
+
+			// STEP 2: Run standard biomass optimization
+			this->update();
+
+			// STEP 3. Update the cell volumne using the growth rate from FBA
+			// STEP 4. rescale exchange fluxes from the dfba model and use them to update the net_export_rates
+			// STEP 5. remove the internalized substrates if needed
+			this->update_dfba_outputs(cell, phenotype, dt);
+
+			this->next_dfba_run += dfba_time_step;
+			while( this->next_dfba_run <= PhysiCell::PhysiCell_globals.current_time + 0.0001 )
+			{
+				this->next_dfba_run += dfba_time_step;
+			}
+
+			// if (phenotype.volume.total	>= 2 * this->reference_volume){
+			// 	cell->flag_for_division();
+			// }
+			double v = phenotype.volume.total;
+			double v_ref = this->reference_volume;
+
+			// Only start checking after ~1.6 × reference volume
+			if (v >= 1.6 * v_ref) {
+				// normalized progress from 0 (at 1.6×) to 1 (at 2×)
+				double progress = (v - 1.6 * v_ref) / (0.4 * v_ref);
+				if (progress < 0.0) progress = 0.0;
+				if (progress > 1.0) progress = 1.0;
+
+				// map progress to probability of dividing this timestep
+				// e.g. sigmoid or just linear:
+				double prob = progress;   // 0 at 1.6×, 1 at 2×
+
+				// stochastic check
+				if (PhysiCell::UniformRandom() < prob * dt) {
+					cell->flag_for_division();
+				}
+			}
+		}
+		else
+		{
+			this->current_growth_rate = 0.0;
+			// update the cell volume using the standard volume update function
+			PhysiCell::standard_volume_update_function(cell, phenotype, dt); // to update volume during necrosis, during necrotitc swelling, volume increases until rupture
+			return ;
+		}
+	};
+
+ 	void update_dfba_inputs( PhysiCell::Cell* pCell, PhysiCell::Phenotype& phenotype, double dt );
+	void update_dfba_outputs( PhysiCell::Cell* pCell, PhysiCell::Phenotype& phenotype, double dt );
+
+	dFBASolution optimize_for_objective(std::string reaction_id, double coefficient);
+
+	// =============== dFBA specific functions ===============
+
+	
+	int parse_transport_model(pugi::xml_node& node);
+	void parse_growth_model(pugi::xml_node& node);
+	void parse_death_model(pugi::xml_node& node);
+	void initLpSolver();
+
+	void setObjectiveCoefficient(std::string reaction_id, double coefficient) {
+		this->sbml_model.setObjectiveCoefficient(reaction_id, coefficient);
+	}
+
+	void clearObjective() {
+		this->sbml_model.clearObjective();
+	}
+
+	void restoreObjectiveState() {
+		this->sbml_model.restoreObjectiveState();
+	}
 
 	// libroadrunner specifics
-        int validate_PhysiCell_tokens(PhysiCell::Phenotype& phenotype){ return true;}
-        int validate_SBML_species(){ return true;}
-		int create_custom_data_for_SBML(PhysiCell::Phenotype& phenotype) {return 0; }
-	std::string get_state(){ return "none";}
-	double get_parameter_value(std::string name){ return -1.0; }
-	void set_parameter_value(std::string name, double value){  }
+		
+	// for now, define dummy methods for these in the abstract parent class
 	
-        // for now, define dummy methods for these in the abstract parent class
-        bool has_node(std::string name) { return false; }
-        bool get_boolean_variable_value(std::string name) { return false; }
-	void set_boolean_variable_value(std::string name, bool value)  {}
-         void print_current_nodes() {}
+	// This function initialize the model, needs to be called on each cell once created
+	
+	
 	
         // static void save_PhysiBoSS(std::string path, std::string index);
 	static void save_dFBA(std::string path, std::string index);
+
+	void update_volume(PhysiCell::Cell* pCell, PhysiCell::Phenotype& phenotype, double growth_rate, double dt);
+	void standard_update_cell_volume(PhysiCell::Cell* pCell, PhysiCell::Phenotype& phenotype, double growth_rate, double dt);
+
+
+
+	// ================  specific to "dFBA" ================
+
+	double get_flux_value(std::string name);
+	double get_growth_rate(){ return this->current_growth_rate; }
+	void print_model(PhysiCell::Cell* pCell, double current_time, std::string output_folder = "./output");
+
+    // ================  specific to "maboss" ================
+	bool has_variable(std::string name) { return false; }
+	bool get_boolean_variable_value(std::string name) { return false; }
+	void set_boolean_variable_value(std::string name, bool value) {	}
+	void print_current_nodes(){	}
+	
+
+    // ================  specific to "roadrunner" ================
+    int update_phenotype_parameters(PhysiCell::Phenotype& phenotype) {return 0; }
+    int validate_PhysiCell_tokens(PhysiCell::Phenotype& phenotype) {return 0; }
+    int validate_SBML_species() {return 0; }
+    int create_custom_data_for_SBML(PhysiCell::Phenotype& phenotype) {return 0; }
+
 };
 
-
+}
 
 #endif

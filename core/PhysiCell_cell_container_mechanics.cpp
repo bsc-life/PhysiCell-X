@@ -59,7 +59,10 @@ std::vector<Moore_Cell_Info> Cell_Container::get_moore_neighbour_cells(Cell* pCe
         std::vector<int> moore_list = pCell->get_container()->underlying_mesh.moore_connected_voxel_global_indices_left[yx_index];
         for(int i=0; i<moore_list.size(); i++)
         {
-            Moore_Voxel_Info &mvi = um_mbfl.at(moore_list[i]);
+            auto mvi_iter = um_mbfl.find(moore_list[i]);
+            if( mvi_iter == um_mbfl.end() )
+            { continue; }
+            Moore_Voxel_Info &mvi = mvi_iter->second;
             for(int cell_ctr=0; cell_ctr<mvi.moore_cells.size(); cell_ctr++) {
                 neighbours.push_back(mvi.moore_cells[cell_ctr]);
             }
@@ -70,7 +73,10 @@ std::vector<Moore_Cell_Info> Cell_Container::get_moore_neighbour_cells(Cell* pCe
         std::vector<int> moore_list = pCell->get_container()->underlying_mesh.moore_connected_voxel_global_indices_right[yx_index];
         for(int i=0; i<moore_list.size(); i++)
         {
-            Moore_Voxel_Info &mvi = um_mbfr.at(moore_list[i]);
+            auto mvi_iter = um_mbfr.find(moore_list[i]);
+            if( mvi_iter == um_mbfr.end() )
+            { continue; }
+            Moore_Voxel_Info &mvi = mvi_iter->second;
                 
             for(int cell_ctr=0; cell_ctr<mvi.moore_cells.size(); cell_ctr++) {
                 neighbours.push_back(mvi.moore_cells[cell_ctr]);
@@ -95,7 +101,10 @@ std::vector<Interacting_Cell_Info> Cell_Container::get_neighbour_interacting_cel
         std::vector<int> moore_list = pCell->get_container()->underlying_mesh.moore_connected_voxel_global_indices_left[yx_index];
         for(int i=0; i<moore_list.size(); i++)
         {
-            Interacting_Voxel &ivi = pCell->get_container()->um_ivfl.at(moore_list[i]);
+            auto ivi_iter = pCell->get_container()->um_ivfl.find(moore_list[i]);
+            if( ivi_iter == pCell->get_container()->um_ivfl.end() )
+            { continue; }
+            Interacting_Voxel &ivi = ivi_iter->second;
                 
             for(int cell_ctr=0; cell_ctr<ivi.cells.size(); cell_ctr++) {
                 neighbours.push_back(ivi.cells[cell_ctr]);
@@ -107,7 +116,10 @@ std::vector<Interacting_Cell_Info> Cell_Container::get_neighbour_interacting_cel
         std::vector<int> moore_list = pCell->get_container()->underlying_mesh.moore_connected_voxel_global_indices_right[yx_index];
         for(int i=0; i<moore_list.size(); i++)
         {
-            Interacting_Voxel &ivi = pCell->get_container()->um_ivfr.at(moore_list[i]);
+            auto ivi_iter = pCell->get_container()->um_ivfr.find(moore_list[i]);
+            if( ivi_iter == pCell->get_container()->um_ivfr.end() )
+            { continue; }
+            Interacting_Voxel &ivi = ivi_iter->second;
                 
             for(int cell_ctr=0; cell_ctr<ivi.cells.size(); cell_ctr++) {
                 neighbours.push_back(ivi.cells[cell_ctr]);
@@ -182,7 +194,7 @@ void Cell_Container::update_cell_potentials(double time_since_last_mechanics,  m
         if( pC->functions.custom_cell_rule && pC->is_out_of_domain == false )
 			{ pC->functions.custom_cell_rule( pC,pC->phenotype,time_since_last_mechanics ); } //No parallelism necessary yet
 
-        if( pC->is_movable )
+        if( pC->is_movable && pC->is_out_of_domain == false )
         {
             if(pC->functions.update_velocity_parallel && pC->is_out_of_domain == false)
             {

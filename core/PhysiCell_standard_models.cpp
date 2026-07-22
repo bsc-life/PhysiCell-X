@@ -760,9 +760,11 @@ void standard_update_cell_velocity( Cell* pCell, Phenotype& phenotype, double dt
 			std::vector<int> moore_list = pCell->get_container()->underlying_mesh.moore_connected_voxel_global_indices_left[yx_index];
 			for(int i=0; i<moore_list.size(); i++)
 			{
-				
-				Moore_Voxel_Info &mvi = pCell->get_container()->um_mbfl.at(moore_list[i]);
-				
+				auto mvi_iter = pCell->get_container()->um_mbfl.find(moore_list[i]);
+				if( mvi_iter == pCell->get_container()->um_mbfl.end() )
+				{ continue; }
+				Moore_Voxel_Info &mvi = mvi_iter->second;
+
 				std::vector<double> my_voxel_center 	 = pCell->get_container()->underlying_mesh.voxels[pCell->get_current_mechanics_voxel_index()].center;
 				std::vector<double> other_voxel_center = mvi.center;
 				double mcidiv 												 = mvi.max_cell_interactive_distance_in_voxel;
@@ -789,9 +791,11 @@ void standard_update_cell_velocity( Cell* pCell, Phenotype& phenotype, double dt
 			std::vector<int> moore_list = pCell->get_container()->underlying_mesh.moore_connected_voxel_global_indices_right[yx_index];
 			for(int i=0; i<moore_list.size(); i++)
 			{
-		
-				Moore_Voxel_Info &mvi = pCell->get_container()->um_mbfr.at(moore_list[i]);
-				
+				auto mvi_iter = pCell->get_container()->um_mbfr.find(moore_list[i]);
+				if( mvi_iter == pCell->get_container()->um_mbfr.end() )
+				{ continue; }
+				Moore_Voxel_Info &mvi = mvi_iter->second;
+
 				std::vector<double> my_voxel_center 	 = pCell->get_container()->underlying_mesh.voxels[pCell->get_current_mechanics_voxel_index()].center;
 				std::vector<double> other_voxel_center = mvi.center;
 				double mcidiv 												 = mvi.max_cell_interactive_distance_in_voxel;

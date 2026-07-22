@@ -94,6 +94,7 @@ void display_simulation_status( std::ostream& os );
 void display_simulation_status( std::ostream& os, mpi_Environment &world, mpi_Cartesian &cart_topo ); 
 
 void log_output(double t, int output_index, Microenvironment microenvironment, std::ofstream& report_file);
+void log_output(double t, int output_index, Microenvironment microenvironment, std::ofstream& report_file, mpi_Environment &world, mpi_Cartesian &cart_topo);
 	
 };
 

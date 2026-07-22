@@ -2,8 +2,6 @@ VERSION := $(shell grep . VERSION.txt | cut -f1 -d:)
 PROGRAM_NAME := heterogeneity.exe
 
 CC := mpic++
-# CC := g++-mp-7 # typical macports compiler name
-# CC := g++-7 # typical homebrew compiler name 
 
 # Check for environment definitions of compiler 
 # e.g., on CC = g++-7 on OSX
@@ -169,7 +167,7 @@ PhysiCell_MultiCellDS.o: ./modules/PhysiCell_MultiCellDS.cpp
 
 PhysiCell_various_outputs.o: ./modules/PhysiCell_various_outputs.cpp
 	$(COMPILE_COMMAND) -c ./modules/PhysiCell_various_outputs.cpp
-	
+
 PhysiCell_pugixml.o: ./modules/PhysiCell_pugixml.cpp
 	$(COMPILE_COMMAND) -c ./modules/PhysiCell_pugixml.cpp
 	
