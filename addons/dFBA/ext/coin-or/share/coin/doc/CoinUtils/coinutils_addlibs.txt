@@ -1,1 +1,0 @@
--L/home/runner/work/coinbrew/coinbrew/dist/lib -lCoinUtils -lbz2 -lz -llapack -lblas -lm
