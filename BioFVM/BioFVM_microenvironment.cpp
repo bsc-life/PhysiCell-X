@@ -225,7 +225,99 @@ void Microenvironment::add_dirichlet_node( int voxel_index, std::vector<double>&
 	
 	dirichlet_value_vectors[voxel_index] = value; // .assign( mesh.voxels.size(), one ); 
 	
-	return; 
+	return;
+}
+
+void Microenvironment::add_internal_dirichlet_node(
+	int voxel_index, const std::vector<double>& value,
+	const std::vector<bool>& activation )
+{
+	if( voxel_index < 0 || voxel_index >= number_of_voxels() )
+	{
+		std::cerr << "Error: internal Dirichlet voxel index " << voxel_index
+			<< " is outside the local microenvironment." << std::endl;
+		exit( -1 );
+	}
+
+	const int densities = number_of_densities();
+	if( value.size() != densities || activation.size() != densities )
+	{
+		std::cerr << "Error: internal Dirichlet nodes require one value and one "
+			<< "activation flag per substrate (expected " << densities
+			<< ", received " << value.size() << " values and "
+			<< activation.size() << " flags)." << std::endl;
+		exit( -1 );
+	}
+
+	bool already_registered = false;
+	for( unsigned int i = 0; i < internal_dirichlet_voxels.size(); i++ )
+	{
+		if( internal_dirichlet_voxels[i] == voxel_index )
+		{
+			already_registered = true;
+			break;
+		}
+	}
+	if( already_registered == false )
+	{
+		internal_dirichlet_voxels.push_back( voxel_index );
+	}
+
+	if( mesh.voxels[voxel_index].is_Dirichlet == false )
+	{
+		dirichlet_voxels.push_back( voxel_index );
+	}
+	mesh.voxels[voxel_index].is_Dirichlet = true;
+	dirichlet_value_vectors[voxel_index] = value;
+	dirichlet_activation_vectors[voxel_index] = activation;
+
+	return;
+}
+
+void Microenvironment::set_internal_substrate_dirichlet_activation(
+	int substrate_index, bool new_value )
+{
+	if( substrate_index < 0 || substrate_index >= number_of_densities() )
+	{
+		std::cerr << "Error: internal Dirichlet substrate index "
+			<< substrate_index << " is invalid." << std::endl;
+		exit( -1 );
+	}
+
+	for( unsigned int i = 0; i < internal_dirichlet_voxels.size(); i++ )
+	{
+		const int voxel_index = internal_dirichlet_voxels[i];
+		dirichlet_activation_vectors[voxel_index][substrate_index] = new_value;
+	}
+
+	return;
+}
+
+void Microenvironment::apply_internal_dirichlet_conditions( void )
+{
+	const int densities = number_of_densities();
+
+	#pragma omp parallel for
+	for( unsigned int i = 0; i < internal_dirichlet_voxels.size(); i++ )
+	{
+		const int voxel_index = internal_dirichlet_voxels[i];
+		if( mesh.voxels[voxel_index].is_Dirichlet == false )
+		{
+			continue;
+		}
+
+		const unsigned int density_index = voxel_index * densities;
+		for( int substrate_index = 0; substrate_index < densities; substrate_index++ )
+		{
+			if( dirichlet_activation_vectors[voxel_index][substrate_index] == true )
+			{
+				(*p_density_vectors)[density_index + substrate_index] =
+					dirichlet_value_vectors[voxel_index][substrate_index];
+			}
+		}
+	}
+
+	return;
 }
 
 void Microenvironment::update_dirichlet_node( int voxel_index , std::vector<double>& new_value )
@@ -461,6 +553,7 @@ void Microenvironment::resize_voxels( int new_number_of_voxes )
 
 	dirichlet_activation_vectors.assign( mesh.voxels.size() , dirichlet_activation_vector );
 	dirichlet_voxels.clear();
+	internal_dirichlet_voxels.clear();
 
 	diffusion_solver_setup_done = false;
 	diffusion_solver_vectorized_setup_done = false; 
@@ -489,8 +582,9 @@ void Microenvironment::resize_space( int x_nodes, int y_nodes, int z_nodes )
 	
 	dirichlet_value_vectors.assign( mesh.voxels.size(), one ); 
 	
-	dirichlet_activation_vectors.assign( mesh.voxels.size() , dirichlet_activation_vector ); 
+	dirichlet_activation_vectors.assign( mesh.voxels.size() , dirichlet_activation_vector );
 	dirichlet_voxels.clear();
+	internal_dirichlet_voxels.clear();
 	
 	return;  
 }
@@ -515,8 +609,9 @@ void Microenvironment::resize_space( double x_start, double x_end, double y_star
 
 	dirichlet_value_vectors.assign( mesh.voxels.size(), one ); 
 	
-	dirichlet_activation_vectors.assign( mesh.voxels.size() , dirichlet_activation_vector ); 	
+	dirichlet_activation_vectors.assign( mesh.voxels.size() , dirichlet_activation_vector );
 	dirichlet_voxels.clear();
+	internal_dirichlet_voxels.clear();
 	
 	return;  
 }
@@ -564,8 +659,9 @@ void Microenvironment::resize_space( double x_start, double x_end, double y_star
 	
 	dirichlet_value_vectors.assign( mesh.voxels.size(), one ); 
 
-	dirichlet_activation_vectors.assign( mesh.voxels.size() , dirichlet_activation_vector ); 
+	dirichlet_activation_vectors.assign( mesh.voxels.size() , dirichlet_activation_vector );
 	dirichlet_voxels.clear();
+	internal_dirichlet_voxels.clear();
 	
 	return;  
 }
@@ -621,8 +717,9 @@ void Microenvironment::resize_space( double x_start, double x_end, double y_star
 	
 	dirichlet_value_vectors.assign( mesh.voxels.size(), one ); 
 
-	dirichlet_activation_vectors.assign( mesh.voxels.size() , dirichlet_activation_vector ); 
+	dirichlet_activation_vectors.assign( mesh.voxels.size() , dirichlet_activation_vector );
 	dirichlet_voxels.clear();
+	internal_dirichlet_voxels.clear();
 	
 	return;  
 }
@@ -666,8 +763,9 @@ void Microenvironment::resize_densities( int new_size )
 	dirichlet_value_vectors.assign( mesh.voxels.size(), one ); 
 	dirichlet_activation_vector.assign( new_size, false ); 
 
-	dirichlet_activation_vectors.assign( mesh.voxels.size(), dirichlet_activation_vector ); 
+	dirichlet_activation_vectors.assign( mesh.voxels.size(), dirichlet_activation_vector );
 	dirichlet_voxels.clear();
+	internal_dirichlet_voxels.clear();
 
 	default_microenvironment_options.Dirichlet_condition_vector.assign( new_size , 1.0 );  
 	default_microenvironment_options.Dirichlet_activation_vector.assign( new_size, false ); 

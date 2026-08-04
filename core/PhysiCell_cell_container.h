@@ -209,6 +209,13 @@ class Cell_Container : public BioFVM::Agent_Container
 	std::vector<char> snd_buf_right;
 	std::vector<char> rcv_buf_left;
 	std::vector<char> rcv_buf_right;
+	// Persistent interaction-halo offsets. Reusing these buffers keeps their
+	// addresses stable across mechanics exchanges and avoids allocator/UCX
+	// registration-cache churn.
+	std::vector<int> offsets_left;
+	std::vector<int> offsets_right;
+	std::vector<int> offsets_from_left_process;
+	std::vector<int> offsets_from_right_process;
 	std::vector<int> snd_pos_left; //To store the position of each cell's data in the snd_buf_left
 	std::vector<int> snd_pos_right; //To store the position of each cell's data in the snd_buf_right
 	std::vector<int> rcv_pos_left; //To store the position of each cell's data in the rcv_buf_left

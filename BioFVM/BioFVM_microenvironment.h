@@ -154,6 +154,7 @@ class Microenvironment
 	   
 	std::vector< std::vector<bool> > dirichlet_activation_vectors;
 	std::vector<int> dirichlet_voxels;
+	std::vector<int> internal_dirichlet_voxels;
 	
 	/*=====================================================================================*/
 	/* 											TILL HERE 																										 */
@@ -312,8 +313,12 @@ class Microenvironment
 	void update_dirichlet_node( int voxel_index , int substrate_index , double new_value );
 	void remove_dirichlet_node( int voxel_index ); 
 	void apply_dirichlet_conditions( void );
-	void apply_dirichlet_conditions_fast( void );  
-	void apply_dirichlet_boundaries_conditions( int rank, int size ); 
+	void apply_dirichlet_conditions_fast( void );
+	void apply_dirichlet_boundaries_conditions( int rank, int size );
+	void add_internal_dirichlet_node( int voxel_index, const std::vector<double>& value,
+		const std::vector<bool>& activation );
+	void set_internal_substrate_dirichlet_activation( int substrate_index, bool new_value );
+	void apply_internal_dirichlet_conditions( void );
 
 	void set_substrate_dirichlet_activation( int substrate_index , bool new_value ); 
 	//double get_substrate_dirichlet_activation( int substrate_index ); ---> changed in v1.7 as below (Gaurav Saxena)

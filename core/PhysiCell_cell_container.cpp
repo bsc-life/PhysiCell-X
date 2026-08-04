@@ -1028,11 +1028,6 @@ void Cell_Container::pack_cell_interact_info(mpi_Environment &world, mpi_Cartesi
 	int y_dim = underlying_mesh.y_coordinates.size();
 	int x_dim = underlying_mesh.x_coordinates.size();
 
-	std::vector<int> snd_buf_left_sizes(y_dim * z_dim, 0);
-	std::vector<int> snd_buf_right_sizes(y_dim * z_dim, 0);	
-	std::vector<vector<char>> snd_buf_left_per_voxel(y_dim * z_dim);
-	std::vector<vector<char>> snd_buf_right_per_voxel(y_dim * z_dim);
-
 	int len_snd_buf_left  	 = 0;
 	int len_snd_buf_right 	 = 0;
 
@@ -1042,8 +1037,15 @@ void Cell_Container::pack_cell_interact_info(mpi_Environment &world, mpi_Cartesi
 	const size_t per_cell_bytes = 3 * sizeof(int) + 1 * sizeof(bool) + 10 * sizeof(double) + 2 * underlying_mesh.n_substrates * sizeof(double);
 	// Reserve enough space up-front to avoid repeated reallocations while packing.
 
-	std::vector<int> offsets_left((y_dim * z_dim)+1, 0);
-	std::vector<int> offsets_right((y_dim * z_dim)+1, 0);
+	const size_t offsets_count = static_cast<size_t>(y_dim) * z_dim + 1;
+	offsets_left.resize(offsets_count);
+	offsets_right.resize(offsets_count);
+	offsets_from_left_process.resize(offsets_count);
+	offsets_from_right_process.resize(offsets_count);
+	std::fill(offsets_left.begin(), offsets_left.end(), 0);
+	std::fill(offsets_right.begin(), offsets_right.end(), 0);
+	std::fill(offsets_from_left_process.begin(), offsets_from_left_process.end(), 0);
+	std::fill(offsets_from_right_process.begin(), offsets_from_right_process.end(), 0);
 
 
 	auto start_offsets = std::chrono::high_resolution_clock::now();
@@ -1184,8 +1186,6 @@ if(world.rank < world.size-1)
 	/* Send to MPI_PROC_NULL as well, don't use 'if'	 */
 	/*---------------------------------------------------*/
 
-	std::vector<int> offsets_from_left_process(y_dim * z_dim + 1, 0); // +1 for sentinel
-	std::vector<int> offsets_from_right_process(y_dim * z_dim + 1, 0); // +1 for sentinel
 	int size_of_data_recvd_from_right_process = 0;
 	int size_of_data_recvd_from_left_process  = 0;
 	MPI_Request snd_req[2], rcv_req[2];

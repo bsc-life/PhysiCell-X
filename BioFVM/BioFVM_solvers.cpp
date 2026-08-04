@@ -551,6 +551,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
         std::vector<double> block3d(M.thomas_i_jump); //The message to send is of the size Y_voxels * Z_voxels * Substrates
 
         M.apply_dirichlet_boundaries_conditions(rank, size);
+        M.apply_internal_dirichlet_conditions();
 
         /*-----------------------------------------------------------------------------------*/
         /*                        FORWARD ELIMINATION - x DIRECTION/DECOMPOSITION            */
@@ -888,6 +889,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
         MPI_Barrier(cart_topo.mpi_cart_comm);
 
         M.apply_dirichlet_boundaries_conditions(rank, size);
+        M.apply_internal_dirichlet_conditions();
 
         #pragma omp parallel for collapse(2)
         for (uint32_t i = 0; i < M.mesh.x_size; i++)
@@ -937,6 +939,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
         }
 
         M.apply_dirichlet_boundaries_conditions(rank, size);
+        M.apply_internal_dirichlet_conditions();
 
         #pragma omp parallel for collapse(2)
         for (uint32_t i = 0; i < M.mesh.x_size; i++)
@@ -984,6 +987,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
             }
         }
         M.apply_dirichlet_boundaries_conditions(rank, size);
+        M.apply_internal_dirichlet_conditions();
         return;
     }
 
@@ -1278,6 +1282,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
         double block3d[M.thomas_i_jump]; //Aux structure of the size: Y*Z*Substrates
 
         M.apply_dirichlet_boundaries_conditions(rank, size);
+        M.apply_internal_dirichlet_conditions();
 
         if (rank == 0)
         {
@@ -1716,6 +1721,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
         }
 
     M.apply_dirichlet_boundaries_conditions(rank, size);
+    M.apply_internal_dirichlet_conditions();
 
     #pragma omp parallel for
     for (int i = 0; i < M.mesh.x_size; i++)
@@ -1824,6 +1830,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
     }
 
     M.apply_dirichlet_boundaries_conditions(rank, size);
+    M.apply_internal_dirichlet_conditions();
 
     #pragma omp parallel for collapse(2)
     for (int i = 0; i < M.mesh.x_size; i++)
@@ -1870,7 +1877,8 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
             }
         }
     }
-}   
+    M.apply_internal_dirichlet_conditions();
+}
 
 //BioFVM-B: need to include communication 
 void diffusion_decay_solver__constant_coefficients_LOD_2D( Microenvironment& M, double dt )
