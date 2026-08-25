@@ -221,6 +221,8 @@ void setup_microenvironment( mpi_Environment& world, mpi_Cartesian& cart_topo )
 		microenvironment.number_of_densities(), false );
 	vessel_values[oxygen_index] = parameters.doubles("o2_conc1");
 	vessel_values[drug_index] = parameters.doubles("drug_conc");
+	vessel_activation[oxygen_index] = true;
+	vessel_activation[drug_index] = false;
 	
 	std::vector<std::vector<double>> positions;
 

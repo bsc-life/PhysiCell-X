@@ -2256,13 +2256,6 @@ void initialize_microenvironment( void )
 		
 	}
 
-	
-	// set the Dirichlet condition activation vector to match the microenvironment options 
-	for( int i=0 ; i < default_microenvironment_options.Dirichlet_activation_vector.size(); i++ )
-	{
-		microenvironment.set_substrate_dirichlet_activation( i , default_microenvironment_options.Dirichlet_activation_vector[i] ); 
-	}
-	
 	microenvironment.display_information( std::cout );
 	return;
 }
@@ -2889,12 +2882,6 @@ void initialize_microenvironment( mpi_Environment &world, mpi_Cartesian &cart_to
 	microenvironment.mesh.y_size = microenvironment.mesh.y_coordinates.size();
 	microenvironment.mesh.z_size = microenvironment.mesh.z_coordinates.size();
 	microenvironment.mesh.n_substrates = microenvironment.number_of_densities();
-	
-	// set the Dirichlet condition activation vector to match the microenvironment options 
-	for( int i=0 ; i < default_microenvironment_options.Dirichlet_activation_vector.size(); i++ )
-	{
-		microenvironment.set_substrate_dirichlet_activation( i , default_microenvironment_options.Dirichlet_activation_vector[i] ); 
-	}
 	
 	if(IOProcessor(world))
 		microenvironment.display_information( std::cout );

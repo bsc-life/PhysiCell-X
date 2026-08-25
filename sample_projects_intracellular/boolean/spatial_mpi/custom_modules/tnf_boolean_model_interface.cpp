@@ -48,7 +48,8 @@ double Hill_response_function_2( double s, double half_max , double hill_power )
 
 
 
-double calculate_diffusion_flux(Cell* pCell, int density_idx, double permeability,std::string drug_name){
+double calculate_diffusion_flux(Cell* pCell, int density_idx, double permeability,
+	double dt, std::string drug_name){
 	
 	// Cell and voxel geometries
 	static double voxel_volume = microenvironment.mesh.dV;
@@ -61,7 +62,7 @@ double calculate_diffusion_flux(Cell* pCell, int density_idx, double permeabilit
 
 	if (density_ext < 0){
 		pCell->nearest_density_vector()[density_idx] = 0;
-
+		density_ext = 0;
 	}
 	
 	double density_int = pCell->phenotype.molecular.internalized_total_substrates[density_idx];
@@ -74,10 +75,26 @@ double calculate_diffusion_flux(Cell* pCell, int density_idx, double permeabilit
     // std::cout << flux << "flux" << std::endl;
 
 
-	if( flux < 0.0 && std::abs(flux) >= density_ext * voxel_volume ){
-		flux = (density_int * cell_volume) - (density_ext * voxel_volume); // amol
-	} else if ( flux > 0.0 && flux >= density_int * cell_volume){
-		flux = (density_int * cell_volume) - (density_ext * voxel_volume); // amol
+	// flux is an amount per minute, whereas the available substrate values
+	// below are amounts. Bound the amount transported over this time step and
+	// convert the bound back to an amount-per-minute export rate.
+	if( dt > 0.0 )
+	{
+		double extracellular_amount = density_ext * voxel_volume;
+		double intracellular_amount = density_int * cell_volume;
+		if( extracellular_amount < 0.0 )
+		{ extracellular_amount = 0.0; }
+		if( intracellular_amount < 0.0 )
+		{ intracellular_amount = 0.0; }
+
+		if( flux < 0.0 && -flux * dt > extracellular_amount )
+		{
+			flux = -extracellular_amount / dt;
+		}
+		else if( flux > 0.0 && flux * dt > intracellular_amount )
+		{
+			flux = intracellular_amount / dt;
+		}
 	}
 
 	// Then map to the custom data for post-simulation analysis
@@ -191,7 +208,7 @@ void update_cell_from_boolean_model(Cell* pCell, Phenotype& phenotype, double dt
     static int death_decay_idx = pCell->custom_data.find_variable_index( "death_commitment_decay" );
     static int apoptosis_index = phenotype.death.find_death_model_index( PhysiCell_constants::apoptosis_death_model );
     static float apoptosis_rate = pCell->custom_data["apoptosis_rate"];
-    static float death_commitment_decay = pCell->custom_data["death_commitment_decay"];
+    static float death_commitment_decay = pCell->custom_data["death_decay_idx"];
     
     // // Getting the state of the Boolean model readouts (Readout can be in the XML)
     bool apoptosis = pCell->phenotype.intracellular->get_boolean_variable_value( "Apoptosis" );

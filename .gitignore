@@ -28,6 +28,7 @@ config/
 #Results
 output/
 logs/
+output*
 
 .DS_Store
 .codex

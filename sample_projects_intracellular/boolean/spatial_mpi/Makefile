@@ -63,7 +63,7 @@ ARCH := native # best auto-tuning
 # ARCH := nocona #64-bit pentium 4 or later 
 
 # CFLAGS := -march=$(ARCH) -Ofast -s -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11
-CFLAGS := -march=$(ARCH) -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g
+CFLAGS := -march=$(ARCH) -O3 -fno-omit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g
 
 ifeq ($(OS),Windows_NT)
 else
@@ -263,7 +263,7 @@ tnf_boolean_model_interface.o: ./custom_modules/tnf_boolean_model_interface.cpp 
 
 reset:
 	rm -f *.cpp 
-	cp ./sample_projects/Makefile-default Makefile 
+	cp Makefile-backup Makefile 
 	rm -f ./custom_modules/*
 	touch ./custom_modules/empty.txt 
 	touch ALL_CITATIONS.txt 

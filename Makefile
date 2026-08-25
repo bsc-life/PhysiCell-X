@@ -66,7 +66,7 @@ list-projects:
 	@echo "                 cancer-immune-sample virus-macrophage-sample pred-prey-mpi pred-prey-farmer"
 	@echo ""
 	@echo "Sample intracellular projects: ode-energy-sample physiboss-cell-lines-sample cancer-metabolism-sample"
-	@echo "physiboss-cell-lines-mpi physiboss-tnf-model physiboss-tnf-model-mpi"
+	@echo "physiboss-cell-lines-mpi physiboss-spatial-mpi physiboss-tnf-model physiboss-tnf-model-mpi"
 	@echo ""
 	
 # ---- non-intracellular projects 	
@@ -189,6 +189,16 @@ physiboss-cell-lines-mpi:
 	cp ./sample_projects_intracellular/boolean/physiboss_cell_lines_mpi/Makefile .
 	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
 	cp ./sample_projects_intracellular/boolean/physiboss_cell_lines_mpi/config/* ./config/
+
+physiboss-spatial-mpi:
+	cp ./sample_projects_intracellular/boolean/spatial_mpi/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects_intracellular/boolean/spatial_mpi/main.cpp ./main.cpp
+	cp Makefile Makefile-backup
+	cp ./sample_projects_intracellular/boolean/spatial_mpi/Makefile .
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml
+	cp ./sample_projects_intracellular/boolean/spatial_mpi/config/* ./config/
+	cp ./sample_projects_intracellular/boolean/spatial_mpi/run.sh ./run-spatial-mpi.sh
 
 physiboss-tnf-model:
 	cp ./sample_projects_intracellular/boolean/spheroid_tnf_model/custom_modules/* ./custom_modules/
