@@ -332,7 +332,7 @@ void display_simulation_status( std::ostream& os, mpi_Environment &world, mpi_Ca
 	int global_cells; 
 	MPI_Reduce(&local_cells, &global_cells, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm); 
 	
-	double global_total, global_time_diff, global_time_mech, global_time_pheno, global_time_intracell;
+	double global_total = 0.0, global_time_diff = 0.0, global_time_mech = 0.0, global_time_pheno = 0.0, global_time_intracell = 0.0;
 	double global_time_mech_sum = 0.0;
 	double global_time_maboss_update = 0.0;
 	double local_ram = getProcessMemoryGB();
@@ -342,7 +342,6 @@ void display_simulation_status( std::ostream& os, mpi_Environment &world, mpi_Ca
 	unsigned long long global_mechanics_neighbor_candidates = 0;
 	unsigned long long global_mechanics_neighbor_interactions = 0;
 	
-	MPI_Reduce(&time_diff, &global_time_diff, 1, MPI_DOUBLE, MPI_MAX, 0, cart_topo.mpi_cart_comm);
 	MPI_Reduce(&time_diff, &global_time_diff, 1, MPI_DOUBLE, MPI_MAX, 0, cart_topo.mpi_cart_comm);
 	MPI_Reduce(&time_mechs, &global_time_mech, 1, MPI_DOUBLE, MPI_MAX, 0, cart_topo.mpi_cart_comm);
 	MPI_Reduce(&time_mechs, &global_time_mech_sum, 1, MPI_DOUBLE, MPI_SUM, 0, cart_topo.mpi_cart_comm);

@@ -1,0 +1,294 @@
+Using config file /home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/reference_coupled.xml ... 
+Setting up RNG with seed 50
+1
+dc? 1
+User parameters in XML config file: 
+Bool parameters:: 
+
+Int parameters:: 
+random_seed: 50 [dimensionless]
+number_of_cells: 0 [dimensionless]
+
+Double parameters:: 
+colony_radius: 10 [micron]
+
+String parameters:: 
+
+
+which boundaries?
+1 1 1 1 0 0
+
+Microenvironment summary: microenvironment: 
+
+Mesh information: 
+type: uniform Cartesian
+Domain: [-250,250] micron x [-250,250] micron x [-4,4] micron
+   resolution: dx = 2 micron
+   voxels: 250000
+   voxel faces: 0
+   volume: 2e+06 cubic micron
+Densities: (5 total)
+   oxygen:
+     units: dimensionless
+     diffusion coefficient: 120000 micron^2 / min
+     decay rate: 0 min^-1
+     diffusion length scale: 3.4641e+08 micron
+     initial condition: 25 dimensionless
+     boundary condition: 0 dimensionless (enabled: false)
+   glucose:
+     units: dimensionless
+     diffusion coefficient: 35000 micron^2 / min
+     decay rate: 0 min^-1
+     diffusion length scale: 1.87083e+08 micron
+     initial condition: 27.5 dimensionless
+     boundary condition: 0 dimensionless (enabled: false)
+   acetate:
+     units: dimensionless
+     diffusion coefficient: 50000 micron^2 / min
+     decay rate: 0 min^-1
+     diffusion length scale: 2.23607e+08 micron
+     initial condition: 0 dimensionless
+     boundary condition: 0 dimensionless (enabled: false)
+   lactate:
+     units: dimensionless
+     diffusion coefficient: 50000 micron^2 / min
+     decay rate: 0 min^-1
+     diffusion length scale: 2.23607e+08 micron
+     initial condition: 0 dimensionless
+     boundary condition: 0 dimensionless (enabled: false)
+   CO2:
+     units: dimensionless
+     diffusion coefficient: 100000 micron^2 / min
+     decay rate: 0 min^-1
+     diffusion length scale: 3.16228e+08 micron
+     initial condition: 0 dimensionless
+     boundary condition: 0 dimensionless (enabled: false)
+
+WARNING: Setting the random seed again.
+	You probably have set a user parameter called random_seed.
+	Here, we will use the random seed set in user parameters.
+	HOWEVER, as of PhysiCell 1.14.0, you should set the random seed in the <options><random_seed> element in the config file.
+	Future versions of PhysiCell may throw an error here. Kindly remove the user parameter and just use the <options><random_seed> element.
+Setting up RNG with seed 50
+virtual_wall_at_domain_edge: enabled
+Pre-processing type 0 named ecoli
+Processing ecoli ... 
+  --------- attachment_elastic_constant = 0
+===================================================
+Parssing dFBA intracellular model
+Metabolic-dependent death enabled: necrosis, monitored flux: R_ATPM, threshold: 8.39, rate: 1.67e-05
+Loading SBML model from: /home/jose/GPFS/DFBA/PhysiCelldFBA/config/Ecoli_core.xml
+SBML model correctly loaded: /home/jose/GPFS/DFBA/PhysiCelldFBA/config/Ecoli_core.xml
+Done!
+===================================================
+Signals: 
+=======
+0 : oxygen
+1 : glucose
+2 : acetate
+3 : lactate
+4 : CO2
+5 : intracellular oxygen
+6 : intracellular glucose
+7 : intracellular acetate
+8 : intracellular lactate
+9 : intracellular CO2
+10 : oxygen gradient
+11 : glucose gradient
+12 : acetate gradient
+13 : lactate gradient
+14 : CO2 gradient
+15 : pressure
+16 : volume
+17 : contact with ecoli
+18 : contact with live cell
+19 : contact with dead cell
+20 : contact with apoptotic cell
+21 : contact with necrotic cell
+22 : contact with other dead cell
+23 : contact with basement membrane
+24 : damage
+25 : damage delivered
+26 : attacking
+27 : dead
+28 : total attack time
+29 : time
+30 : custom:dummy_variable
+31 : custom:R_EX_glc__D_e
+32 : custom:R_EX_ac_e
+33 : custom:R_EX_lac__L_e
+34 : custom:R_EX_o2_e
+35 : custom:R_EX_co2_e
+36 : custom:growth_rate
+37 : apoptotic
+38 : necrotic
+
+
+Behaviors: 
+=========
+0 : oxygen secretion
+1 : glucose secretion
+2 : acetate secretion
+3 : lactate secretion
+4 : CO2 secretion
+5 : oxygen secretion target
+6 : glucose secretion target
+7 : acetate secretion target
+8 : lactate secretion target
+9 : CO2 secretion target
+10 : oxygen uptake
+11 : glucose uptake
+12 : acetate uptake
+13 : lactate uptake
+14 : CO2 uptake
+15 : oxygen export
+16 : glucose export
+17 : acetate export
+18 : lactate export
+19 : CO2 export
+20 : cycle entry
+21 : exit from cycle phase 1
+22 : exit from cycle phase 2
+23 : exit from cycle phase 3
+24 : exit from cycle phase 4
+25 : exit from cycle phase 5
+26 : apoptosis
+27 : necrosis
+28 : migration speed
+29 : migration bias
+30 : migration persistence time
+31 : chemotactic response to oxygen
+32 : chemotactic response to glucose
+33 : chemotactic response to acetate
+34 : chemotactic response to lactate
+35 : chemotactic response to CO2
+36 : cell-cell adhesion
+37 : cell-cell adhesion elastic constant
+38 : adhesive affinity to ecoli
+39 : relative maximum adhesion distance
+40 : cell-cell repulsion
+41 : cell-BM adhesion
+42 : cell-BM repulsion
+43 : phagocytose apoptotic cell
+44 : phagocytose necrotic cell
+45 : phagocytose other dead cell
+46 : phagocytose ecoli
+47 : attack ecoli
+48 : fuse to ecoli
+49 : transition to ecoli
+50 : asymmetric division to ecoli
+51 : custom:dummy_variable
+52 : custom:R_EX_glc__D_e
+53 : custom:R_EX_ac_e
+54 : custom:R_EX_lac__L_e
+55 : custom:R_EX_o2_e
+56 : custom:R_EX_co2_e
+57 : custom:growth_rate
+58 : is_movable
+59 : immunogenicity to ecoli
+60 : cell attachment rate
+61 : cell detachment rate
+62 : maximum number of cell attachments
+63 : attack damage rate
+64 : attack duration
+65 : damage rate
+66 : damage repair rate
+
+
+0 :: type:0 name: ecoli
+	 cycle model: Live (code=5)
+		Phase 0: Live
+		Cycle transitions: 
+		-----------------
+		Live --> Live w mean duration inf min
+	 death models: 
+		0 : Apoptosis (code=100) with rate 0 1/min
+		death phase transitions: 
+		------------------------
+		Apoptotic --> Debris w mean duration 516 min
+		1 : Necrosis (code=101) with rate 0 1/min
+		death phase transitions: 
+		------------------------
+		Necrotic (swelling) --> Necrotic (lysed) w mean duration 1e-16 min
+		Necrotic (lysed) --> Debris w mean duration 86400 min
+	 key functions: 
+		 migration bias rule: false
+		 custom rule: false
+		 phenotype rule: false
+		 volume update function: false
+		 mechanics function: true
+		 contact function: false
+		 cell division function: false
+		 cell division direction function: false
+	motility (enabled: false in 2D)
+		speed: 0 micron/min
+		bias: 0.5 
+		persistence time: 0 min
+		chemotaxis (enabled: false)
+			along -1 * grad(oxygen) 
+	mechanics:
+		cell_cell_adhesion_strength: 0
+		cell_cell_repulsion_strength: 1000
+		rel max adhesion dist: 1
+		cell_BM_adhesion_strength: 4
+		cell_BM_repulsion_strength: 100
+		attachment_elastic_constant: 0
+		attachment_rate: 0
+		detachment_rate: 0
+	custom data: 
+		dummy_variable: 0 dimensionless
+		R_EX_glc__D_e: 0 mmol/g DW cell/h
+		R_EX_ac_e: 0 mmol/g DW cell/h
+		R_EX_lac__L_e: 0 mmol/g DW cell/h
+		R_EX_o2_e: 0 mmol/g DW cell/h
+		R_EX_co2_e: 0 mmol/g DW cell/h
+		growth_rate: 0 1/h
+	custom vector data: 
+			NOTE: custom vector data will eventually be merged with custom data
+creating 211 closely-packed colony cells ... 
+Using PhysiCell version 1.14.2
+	Please cite DOI: 10.1371/journal.pcbi.1005991
+	Project website: http://physicell.org
+
+See ALL_CITATIONS.txt for this list.
+current simulated time: 0 min (max: 180 min)
+total agents: 211
+interval wall time: 0 days, 0 hours, 0 minutes, and 0.000203577 seconds 
+total wall time: 0 days, 0 hours, 0 minutes, and 0.000266517 seconds 
+
+
+Using method diffusion_decay_solver__constant_coefficients_LOD_3D (implicit 3-D LOD with Thomas Algorithm) ... 
+
+current simulated time: 30 min (max: 180 min)
+total agents: 211
+interval wall time: 0 days, 0 hours, 22 minutes, and 17.5576 seconds 
+total wall time: 0 days, 0 hours, 22 minutes, and 17.5579 seconds 
+
+current simulated time: 60 min (max: 180 min)
+total agents: 390
+interval wall time: 0 days, 0 hours, 22 minutes, and 48.7556 seconds 
+total wall time: 0 days, 0 hours, 45 minutes, and 6.3136 seconds 
+
+current simulated time: 90 min (max: 180 min)
+total agents: 463
+interval wall time: 0 days, 0 hours, 22 minutes, and 19.4518 seconds 
+total wall time: 0 days, 1 hours, 7 minutes, and 25.7654 seconds 
+
+current simulated time: 120 min (max: 180 min)
+total agents: 815
+interval wall time: 0 days, 0 hours, 26 minutes, and 32.6584 seconds 
+total wall time: 0 days, 1 hours, 33 minutes, and 58.4239 seconds 
+
+current simulated time: 150 min (max: 180 min)
+total agents: 1295
+interval wall time: 0 days, 0 hours, 26 minutes, and 38.5554 seconds 
+total wall time: 0 days, 2 hours, 0 minutes, and 36.9793 seconds 
+
+current simulated time: 180 min (max: 180 min)
+total agents: 1671
+interval wall time: 0 days, 0 hours, 32 minutes, and 14.83 seconds 
+total wall time: 0 days, 2 hours, 32 minutes, and 51.8094 seconds 
+
+
+Total simulation runtime: 
+0 days, 2 hours, 32 minutes, and 52.7251 seconds 

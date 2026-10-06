@@ -1,11 +1,12 @@
 #include "maboss_network.h"
 #include <fstream>
+#include <stdexcept>
 #include "../../../core/MPI_helper.h"
 
 
 
 /* Default constructor */
-void MaBoSSNetwork::init_maboss( std::string networkFile, std::string configFile)
+void MaBoSSNetwork::init_maboss( std::string networkFile, std::string configFile, bool draw_random_seed)
 {
 	if (this->engine != NULL) {
 		delete this->engine;
@@ -59,7 +60,8 @@ void MaBoSSNetwork::init_maboss( std::string networkFile, std::string configFile
 		
 		IStateGroup::checkAndComplete(this->network);
 
-		engine = new StochasticSimulationEngine(this->network, this->config, PhysiCell::UniformInt());
+		int random_seed = draw_random_seed ? PhysiCell::UniformInt() : 0;
+		engine = new StochasticSimulationEngine(this->network, this->config, random_seed);
 	
 	} catch (BNException e) {
 		std::cerr << "MaBoSS ERROR : " << e.getMessage() << std::endl;

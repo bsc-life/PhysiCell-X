@@ -1,0 +1,152 @@
+[
+  {
+    "time": 30,
+    "substrate": "oxygen",
+    "x_roi": 24.797875959182946,
+    "reference_roi": 24.835092784449305,
+    "roi_absolute_difference": -0.03721682526635694,
+    "roi_concentration_relative_difference": -0.0014985579312859487,
+    "best_perturbation_scale": 1.2263790011693343,
+    "shape_residual_relative_l2": 0.05519266377404486
+  },
+  {
+    "time": 30,
+    "substrate": "glucose",
+    "x_roi": 27.194614274380154,
+    "reference_roi": 27.251971121776492,
+    "roi_absolute_difference": -0.05735684739633684,
+    "roi_concentration_relative_difference": -0.00210468619462556,
+    "best_perturbation_scale": 1.2375342623304402,
+    "shape_residual_relative_l2": 0.019698589634694282
+  },
+  {
+    "time": 30,
+    "substrate": "acetate",
+    "x_roi": 0.039504229459705005,
+    "reference_roi": 0.03212921946664175,
+    "roi_absolute_difference": 0.0073750099930632584,
+    "roi_concentration_relative_difference": 0.22954214622986346,
+    "best_perturbation_scale": 1.2318650964505993,
+    "shape_residual_relative_l2": 0.0265452480262634
+  },
+  {
+    "time": 30,
+    "substrate": "lactate",
+    "x_roi": 0.0,
+    "reference_roi": 0.0,
+    "roi_absolute_difference": 0.0,
+    "roi_concentration_relative_difference": null,
+    "best_perturbation_scale": null,
+    "shape_residual_relative_l2": null
+  },
+  {
+    "time": 30,
+    "substrate": "CO2",
+    "x_roi": 0.2472307774249388,
+    "reference_roi": 0.2022460496634208,
+    "roi_absolute_difference": 0.044984727761518,
+    "roi_concentration_relative_difference": 0.22242574248734082,
+    "best_perturbation_scale": 1.222914015232279,
+    "shape_residual_relative_l2": 0.046799132622283
+  },
+  {
+    "time": 180,
+    "substrate": "oxygen",
+    "x_roi": 23.398836213031533,
+    "reference_roi": 23.65495615117815,
+    "roi_absolute_difference": -0.2561199381466208,
+    "roi_concentration_relative_difference": -0.010827326692544381,
+    "best_perturbation_scale": 1.1852997846432858,
+    "shape_residual_relative_l2": 0.038870653790015676
+  },
+  {
+    "time": 180,
+    "substrate": "glucose",
+    "x_roi": 25.084158251580796,
+    "reference_roi": 25.465635927770283,
+    "roi_absolute_difference": -0.38147767618948375,
+    "roi_concentration_relative_difference": -0.014980096207748206,
+    "best_perturbation_scale": 1.182113160700291,
+    "shape_residual_relative_l2": 0.01356110967977756
+  },
+  {
+    "time": 180,
+    "substrate": "acetate",
+    "x_roi": 0.3125635551129471,
+    "reference_roi": 0.2628797295363967,
+    "roi_absolute_difference": 0.049683825576550454,
+    "roi_concentration_relative_difference": 0.18899831365533815,
+    "best_perturbation_scale": 1.1834956483471304,
+    "shape_residual_relative_l2": 0.018574985837474547
+  },
+  {
+    "time": 180,
+    "substrate": "lactate",
+    "x_roi": 0.0,
+    "reference_roi": 0.0,
+    "roi_absolute_difference": 0.0,
+    "roi_concentration_relative_difference": null,
+    "best_perturbation_scale": null,
+    "shape_residual_relative_l2": null
+  },
+  {
+    "time": 180,
+    "substrate": "CO2",
+    "x_roi": 1.9578386945423454,
+    "reference_roi": 1.6436340021150677,
+    "roi_absolute_difference": 0.31420469242727744,
+    "roi_concentration_relative_difference": 0.19116463398965444,
+    "best_perturbation_scale": 1.1858232770925947,
+    "shape_residual_relative_l2": 0.033521773491470105
+  },
+  {
+    "time": 330,
+    "substrate": "oxygen",
+    "x_roi": 14.816775138156977,
+    "reference_roi": 15.135093187417317,
+    "roi_absolute_difference": -0.31831804926033525,
+    "roi_concentration_relative_difference": -0.02103178654525728,
+    "best_perturbation_scale": 1.0307953043140627,
+    "shape_residual_relative_l2": 0.013146905481837081
+  },
+  {
+    "time": 330,
+    "substrate": "glucose",
+    "x_roi": 11.745605777766125,
+    "reference_roi": 12.227151558335944,
+    "roi_absolute_difference": -0.48154578056981956,
+    "roi_concentration_relative_difference": -0.03938331656987781,
+    "best_perturbation_scale": 1.03038214303545,
+    "shape_residual_relative_l2": 0.004597523557174327
+  },
+  {
+    "time": 330,
+    "substrate": "acetate",
+    "x_roi": 2.0255752635619975,
+    "reference_roi": 1.963793692277735,
+    "roi_absolute_difference": 0.06178157128426295,
+    "roi_concentration_relative_difference": 0.03146031659395154,
+    "best_perturbation_scale": 1.0302455435675606,
+    "shape_residual_relative_l2": 0.0063046595740761675
+  },
+  {
+    "time": 330,
+    "substrate": "lactate",
+    "x_roi": 0.0,
+    "reference_roi": 0.0,
+    "roi_absolute_difference": 0.0,
+    "roi_concentration_relative_difference": null,
+    "best_perturbation_scale": null,
+    "shape_residual_relative_l2": null
+  },
+  {
+    "time": 330,
+    "substrate": "CO2",
+    "x_roi": 12.521880286330166,
+    "reference_roi": 12.13303664113632,
+    "roi_absolute_difference": 0.3888436451938478,
+    "roi_concentration_relative_difference": 0.03204833684219621,
+    "best_perturbation_scale": 1.0306006784797201,
+    "shape_residual_relative_l2": 0.0113596296744865
+  }
+]

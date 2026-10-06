@@ -1,0 +1,171 @@
+{
+  "source_sha256": {
+    "BioFVM/BioFVM_mesh.cpp": "154ac19431b4bb21503d966bc81281715c2706318279c9157d07a8a300333335",
+    "core/PhysiCell_cell.cpp": "73a9da2686b49662e5586499729d0c10ec46c97068f2b86dbe440261cd467029",
+    "core/PhysiCell_cell_container.cpp": "64936715493aa722c1766762334bb4055efd0a1e78cdd5f153b09327e010c18c",
+    "core/PhysiCell_standard_models.cpp": "bc51e1e741801382ecc17886033c9640f8cecb159fc11daec879e0f4d8160a0b",
+    "core/PhysiCell_cell_container_mechanics.cpp": "78f936a8795b2a19ab7f57a4c239bf7f443fe82fe95635ce324c46f3b6160d4a",
+    "custom_modules/custom.cpp": "39f9c9662bdd3b6743731aab9569b64ae0e49ff08b64372ffc7e23140c8f2de0",
+    "main.cpp": "35d5d961e11fa4c12ba01e9daad728efab0e63ed4946ee12a29f96330707bef1"
+  },
+  "calls": [
+    {
+      "command": [
+        "mpic++",
+        "-std=c++17",
+        "-O1",
+        "-fopenmp",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-Wl,--gc-sections",
+        "-IBioFVM",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/analysis/biological_equivalence/probe_mesh_neighbors.cpp",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/BioFVM/BioFVM_mesh.cpp",
+        "BioFVM/BioFVM_vector.cpp",
+        "-o",
+        "/tmp/physicell-code-probes-gmjvw1h6/mesh_original"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/physicell-code-probes-gmjvw1h6/mesh_original",
+        "8"
+      ],
+      "returncode": 1,
+      "stdout": "rank=0 actual_z_layers=2 voxel=9900 expected_face_neighbor=10100 candidates=10000,10001,9999,10001,10002,10000,\nrank=1 actual_z_layers=2 voxel=10100 expected_face_neighbor=9900 candidates=10000,10001,9999,10001,10002,10000,\nz_extent=8 missing_directed_neighbors=2384 expected_directed_neighbors=2384\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/physicell-code-probes-gmjvw1h6/mesh_original",
+        "10"
+      ],
+      "returncode": 0,
+      "stdout": "rank=0 actual_z_layers=2 voxel=9900 expected_face_neighbor=10100 candidates=10100,10102,10098,10101,10103,10099,\nrank=1 actual_z_layers=2 voxel=10100 expected_face_neighbor=9900 candidates=9900,9902,9898,9901,9903,9899,\nz_extent=10 missing_directed_neighbors=0 expected_directed_neighbors=2384\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "mpic++",
+        "-std=c++17",
+        "-O1",
+        "-fopenmp",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-Wl,--gc-sections",
+        "-IBioFVM",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/analysis/biological_equivalence/probe_mesh_neighbors.cpp",
+        "/tmp/physicell-code-probes-gmjvw1h6/mesh_corrected.cpp",
+        "BioFVM/BioFVM_vector.cpp",
+        "-o",
+        "/tmp/physicell-code-probes-gmjvw1h6/mesh_corrected"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/physicell-code-probes-gmjvw1h6/mesh_corrected",
+        "8"
+      ],
+      "returncode": 0,
+      "stdout": "rank=0 actual_z_layers=2 voxel=9900 expected_face_neighbor=10100 candidates=10100,10102,10098,10101,10103,10099,\nrank=1 actual_z_layers=2 voxel=10100 expected_face_neighbor=9900 candidates=9900,9902,9898,9901,9903,9899,\nz_extent=8 missing_directed_neighbors=0 expected_directed_neighbors=2384\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "mpic++",
+        "-std=c++17",
+        "-O1",
+        "-fopenmp",
+        "-DADDON_PHYSIDFBA",
+        "-Iaddons/dFBA/ext/libsbml/include",
+        "-Iaddons/dFBA/ext/coin-or/include",
+        "-c",
+        "core/PhysiCell_cell.cpp",
+        "-o",
+        "/tmp/physicell-code-probes-gmjvw1h6/cell.o"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "mpic++",
+        "-std=c++17",
+        "-O1",
+        "-fopenmp",
+        "-DADDON_PHYSIDFBA",
+        "-Iaddons/dFBA/ext/libsbml/include",
+        "-Iaddons/dFBA/ext/coin-or/include",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/analysis/biological_equivalence/probe_mechanics_filter.cpp",
+        "/tmp/physicell-code-probes-gmjvw1h6/cell.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/BioFVM_MultiCellDS.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/BioFVM_agent_container.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/BioFVM_basic_agent.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/BioFVM_matlab.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/BioFVM_mesh.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/BioFVM_microenvironment.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/BioFVM_solvers.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/BioFVM_utilities.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/BioFVM_vector.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/DistPhy_Cartesian.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/DistPhy_Collective.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/DistPhy_Environment.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/DistPhy_Utils.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/PhysiCell_MultiCellDS.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/PhysiCell_SVG.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/PhysiCell_basic_signaling.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/PhysiCell_cell_container.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/PhysiCell_cell_container_mechanics.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/PhysiCell_cell_mpi.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/PhysiCell_constants.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/PhysiCell_custom.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/PhysiCell_geometry.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/PhysiCell_pathology.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/PhysiCell_pathology_SVG.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/PhysiCell_phenotype.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/PhysiCell_pugixml.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/PhysiCell_rules.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/PhysiCell_settings.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/PhysiCell_signal_behavior.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/PhysiCell_standard_models.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/PhysiCell_standard_models_mpi.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/PhysiCell_utilities.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/PhysiCell_various_outputs.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/custom.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/dfba_Metabolite.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/dfba_Model.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/dfba_Reaction.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/dfba_Solution.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/dfba_intracellular.o",
+        "/home/jose/Documentos/PhysiCell-X/PhysiCell-X/pugixml.o",
+        "addons/dFBA/ext/coin-or/lib/libClp-static.a",
+        "addons/dFBA/ext/coin-or/lib/libCoinUtils-static.a",
+        "addons/dFBA/ext/libsbml/lib/libsbml-static.a",
+        "-lxml2",
+        "-lbz2",
+        "-lz",
+        "-llapack",
+        "-o",
+        "/tmp/physicell-code-probes-gmjvw1h6/filter"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/physicell-code-probes-gmjvw1h6/filter"
+      ],
+      "returncode": 0,
+      "stdout": "radius=0.777748 pair_overlap=0.0999661 accepted_with_zero_cache=0 accepted_with_correct_cache=1\n",
+      "stderr": ""
+    }
+  ]
+}

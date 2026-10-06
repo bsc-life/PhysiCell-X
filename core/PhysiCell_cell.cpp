@@ -1053,24 +1053,6 @@ bool Cell::assign_position(double x, double y, double z)
 	// update current_mechanics_voxel_index
 	current_mechanics_voxel_index= get_container()->underlying_mesh.nearest_voxel_index( position );
 	
-	/*---------------------------------------------------------------------*/
-	/* VALIDATION FIRST: Check if position is valid before registering.    */
-	/* This prevents registering out-of-domain cells that would be clamped */
-	/* by nearest_voxel_index(), leaving them in a valid voxel while also  */
-	/* marked is_out_of_domain (inconsistent state).                       */
-	/*---------------------------------------------------------------------*/
-	
-	if( !get_container()->underlying_mesh.is_position_valid(x,y,z) )
-	{
-		is_out_of_domain = true;
-		is_active = false;
-		is_movable = false;
-		return false;
-	}
-
-	// Only register valid cells in the agent grid
-	get_container()->register_agent(this);
-
 	// Since it is most likely our first position, we update the max_cell_interactive_distance_in_voxel
 	// which was not initialized at cell creation
 	if( get_container()->max_cell_interactive_distance_in_voxel[get_current_mechanics_voxel_index()] < 
@@ -1079,6 +1061,19 @@ bool Cell::assign_position(double x, double y, double z)
 		// get_container()->max_cell_interactive_distance_in_voxel[get_current_mechanics_voxel_index()]= phenotype.geometry.radius*parameters.max_interaction_distance_factor;
 		get_container()->max_cell_interactive_distance_in_voxel[get_current_mechanics_voxel_index()] = phenotype.geometry.radius
 			* phenotype.mechanics.relative_maximum_adhesion_distance;
+	}
+
+	// Match PhysiCell / PhysiCelldFBA behavior: register the cell in the
+	// nearest mechanics voxel before marking an out-of-domain position.
+	// This keeps an escaped newborn visible to neighboring-cell mechanics.
+	get_container()->register_agent(this);
+
+	if( !get_container()->underlying_mesh.is_position_valid(x,y,z) )
+	{
+		is_out_of_domain = true;
+		is_active = false;
+		is_movable = false;
+		return false;
 	}
 
 	return true;
@@ -1103,14 +1098,6 @@ bool Cell::assign_position(double x, double y, double z, mpi_Environment &world,
 	/* If position invalid then sets out_of_domain=true, current_voxel_index=-1 & returns	*/
 	/* Otherwise calls nearest_voxel_local_index()<---new function (GS).									*/
 	/*------------------------------------------------------------------------------------*/
-	if( !get_container()->underlying_mesh.is_position_valid(x,y,z) )
-	{
-		is_out_of_domain = true;
-		is_active = false;
-		is_movable = false;
-		return false;
-	}
-
 	update_voxel_index(world, cart_topo);
 
 	//update current_mechanics_voxel_index
@@ -1118,19 +1105,12 @@ bool Cell::assign_position(double x, double y, double z, mpi_Environment &world,
 	//Changed the call above to a parallel call.
 
 	current_mechanics_voxel_index= get_container()->underlying_mesh.nearest_voxel_local_index( position, world, cart_topo);
+	// A newly received MPI cell has not run update_position() on this rank yet.
+	// Keep both indices synchronized so the end-of-step container update does not
+	// move it from the correct boundary voxel into the constructor's default voxel 0.
+	updated_current_mechanics_voxel_index = current_mechanics_voxel_index;
 	
 	//std::cout<<"("<<position[0]<<","<<position[1]<<","<<position[2]<<")"<<" current_mechanics_voxel_index="<<current_mechanics_voxel_index<<std::endl;
-
-	/*--------------------------------------------------------------------------------------------*/
-	/* VALIDATION FIRST: Check if position is valid before registering in agent_grid.            */
-	/* This prevents registering out-of-domain cells that would be clamped by nearest_voxel_*() */
-	/* Note: update_voxel_index() above already called is_position_valid() internally, but we    */
-	/* re-validate here explicitly to catch any position corrections and handle them correctly.  */
-	/*--------------------------------------------------------------------------------------------*/
-
-	
-	// Only register valid cells in the agent grid
-	get_container()->register_agent(this);
 
 	// Since it is most likely our first position, we update the max_cell_interactive_distance_in_voxel
 	// which was not initialized at cell creation
@@ -1139,6 +1119,19 @@ bool Cell::assign_position(double x, double y, double z, mpi_Environment &world,
 	{
 		get_container()->max_cell_interactive_distance_in_voxel[get_current_mechanics_voxel_index()] = phenotype.geometry.radius
 			* phenotype.mechanics.relative_maximum_adhesion_distance;
+	}
+
+	// Match the serial PhysiCell / PhysiCelldFBA ordering for newborns:
+	// keep an invalid position in the nearest local mechanics voxel so that
+	// active neighbors still include it in their force calculation.
+	get_container()->register_agent(this);
+
+	if( !get_container()->underlying_mesh.is_position_valid(x,y,z) )
+	{
+		is_out_of_domain = true;
+		is_active = false;
+		is_movable = false;
+		return false;
 	}
 
 	return true;
@@ -1499,10 +1492,14 @@ void Cell::update_voxel_in_container()
 /* Parallel version of function: update_voxel_in_container() above  */
 /*------------------------------------------------------------------*/
 
-void Cell::update_voxel_in_container(mpi_Environment &world, mpi_Cartesian &cart_topo)
+void Cell::update_voxel_in_container(mpi_Environment &world, mpi_Cartesian &cart_topo,
+	bool update_diffusion_voxel)
 {
 
-	update_voxel_index(world, cart_topo);							 //This is in BioFVM_basic_agent.cpp
+	if(update_diffusion_voxel)
+	{
+		update_voxel_index(world, cart_topo);
+	}
 
 	// Check to see if we need to remove agents that are pushed out of boundary
 

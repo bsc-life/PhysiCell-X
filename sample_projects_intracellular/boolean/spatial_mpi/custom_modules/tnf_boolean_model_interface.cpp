@@ -125,8 +125,8 @@ void drug_transport_model_update( Cell* pCell, Phenotype& phenotype, double dt )
 	double drug_X_permeability = parameters.doubles("drug_X_permeability");
 	//double drug_Y_permeability = parameters.doubles("drug_Y_permeability");
 
-	double drug_X_flux = calculate_diffusion_flux(pCell, drug_X_idx, drug_X_permeability,"drug_A");
-	double drug_Y_flux = calculate_diffusion_flux(pCell, drug_Y_idx, drug_X_permeability, "oxygen");
+	double drug_X_flux = calculate_diffusion_flux(pCell, drug_X_idx, drug_X_permeability,dt,"drug_A");
+	double drug_Y_flux = calculate_diffusion_flux(pCell, drug_Y_idx, drug_X_permeability,dt, "oxygen");
 
 	pCell->phenotype.secretion.net_export_rates[drug_X_idx] = drug_X_flux;
 	pCell->set_internal_uptake_constants(dt);
@@ -205,10 +205,8 @@ void anti_node_mapping_function( Cell* pCell, std::string drug_name, std::string
 void update_cell_from_boolean_model(Cell* pCell, Phenotype& phenotype, double dt)
 {	
 
-    static int death_decay_idx = pCell->custom_data.find_variable_index( "death_commitment_decay" );
     static int apoptosis_index = phenotype.death.find_death_model_index( PhysiCell_constants::apoptosis_death_model );
     static float apoptosis_rate = pCell->custom_data["apoptosis_rate"];
-    static float death_commitment_decay = pCell->custom_data["death_decay_idx"];
     
     // // Getting the state of the Boolean model readouts (Readout can be in the XML)
     bool apoptosis = pCell->phenotype.intracellular->get_boolean_variable_value( "Apoptosis" );

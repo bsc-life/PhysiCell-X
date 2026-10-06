@@ -45,12 +45,12 @@ MaBoSSIntracellular::MaBoSSIntracellular(MaBoSSIntracellular* copy)
 	listOfOutputs = copy->listOfOutputs;
 }
 
-void MaBoSSIntracellular::initialize_maboss()
+void MaBoSSIntracellular::initialize_maboss(bool draw_random_seed)
 {
 	if( maboss.has_init() )
 	{ return; }
 
-	maboss.init_maboss(bnd_filename, cfg_filename);
+	maboss.init_maboss(bnd_filename, cfg_filename, draw_random_seed);
 	maboss.set_initial_values(initial_values);
 	maboss.mutate(mutations);
 	maboss.set_parameters(parameters);
@@ -719,7 +719,7 @@ void MaBoSSIntracellular::unpack(std::vector<char>& buffer, int len_buffer, int&
     unpack_buff(this->indicesOfOutputs, buffer, len_buffer, position);
 
 	// Unpack maboss
-	maboss.init_maboss(bnd_filename, cfg_filename);
+	maboss.init_maboss(bnd_filename, cfg_filename, false);
     this->maboss.unpack(buffer, len_buffer, position); 
 	maboss.mutate(mutations);
 	//maboss.set_parameters(parameters);

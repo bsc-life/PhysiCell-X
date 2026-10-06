@@ -108,7 +108,7 @@ class dFBAIntracellular : public PhysiCell::Intracellular
 	void initialize_intracellular_from_pugixml(pugi::xml_node& node);
 	
 	// This function checks if it's time to update the model
-	bool need_update() { return PhysiCell::PhysiCell_globals.current_time + 0.0001 >= this->next_dfba_run; }
+	bool need_update() { return std::abs(PhysiCell::PhysiCell_globals.current_time -this->next_dfba_run) <= 0.0001; }
 
 	// This function deals with inheritance from mother to daughter cells
 	void inherit(PhysiCell::Cell* cell){ return;};
@@ -135,15 +135,19 @@ class dFBAIntracellular : public PhysiCell::Intracellular
 		{
 			this->update_dfba_inputs(cell, phenotype, dt);
 
-			// STEP 2: Run standard biomass optimization
-			this->update();
+			// STEP 2: Run optimization (custom or standard)
+			if (cell->functions.custom_optimization != NULL) {
+				cell->functions.custom_optimization(cell, phenotype, dt);
+			} else {
+				this->update();
+			}
 
 			// STEP 3. Update the cell volumne using the growth rate from FBA
 			// STEP 4. rescale exchange fluxes from the dfba model and use them to update the net_export_rates
 			// STEP 5. remove the internalized substrates if needed
 			this->update_dfba_outputs(cell, phenotype, dt);
 
-			this->next_dfba_run += dfba_time_step;
+			this->next_dfba_run = PhysiCell::PhysiCell_globals.current_time + dfba_time_step;
 			while( this->next_dfba_run <= PhysiCell::PhysiCell_globals.current_time + 0.0001 )
 			{
 				this->next_dfba_run += dfba_time_step;

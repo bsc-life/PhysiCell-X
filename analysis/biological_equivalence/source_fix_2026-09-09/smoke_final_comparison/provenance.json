@@ -1,0 +1,159 @@
+{
+  "project": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/runs/x_smoke_final",
+  "reference": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/runs/reference_smoke_final",
+  "common_times": [
+    0.0,
+    0.1
+  ],
+  "project_only_times": [],
+  "reference_only_times": [],
+  "initial": {
+    "differing_labels": [
+      "orientation"
+    ],
+    "initial_count": 211,
+    "identical_initial_fields": true
+  },
+  "files": [
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/runs/x_smoke_final/PhysiCell_settings.xml",
+      "bytes": 21238,
+      "sha256": "88847cd64112256a3ffc39468f375182156898d12f9cc463c03fb58e37f3c2f2"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/runs/x_smoke_final/random_seed.txt",
+      "bytes": 3,
+      "sha256": "7ea9844ae84eccbf55e8330640865e36c43521e45a1baec24233327aab7e6595"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/runs/reference_smoke_final/PhysiCell_settings.xml",
+      "bytes": 21240,
+      "sha256": "28f009b772c36329510e826f82cc49425de63eb764272343c51ae78d6e51daab"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/runs/reference_smoke_final/random_seed.txt",
+      "bytes": 3,
+      "sha256": "7ea9844ae84eccbf55e8330640865e36c43521e45a1baec24233327aab7e6595"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/runs/x_smoke_final/output00000000.xml",
+      "bytes": 16263,
+      "sha256": "174902f46c192f817b8228bf6223f4420facd76b80e8e1f0fe8e6331834b88f3"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/runs/x_smoke_final/output00000000_cells.mat",
+      "bytes": 211025,
+      "sha256": "0f317cf7c141e6fcb4d2ab1c9c469beb13fbc68b4847716a9bcde70ba1c6eff1"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/runs/x_smoke_final/output00000000_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "caf0e29873c7fe31c9a0f1a6da0b6dfcf7ad99b71081c9e136a32c494cf379a9"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/runs/x_smoke_final/output00000000_cell_neighbor_graph.txt",
+      "bytes": 601,
+      "sha256": "43ab21efb848d4d6301d5c68f72cdc92f99ec080dd6587b04cb981b27d8ff806"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/runs/x_smoke_final/output00000000_attached_cells_graph.txt",
+      "bytes": 601,
+      "sha256": "43ab21efb848d4d6301d5c68f72cdc92f99ec080dd6587b04cb981b27d8ff806"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/runs/x_smoke_final/output00000000_spring_attached_cells_graph.txt",
+      "bytes": 601,
+      "sha256": "43ab21efb848d4d6301d5c68f72cdc92f99ec080dd6587b04cb981b27d8ff806"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/runs/reference_smoke_final/output00000000.xml",
+      "bytes": 12735,
+      "sha256": "71e775587e63366f1ffd4e667870b2318b299ee139aa64205917de34467e5378"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/runs/reference_smoke_final/output00000000_cells.mat",
+      "bytes": 211025,
+      "sha256": "cd4775f660c7b1ffe7730731435aa912f7040669d1cc742fbae5d4acd7c9a645"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/runs/reference_smoke_final/output00000000_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "6fbb3c4c543751e1073561cd6b550bf6ba9438a1ce53e705b1e8c3e1f84ad1ca"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/runs/reference_smoke_final/output00000000_cell_neighbor_graph.txt",
+      "bytes": 1155,
+      "sha256": "be2543c1714a1a07642f6b13fff1c6de942301503ec52684ed73eee8981bb9ad"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/runs/reference_smoke_final/output00000000_attached_cells_graph.txt",
+      "bytes": 1155,
+      "sha256": "be2543c1714a1a07642f6b13fff1c6de942301503ec52684ed73eee8981bb9ad"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/runs/reference_smoke_final/output00000000_spring_attached_cells_graph.txt",
+      "bytes": 1155,
+      "sha256": "be2543c1714a1a07642f6b13fff1c6de942301503ec52684ed73eee8981bb9ad"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/runs/x_smoke_final/output00000001.xml",
+      "bytes": 16263,
+      "sha256": "bffb331efd1263d94989b020d7247a15bb34cce33791b23048882a4c626d1073"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/runs/x_smoke_final/output00000001_cells.mat",
+      "bytes": 211025,
+      "sha256": "e5dcf185b37f16ad22142b94128ada790d228debc542c8e9e2665eaeec407a21"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/runs/x_smoke_final/output00000001_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "7ab1fb5dacc61a03811119605b5b118194bd6a6d6f3787eb03b99101b5673f1b"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/runs/x_smoke_final/output00000001_cell_neighbor_graph.txt",
+      "bytes": 2466,
+      "sha256": "822c647d9a6f083860c0579f842d8f5ed9cd6e10db7163273bddc1382d1007ff"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/runs/x_smoke_final/output00000001_attached_cells_graph.txt",
+      "bytes": 601,
+      "sha256": "5f07fa062d9ccd2ed8b141a9241f7a204ba6a771544561c94d69f21ed839069e"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/runs/x_smoke_final/output00000001_spring_attached_cells_graph.txt",
+      "bytes": 601,
+      "sha256": "5f07fa062d9ccd2ed8b141a9241f7a204ba6a771544561c94d69f21ed839069e"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/runs/reference_smoke_final/output00000001.xml",
+      "bytes": 12735,
+      "sha256": "66f20db81d5e9150faae2edfddc2f4c5f44e9d56a2fdf1686468e1e8d56cdbef"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/runs/reference_smoke_final/output00000001_cells.mat",
+      "bytes": 211025,
+      "sha256": "4eb5f98cee08645312385af7d01b8cd093bbde6e85cae241574397fb5801e552"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/runs/reference_smoke_final/output00000001_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "bdbb4e1e56e0692c5dda6766bf1b0cf567491cacb6bc8df3cdd070af55b1a5a6"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/runs/reference_smoke_final/output00000001_cell_neighbor_graph.txt",
+      "bytes": 4962,
+      "sha256": "449049c5aa34a7aec266d11f4b9d60994e627f1510c974ff3b3fe2ea461091bb"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/runs/reference_smoke_final/output00000001_attached_cells_graph.txt",
+      "bytes": 1155,
+      "sha256": "be2543c1714a1a07642f6b13fff1c6de942301503ec52684ed73eee8981bb9ad"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/runs/reference_smoke_final/output00000001_spring_attached_cells_graph.txt",
+      "bytes": 1155,
+      "sha256": "be2543c1714a1a07642f6b13fff1c6de942301503ec52684ed73eee8981bb9ad"
+    }
+  ]
+}

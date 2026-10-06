@@ -1,0 +1,59 @@
+[
+  {
+    "command": [
+      "g++",
+      "-std=c++17",
+      "-O2",
+      "-fopenmp",
+      "-ffunction-sections",
+      "-fdata-sections",
+      "-Wl,--gc-sections",
+      "-mavx2",
+      "-I/home/jose/GPFS/DFBA/PhysiCelldFBA",
+      "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/reassessment_2026-09-09/transport_probe.cpp",
+      "/home/jose/GPFS/DFBA/PhysiCelldFBA/BioFVM/BioFVM_vector.cpp",
+      "/home/jose/GPFS/DFBA/PhysiCelldFBA/BioFVM/BioFVM_mesh.cpp",
+      "/home/jose/GPFS/DFBA/PhysiCelldFBA/BioFVM/BioFVM_microenvironment.cpp",
+      "/home/jose/GPFS/DFBA/PhysiCelldFBA/BioFVM/BioFVM_solvers.cpp",
+      "/home/jose/GPFS/DFBA/PhysiCelldFBA/BioFVM/BioFVM_basic_agent.cpp",
+      "/home/jose/GPFS/DFBA/PhysiCelldFBA/BioFVM/BioFVM_agent_container.cpp",
+      "/home/jose/GPFS/DFBA/PhysiCelldFBA/BioFVM/BioFVM_utilities.cpp",
+      "/home/jose/GPFS/DFBA/PhysiCelldFBA/BioFVM/BioFVM_matlab.cpp",
+      "-o",
+      "/tmp/biological-transport-probe-reference"
+    ],
+    "returncode": 1,
+    "stdout": "",
+    "stderr": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/reassessment_2026-09-09/transport_probe.cpp: In member function \u2018void FixedAgent::configure(BioFVM::Microenvironment&, const std::array<double, 9>&)\u2019:\n/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/reassessment_2026-09-09/transport_probe.cpp:18:9: error: \u2018int BioFVM::Basic_Agent::current_voxel_index\u2019 is private within this context\n   18 |         current_voxel_index = m.nearest_voxel_index(position);\n      |         ^~~~~~~~~~~~~~~~~~~\nIn file included from /home/jose/GPFS/DFBA/PhysiCelldFBA/BioFVM/BioFVM.h:66,\n                 from /home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/reassessment_2026-09-09/transport_probe.cpp:2:\n/home/jose/GPFS/DFBA/PhysiCelldFBA/BioFVM/BioFVM_basic_agent.h:70:13: note: declared private here\n   70 |         int current_voxel_index;\n      |             ^~~~~~~~~~~~~~~~~~~\n"
+  },
+  {
+    "command": [
+      "mpic++",
+      "-std=c++17",
+      "-O2",
+      "-fopenmp",
+      "-ffunction-sections",
+      "-fdata-sections",
+      "-Wl,--gc-sections",
+      "-mavx2",
+      "-I/home/jose/GPFS/DFBA/PhysiCell-X",
+      "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/reassessment_2026-09-09/transport_probe.cpp",
+      "/home/jose/GPFS/DFBA/PhysiCell-X/BioFVM/BioFVM_vector.cpp",
+      "/home/jose/GPFS/DFBA/PhysiCell-X/BioFVM/BioFVM_mesh.cpp",
+      "/home/jose/GPFS/DFBA/PhysiCell-X/BioFVM/BioFVM_microenvironment.cpp",
+      "/home/jose/GPFS/DFBA/PhysiCell-X/BioFVM/BioFVM_solvers.cpp",
+      "/home/jose/GPFS/DFBA/PhysiCell-X/BioFVM/BioFVM_basic_agent.cpp",
+      "/home/jose/GPFS/DFBA/PhysiCell-X/BioFVM/BioFVM_agent_container.cpp",
+      "/home/jose/GPFS/DFBA/PhysiCell-X/BioFVM/BioFVM_utilities.cpp",
+      "/home/jose/GPFS/DFBA/PhysiCell-X/BioFVM/BioFVM_matlab.cpp",
+      "-DPROBE_MPI",
+      "/home/jose/GPFS/DFBA/PhysiCell-X/DistPhy/DistPhy_Cartesian.cpp",
+      "/home/jose/GPFS/DFBA/PhysiCell-X/DistPhy/DistPhy_Environment.cpp",
+      "-o",
+      "/tmp/biological-transport-probe-x"
+    ],
+    "returncode": 1,
+    "stdout": "",
+    "stderr": "[skyline-r34:00022] opal_ifinit: socket() failed with errno=1\n/home/jose/GPFS/DFBA/PhysiCell-X/BioFVM/BioFVM_solvers.cpp: In function \u2018void BioFVM::diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(BioFVM::Microenvironment&, double, DistPhy::mpi::mpi_Environment&, DistPhy::mpi::mpi_Cartesian&)\u2019:\n/home/jose/GPFS/DFBA/PhysiCell-X/BioFVM/BioFVM_solvers.cpp:660:87: warning: format \u2018%zu\u2019 expects argument of type \u2018size_t\u2019, but argument 5 has type \u2018int\u2019 [-Wformat=]\n  660 |                         std::fprintf(stderr, \"RANK %d: TRUNCATION? step=%u expected=%zu received=%d source=%d tag=%d\\n\",\n      |                                                                                     ~~^\n      |                                                                                       |\n      |                                                                                       long unsigned int\n      |                                                                                     %u\n  661 |                                     rank, step, M.rcv_data_size, received_count, status.MPI_SOURCE, status.MPI_TAG);\n      |                                                 ~~~~~~~~~~~~~~~                        \n      |                                                   |\n      |                                                   int\n/home/jose/GPFS/DFBA/PhysiCell-X/BioFVM/BioFVM_solvers.cpp:823:83: warning: format \u2018%zu\u2019 expects argument of type \u2018size_t\u2019, but argument 5 has type \u2018int\u2019 [-Wformat=]\n  823 |                     std::fprintf(stderr, \"RANK %d: TRUNCATION? step=%u expected=%zu received=%d source=%d tag=%d\\n\",\n      |                                                                                 ~~^\n      |                                                                                   |\n      |                                                                                   long unsigned int\n      |                                                                                 %u\n  824 |                                 rank, step, M.rcv_data_size, received_count, status.MPI_SOURCE, status.MPI_TAG);\n      |                                             ~~~~~~~~~~~~~~~                        \n      |                                               |\n      |                                               int\nIn file included from /usr/lib/gcc/x86_64-linux-gnu/11/include/immintrin.h:99,\n                 from /home/jose/GPFS/DFBA/PhysiCell-X/BioFVM/BioFVM_solvers.cpp:54:\n/usr/lib/gcc/x86_64-linux-gnu/11/include/fmaintrin.h: In function \u2018_ZN6BioFVM60diffusion_decay_solver__constant_coefficients_LOD_3D_AVX256DERNS_16MicroenvironmentEdRN7DistPhy3mpi15mpi_EnvironmentERNS3_13mpi_CartesianE._omp_fn.0\u2019:\n/usr/lib/gcc/x86_64-linux-gnu/11/include/fmaintrin.h:47:1: error: inlining failed in call to \u2018always_inline\u2019 \u2018__m256d _mm256_fmadd_pd(__m256d, __m256d, __m256d)\u2019: target specific option mismatch\n   47 | _mm256_fmadd_pd (__m256d __A, __m256d __B, __m256d __C)\n      | ^~~~~~~~~~~~~~~\n/home/jose/GPFS/DFBA/PhysiCell-X/BioFVM/BioFVM_solvers.cpp:1314:56: note: called from here\n 1314 |                         density_curr1 = _mm256_fmadd_pd(constant1, density_curr1, density_inc1);\n      |                                         ~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nIn file included from /usr/lib/gcc/x86_64-linux-gnu/11/include/immintrin.h:99,\n                 from /home/jose/GPFS/DFBA/PhysiCell-X/BioFVM/BioFVM_solvers.cpp:54:\n/usr/lib/gcc/x86_64-linux-gnu/11/include/fmaintrin.h:47:1: error: inlining failed in call to \u2018always_inline\u2019 \u2018__m256d _mm256_fmadd_pd(__m256d, __m256d, __m256d)\u2019: target specific option mismatch\n   47 | _mm256_fmadd_pd (__m256d __A, __m256d __B, __m256d __C)\n      | ^~~~~~~~~~~~~~~\n/home/jose/GPFS/DFBA/PhysiCell-X/BioFVM/BioFVM_solvers.cpp:1314:56: note: called from here\n 1314 |                         density_curr1 = _mm256_fmadd_pd(constant1, density_curr1, density_inc1);\n      |                                         ~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nIn file included from /usr/lib/gcc/x86_64-linux-gnu/11/include/immintrin.h:99,\n                 from /home/jose/GPFS/DFBA/PhysiCell-X/BioFVM/BioFVM_solvers.cpp:54:\n/usr/lib/gcc/x86_64-linux-gnu/11/include/fmaintrin.h:47:1: error: inlining failed in call to \u2018always_inline\u2019 \u2018__m256d _mm256_fmadd_pd(__m256d, __m256d, __m256d)\u2019: target specific option mismatch\n   47 | _mm256_fmadd_pd (__m256d __A, __m256d __B, __m256d __C)\n      | ^~~~~~~~~~~~~~~\n/home/jose/GPFS/DFBA/PhysiCell-X/BioFVM/BioFVM_solvers.cpp:1314:56: note: called from here\n 1314 |                         density_curr1 = _mm256_fmadd_pd(constant1, density_curr1, density_inc1);\n      |                                         ~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
+  }
+]

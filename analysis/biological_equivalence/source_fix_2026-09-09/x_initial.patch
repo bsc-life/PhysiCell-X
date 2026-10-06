@@ -1,0 +1,71 @@
+--- a/BioFVM/BioFVM_basic_agent.cpp
++++ b/BioFVM/BioFVM_basic_agent.cpp
+@@ -511,11 +511,9 @@
+ 	if(!is_active)
+ 	{ return; }
+ 	
+-	if( volume_is_changed )
+-	{
+-		set_internal_uptake_constants(dt);
+-		volume_is_changed = false;
+-	}
++	// Rates and the secretion timestep can change independently of volume.
++	// In particular, dFBA may have cached an intracellular-step increment.
++	set_internal_uptake_constants(dt);
+ 	
+ 	if( default_microenvironment_options.track_internalized_substrates_in_each_agent == true )
+ 	{
+--- a/core/PhysiCell_cell_container.cpp
++++ b/core/PhysiCell_cell_container.cpp
+@@ -69,6 +69,7 @@
+ #include "PhysiCell_constants.h"
+ #include "../BioFVM/BioFVM_vector.h"
+ #include "PhysiCell_cell.h"
++#include "PhysiCell_cell_sources.h"
+ 
+ #include <algorithm>
+ #include <iterator> 
+@@ -226,14 +227,7 @@
+ 
+ 	// secretions and uptakes. Syncing with BioFVM is automated.
+ 
+-	#pragma omp parallel for
+-	for( int i=0; i < (*all_cells).size(); i++ )
+-	{
+-		if( (*all_cells)[i]->is_out_of_domain == false )
+-		{
+-			(*all_cells)[i]->phenotype.secretion.advance( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
+-		}
+-	}
++	advance_cell_sources(*all_cells, t, diffusion_dt_);
+ 
+ 	if( time_since_last_cycle > phenotype_dt_ - 0.5 * diffusion_dt_ || !initialzed)
+ 	{
+@@ -461,15 +455,7 @@
+ 	/* Nothing to be parallelized in phenotype.secretion.advance(...) function below */
+ 	/*===============================================================================*/
+ 	start = std::chrono::high_resolution_clock::now();
+-	#pragma omp parallel for
+-	for( int i=0; i < (*all_cells).size(); i++ )
+-	{
+-		if( (*all_cells)[i]->is_out_of_domain == false )
+-		{
+-			Cell* pC = (*all_cells)[i];
+-			pC->phenotype.secretion.advance( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
+-		}
+-	}
++	advance_cell_sources(*all_cells, t, diffusion_dt_, world.rank);
+ 	end = std::chrono::high_resolution_clock::now();
+ 	duration = end - start;
+ 	time_diff += duration.count();
+--- a/Makefile
++++ b/Makefile
+@@ -139,7 +139,7 @@
+ PhysiCell_cell_mpi.o: ./core/PhysiCell_cell_mpi.cpp
+ 	$(COMPILE_COMMAND) $(INC) -c ./core/PhysiCell_cell_mpi.cpp
+ 
+-PhysiCell_cell_container.o: ./core/PhysiCell_cell_container.cpp
++PhysiCell_cell_container.o: ./core/PhysiCell_cell_container.cpp ./core/PhysiCell_cell_sources.h
+ 	$(COMPILE_COMMAND) -c ./core/PhysiCell_cell_container.cpp 
+ 	
+ PhysiCell_standard_models.o: ./core/PhysiCell_standard_models.cpp

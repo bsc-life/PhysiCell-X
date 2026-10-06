@@ -1,0 +1,1139 @@
+{
+  "project": "/home/jose/GPFS/DFBA/PhysiCell-X/output",
+  "reference": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output",
+  "common_times": [
+    0.0,
+    30.0,
+    60.0,
+    90.0,
+    120.0,
+    150.0,
+    180.0,
+    210.0,
+    240.0,
+    270.0,
+    300.0,
+    330.0,
+    360.0,
+    390.0,
+    420.0,
+    450.0,
+    480.0,
+    510.0
+  ],
+  "project_only_times": [],
+  "reference_only_times": [],
+  "initial": {
+    "differing_labels": [
+      "orientation"
+    ],
+    "initial_count": 211,
+    "identical_initial_fields": true,
+    "position_difference_at_30_min": {
+      "mean": 0.0004567704779235972,
+      "max": 0.0005908664091526384
+    }
+  },
+  "files": [
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/PhysiCell_settings.xml",
+      "bytes": 21168,
+      "sha256": "68b7d71bc516fa7c5675989ff7eced5e228a3ff598bdd32042450e604f35b06c"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/random_seed.txt",
+      "bytes": 3,
+      "sha256": "7ea9844ae84eccbf55e8330640865e36c43521e45a1baec24233327aab7e6595"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/PhysiCell_settings.xml",
+      "bytes": 21173,
+      "sha256": "853178a5b8788ec5a4fc98b7f10743456422fbe4e591a3fc6a31f4af80c254a3"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/random_seed.txt",
+      "bytes": 3,
+      "sha256": "7ea9844ae84eccbf55e8330640865e36c43521e45a1baec24233327aab7e6595"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000000.xml",
+      "bytes": 16263,
+      "sha256": "1a306a0320e52d6b2a34b6fa30452a77c47e2fd4f13cbb81959c636e56b27da9"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000000_cells.mat",
+      "bytes": 211025,
+      "sha256": "0f317cf7c141e6fcb4d2ab1c9c469beb13fbc68b4847716a9bcde70ba1c6eff1"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000000_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "caf0e29873c7fe31c9a0f1a6da0b6dfcf7ad99b71081c9e136a32c494cf379a9"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000000_cell_neighbor_graph.txt",
+      "bytes": 601,
+      "sha256": "1dd6e7ee16d9652c3d374bc943a0e19a159d590c1166200f773b05ac3e3a5ad5"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000000_attached_cells_graph.txt",
+      "bytes": 601,
+      "sha256": "1dd6e7ee16d9652c3d374bc943a0e19a159d590c1166200f773b05ac3e3a5ad5"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000000_spring_attached_cells_graph.txt",
+      "bytes": 601,
+      "sha256": "1dd6e7ee16d9652c3d374bc943a0e19a159d590c1166200f773b05ac3e3a5ad5"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000000.xml",
+      "bytes": 12735,
+      "sha256": "50604440fd5d77bd69c3b2b90a815448b7595bf978b35adfbdbf841d6f42d2d3"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000000_cells.mat",
+      "bytes": 211025,
+      "sha256": "cd4775f660c7b1ffe7730731435aa912f7040669d1cc742fbae5d4acd7c9a645"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000000_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "6fbb3c4c543751e1073561cd6b550bf6ba9438a1ce53e705b1e8c3e1f84ad1ca"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000000_cell_neighbor_graph.txt",
+      "bytes": 1155,
+      "sha256": "be2543c1714a1a07642f6b13fff1c6de942301503ec52684ed73eee8981bb9ad"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000000_attached_cells_graph.txt",
+      "bytes": 1155,
+      "sha256": "be2543c1714a1a07642f6b13fff1c6de942301503ec52684ed73eee8981bb9ad"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000000_spring_attached_cells_graph.txt",
+      "bytes": 1155,
+      "sha256": "be2543c1714a1a07642f6b13fff1c6de942301503ec52684ed73eee8981bb9ad"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000001.xml",
+      "bytes": 16265,
+      "sha256": "40ac18bc6c378c387d5908bd17fee05bc17b30313c0b9b0f7a291ee4496f621b"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000001_cells.mat",
+      "bytes": 211025,
+      "sha256": "bf3c59c27c5b5769adb581d689530bdc3144c61df7ca3eb143d87ff16c3b037e"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000001_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "ab9ffa5985d7965e595a049e0453d702ffad8e317df468a93c233efc301955d0"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000001_cell_neighbor_graph.txt",
+      "bytes": 2466,
+      "sha256": "3649407e9a13d8c11b8ba741b5cd9bf8f77cb4e892c9b55b04efb09535fb3128"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000001_attached_cells_graph.txt",
+      "bytes": 601,
+      "sha256": "f82b5a18e794ab4e9372e08a2ca888fc3cc2624df3114441a4816fdff830de83"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000001_spring_attached_cells_graph.txt",
+      "bytes": 601,
+      "sha256": "f82b5a18e794ab4e9372e08a2ca888fc3cc2624df3114441a4816fdff830de83"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000001.xml",
+      "bytes": 12738,
+      "sha256": "308beaf908e6eac7ba7b77ced4e6f5434a16e134c20486bb624809207cb5c0dc"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000001_cells.mat",
+      "bytes": 211025,
+      "sha256": "e9a209b70377beba1d205f2f8cfd2a67c8f06b2fa48453acbb10b9afc8075d57"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000001_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "823aa55bd242947994d35f9033addde91c6f8e29771afa18d1132324124461fe"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000001_cell_neighbor_graph.txt",
+      "bytes": 4962,
+      "sha256": "5f2117ce46e9b65d7a765e1c1991ecbfd4a8f1d6d86fc5564ec5a2688b78f594"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000001_attached_cells_graph.txt",
+      "bytes": 1155,
+      "sha256": "be2543c1714a1a07642f6b13fff1c6de942301503ec52684ed73eee8981bb9ad"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000001_spring_attached_cells_graph.txt",
+      "bytes": 1155,
+      "sha256": "be2543c1714a1a07642f6b13fff1c6de942301503ec52684ed73eee8981bb9ad"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000002.xml",
+      "bytes": 16266,
+      "sha256": "fd78fd6af4871d415af5f5e651f16e1eba6b91b270b06600d9f21d7d04eaa348"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000002_cells.mat",
+      "bytes": 384025,
+      "sha256": "76763db8425ec50ed5009a7bd9bdd46d17a87ed740adda7f59aa76e5f2e27201"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000002_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "31750e9eb78fa114cd5015d3e11dd93a1c1a64db30710146db5fd5fb1877cecf"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000002_cell_neighbor_graph.txt",
+      "bytes": 2709,
+      "sha256": "ffd9e9bc93d6a96ede753564b6923c76e1c3ec99b6f45eba13399359d7148635"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000002_attached_cells_graph.txt",
+      "bytes": 1124,
+      "sha256": "bc0bd64b7e0d69d7681c195bc6ddb3dd8854d5f930c22f79bb7e0850f3ae230e"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000002_spring_attached_cells_graph.txt",
+      "bytes": 1124,
+      "sha256": "bc0bd64b7e0d69d7681c195bc6ddb3dd8854d5f930c22f79bb7e0850f3ae230e"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000002.xml",
+      "bytes": 12738,
+      "sha256": "6046d06ad6a0aa24fdf921038ea3ebc1d8cd95268ed79ee934e4bf76c4eb576f"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000002_cells.mat",
+      "bytes": 386025,
+      "sha256": "7156a69d4e304fd241faf91903d6d54247bd3e3bb419e6111cf241ef29d4ea88"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000002_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "40b72207275b814a4c08f9421e6812528082ceb7a7fd0e2f9d7d172e6ce7ff2e"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000002_cell_neighbor_graph.txt",
+      "bytes": 5542,
+      "sha256": "7c89a819bae3f36888b7a9831cdcf4a1f191e70422e358a1b42f6669352a99a6"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000002_attached_cells_graph.txt",
+      "bytes": 2205,
+      "sha256": "a58e77582b1cf780e9d44277b7a4e94d6feb8767cc09b9516598b0e48e6931a5"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000002_spring_attached_cells_graph.txt",
+      "bytes": 2205,
+      "sha256": "a58e77582b1cf780e9d44277b7a4e94d6feb8767cc09b9516598b0e48e6931a5"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000003.xml",
+      "bytes": 16266,
+      "sha256": "1353d89c0df596e055d44daa2bd7fd6624e711045d346a393527bf4c5571117b"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000003_cells.mat",
+      "bytes": 452025,
+      "sha256": "2cc98a7ea9576b64c1321096f32716842bef8a7c15011e58b24007c64adc4965"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000003_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "750e8c138f302c449623d153f484a1ff8e603cbd84d96ede1de6cb2abea75276"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000003_cell_neighbor_graph.txt",
+      "bytes": 3612,
+      "sha256": "b56de8e0ac4b6b71a4dc4bff1ad18288d5c0b4b4f9c35a1811758abb42abed52"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000003_attached_cells_graph.txt",
+      "bytes": 1304,
+      "sha256": "47adf0c990a134436141d225cd7e6428f0b65f34db73e8af189a6e17253f0a16"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000003_spring_attached_cells_graph.txt",
+      "bytes": 1304,
+      "sha256": "47adf0c990a134436141d225cd7e6428f0b65f34db73e8af189a6e17253f0a16"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000003.xml",
+      "bytes": 12738,
+      "sha256": "0ec62b0d963371bf9c1df81bed48a2ed465d231f61df5d156a13edd904b28160"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000003_cells.mat",
+      "bytes": 468025,
+      "sha256": "722eed392e2da7ddb62c0c8fa6b1000da37169e1b7b7762e54b615eb32f482ab"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000003_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "375fbe0889491a88345ba5e69508939b75f6e284efd95ccc168bf1f9ceabbeef"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000003_cell_neighbor_graph.txt",
+      "bytes": 7436,
+      "sha256": "21e4d84050b6d4f5e3e806e1401037e69e373bd9db4ea2a0d52ed73f1ad9d73a"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000003_attached_cells_graph.txt",
+      "bytes": 2697,
+      "sha256": "280d76bf9e38a180fd9841657637e8e623ddf4f52d143d0caf8b3b40f196c2eb"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000003_spring_attached_cells_graph.txt",
+      "bytes": 2697,
+      "sha256": "280d76bf9e38a180fd9841657637e8e623ddf4f52d143d0caf8b3b40f196c2eb"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000004.xml",
+      "bytes": 16267,
+      "sha256": "3be2617c493beb53b0d8d048e7948899c8e2da2f198a98d1844b83f6acdd691a"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000004_cells.mat",
+      "bytes": 817025,
+      "sha256": "aecd27b0761e7803ce0a784d658d14bd5deef375807e345bb5f90c51400b03e8"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000004_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "7de61bf872fc46e6070e10e0af626221e59a77e45494d2ce26d73400d7705579"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000004_cell_neighbor_graph.txt",
+      "bytes": 7228,
+      "sha256": "7e948e0566344278ae5c4118e9a3d70a46a2b491356ab6c3209451acd9c5d752"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000004_attached_cells_graph.txt",
+      "bytes": 2402,
+      "sha256": "bb64aaed7751a6365182cd397ada0567cdd775c8411700ee8ac2964d6986bb26"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000004_spring_attached_cells_graph.txt",
+      "bytes": 2402,
+      "sha256": "bb64aaed7751a6365182cd397ada0567cdd775c8411700ee8ac2964d6986bb26"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000004.xml",
+      "bytes": 12739,
+      "sha256": "0cd57d41c954a45ff113bfeb74ee747cc7a2baa636beef5a687bc3a412dc30bc"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000004_cells.mat",
+      "bytes": 827025,
+      "sha256": "88a8c2bd0d1f18111a668611df6fd0ba874aff72855f31ba611daa6ad0e26966"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000004_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "b4d4a965109f01a26e29efdb25dd26fe361e01c7a3e2d559a4d55934a2aa2a3a"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000004_cell_neighbor_graph.txt",
+      "bytes": 14886,
+      "sha256": "33624899692d87344658326ca7ef60637fcb85f58863ea33d6d58475caf42089"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000004_attached_cells_graph.txt",
+      "bytes": 4851,
+      "sha256": "fd83acb901f3279461b3e084752a42f8216406191523e37102b0a78d77a0e5e9"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000004_spring_attached_cells_graph.txt",
+      "bytes": 4851,
+      "sha256": "fd83acb901f3279461b3e084752a42f8216406191523e37102b0a78d77a0e5e9"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000005.xml",
+      "bytes": 16267,
+      "sha256": "a042a7300d8cfcf2d6993c77c1cc6714ecd60d5119d19bc2a2f5d9f1cba5df54"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000005_cells.mat",
+      "bytes": 1285025,
+      "sha256": "3514ccd74425d2672ffacb676f6d43b7ddf67c2416a0155433e2396f8474f36d"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000005_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "3b578d2ae0bbf68eb54164c02a4af3fa663c90180dafe2ea8d922dcae3d21dca"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000005_cell_neighbor_graph.txt",
+      "bytes": 12536,
+      "sha256": "c5f8df85110096ec6b9da12fbd1c138a65889e09ac25cd6cfef4ed7af6bfeca0"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000005_attached_cells_graph.txt",
+      "bytes": 3973,
+      "sha256": "1996c77ff879fee8c3f50727145cac54bd0cafb238da25347b1d4c1c2e729506"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000005_spring_attached_cells_graph.txt",
+      "bytes": 3973,
+      "sha256": "1996c77ff879fee8c3f50727145cac54bd0cafb238da25347b1d4c1c2e729506"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000005.xml",
+      "bytes": 12739,
+      "sha256": "89624359827eec27e925ce6def0de8366f1dace8f43efa0c1569d7b9521d487d"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000005_cells.mat",
+      "bytes": 1323025,
+      "sha256": "6f7926db13d01de96e2a418a9ad715394466af55b95b47c5bce772f8e890a23e"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000005_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "ebe4b2178f642d462806b0f2bf1fc969be9e4177d00a422d0f7a74cd31bd0be7"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000005_cell_neighbor_graph.txt",
+      "bytes": 26133,
+      "sha256": "905c5ce3a15838d90e31ae7f1551814c50c817e7466e6409899261396873cfc9"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000005_attached_cells_graph.txt",
+      "bytes": 8151,
+      "sha256": "b13780d966ab79abe3ee0e194776c7e578c59e139b2cc05acac9d7e085f61544"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000005_spring_attached_cells_graph.txt",
+      "bytes": 8151,
+      "sha256": "b13780d966ab79abe3ee0e194776c7e578c59e139b2cc05acac9d7e085f61544"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000006.xml",
+      "bytes": 16267,
+      "sha256": "34c7c73c3e7b52c78cd1c1336da07591a988390245040560e065c77202704c6f"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000006_cells.mat",
+      "bytes": 1676025,
+      "sha256": "c2ff907190d982a865a47b9e5b798131df97a707612a9a2dca233abd0b6efa72"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000006_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "d32cccb1e42cc32e3323bd5bf78bdc05370b30cb6690227593277927e44acd09"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000006_cell_neighbor_graph.txt",
+      "bytes": 23462,
+      "sha256": "c9c8551b26c21ccca0ba7136f1a0fb537e611ef0804497f1b6871795ba123e60"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000006_attached_cells_graph.txt",
+      "bytes": 5363,
+      "sha256": "71df2a9b6c3f4e880a7e3a38fd1122fa72aa825b8e9f88b77a241937324b80c4"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000006_spring_attached_cells_graph.txt",
+      "bytes": 5363,
+      "sha256": "71df2a9b6c3f4e880a7e3a38fd1122fa72aa825b8e9f88b77a241937324b80c4"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000006.xml",
+      "bytes": 12740,
+      "sha256": "6a7db6997f4ed486fcd862a2c6ce2d76b5136c1e9fc1afec533176f97b38bd3f"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000006_cells.mat",
+      "bytes": 1673025,
+      "sha256": "891627d78172e065db446c983a7daca12636d59ad2f3b32c0883776528a50e75"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000006_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "e1fbc7343e52954c95cc21b86d47800bb971c2ada505032f6d1aef44c018abd6"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000006_cell_neighbor_graph.txt",
+      "bytes": 47973,
+      "sha256": "e38f80135a85ebb862bb87c600be92639c6b5423d2403b70039be50768d2e070"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000006_attached_cells_graph.txt",
+      "bytes": 10601,
+      "sha256": "65ee875be6173fe250d5721947e29cf345b70e85dde9aba9f781a0dd5e77167c"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000006_spring_attached_cells_graph.txt",
+      "bytes": 10601,
+      "sha256": "65ee875be6173fe250d5721947e29cf345b70e85dde9aba9f781a0dd5e77167c"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000007.xml",
+      "bytes": 16267,
+      "sha256": "794283d35e8bdf73fad87f25b2e450628bb31a1910956ddcd65b93bb49478f75"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000007_cells.mat",
+      "bytes": 3114025,
+      "sha256": "43036d5472afd938b6bff116ba1c33136f58b54a9fe29e0ca255de2d624399f9"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000007_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "10863f79bef2d26188ceb559982c3685792499c92edff52812935e8e547e8ef2"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000007_cell_neighbor_graph.txt",
+      "bytes": 46986,
+      "sha256": "e098a983d13a8c1c74bf2e6127c8eb92fe374823adda04a1b43a2bec2479b382"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000007_attached_cells_graph.txt",
+      "bytes": 10360,
+      "sha256": "b6fa82ebc3ba7d7dd00af3edd9b54a9c99659f1fb8e7858fe047cfcd63036544"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000007_spring_attached_cells_graph.txt",
+      "bytes": 10360,
+      "sha256": "b6fa82ebc3ba7d7dd00af3edd9b54a9c99659f1fb8e7858fe047cfcd63036544"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000007.xml",
+      "bytes": 12740,
+      "sha256": "fb4e83fe6f9e2c580ac0a7244a578b1d3811ccd818c4e79225e7be41039a5b35"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000007_cells.mat",
+      "bytes": 3073025,
+      "sha256": "4313827f2f86cfb0e637823d56d9214d7d7308588f720f768ee007c16f5cd7e4"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000007_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "950198295d4b928ac625276b5ec33ac585a00e32f3a81304cd98d1ecc8ddfb71"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000007_cell_neighbor_graph.txt",
+      "bytes": 94206,
+      "sha256": "7cdb295109cc4fe2579faff354219e3c47ad46d2b2a9a26a5c82cd82c97b5849"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000007_attached_cells_graph.txt",
+      "bytes": 20401,
+      "sha256": "28b8a0c6c0b9eee4a2909750b0d7c96276afccaf232e8094a9a1762f4830c620"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000007_spring_attached_cells_graph.txt",
+      "bytes": 20401,
+      "sha256": "28b8a0c6c0b9eee4a2909750b0d7c96276afccaf232e8094a9a1762f4830c620"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000008.xml",
+      "bytes": 16267,
+      "sha256": "1ceba646ce57978586d7f8c6a4705740186751fbc14bc28f095794e5776d8a21"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000008_cells.mat",
+      "bytes": 3711025,
+      "sha256": "8278f056134f85edd0453dd4632eadc9fd5a76d892520bc977bb0fbb07946e92"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000008_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "0846ff80d537fa52cd48ebd706f8c64e0a7f06b53efc3669a17aa2043bbe98d1"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000008_cell_neighbor_graph.txt",
+      "bytes": 59914,
+      "sha256": "92242bfa9490c20df09e6c29a8e131796a6da8c1ebead87d2f531393bf906e3a"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000008_attached_cells_graph.txt",
+      "bytes": 12514,
+      "sha256": "84838052157d76d0f042a73f963aef1fa8f0e315e6c955212e2e2f4a5ecac16e"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000008_spring_attached_cells_graph.txt",
+      "bytes": 12514,
+      "sha256": "84838052157d76d0f042a73f963aef1fa8f0e315e6c955212e2e2f4a5ecac16e"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000008.xml",
+      "bytes": 12740,
+      "sha256": "4325162b0d4d3aae9be90b3941ffb29786a157a5a68eda339df86f6bdfab3629"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000008_cells.mat",
+      "bytes": 3693025,
+      "sha256": "f70623c070363893a483282452b6f72b614e59ecf89475bdf6e5644830ad5280"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000008_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "b4079aa8460794a652b2d605d044cf03a3005dca73c07c4b0e92884bf6405df3"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000008_cell_neighbor_graph.txt",
+      "bytes": 122315,
+      "sha256": "31a9037dbf6e850cdc021e2709999100b895aa7291271e880b5d0088b8556faf"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000008_attached_cells_graph.txt",
+      "bytes": 24741,
+      "sha256": "b7ba96a7a98a8bae5fbad7fe9d4b4051a6e0c305ef281ad958c6beda297b21c7"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000008_spring_attached_cells_graph.txt",
+      "bytes": 24741,
+      "sha256": "b7ba96a7a98a8bae5fbad7fe9d4b4051a6e0c305ef281ad958c6beda297b21c7"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000009.xml",
+      "bytes": 16267,
+      "sha256": "814cdec8d8d05292a4697a35c93d8ed59d04e2dc7a736c4e6253328f4ed1b233"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000009_cells.mat",
+      "bytes": 6509025,
+      "sha256": "9244981dd0cedd3fb85368968e8368165ae863e11dc47e7acdfa180c4a6b4494"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000009_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "4bcd3d315eb9ed5d234e78c0cf98299778f57879a1d896dff90163960fadfac8"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000009_cell_neighbor_graph.txt",
+      "bytes": 117881,
+      "sha256": "249ee0a96742cb14eab4c12967ae730da6998a0f6328dd7f2493833e8642c932"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000009_attached_cells_graph.txt",
+      "bytes": 22281,
+      "sha256": "8b99a070bd5d41d350111fb6f0ec061a4c6c4e7ec1997229187b35208afc0f56"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000009_spring_attached_cells_graph.txt",
+      "bytes": 22281,
+      "sha256": "8b99a070bd5d41d350111fb6f0ec061a4c6c4e7ec1997229187b35208afc0f56"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000009.xml",
+      "bytes": 12740,
+      "sha256": "b6bde76dbc432c7111e30ff0f3329c7bde2e84791a1c6a8b04814bfbea70edff"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000009_cells.mat",
+      "bytes": 6480025,
+      "sha256": "8b0b5755169e57be9e285a0212fc9314e6a28e13f0c46c9a464b62df091d2b0b"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000009_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "47e69930b69da57d52ac07100339da635a6a8adfa0b301be54172d75949d3243"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000009_cell_neighbor_graph.txt",
+      "bytes": 237632,
+      "sha256": "1afc188c4d410558f9b649134d34a6301bc38ea6453758535142237fc465e59c"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000009_attached_cells_graph.txt",
+      "bytes": 44250,
+      "sha256": "e3082af84726959e4d480dc991eb8c937424aa04d3cf710d231789d43a83c1a9"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000009_spring_attached_cells_graph.txt",
+      "bytes": 44250,
+      "sha256": "e3082af84726959e4d480dc991eb8c937424aa04d3cf710d231789d43a83c1a9"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000010.xml",
+      "bytes": 16267,
+      "sha256": "d2c96afe92685a32693998d01bbb971e57db328cfdb57754d7623ed1941fa7e3"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000010_cells.mat",
+      "bytes": 10315025,
+      "sha256": "209d68f9a88de5e6da3aa518791ff6c39b904e05260ab402ecd8f3576477a58e"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000010_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "15facd516edd72ff53906bd8bd1647c5baac4d844dbf847928640740cd60526e"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000010_cell_neighbor_graph.txt",
+      "bytes": 184264,
+      "sha256": "29076a426eea2582bf6c747f528e8d381dc3436df2c3b8b23308a868126cb30a"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000010_attached_cells_graph.txt",
+      "bytes": 35561,
+      "sha256": "a5b7a022fe8a29c5c2e48d3de7c46abc008920c901723e7cd0925ca9df2be127"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000010_spring_attached_cells_graph.txt",
+      "bytes": 35561,
+      "sha256": "a5b7a022fe8a29c5c2e48d3de7c46abc008920c901723e7cd0925ca9df2be127"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000010.xml",
+      "bytes": 12740,
+      "sha256": "3384f0eb82dcf934ac3c886a35e3a1cd47be2a5d47fe41e6c25ff2e502de0b3c"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000010_cells.mat",
+      "bytes": 10230025,
+      "sha256": "7f599e1ce583716beb089639047ec285f67d8ddb02119eb85173f5fab4884f99"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000010_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "73f078e2c3c7275cf20d7a991b3b6bb39e667ae3b9eecd3b32e3fb4b527cac60"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000010_cell_neighbor_graph.txt",
+      "bytes": 372668,
+      "sha256": "9d7bcacd6005a9174c8b2466c1ae8cc9d3d0444beabe717e47823e9d1a0110b1"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000010_attached_cells_graph.txt",
+      "bytes": 70731,
+      "sha256": "a6594a2795079502b9d616ddef910c06f21e245d7e206051d565d4e781f4cc67"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000010_spring_attached_cells_graph.txt",
+      "bytes": 70731,
+      "sha256": "a6594a2795079502b9d616ddef910c06f21e245d7e206051d565d4e781f4cc67"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000011.xml",
+      "bytes": 16268,
+      "sha256": "7ba6183b8f52c9a61f3211e55b7a0b57efc579f0800e0f85505328f65f6d854a"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000011_cells.mat",
+      "bytes": 13244025,
+      "sha256": "273012073cc38addd51e94a7aab971a8b4676c708c6d504a284db4cf536b8296"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000011_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "a694002a49687478f25cccc4d7d579ccec5a18a82fb2b8e43c7cb371e96544d2"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000011_cell_neighbor_graph.txt",
+      "bytes": 281569,
+      "sha256": "227e51ef4a6a724eb593cd6ccf0c1ceab60d0ba833bc0af1080753dc834e5afb"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000011_attached_cells_graph.txt",
+      "bytes": 47329,
+      "sha256": "30ac15d90b382ca116d4186c04625d77918db32dd02748aef5a865ececba0265"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000011_spring_attached_cells_graph.txt",
+      "bytes": 47329,
+      "sha256": "30ac15d90b382ca116d4186c04625d77918db32dd02748aef5a865ececba0265"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000011.xml",
+      "bytes": 12740,
+      "sha256": "503c5ded0c5a9ef6c60340bdae7142d6fc76816d9da31a2403e699219bda8047"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000011_cells.mat",
+      "bytes": 13227025,
+      "sha256": "c4c513fe9e34545c40f458028ca0cdbda5f9662496ba0ba68399987eacd8b243"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000011_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "8fef5dccf07b39feb5b86be9dd870af883325e98bce59d5e1bebcc8be5403f91"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000011_cell_neighbor_graph.txt",
+      "bytes": 569293,
+      "sha256": "4c547c18388c7a0ca039e0b3aaac217b2b22dd1548f78c48b0c7c934327d6f5d"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000011_attached_cells_graph.txt",
+      "bytes": 94707,
+      "sha256": "18966c1be3d82a4d749f88012895a407a997c6f6bc8132915064f8fc0427826e"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000011_spring_attached_cells_graph.txt",
+      "bytes": 94707,
+      "sha256": "18966c1be3d82a4d749f88012895a407a997c6f6bc8132915064f8fc0427826e"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000012.xml",
+      "bytes": 16268,
+      "sha256": "75e6635750f577a5c7d6c59ae2f847275cc9f577ba3610673266ffb4d44b46f2"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000012_cells.mat",
+      "bytes": 24354025,
+      "sha256": "b58c3fa295a42348510de45e20cafecbf716d87e808eb2fb43df30214b12ef6e"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000012_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "b86778d8ec36047e2a19fea3c3258d816bfc58230af3a1e91f74484d23af1a82"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000012_cell_neighbor_graph.txt",
+      "bytes": 556978,
+      "sha256": "6267e41095e76d15a29dfd7bd9a853dd9ccdcc0ec8beb128683ff016d7495576"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000012_attached_cells_graph.txt",
+      "bytes": 91740,
+      "sha256": "27617e6bd4467ffeac58fce22cb204350e837c8b1f9098dd11cc3caf06513240"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000012_spring_attached_cells_graph.txt",
+      "bytes": 91740,
+      "sha256": "27617e6bd4467ffeac58fce22cb204350e837c8b1f9098dd11cc3caf06513240"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000012.xml",
+      "bytes": 12740,
+      "sha256": "d2f23085740d2a8ed9183880c573b22c7b835a71d1f227b4076c8fe6ea13a69e"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000012_cells.mat",
+      "bytes": 24274025,
+      "sha256": "bc64535e6eef880b4c272cadb9c70d01e4f307a4d6b220ffb8ec056b339dcd8b"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000012_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "fe07de15010abfb0f613699dfc24db7e60c07e87f3c40001d989ae8022b7283f"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000012_cell_neighbor_graph.txt",
+      "bytes": 1122456,
+      "sha256": "5e4ab04f657e1e5b76623d8c48782af73a97f2437eca50b8d3533b99e43f2925"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000012_attached_cells_graph.txt",
+      "bytes": 183083,
+      "sha256": "ca38d7afc56145541e4806619148f16e367693e7a00ddf85f546dd533c4fcb9e"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000012_spring_attached_cells_graph.txt",
+      "bytes": 183083,
+      "sha256": "ca38d7afc56145541e4806619148f16e367693e7a00ddf85f546dd533c4fcb9e"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000013.xml",
+      "bytes": 16268,
+      "sha256": "814de6c2723c1efb30460d18ec0b66af90f4838c2022ea97cb6ab2f66344c4dd"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000013_cells.mat",
+      "bytes": 29254025,
+      "sha256": "4b3494ba57e2775a3937b67b2c3e2b64dcf2d01e70e37cb35dd618e38eeb0d47"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000013_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "aeedf6fc6248abd12664eccdf6d4e028dd56c5f86401b367fe217d0d73814f5c"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000013_cell_neighbor_graph.txt",
+      "bytes": 708590,
+      "sha256": "76960a0595344bc43a43a11db1676f3d4b88280ddb224a874f33418a1e53a062"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000013_attached_cells_graph.txt",
+      "bytes": 111271,
+      "sha256": "f0e8f5991546401d1e2769dfc190b8be2bcf6781f1b388ac090d906c5283dcff"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000013_spring_attached_cells_graph.txt",
+      "bytes": 111271,
+      "sha256": "f0e8f5991546401d1e2769dfc190b8be2bcf6781f1b388ac090d906c5283dcff"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000013.xml",
+      "bytes": 12740,
+      "sha256": "3348c6b3d08f99fa4f4ffef64aa56849869e750c9b339e6864ddab45c7db3b5b"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000013_cells.mat",
+      "bytes": 28987025,
+      "sha256": "c023d3301d84508ea232c02bf749b0b789c5cd975bc4af7b26a0a23657eb6a2d"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000013_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "d822b3d9e29944ca945ff86dae33b61d6c450b785600d998a831f753daccff56"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000013_cell_neighbor_graph.txt",
+      "bytes": 1406883,
+      "sha256": "3caa3120be036c147d76ee6c64e53bfafea13bcb43ca738cd73596e8ae0e2ccf"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000013_attached_cells_graph.txt",
+      "bytes": 220787,
+      "sha256": "f06174e0b98942f363cb3b6109a848b914ff608604729b577f272f9820d58bec"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000013_spring_attached_cells_graph.txt",
+      "bytes": 220787,
+      "sha256": "f06174e0b98942f363cb3b6109a848b914ff608604729b577f272f9820d58bec"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000014.xml",
+      "bytes": 16268,
+      "sha256": "06c935796bf01fbffc53dbd248c6ac80c893f3ff115d2481097e72dc16544083"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000014_cells.mat",
+      "bytes": 51016025,
+      "sha256": "dbbae6a39b6d5ae7309e5ace888ea572838f05714e154ae5874aa8e33a1f47a5"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000014_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "5a4a8d8e92998fab8256f2c1575ffeef61e70c2a75e5a3d89e510c455a2f0ae3"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000014_cell_neighbor_graph.txt",
+      "bytes": 1355008,
+      "sha256": "3367cb8d4c24033b18e4e35a41ef5b258667df565333c4ea8d1221db7d85fe32"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000014_attached_cells_graph.txt",
+      "bytes": 199054,
+      "sha256": "f614725808676999920466fec89ec63aee2aa7bae9a9f8152a5bac30db9ec405"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000014_spring_attached_cells_graph.txt",
+      "bytes": 197962,
+      "sha256": "3f0b32a01d024d0b31eb4408a46fd09ce5414a492cdd1e18948a66059a03f951"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000014.xml",
+      "bytes": 12740,
+      "sha256": "9177a03a98883170e7f1cd409cc747f8f70c45b94f30bf9e8cea883ffa038cb4"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000014_cells.mat",
+      "bytes": 50755025,
+      "sha256": "c848ed1f347e1431cd3e2f7cb4a55371ac72c7981fa22fbd57a8e3446381daa0"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000014_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "47724e4e77b6eae763f53f7594cc238552e50199c61cf77bcafc833dfbc6d702"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000014_cell_neighbor_graph.txt",
+      "bytes": 2636395,
+      "sha256": "2c9d8d6bf0f98280dcd681d080c93a2066942559fd4a779afcab6cbccebeeb55"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000014_attached_cells_graph.txt",
+      "bytes": 394931,
+      "sha256": "fcce822b2d081238ae63430146339a442f9eabe603068e40ffe92381ea9d4b94"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000014_spring_attached_cells_graph.txt",
+      "bytes": 394931,
+      "sha256": "fcce822b2d081238ae63430146339a442f9eabe603068e40ffe92381ea9d4b94"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000015.xml",
+      "bytes": 16268,
+      "sha256": "5147317d3aaa27878afaf676480b4d4d45b55904259b0fd13d9adefc113bd127"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000015_cells.mat",
+      "bytes": 80755025,
+      "sha256": "2d161a8b6c935af78c8ac46ebb07699eedc03a4327b7df7d6b6eca470b33f914"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000015_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "f7ee46a5ade14a131186c586a05c65040bc830d6989f051cccef8a51a9d14d4d"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000015_cell_neighbor_graph.txt",
+      "bytes": 2158541,
+      "sha256": "6cb3728b0ea2bb58b8d12b5af966e34dbf1836f53a07f7f937f469a384d06cbd"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000015_attached_cells_graph.txt",
+      "bytes": 317940,
+      "sha256": "b5ec58f4c7f41e015c4a2ecc09c6976cb0d58e1ab26d9fe4d94e0d91838f5d17"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000015_spring_attached_cells_graph.txt",
+      "bytes": 316988,
+      "sha256": "b2fdf401e49227351fb98a432136798d93b3ef081dbefcc63ea3eb4004b4c5f9"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000015.xml",
+      "bytes": 12740,
+      "sha256": "ab5e6a6108356d45deffc78e5d2a9bce6beb7a75b497ebdb85de6344d9640f8e"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000015_cells.mat",
+      "bytes": 66230025,
+      "sha256": "385baf4e41ba17a249468e4d81cad6d24be834c70e98d1bdb5a108922d0fe5a6"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000015_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "c45a5de85843bfb41163bbde50fbb9136a62336c19a61bb39b96f67061d6787e"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000015_cell_neighbor_graph.txt",
+      "bytes": 3418060,
+      "sha256": "25b56e810549a4d6d78e8dc1c0bc5c3106004b8feed68b0d95e63fe2eabadf34"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000015_attached_cells_graph.txt",
+      "bytes": 518731,
+      "sha256": "1a35037b6fc1ff27c064a3589c0c57a967adc96ba6e8121e31189a77aa203251"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000015_spring_attached_cells_graph.txt",
+      "bytes": 518731,
+      "sha256": "1a35037b6fc1ff27c064a3589c0c57a967adc96ba6e8121e31189a77aa203251"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000016.xml",
+      "bytes": 16268,
+      "sha256": "18a94d314612c9d7fff8541bedcbc715cb2692842ba591f8e9a51f96175104b5"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000016_cells.mat",
+      "bytes": 102558025,
+      "sha256": "7edc4172bcce9718196ad36436b8e77b244958ad4a728251824a85da3af1ab2b"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000016_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "226257db3a36b18b2f5ff1ced222fefccb36d9f88ef19efcfbedf3a12e834ed8"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000016_cell_neighbor_graph.txt",
+      "bytes": 3061162,
+      "sha256": "31e332ef8d44ba8e4e87208b3aab65c6ca3ae06de6cad0d6e618422313a3dfb1"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000016_attached_cells_graph.txt",
+      "bytes": 406184,
+      "sha256": "187c22d345d622099d6bcab699b389ebcb08d455a4bed4b698e4550acff92126"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000016_spring_attached_cells_graph.txt",
+      "bytes": 405726,
+      "sha256": "8ab4cf3d2e07e8ba357b44bdb8c5086377b19733f14ea48ec629963f25c484dd"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000016.xml",
+      "bytes": 12740,
+      "sha256": "07791f1317baf6a7f432c48aefb7e6f1e3cd4550191bc67801e44381b774151f"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000016_cells.mat",
+      "bytes": 83448025,
+      "sha256": "2313b12373498edd4ca3e5e93c05c446ec420263c978498223ce690ef0c0b48c"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000016_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "77311592f2077514d56bf88a7b7ce2344a2ae42c45f277bcc9ff5450fcd7467c"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000016_cell_neighbor_graph.txt",
+      "bytes": 4536398,
+      "sha256": "2cdff0f0201504223329ff3622babb975d12263e95fc59a03e6dbe25e3918d5d"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000016_attached_cells_graph.txt",
+      "bytes": 656475,
+      "sha256": "63c6b82dc0d607103f6667fe7ade8c3003afe892469e393aaa3a6773c715ba2a"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000016_spring_attached_cells_graph.txt",
+      "bytes": 656475,
+      "sha256": "63c6b82dc0d607103f6667fe7ade8c3003afe892469e393aaa3a6773c715ba2a"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000017.xml",
+      "bytes": 16268,
+      "sha256": "f968a019d0273e199e2aeb101774743439662066c363ce725ea9d10fd9c7b7e9"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000017_cells.mat",
+      "bytes": 186796025,
+      "sha256": "acca79d2662dcfb453d9776fc7107f84ec71b064eb18d8e4e0f98ff281d77c4d"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000017_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "389acdd17746c8683a93b73e9f6b0e14fc23194362f587591473f4d577972ecc"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000017_cell_neighbor_graph.txt",
+      "bytes": 5879060,
+      "sha256": "bb157a7a20ab52136b258185913f936d836f30d0ea5ec6e4c89324fcb92d8bcc"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000017_attached_cells_graph.txt",
+      "bytes": 785448,
+      "sha256": "0d53550dcad2bcd988cd4e8a8510691fed8921e7af6a5b653ad6d029fefa8cda"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCell-X/output/output00000017_spring_attached_cells_graph.txt",
+      "bytes": 785448,
+      "sha256": "0d53550dcad2bcd988cd4e8a8510691fed8921e7af6a5b653ad6d029fefa8cda"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000017.xml",
+      "bytes": 12740,
+      "sha256": "f7e67eec340c36ee0bd5e65a3aea90ee0a80ae7723090195cc589b18c742c8b3"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000017_cells.mat",
+      "bytes": 111254025,
+      "sha256": "4ae1fd866a8e8457393a7702e53244a43f1a0c91cd11873994afc3111790ba57"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000017_microenvironment0.mat",
+      "bytes": 18000047,
+      "sha256": "8506d68ca8721106cfbdb5e2507ce49fba2a8350c6ed2f9ff0d5bba58f4aab14"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000017_cell_neighbor_graph.txt",
+      "bytes": 6085568,
+      "sha256": "b255e7bfe0500f05483499f5a8cb0a979689233e6714430f0e22b8b749912990"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000017_attached_cells_graph.txt",
+      "bytes": 890178,
+      "sha256": "f67a557bdbcce02fbaa6bddc791839f16e2ea19531abc92c00c6999b6c925081"
+    },
+    {
+      "path": "/home/jose/GPFS/DFBA/PhysiCelldFBA/output/output00000017_spring_attached_cells_graph.txt",
+      "bytes": 890178,
+      "sha256": "f67a557bdbcce02fbaa6bddc791839f16e2ea19531abc92c00c6999b6c925081"
+    }
+  ]
+}

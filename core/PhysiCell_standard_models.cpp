@@ -760,10 +760,10 @@ void standard_update_cell_velocity( Cell* pCell, Phenotype& phenotype, double dt
 			std::vector<int> moore_list = pCell->get_container()->underlying_mesh.moore_connected_voxel_global_indices_left[yx_index];
 			for(int i=0; i<moore_list.size(); i++)
 			{
-				auto mvi_iter = pCell->get_container()->um_mbfl.find(moore_list[i]);
-				if( mvi_iter == pCell->get_container()->um_mbfl.end() )
+				auto mvi_iter = pCell->get_container()->ghost_voxel_from_left.find(moore_list[i]);
+				if( mvi_iter == pCell->get_container()->ghost_voxel_from_left.end() )
 				{ continue; }
-				Moore_Voxel_Info &mvi = mvi_iter->second;
+				Interacting_Voxel &mvi = pCell->get_container()->ivfl[mvi_iter->second];
 
 				std::vector<double> my_voxel_center 	 = pCell->get_container()->underlying_mesh.voxels[pCell->get_current_mechanics_voxel_index()].center;
 				std::vector<double> other_voxel_center = mvi.center;
@@ -772,9 +772,9 @@ void standard_update_cell_velocity( Cell* pCell, Phenotype& phenotype, double dt
 				if(!is_neighbor_voxel(pCell, my_voxel_center, other_voxel_center , mcidiv, world, cart_topo))
 					continue;
 					
-				for(int cell_ctr=0; cell_ctr<mvi.moore_cells.size(); cell_ctr++) {
+				for(int cell_ctr=0; cell_ctr<mvi.cells.size(); cell_ctr++) {
 					pCell->state.mechanics_neighbor_candidates += 1;
-					pCell->add_potentials(mvi.moore_cells[cell_ctr], world, cart_topo); 
+					pCell->add_potentials(mvi.cells[cell_ctr], world, cart_topo); 
 				}
 				
 			}
@@ -791,10 +791,10 @@ void standard_update_cell_velocity( Cell* pCell, Phenotype& phenotype, double dt
 			std::vector<int> moore_list = pCell->get_container()->underlying_mesh.moore_connected_voxel_global_indices_right[yx_index];
 			for(int i=0; i<moore_list.size(); i++)
 			{
-				auto mvi_iter = pCell->get_container()->um_mbfr.find(moore_list[i]);
-				if( mvi_iter == pCell->get_container()->um_mbfr.end() )
+				auto mvi_iter = pCell->get_container()->ghost_voxel_from_right.find(moore_list[i]);
+				if( mvi_iter == pCell->get_container()->ghost_voxel_from_right.end() )
 				{ continue; }
-				Moore_Voxel_Info &mvi = mvi_iter->second;
+				Interacting_Voxel &mvi = pCell->get_container()->ivfr[mvi_iter->second];
 
 				std::vector<double> my_voxel_center 	 = pCell->get_container()->underlying_mesh.voxels[pCell->get_current_mechanics_voxel_index()].center;
 				std::vector<double> other_voxel_center = mvi.center;
@@ -803,9 +803,9 @@ void standard_update_cell_velocity( Cell* pCell, Phenotype& phenotype, double dt
 				if(!is_neighbor_voxel(pCell, my_voxel_center, other_voxel_center , mcidiv, world, cart_topo))
 					continue;
 					
-				for(int cell_ctr=0; cell_ctr<mvi.moore_cells.size(); cell_ctr++) {
+				for(int cell_ctr=0; cell_ctr<mvi.cells.size(); cell_ctr++) {
 					pCell->state.mechanics_neighbor_candidates += 1;
-					pCell->add_potentials(mvi.moore_cells[cell_ctr], world, cart_topo);
+					pCell->add_potentials(mvi.cells[cell_ctr], world, cart_topo);
 				}
 					 
 			}

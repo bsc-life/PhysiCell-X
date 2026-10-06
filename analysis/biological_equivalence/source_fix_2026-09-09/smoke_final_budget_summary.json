@@ -1,0 +1,122 @@
+[
+  {
+    "project": "x",
+    "minutes": 0.1,
+    "substrate_index": 0,
+    "requested_net_export": -2140.168174847702,
+    "requested_total": -2140.1681748476612,
+    "applied_total": -2140.1681748476612,
+    "applied_minus_net": 4.092726157978177e-11,
+    "relative_accounting_error": 1.912338575107268e-14,
+    "max_abs_step_error": 0.0,
+    "rank_steps": 200
+  },
+  {
+    "project": "x",
+    "minutes": 0.1,
+    "substrate_index": 1,
+    "requested_net_export": -1070.1229640276379,
+    "requested_total": -1070.1229640276606,
+    "applied_total": -1070.1229640276606,
+    "applied_minus_net": -2.2737367544323206e-11,
+    "relative_accounting_error": -2.1247434461873648e-14,
+    "max_abs_step_error": 0.0,
+    "rank_steps": 200
+  },
+  {
+    "project": "x",
+    "minutes": 0.1,
+    "substrate_index": 2,
+    "requested_net_export": 193.04709614362793,
+    "requested_total": 193.04709614362793,
+    "applied_total": 193.04709614362793,
+    "applied_minus_net": 0.0,
+    "relative_accounting_error": 0.0,
+    "max_abs_step_error": 0.0,
+    "rank_steps": 200
+  },
+  {
+    "project": "x",
+    "minutes": 0.1,
+    "substrate_index": 3,
+    "requested_net_export": 0.0,
+    "requested_total": 0.0,
+    "applied_total": 0.0,
+    "applied_minus_net": 0.0,
+    "relative_accounting_error": null,
+    "max_abs_step_error": 0.0,
+    "rank_steps": 200
+  },
+  {
+    "project": "x",
+    "minutes": 0.1,
+    "substrate_index": 4,
+    "requested_net_export": 2243.1706508410175,
+    "requested_total": 2243.1706508410175,
+    "applied_total": 2243.1706508410175,
+    "applied_minus_net": 0.0,
+    "relative_accounting_error": 0.0,
+    "max_abs_step_error": 0.0,
+    "rank_steps": 200
+  },
+  {
+    "project": "reference",
+    "minutes": 0.1,
+    "substrate_index": 0,
+    "requested_net_export": -2116.374110185571,
+    "requested_total": -2116.374110185539,
+    "applied_total": -2116.374110185539,
+    "applied_minus_net": 3.228706191293895e-11,
+    "relative_accounting_error": 1.5255838633420017e-14,
+    "max_abs_step_error": 0.0,
+    "rank_steps": 100
+  },
+  {
+    "project": "reference",
+    "minutes": 0.1,
+    "substrate_index": 1,
+    "requested_net_export": -1058.2258594938714,
+    "requested_total": -1058.2258594938962,
+    "applied_total": -1058.2258594938962,
+    "applied_minus_net": -2.4783730623312294e-11,
+    "relative_accounting_error": -2.3420076537503878e-14,
+    "max_abs_step_error": 0.0,
+    "rank_steps": 100
+  },
+  {
+    "project": "reference",
+    "minutes": 0.1,
+    "substrate_index": 2,
+    "requested_net_export": 190.9016609834287,
+    "requested_total": 190.9016609834287,
+    "applied_total": 190.9016609834287,
+    "applied_minus_net": 0.0,
+    "relative_accounting_error": 0.0,
+    "max_abs_step_error": 0.0,
+    "rank_steps": 100
+  },
+  {
+    "project": "reference",
+    "minutes": 0.1,
+    "substrate_index": 3,
+    "requested_net_export": 0.0,
+    "requested_total": 0.0,
+    "applied_total": 0.0,
+    "applied_minus_net": 0.0,
+    "relative_accounting_error": null,
+    "max_abs_step_error": 0.0,
+    "rank_steps": 100
+  },
+  {
+    "project": "reference",
+    "minutes": 0.1,
+    "substrate_index": 4,
+    "requested_net_export": 2218.231433359595,
+    "requested_total": 2218.231433359595,
+    "applied_total": 2218.231433359595,
+    "applied_minus_net": 0.0,
+    "relative_accounting_error": 0.0,
+    "max_abs_step_error": 0.0,
+    "rank_steps": 100
+  }
+]

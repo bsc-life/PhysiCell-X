@@ -557,6 +557,7 @@ class Cell_Functions //UPDATED
 
 	void (*pre_update_intracellular) ( Cell* pCell, Phenotype& phenotype, double dt );
 	void (*post_update_intracellular) ( Cell* pCell, Phenotype& phenotype, double dt );
+	void (*custom_optimization) ( Cell* pCell, Phenotype& phenotype, double dt );
 	
 	void (*update_velocity)( Cell* pCell, Phenotype& phenotype, double dt ); 
 	

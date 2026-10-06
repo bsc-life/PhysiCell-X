@@ -1,9 +1,9 @@
-PWD /home/jose/GPFS/development/physicell_x/documentation
+PWD /home/jose/GPFS/DFBA/PhysiCell-X/documentation
 INPUT /etc/texmf/web2c/texmf.cnf
 INPUT /usr/share/texmf/web2c/texmf.cnf
 INPUT /usr/share/texlive/texmf-dist/web2c/texmf.cnf
 INPUT /var/lib/texmf/web2c/pdftex/pdflatex.fmt
-INPUT /home/jose/GPFS/development/physicell_x/documentation/PhysiCell-X_UserGuide.tex
+INPUT /home/jose/GPFS/DFBA/PhysiCell-X/documentation/PhysiCell-X_UserGuide.tex
 OUTPUT PhysiCell-X_UserGuide.log
 INPUT /usr/share/texlive/texmf-dist/tex/latex/base/article.cls
 INPUT /usr/share/texlive/texmf-dist/tex/latex/base/article.cls

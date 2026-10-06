@@ -68,6 +68,7 @@
 #ifndef __PhysiCell_cell_container_h__
 #define __PhysiCell_cell_container_h__
 
+#include <cstddef>
 #include <vector>
 #include <unordered_map>
 #include "PhysiCell_cell.h"
@@ -139,13 +140,13 @@ public:
 	Moore_Voxel_Info(std::vector<char>& buffer, int size, int &pos);
 };
 
-class Interacting_Cell_Info
+// Canonical cross-rank ghost-cell record. The Moore_Cell_Info base contains
+// fields shared by mechanics and cell interactions (ID, type, position and
+// mechanical parameters), so the merged ghost exchange transmits them once.
+class Interacting_Cell_Info : public Moore_Cell_Info
 {
 public:
-	int ID;
-	int type;
 	bool dead;
-	std::vector<double> position;
 	//Attack info
 	bool attacked = false;
 	double damage_suffered = 0;
@@ -177,8 +178,8 @@ class Interacting_Voxel
 public:
 	int global_mesh_index;  //used to id in u_map
 	int no_of_cells_in_vxl; //necessary to unpack info
-	//std::vector<double> center;
-	//double max_cell_interactive_distance_in_voxel;
+	std::vector<double> center;
+	double max_cell_interactive_distance_in_voxel;
 	std::vector<Interacting_Cell_Info> cells; 
 };
 
@@ -190,6 +191,10 @@ class Cell_Container : public BioFVM::Agent_Container
 	std::vector<Cell*> cells_ready_to_die;
 	int boundary_condition_for_pushed_out_agents; 	// what to do with pushed out cells
 	bool initialzed = false;
+	bool ghost_interaction_activity_initialized = false;
+	bool ghost_interactions_active = true;
+	bool ghost_left_index_initialized = false;
+	bool ghost_right_index_initialized = false;
 	
  public:
 	BioFVM::Cartesian_Mesh underlying_mesh;
@@ -347,6 +352,10 @@ class Cell_Container : public BioFVM::Agent_Container
 	void pack_cell_interact_info(mpi_Environment &world, mpi_Cartesian &cart_topo);
 	void unpack_cell_interact_info(mpi_Environment &world, mpi_Cartesian &cart_topo);
 	void cell_cell_interaction_with_border(std::vector<Interacting_Voxel> *iv);
+	void ghost_exchange(mpi_Environment &world, mpi_Cartesian &cart_topo);
+	void return_ghost_interaction_events(mpi_Environment &world, mpi_Cartesian &cart_topo);
+	void invalidate_ghost_interaction_activity();
+	bool ghost_cell_interactions_enabled() const;
 	void exchange_mechanics_halos(mpi_Environment &world, mpi_Cartesian &cart_topo);
 	void evaluate_cell_cell_interactions(double time_since_last_mechanics,  mpi_Environment &world, mpi_Cartesian &cart_topo);
 	void evaluate_cell_elastic_interactions( PhysiCell::Cell *pCell , double dt_mec,  mpi_Environment &world, mpi_Cartesian &cart_topo);
@@ -354,6 +363,27 @@ class Cell_Container : public BioFVM::Agent_Container
 	
 	std::vector<Interacting_Voxel> ivfr;		//Voxels From Right (mbfr from right process)
 	std::vector<Interacting_Voxel> ivfl; 	//Voxels Boundary From Left 	(mbfl from left process)
+
+	// Canonical merged-ghost lookups. Values index ivfl/ivfr; they never copy
+	// voxel or cell payloads and remain read-only during parallel mechanics.
+	std::unordered_map<int, std::size_t> ghost_voxel_from_left;
+	std::unordered_map<int, std::size_t> ghost_voxel_from_right;
+	std::unordered_map<int, Cell*> owned_boundary_cells_by_id;
+
+	// Dedicated persistent buffers keep ghost traffic independent from the
+	// migration buffers used later in the mechanics step.
+	std::vector<char> ghost_snd_left;
+	std::vector<char> ghost_snd_right;
+	std::vector<char> ghost_rcv_left;
+	std::vector<char> ghost_rcv_right;
+	std::vector<char> ghost_event_snd_left;
+	std::vector<char> ghost_event_snd_right;
+	std::vector<char> ghost_event_rcv_left;
+	std::vector<char> ghost_event_rcv_right;
+	std::vector<std::size_t> ghost_offsets_left;
+	std::vector<std::size_t> ghost_offsets_right;
+	std::vector<std::size_t> ghost_offsets_from_left;
+	std::vector<std::size_t> ghost_offsets_from_right;
 	
 	std::unordered_map<int, Interacting_Voxel> um_ivfl; //um_mbfl[globa_mesh_index]=Moore_Voxel_Info[index]
 	std::unordered_map<int, Interacting_Voxel> um_ivfr; //um_mbfr[globa_mesh_index]=Moore_Voxel_Info[index]

@@ -479,6 +479,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
                     {
                         MPI_Request send_req;
                         MPI_Isend(&(M.thomas_cx[M.mesh.x_coordinates.size() - 1][0]), M.thomas_cx[M.mesh.x_coordinates.size() - 1].size(), MPI_DOUBLE, ser_ctr + 1, 1111, cart_topo.mpi_cart_comm, &send_req);
+                        MPI_Wait(&send_req, MPI_STATUS_IGNORE);
                     }
                 }
 
@@ -546,7 +547,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
 
         uint32_t n_req = granurality;
         if (M.last_iteration > 0) n_req+=1;
-        MPI_Request send_req[n_req];
+        std::vector<MPI_Request> send_req(n_req, MPI_REQUEST_NULL);
         MPI_Request recv_req[n_req];
         std::vector<double> block3d(M.thomas_i_jump); //The message to send is of the size Y_voxels * Z_voxels * Substrates
 
@@ -745,6 +746,8 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
                 }
             }
         }
+        // Complete sends before reusing requests or modifying their density buffers.
+         MPI_Waitall(static_cast<int>(send_req.size()), send_req.data(), MPI_STATUSES_IGNORE);
         MPI_Barrier(cart_topo.mpi_cart_comm);
         /*-----------------------------------------------------------------------------------*/
         /*                         CODE FOR BACK SUBSITUTION                                 */
@@ -886,6 +889,8 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
                 }
             }
         }
+        // Complete sends before reusing requests or modifying their density buffers.
+        MPI_Waitall(static_cast<int>(send_req.size()), send_req.data(), MPI_STATUSES_IGNORE);
         MPI_Barrier(cart_topo.mpi_cart_comm);
 
         M.apply_dirichlet_boundaries_conditions(rank, size);

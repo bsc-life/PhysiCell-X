@@ -1,0 +1,82 @@
+[
+  {
+    "method": "actual_saved_rates",
+    "substrate": "oxygen",
+    "observed_difference_l2": 0.5066642235587971,
+    "predicted_difference_l2": 0.506663858668236,
+    "residual_relative_l2": 0.000935735500352177,
+    "max_residual": 1.87017685959745e-06
+  },
+  {
+    "method": "actual_saved_rates",
+    "substrate": "glucose",
+    "observed_difference_l2": 0.25405875855428495,
+    "predicted_difference_l2": 0.25405533484346915,
+    "residual_relative_l2": 0.003449649577164275,
+    "max_residual": 5.067216022780485e-06
+  },
+  {
+    "method": "actual_saved_rates",
+    "substrate": "acetate",
+    "observed_difference_l2": 0.04576630465268365,
+    "predicted_difference_l2": 0.045766047767802895,
+    "residual_relative_l2": 0.0022437779695334273,
+    "max_residual": 5.308266798993364e-07
+  },
+  {
+    "method": "actual_saved_rates",
+    "substrate": "lactate",
+    "observed_difference_l2": 0.0,
+    "predicted_difference_l2": 0.0,
+    "residual_relative_l2": null,
+    "max_residual": 0.0
+  },
+  {
+    "method": "actual_saved_rates",
+    "substrate": "CO2",
+    "observed_difference_l2": 0.531133104325634,
+    "predicted_difference_l2": 0.5311325060348546,
+    "residual_relative_l2": 0.0011290491618043607,
+    "max_residual": 2.4600878803099357e-06
+  },
+  {
+    "method": "common_rates_per_cell_volume",
+    "substrate": "oxygen",
+    "observed_difference_l2": 0.5066642235587971,
+    "predicted_difference_l2": 0.5066637836399718,
+    "residual_relative_l2": 0.0009411821177613197,
+    "max_residual": 1.9534426023426477e-06
+  },
+  {
+    "method": "common_rates_per_cell_volume",
+    "substrate": "glucose",
+    "observed_difference_l2": 0.25405875855428495,
+    "predicted_difference_l2": 0.2540553244158123,
+    "residual_relative_l2": 0.003451836107361149,
+    "max_residual": 5.0693090720699274e-06
+  },
+  {
+    "method": "common_rates_per_cell_volume",
+    "substrate": "acetate",
+    "observed_difference_l2": 0.04576630465268365,
+    "predicted_difference_l2": 0.04576608615326641,
+    "residual_relative_l2": 0.0022082161171140557,
+    "max_residual": 5.250878773802037e-07
+  },
+  {
+    "method": "common_rates_per_cell_volume",
+    "substrate": "lactate",
+    "observed_difference_l2": 0.0,
+    "predicted_difference_l2": 0.0,
+    "residual_relative_l2": null,
+    "max_residual": 0.0
+  },
+  {
+    "method": "common_rates_per_cell_volume",
+    "substrate": "CO2",
+    "observed_difference_l2": 0.531133104325634,
+    "predicted_difference_l2": 0.531132429515205,
+    "residual_relative_l2": 0.0011346500431052135,
+    "max_residual": 2.4858331262034294e-06
+  }
+]

@@ -1,0 +1,89 @@
+{
+  "project_baseline_hash_comparison": {
+    "checked": 44,
+    "changed": [
+      "output00000000.xml",
+      "output00000000_attached_cells_graph.txt",
+      "output00000001.xml",
+      "output00000001_cells.mat",
+      "output00000001_microenvironment0.mat",
+      "output00000001_cell_neighbor_graph.txt",
+      "output00000001_attached_cells_graph.txt",
+      "output00000001_spring_attached_cells_graph.txt",
+      "output00000002.xml",
+      "output00000002_cells.mat",
+      "output00000002_microenvironment0.mat",
+      "output00000002_cell_neighbor_graph.txt",
+      "output00000002_attached_cells_graph.txt",
+      "output00000002_spring_attached_cells_graph.txt",
+      "output00000003.xml",
+      "output00000003_cells.mat",
+      "output00000003_microenvironment0.mat",
+      "output00000003_cell_neighbor_graph.txt",
+      "output00000003_attached_cells_graph.txt",
+      "output00000003_spring_attached_cells_graph.txt",
+      "output00000004.xml",
+      "output00000004_cells.mat",
+      "output00000004_microenvironment0.mat",
+      "output00000004_cell_neighbor_graph.txt",
+      "output00000004_attached_cells_graph.txt",
+      "output00000004_spring_attached_cells_graph.txt",
+      "output00000005.xml",
+      "output00000005_cells.mat",
+      "output00000005_microenvironment0.mat",
+      "output00000005_cell_neighbor_graph.txt",
+      "output00000005_attached_cells_graph.txt",
+      "output00000005_spring_attached_cells_graph.txt",
+      "output00000006.xml",
+      "output00000006_cells.mat",
+      "output00000006_microenvironment0.mat",
+      "output00000006_cell_neighbor_graph.txt",
+      "output00000006_attached_cells_graph.txt",
+      "output00000006_spring_attached_cells_graph.txt"
+    ]
+  },
+  "reference_baseline_hash_comparison": {
+    "checked": 44,
+    "changed": []
+  },
+  "settings_differences": {
+    "root/domain[1]/use_2D[9]": [
+      [
+        "",
+        {}
+      ],
+      [
+        "false",
+        {}
+      ]
+    ],
+    "root/parallel[3]/omp_num_threads[0]": [
+      [
+        "2",
+        {}
+      ],
+      [
+        "112",
+        {}
+      ]
+    ]
+  },
+  "reference_metrics_unchanged_at_original_times": true,
+  "all_cells_alive_nonmotile_phase14_cycle5_and_saved_velocities_zero": true,
+  "nonnegative_fields_and_inactive_lactate": true,
+  "same_input_final_field_concentration_and_gradient_errors_zero": true,
+  "current_source_binary_log_hashes": {
+    "BioFVM/BioFVM_mesh.cpp": "fc56543754a7ece5b9a0d03676b4940f2cb3c49555357766515421f7ed7c033d",
+    "core/PhysiCell_cell_container.cpp": "64936715493aa722c1766762334bb4055efd0a1e78cdd5f153b09327e010c18c",
+    "core/PhysiCell_cell.cpp": "73a9da2686b49662e5586499729d0c10ec46c97068f2b86dbe440261cd467029",
+    "core/PhysiCell_cell_container_mechanics.cpp": "78f936a8795b2a19ab7f57a4c239bf7f443fe82fe95635ce324c46f3b6160d4a",
+    "core/PhysiCell_standard_models.cpp": "bc51e1e741801382ecc17886033c9640f8cecb159fc11daec879e0f4d8160a0b",
+    "main.cpp": "35d5d961e11fa4c12ba01e9daad728efab0e63ed4946ee12a29f96330707bef1",
+    "custom_modules/custom.cpp": "39f9c9662bdd3b6743731aab9569b64ae0e49ff08b64372ffc7e23140c8f2de0",
+    "config/Ecoli_core.xml": "5e0e011badcb1135d8a61e73beb2521cf5ac570ea75ced37010c7d8416f4aedf",
+    "bacterial-colony": "c8d19bb3c0f8e18cba32249ccdd8072df9dbdd9ca5f18346a958f3fb6b7961fe",
+    "test-45570163.log": "c436c570dadff711697e57e339e68972e5bd8a5d1ecadc7af949a6a4a69ae9b4",
+    "tools/compare_biological_outputs.py": "75a6d43ead9e0256308ed2a2a79e8d2214db39d642c79ab6ada5a76ebc50ff27"
+  },
+  "reference_model_hash": "5e0e011badcb1135d8a61e73beb2521cf5ac570ea75ced37010c7d8416f4aedf"
+}

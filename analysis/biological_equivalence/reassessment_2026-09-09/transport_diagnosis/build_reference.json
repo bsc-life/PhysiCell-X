@@ -1,0 +1,39 @@
+{
+  "command": [
+    "g++",
+    "-std=c++17",
+    "-O2",
+    "-fopenmp",
+    "-ffunction-sections",
+    "-fdata-sections",
+    "-Wl,--gc-sections",
+    "-mavx2",
+    "-mfma",
+    "-I/home/jose/GPFS/DFBA/PhysiCelldFBA",
+    "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/reassessment_2026-09-09/transport_probe.cpp",
+    "/home/jose/GPFS/DFBA/PhysiCelldFBA/BioFVM/BioFVM_vector.cpp",
+    "/home/jose/GPFS/DFBA/PhysiCelldFBA/BioFVM/BioFVM_mesh.cpp",
+    "/home/jose/GPFS/DFBA/PhysiCelldFBA/BioFVM/BioFVM_microenvironment.cpp",
+    "/home/jose/GPFS/DFBA/PhysiCelldFBA/BioFVM/BioFVM_solvers.cpp",
+    "/home/jose/GPFS/DFBA/PhysiCelldFBA/BioFVM/BioFVM_basic_agent.cpp",
+    "/home/jose/GPFS/DFBA/PhysiCelldFBA/BioFVM/BioFVM_agent_container.cpp",
+    "/home/jose/GPFS/DFBA/PhysiCelldFBA/BioFVM/BioFVM_utilities.cpp",
+    "/home/jose/GPFS/DFBA/PhysiCelldFBA/BioFVM/BioFVM_matlab.cpp",
+    "-o",
+    "/tmp/biological-transport-probe-reference"
+  ],
+  "returncode": 0,
+  "stdout": "",
+  "stderr": "",
+  "source_sha256": {
+    "/home/jose/GPFS/DFBA/PhysiCelldFBA/BioFVM/BioFVM_vector.cpp": "69f2f69f413866efa09c9a79868606c3764360254a59a76f81897c707170f42a",
+    "/home/jose/GPFS/DFBA/PhysiCelldFBA/BioFVM/BioFVM_mesh.cpp": "1475228f68b353c6243d76b27f8f236b6e8c6307abb98f63880c395d98ac1631",
+    "/home/jose/GPFS/DFBA/PhysiCelldFBA/BioFVM/BioFVM_microenvironment.cpp": "d738d460ccfca92fbd46bb90a81f7a9f982a2c56ebeb2363a4cf280c59dd637c",
+    "/home/jose/GPFS/DFBA/PhysiCelldFBA/BioFVM/BioFVM_solvers.cpp": "2400966d676c79624ef6bbb04c2f1b23cc5db38c2a212f516dc836c6fc677d39",
+    "/home/jose/GPFS/DFBA/PhysiCelldFBA/BioFVM/BioFVM_basic_agent.cpp": "f145cc0be45c83ab392f697c41c5a8150baf040a56e80eb06def7d9cc09a9c20",
+    "/home/jose/GPFS/DFBA/PhysiCelldFBA/BioFVM/BioFVM_agent_container.cpp": "c8febb39f1732b952401754f70375a280eb6613c901a1c0b19c10ccb8d27d93d",
+    "/home/jose/GPFS/DFBA/PhysiCelldFBA/BioFVM/BioFVM_utilities.cpp": "4acd2849e18150660669b1830595ab9634ae10b257dd689a81e41dd092abd671",
+    "/home/jose/GPFS/DFBA/PhysiCelldFBA/BioFVM/BioFVM_matlab.cpp": "ae4e924f2e46f749de56565fa212b8546534b0da402ebfe6676b64bb8b99b5a1",
+    "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/reassessment_2026-09-09/transport_probe.cpp": "12a4aee2f82a3c84e8e584e6a24c552b1ab91116624359e0a116a2824b361b09"
+  }
+}

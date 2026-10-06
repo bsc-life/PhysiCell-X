@@ -198,6 +198,11 @@ int main( int argc, char* argv[] )
         exit(-1); 
   }
 
+  	#ifdef SCALABILITY
+	std::string  report = "./scalability_" + std::to_string(world.Size()) + ".csv";
+	std::ofstream file(report, std::ios::app);
+	#endif
+
 	//Setting OpenMP threads, this takes precedence over OMP_NUM_THREADS so be careful
 	omp_set_num_threads(PhysiCell_settings.omp_num_threads);
 	
@@ -286,6 +291,11 @@ int main( int argc, char* argv[] )
 		std::cout   << "necrotic Code "<< PhysiCell_constants::necrotic  << std::endl;;
 	}
 	//Main loop of the program
+	// main loop 
+	#ifdef SCALABILITY
+	int steps = 0;
+	auto start = std::chrono::high_resolution_clock::now();
+	#endif
 	try 
 	{	
 		while( PhysiCell_globals.current_time < PhysiCell_settings.max_time + 0.1*diffusion_dt )
@@ -295,8 +305,25 @@ int main( int argc, char* argv[] )
 			{
 				
 				//Use the parallel version of the function to display total cells, time
-				display_simulation_status( std::cout, world, cart_topo ); 
-				
+				#ifdef SCALABILITY
+				auto end = std::chrono::high_resolution_clock::now();
+				std::chrono::duration<double> elapsed = end - start;
+				double time = elapsed.count();
+				double time_max = 0.0;
+				MPI_Reduce(&time, &time_max, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+				if (steps > 0 && IOProcessor( world ) )
+				{
+					file << steps << "," << time_max << std::endl;
+				}
+				++steps;
+				#endif
+				display_simulation_status( std::cout, world, cart_topo );
+				#ifdef SCALABILITY
+				MPI_Barrier(MPI_COMM_WORLD);
+				start = std::chrono::high_resolution_clock::now();
+				#endif
+
+				#ifndef SCALABILITY
 				if( PhysiCell_settings.enable_full_saves == true )
 				{	
 					sprintf( filename , "%s/output%08u" , PhysiCell_settings.folder.c_str(),  PhysiCell_globals.full_output_index ); 
@@ -304,7 +331,7 @@ int main( int argc, char* argv[] )
 					//Use the parallel version of the function for XML file writing
 					save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo ); 
 				}
-				
+				#endif
 				PhysiCell_globals.full_output_index++; 
 				PhysiCell_globals.next_full_save_time += PhysiCell_settings.full_save_interval;
 			}
@@ -314,6 +341,7 @@ int main( int argc, char* argv[] )
 			//Save SVG plot if it is time
 			if( fabs( PhysiCell_globals.current_time - PhysiCell_globals.next_SVG_save_time  ) < 0.01 * diffusion_dt )
 			{
+				#ifndef SCALABILITY
 				if( PhysiCell_settings.enable_SVG_saves == true )
 				{	
 										
@@ -324,6 +352,7 @@ int main( int argc, char* argv[] )
 					PhysiCell_globals.SVG_output_index++; 
 					PhysiCell_globals.next_SVG_save_time  += PhysiCell_settings.SVG_save_interval;
 				}
+				#endif
 			}
 			
 		
@@ -358,7 +387,9 @@ int main( int argc, char* argv[] )
 		std::cout << std::endl << "Total simulation runtime: " << std::endl; 
 		BioFVM::display_stopwatch_value( std::cout , BioFVM::runtime_stopwatch_value() ); 
 	}
-	
+	#ifdef SCALABILITY
+	file.close();
+	#endif
 	//Gracefully shut-down MPI 
   	world.Finalize(); 
 

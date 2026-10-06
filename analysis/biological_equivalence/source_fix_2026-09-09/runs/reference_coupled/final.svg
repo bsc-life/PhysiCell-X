@@ -1,0 +1,1150 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with PhysiCell (http://PhysiCell.MathCancer.org/) -->
+<svg 
+ xmlns:dc="http://purl.org/dc/elements/1.1/" 
+ xmlns:cc="http://creativecommons.org/ns#" 
+ xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" 
+ xmlns:svg="http://www.w3.org/2000/svg" 
+ xmlns="http://www.w3.org/2000/svg" 
+ version="1.1" 
+ width="500" 
+ height="535" 
+ id="svg2">
+  <rect x="0" y="0" width="500" height="535" stroke-width="1" stroke="white" fill="white"/>
+  <text x="6.25" y="15"
+   font-family="Arial" font-size="12.5" fill="black" >
+   Current time: 0 days, 3 hours, and 0.00 minutes, z = 0.00 &#956;m
+  </text>
+  <text x="6.25" y="28.75"
+   font-family="Arial" font-size="11.875" fill="black" >
+   1671 agents
+  </text>
+ <g id="tissue" 
+    transform="translate(0,535) scale(1,-1)">
+  <g id="ECM">
+  </g>
+  <g id="cells">
+   <g id="cell1" type="ecoli" dead="false" >
+  <circle cx="252.211" cy="248.857" r="0.722531" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell2" type="ecoli" dead="false" >
+  <circle cx="248.546" cy="249.757" r="0.769866" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell8" type="ecoli" dead="false" >
+  <circle cx="243.427" cy="250.112" r="0.651417" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell20" type="ecoli" dead="false" >
+  <circle cx="252.866" cy="249.827" r="0.320397" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell22" type="ecoli" dead="false" >
+  <circle cx="247.78" cy="248.301" r="0.585289" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell27" type="ecoli" dead="false" >
+  <circle cx="255.832" cy="252.594" r="0.777949" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell33" type="ecoli" dead="false" >
+  <circle cx="240.838" cy="253.132" r="0.482373" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell39" type="ecoli" dead="false" >
+  <circle cx="262.793" cy="250.63" r="0.777832" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell41" type="ecoli" dead="false" >
+  <circle cx="238.429" cy="251.86" r="0.728346" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell47" type="ecoli" dead="false" >
+  <circle cx="250.739" cy="254.201" r="0.428248" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell48" type="ecoli" dead="false" >
+  <circle cx="250.949" cy="247.105" r="0.67444" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell53" type="ecoli" dead="false" >
+  <circle cx="253.364" cy="254.018" r="0.522198" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell54" type="ecoli" dead="false" >
+  <circle cx="254.264" cy="246.482" r="0.586758" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell60" type="ecoli" dead="false" >
+  <circle cx="244.946" cy="247.712" r="0.602482" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell71" type="ecoli" dead="false" >
+  <circle cx="239.329" cy="253.346" r="0.693463" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell73" type="ecoli" dead="false" >
+  <circle cx="262.219" cy="253.256" r="0.681851" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell76" type="ecoli" dead="false" >
+  <circle cx="236.262" cy="246.862" r="0.489948" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell88" type="ecoli" dead="false" >
+  <circle cx="245.254" cy="246.721" r="0.458316" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell94" type="ecoli" dead="false" >
+  <circle cx="257.74" cy="244.895" r="0.204229" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell95" type="ecoli" dead="false" >
+  <circle cx="241.434" cy="255.814" r="0.667888" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell96" type="ecoli" dead="false" >
+  <circle cx="241.855" cy="245.288" r="0.666729" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell98" type="ecoli" dead="false" >
+  <circle cx="260.81" cy="244.733" r="0.345787" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell100" type="ecoli" dead="false" >
+  <circle cx="240.776" cy="245.356" r="0.348704" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell101" type="ecoli" dead="false" >
+  <circle cx="262.731" cy="254.897" r="0.737904" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell105" type="ecoli" dead="false" >
+  <circle cx="249.983" cy="256.586" r="0.299667" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell111" type="ecoli" dead="false" >
+  <circle cx="253.226" cy="256.31" r="0.340211" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell113" type="ecoli" dead="false" >
+  <circle cx="245.403" cy="256.389" r="0.581269" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell114" type="ecoli" dead="false" >
+  <circle cx="245.507" cy="242.523" r="0.715257" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell116" type="ecoli" dead="false" >
+  <circle cx="252.761" cy="244.808" r="0.683766" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell122" type="ecoli" dead="false" >
+  <circle cx="243.004" cy="244.31" r="0.168234" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell126" type="ecoli" dead="false" >
+  <circle cx="240.279" cy="242.393" r="0.772659" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell139" type="ecoli" dead="false" >
+  <circle cx="255.323" cy="257.939" r="0.640418" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell141" type="ecoli" dead="false" >
+  <circle cx="246.282" cy="258.86" r="0.752144" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell142" type="ecoli" dead="false" >
+  <circle cx="246.723" cy="241.836" r="0.696187" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell145" type="ecoli" dead="false" >
+  <circle cx="243.623" cy="258.779" r="0.290728" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell149" type="ecoli" dead="false" >
+  <circle cx="241.618" cy="258.423" r="0.776483" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell151" type="ecoli" dead="false" >
+  <circle cx="261.302" cy="258.627" r="0.770343" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell153" type="ecoli" dead="false" >
+  <circle cx="239.447" cy="258.864" r="0.492898" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell168" type="ecoli" dead="false" >
+  <circle cx="244.294" cy="240.202" r="0.778085" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell178" type="ecoli" dead="false" >
+  <circle cx="251.113" cy="237.974" r="0.532848" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell179" type="ecoli" dead="false" >
+  <circle cx="248.954" cy="261.816" r="0.646301" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell188" type="ecoli" dead="false" >
+  <circle cx="247.022" cy="240.44" r="0.748374" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell189" type="ecoli" dead="false" >
+  <circle cx="256.408" cy="261.011" r="0.742682" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell190" type="ecoli" dead="false" >
+  <circle cx="256.367" cy="239.738" r="0.252282" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell191" type="ecoli" dead="false" >
+  <circle cx="245.238" cy="261.129" r="0.695554" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell195" type="ecoli" dead="false" >
+  <circle cx="241.23" cy="262.513" r="0.239965" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell198" type="ecoli" dead="false" >
+  <circle cx="249.586" cy="235.809" r="0.644645" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell200" type="ecoli" dead="false" >
+  <circle cx="250.807" cy="235.057" r="0.753671" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell201" type="ecoli" dead="false" >
+  <circle cx="248.548" cy="263.952" r="0.763867" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell202" type="ecoli" dead="false" >
+  <circle cx="247.276" cy="237.489" r="0.742413" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell204" type="ecoli" dead="false" >
+  <circle cx="254.412" cy="236.065" r="0.773754" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell205" type="ecoli" dead="false" >
+  <circle cx="247.081" cy="264.027" r="0.258881" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell207" type="ecoli" dead="false" >
+  <circle cx="254.982" cy="263.706" r="0.290443" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell208" type="ecoli" dead="false" >
+  <circle cx="256.112" cy="236.961" r="0.777315" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell209" type="ecoli" dead="false" >
+  <circle cx="244.103" cy="262.789" r="0.43311" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell210" type="ecoli" dead="false" >
+  <circle cx="244.822" cy="237.144" r="0.773874" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell222" type="ecoli" dead="false" >
+  <circle cx="241.996" cy="237.711" r="0.773977" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell224" type="ecoli" dead="false" >
+  <circle cx="244.594" cy="245.636" r="0.612025" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell227" type="ecoli" dead="false" >
+  <circle cx="248.976" cy="256.464" r="0.658519" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell232" type="ecoli" dead="false" >
+  <circle cx="247.678" cy="244.39" r="0.648375" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell234" type="ecoli" dead="false" >
+  <circle cx="262.391" cy="241.833" r="0.747496" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell235" type="ecoli" dead="false" >
+  <circle cx="249.133" cy="259.984" r="0.540068" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell245" type="ecoli" dead="false" >
+  <circle cx="257.298" cy="246.629" r="0.686212" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell248" type="ecoli" dead="false" >
+  <circle cx="251.743" cy="240.925" r="0.343487" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell267" type="ecoli" dead="false" >
+  <circle cx="244.537" cy="252.9" r="0.756083" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell283" type="ecoli" dead="false" >
+  <circle cx="260.039" cy="255.124" r="0.497042" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell285" type="ecoli" dead="false" >
+  <circle cx="248.82" cy="258.942" r="0.591188" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell292" type="ecoli" dead="false" >
+  <circle cx="256.492" cy="257.893" r="0.561319" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell298" type="ecoli" dead="false" >
+  <circle cx="243.205" cy="261.67" r="0.318979" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell301" type="ecoli" dead="false" >
+  <circle cx="250.251" cy="240.633" r="0.585122" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell312" type="ecoli" dead="false" >
+  <circle cx="263.186" cy="252.079" r="0.500809" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell337" type="ecoli" dead="false" >
+  <circle cx="248.565" cy="235.443" r="0.393546" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell339" type="ecoli" dead="false" >
+  <circle cx="237.321" cy="247.901" r="0.757971" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell345" type="ecoli" dead="false" >
+  <circle cx="246.42" cy="261.939" r="0.742952" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell348" type="ecoli" dead="false" >
+  <circle cx="255.918" cy="259.256" r="0.770503" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell354" type="ecoli" dead="false" >
+  <circle cx="254.062" cy="259.152" r="0.635054" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell357" type="ecoli" dead="false" >
+  <circle cx="245.224" cy="250.592" r="0.433075" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell362" type="ecoli" dead="false" >
+  <circle cx="253.372" cy="252.291" r="0.838076" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell365" type="ecoli" dead="false" >
+  <circle cx="259.835" cy="250.718" r="0.74565" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell373" type="ecoli" dead="false" >
+  <circle cx="245.32" cy="263.531" r="0.661706" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell375" type="ecoli" dead="false" >
+  <circle cx="243" cy="257.946" r="0.578864" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell377" type="ecoli" dead="false" >
+  <circle cx="248.408" cy="246.836" r="0.729013" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell381" type="ecoli" dead="false" >
+  <circle cx="250.304" cy="259.397" r="0.445271" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell382" type="ecoli" dead="false" >
+  <circle cx="256.986" cy="238.343" r="0.777783" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell390" type="ecoli" dead="false" >
+  <circle cx="255.513" cy="254.011" r="0.619895" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell392" type="ecoli" dead="false" >
+  <circle cx="261.329" cy="250.425" r="0.667015" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell394" type="ecoli" dead="false" >
+  <circle cx="250.764" cy="248.578" r="0.35594" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell401" type="ecoli" dead="false" >
+  <circle cx="252.304" cy="253.636" r="0.473764" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell402" type="ecoli" dead="false" >
+  <circle cx="252.014" cy="239.516" r="0.766318" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell406" type="ecoli" dead="false" >
+  <circle cx="242.266" cy="256.825" r="0.682665" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell423" type="ecoli" dead="false" >
+  <circle cx="245.585" cy="240.989" r="0.742856" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell425" type="ecoli" dead="false" >
+  <circle cx="253.418" cy="242.21" r="0.270314" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell427" type="ecoli" dead="false" >
+  <circle cx="247.538" cy="251.029" r="0.575866" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell430" type="ecoli" dead="false" >
+  <circle cx="255.768" cy="246.806" r="0.516664" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell433" type="ecoli" dead="false" >
+  <circle cx="235.31" cy="249.795" r="0.717553" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell435" type="ecoli" dead="false" >
+  <circle cx="242.221" cy="253.299" r="0.776912" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell437" type="ecoli" dead="false" >
+  <circle cx="241.085" cy="260.954" r="0.262106" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell438" type="ecoli" dead="false" >
+  <circle cx="260.724" cy="253.209" r="0.199408" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell444" type="ecoli" dead="false" >
+  <circle cx="239.513" cy="258.055" r="0.330392" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell454" type="ecoli" dead="false" >
+  <circle cx="235.832" cy="248.177" r="0.769751" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell460" type="ecoli" dead="false" >
+  <circle cx="247.104" cy="247.286" r="0.655316" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell463" type="ecoli" dead="false" >
+  <circle cx="255.767" cy="256.574" r="0.770008" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell467" type="ecoli" dead="false" >
+  <circle cx="252.739" cy="246.322" r="0.638937" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell470" type="ecoli" dead="false" >
+  <circle cx="254.598" cy="248.55" r="0.727524" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell482" type="ecoli" dead="false" >
+  <circle cx="259.984" cy="258.182" r="0.540559" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell483" type="ecoli" dead="false" >
+  <circle cx="246.669" cy="263.641" r="0.329955" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell485" type="ecoli" dead="false" >
+  <circle cx="235.208" cy="253.641" r="0.763554" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell486" type="ecoli" dead="false" >
+  <circle cx="242.027" cy="247.896" r="0.772307" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell491" type="ecoli" dead="false" >
+  <circle cx="239.316" cy="260.376" r="0.754976" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell499" type="ecoli" dead="false" >
+  <circle cx="235.763" cy="255.851" r="0.676693" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell502" type="ecoli" dead="false" >
+  <circle cx="246.429" cy="236.329" r="0.668548" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell503" type="ecoli" dead="false" >
+  <circle cx="261.027" cy="241.2" r="0.509319" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell508" type="ecoli" dead="false" >
+  <circle cx="240.066" cy="255.202" r="0.774174" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell509" type="ecoli" dead="false" >
+  <circle cx="242.628" cy="262.813" r="0.762848" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell512" type="ecoli" dead="false" >
+  <circle cx="248.835" cy="253.774" r="0.611335" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell517" type="ecoli" dead="false" >
+  <circle cx="257.819" cy="237.051" r="0.76869" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell519" type="ecoli" dead="false" >
+  <circle cx="244.445" cy="249.312" r="0.681469" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell520" type="ecoli" dead="false" >
+  <circle cx="242.857" cy="240.745" r="0.77778" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell523" type="ecoli" dead="false" >
+  <circle cx="245.921" cy="238.201" r="0.768612" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell527" type="ecoli" dead="false" >
+  <circle cx="250.823" cy="260.75" r="0.765705" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell529" type="ecoli" dead="false" >
+  <circle cx="257.409" cy="254.067" r="0.735538" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell536" type="ecoli" dead="false" >
+  <circle cx="250.236" cy="262.653" r="0.714784" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell539" type="ecoli" dead="false" >
+  <circle cx="254.582" cy="239.834" r="0.398114" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell549" type="ecoli" dead="false" >
+  <circle cx="254.977" cy="260.429" r="0.745394" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell552" type="ecoli" dead="false" >
+  <circle cx="244.959" cy="259.649" r="0.72808" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell557" type="ecoli" dead="false" >
+  <circle cx="252.98" cy="262.562" r="0.777669" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell564" type="ecoli" dead="false" >
+  <circle cx="251.139" cy="255.054" r="0.557104" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell567" type="ecoli" dead="false" >
+  <circle cx="253.511" cy="260.571" r="0.387175" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell568" type="ecoli" dead="false" >
+  <circle cx="254.851" cy="255.029" r="0.610957" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell570" type="ecoli" dead="false" >
+  <circle cx="240.832" cy="250.788" r="0.693851" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell571" type="ecoli" dead="false" >
+  <circle cx="254.383" cy="250.673" r="0.937408" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell579" type="ecoli" dead="false" >
+  <circle cx="256.003" cy="251.169" r="0.490349" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell580" type="ecoli" dead="false" >
+  <circle cx="251.429" cy="258.422" r="0.739627" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell587" type="ecoli" dead="false" >
+  <circle cx="253.356" cy="247.718" r="0.459927" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell592" type="ecoli" dead="false" >
+  <circle cx="254.952" cy="243.833" r="0.694949" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell594" type="ecoli" dead="false" >
+  <circle cx="254.226" cy="256.212" r="0.617014" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell595" type="ecoli" dead="false" >
+  <circle cx="252.288" cy="238.115" r="0.648609" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell599" type="ecoli" dead="false" >
+  <circle cx="243.486" cy="259.391" r="0.379872" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell609" type="ecoli" dead="false" >
+  <circle cx="249.546" cy="237.813" r="0.757853" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell613" type="ecoli" dead="false" >
+  <circle cx="252.591" cy="250.839" r="0.677369" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell625" type="ecoli" dead="false" >
+  <circle cx="245.848" cy="246.47" r="0.185732" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell628" type="ecoli" dead="false" >
+  <circle cx="238.293" cy="249.098" r="0.778034" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell631" type="ecoli" dead="false" >
+  <circle cx="243.82" cy="254.035" r="0.54446" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell633" type="ecoli" dead="false" >
+  <circle cx="252.165" cy="252.249" r="0.220112" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell635" type="ecoli" dead="false" >
+  <circle cx="262.195" cy="244.508" r="0.776762" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell647" type="ecoli" dead="false" >
+  <circle cx="250.094" cy="245.822" r="0.708007" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell657" type="ecoli" dead="false" >
+  <circle cx="263.289" cy="243.413" r="0.744285" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell659" type="ecoli" dead="false" >
+  <circle cx="238.233" cy="257.257" r="0.659521" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell660" type="ecoli" dead="false" >
+  <circle cx="264.057" cy="251.352" r="0.61001" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell663" type="ecoli" dead="false" >
+  <circle cx="259.892" cy="244.957" r="0.585652" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell666" type="ecoli" dead="false" >
+  <circle cx="258.074" cy="239.589" r="0.470915" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell674" type="ecoli" dead="false" >
+  <circle cx="239.829" cy="250.235" r="0.395977" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell679" type="ecoli" dead="false" >
+  <circle cx="256.154" cy="249.066" r="0.726237" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell682" type="ecoli" dead="false" >
+  <circle cx="247.548" cy="264.9" r="0.544285" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell691" type="ecoli" dead="false" >
+  <circle cx="261.088" cy="243.288" r="0.77711" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell693" type="ecoli" dead="false" >
+  <circle cx="257.712" cy="247.788" r="0.565626" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell706" type="ecoli" dead="false" >
+  <circle cx="237.697" cy="243.609" r="0.771803" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell708" type="ecoli" dead="false" >
+  <circle cx="263.347" cy="246.05" r="0.758213" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell710" type="ecoli" dead="false" >
+  <circle cx="259.23" cy="240.639" r="0.740081" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell712" type="ecoli" dead="false" >
+  <circle cx="249.288" cy="248.445" r="0.707646" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell713" type="ecoli" dead="false" >
+  <circle cx="250.595" cy="265.17" r="0.321486" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell716" type="ecoli" dead="false" >
+  <circle cx="246.545" cy="257.363" r="0.773882" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell734" type="ecoli" dead="false" >
+  <circle cx="243.009" cy="245.459" r="0.503382" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell735" type="ecoli" dead="false" >
+  <circle cx="241.629" cy="241.662" r="0.776989" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell736" type="ecoli" dead="false" >
+  <circle cx="243.313" cy="248.596" r="0.523116" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell740" type="ecoli" dead="false" >
+  <circle cx="254.053" cy="261.372" r="0.505942" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell746" type="ecoli" dead="false" >
+  <circle cx="248.769" cy="245.044" r="0.655003" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell749" type="ecoli" dead="false" >
+  <circle cx="253.645" cy="243.693" r="0.650897" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell754" type="ecoli" dead="false" >
+  <circle cx="251.904" cy="259.756" r="0.702305" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell764" type="ecoli" dead="false" >
+  <circle cx="258.619" cy="255.688" r="0.331488" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell779" type="ecoli" dead="false" >
+  <circle cx="259.857" cy="262.02" r="0.761582" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell780" type="ecoli" dead="false" >
+  <circle cx="241.728" cy="239.704" r="0.755533" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell788" type="ecoli" dead="false" >
+  <circle cx="258.547" cy="256.795" r="0.698781" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell789" type="ecoli" dead="false" >
+  <circle cx="243.688" cy="245.678" r="0.16966" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell790" type="ecoli" dead="false" >
+  <circle cx="261.242" cy="257.194" r="0.619009" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell791" type="ecoli" dead="false" >
+  <circle cx="241.26" cy="252.244" r="0.507068" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell793" type="ecoli" dead="false" >
+  <circle cx="261.284" cy="254.394" r="0.775072" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell794" type="ecoli" dead="false" >
+  <circle cx="247.322" cy="253.916" r="0.487883" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell795" type="ecoli" dead="false" >
+  <circle cx="242.052" cy="259.924" r="0.616192" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell799" type="ecoli" dead="false" >
+  <circle cx="253.444" cy="248.405" r="0.278546" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell800" type="ecoli" dead="false" >
+  <circle cx="237.231" cy="256.166" r="0.778068" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell801" type="ecoli" dead="false" >
+  <circle cx="238.731" cy="255.916" r="0.69404" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell805" type="ecoli" dead="false" >
+  <circle cx="259.715" cy="247.932" r="0.531217" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell807" type="ecoli" dead="false" >
+  <circle cx="248.413" cy="243.054" r="0.486312" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell812" type="ecoli" dead="false" >
+  <circle cx="251.272" cy="244.654" r="0.466796" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell814" type="ecoli" dead="false" >
+  <circle cx="244.066" cy="255.773" r="0.693347" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell820" type="ecoli" dead="false" >
+  <circle cx="251.779" cy="263.537" r="0.705671" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell840" type="ecoli" dead="false" >
+  <circle cx="257.992" cy="258.082" r="0.726068" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell842" type="ecoli" dead="false" >
+  <circle cx="262.35" cy="248.445" r="0.703544" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell852" type="ecoli" dead="false" >
+  <circle cx="260.643" cy="259.743" r="0.195726" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell855" type="ecoli" dead="false" >
+  <circle cx="235.56" cy="246.511" r="0.265079" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell860" type="ecoli" dead="false" >
+  <circle cx="251.143" cy="256.924" r="0.739748" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell861" type="ecoli" dead="false" >
+  <circle cx="252.555" cy="257.128" r="0.658439" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell872" type="ecoli" dead="false" >
+  <circle cx="256.897" cy="239.713" r="0.325532" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell875" type="ecoli" dead="false" >
+  <circle cx="258.776" cy="246.829" r="0.777673" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell876" type="ecoli" dead="false" >
+  <circle cx="256.437" cy="245.407" r="0.74897" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell883" type="ecoli" dead="false" >
+  <circle cx="243.7" cy="257.246" r="0.423078" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell884" type="ecoli" dead="false" >
+  <circle cx="255.648" cy="262.34" r="0.656806" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell885" type="ecoli" dead="false" >
+  <circle cx="241.834" cy="246.506" r="0.522035" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell888" type="ecoli" dead="false" >
+  <circle cx="255.174" cy="246.15" r="0.363924" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell890" type="ecoli" dead="false" >
+  <circle cx="250.827" cy="236.592" r="0.777196" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell893" type="ecoli" dead="false" >
+  <circle cx="243.643" cy="236.059" r="0.776779" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell898" type="ecoli" dead="false" >
+  <circle cx="261.703" cy="240.431" r="0.52515" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell900" type="ecoli" dead="false" >
+  <circle cx="258.516" cy="259.425" r="0.736415" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell901" type="ecoli" dead="false" >
+  <circle cx="235.759" cy="252.22" r="0.770989" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell904" type="ecoli" dead="false" >
+  <circle cx="236.784" cy="249.344" r="0.742204" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell906" type="ecoli" dead="false" >
+  <circle cx="253.509" cy="246.878" r="0.246957" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell909" type="ecoli" dead="false" >
+  <circle cx="248.643" cy="236.994" r="0.152485" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell913" type="ecoli" dead="false" >
+  <circle cx="243.513" cy="237.955" r="0.775349" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell919" type="ecoli" dead="false" >
+  <circle cx="239.58" cy="248.353" r="0.669782" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell921" type="ecoli" dead="false" >
+  <circle cx="244.033" cy="264.256" r="0.762536" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell927" type="ecoli" dead="false" >
+  <circle cx="247.647" cy="254.971" r="0.619634" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell932" type="ecoli" dead="false" >
+  <circle cx="238.296" cy="254.485" r="0.619372" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell937" type="ecoli" dead="false" >
+  <circle cx="257.93" cy="260.835" r="0.777693" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell938" type="ecoli" dead="false" >
+  <circle cx="252.596" cy="255.507" r="0.652191" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell939" type="ecoli" dead="false" >
+  <circle cx="247.575" cy="235.897" r="0.548406" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell941" type="ecoli" dead="false" >
+  <circle cx="257.256" cy="256.567" r="0.604759" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell942" type="ecoli" dead="false" >
+  <circle cx="260.16" cy="242.101" r="0.71365" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell945" type="ecoli" dead="false" >
+  <circle cx="250.768" cy="239.837" r="0.376203" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell957" type="ecoli" dead="false" >
+  <circle cx="247.235" cy="249.364" r="0.508993" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell959" type="ecoli" dead="false" >
+  <circle cx="258.689" cy="238.359" r="0.772617" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell971" type="ecoli" dead="false" >
+  <circle cx="253.341" cy="264.044" r="0.753252" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell977" type="ecoli" dead="false" >
+  <circle cx="241.681" cy="261.498" r="0.515562" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell979" type="ecoli" dead="false" >
+  <circle cx="245.146" cy="254.698" r="0.748704" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell989" type="ecoli" dead="false" >
+  <circle cx="239.387" cy="245.672" r="0.773907" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1006" type="ecoli" dead="false" >
+  <circle cx="259.174" cy="258.127" r="0.21928" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1018" type="ecoli" dead="false" >
+  <circle cx="244.426" cy="243.769" r="0.580503" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1024" type="ecoli" dead="false" >
+  <circle cx="251.334" cy="249.811" r="0.570561" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1028" type="ecoli" dead="false" >
+  <circle cx="260.727" cy="247.426" r="0.571419" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1029" type="ecoli" dead="false" >
+  <circle cx="252.193" cy="243.999" r="0.0947168" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1031" type="ecoli" dead="false" >
+  <circle cx="237.8" cy="250.426" r="0.433579" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1033" type="ecoli" dead="false" >
+  <circle cx="260.892" cy="248.888" r="0.773637" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1035" type="ecoli" dead="false" >
+  <circle cx="253.496" cy="249.544" r="0.434503" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1038" type="ecoli" dead="false" >
+  <circle cx="257.403" cy="251.067" r="0.310968" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1040" type="ecoli" dead="false" >
+  <circle cx="256.406" cy="255.198" r="0.775898" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1041" type="ecoli" dead="false" >
+  <circle cx="240.033" cy="246.913" r="0.198502" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1048" type="ecoli" dead="false" >
+  <circle cx="240.068" cy="261.826" r="0.777643" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1050" type="ecoli" dead="false" >
+  <circle cx="248.395" cy="252.334" r="0.758561" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1056" type="ecoli" dead="false" >
+  <circle cx="259.804" cy="256.655" r="0.480744" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1059" type="ecoli" dead="false" >
+  <circle cx="243.795" cy="260.6" r="0.749455" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1060" type="ecoli" dead="false" >
+  <circle cx="256.563" cy="263.589" r="0.696136" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1062" type="ecoli" dead="false" >
+  <circle cx="240.379" cy="244.724" r="0.43909" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1063" type="ecoli" dead="false" >
+  <circle cx="247.218" cy="245.846" r="0.717533" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1067" type="ecoli" dead="false" >
+  <circle cx="255.214" cy="240.965" r="0.554879" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1070" type="ecoli" dead="false" >
+  <circle cx="238.744" cy="242.316" r="0.772844" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1071" type="ecoli" dead="false" >
+  <circle cx="261.859" cy="251.853" r="0.761188" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1094" type="ecoli" dead="false" >
+  <circle cx="246.737" cy="243.342" r="0.766977" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1096" type="ecoli" dead="false" >
+  <circle cx="243.337" cy="252.565" r="0.314566" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1107" type="ecoli" dead="false" >
+  <circle cx="246.169" cy="249.953" r="0.690238" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1123" type="ecoli" dead="false" >
+  <circle cx="248.312" cy="239.574" r="0.771403" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1124" type="ecoli" dead="false" >
+  <circle cx="262.165" cy="246.915" r="0.712511" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1130" type="ecoli" dead="false" >
+  <circle cx="261.086" cy="255.871" r="0.711033" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1131" type="ecoli" dead="false" >
+  <circle cx="257.512" cy="242.365" r="0.653913" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1138" type="ecoli" dead="false" >
+  <circle cx="234.323" cy="252.346" r="0.562489" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1142" type="ecoli" dead="false" >
+  <circle cx="247.721" cy="262.677" r="0.768769" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1145" type="ecoli" dead="false" >
+  <circle cx="244.663" cy="262.156" r="0.431912" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1166" type="ecoli" dead="false" >
+  <circle cx="259.906" cy="253.591" r="0.494298" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1174" type="ecoli" dead="false" >
+  <circle cx="249.97" cy="257.934" r="0.723447" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1176" type="ecoli" dead="false" >
+  <circle cx="251.112" cy="251.18" r="0.767176" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1180" type="ecoli" dead="false" >
+  <circle cx="255.177" cy="245.288" r="0.251016" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1184" type="ecoli" dead="false" >
+  <circle cx="259.455" cy="249.343" r="0.69941" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1190" type="ecoli" dead="false" >
+  <circle cx="248.09" cy="241.539" r="0.727442" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1191" type="ecoli" dead="false" >
+  <circle cx="245.205" cy="257.065" r="0.140985" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1203" type="ecoli" dead="false" >
+  <circle cx="240.572" cy="249.286" r="0.681876" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1205" type="ecoli" dead="false" >
+  <circle cx="251.187" cy="252.636" r="0.693808" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1222" type="ecoli" dead="false" >
+  <circle cx="257.096" cy="259.734" r="0.199684" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1223" type="ecoli" dead="false" >
+  <circle cx="250.074" cy="239.105" r="0.619258" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1227" type="ecoli" dead="false" >
+  <circle cx="264.207" cy="244.798" r="0.625974" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1230" type="ecoli" dead="false" >
+  <circle cx="249.459" cy="247.282" r="0.218757" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1231" type="ecoli" dead="false" >
+  <circle cx="260.065" cy="239.446" r="0.722026" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1232" type="ecoli" dead="false" >
+  <circle cx="246.113" cy="255.823" r="0.346456" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1240" type="ecoli" dead="false" >
+  <circle cx="258.416" cy="250.693" r="0.680905" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1246" type="ecoli" dead="false" >
+  <circle cx="244.661" cy="238.805" r="0.570349" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1247" type="ecoli" dead="false" >
+  <circle cx="257.765" cy="240.864" r="0.752681" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1250" type="ecoli" dead="false" >
+  <circle cx="247.064" cy="256.03" r="0.601943" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1255" type="ecoli" dead="false" >
+  <circle cx="244.042" cy="241.699" r="0.747059" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1259" type="ecoli" dead="false" >
+  <circle cx="253.436" cy="240.782" r="0.763747" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1265" type="ecoli" dead="false" >
+  <circle cx="260.381" cy="246.26" r="0.641448" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1268" type="ecoli" dead="false" >
+  <circle cx="251.618" cy="262.014" r="0.584345" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1271" type="ecoli" dead="false" >
+  <circle cx="247.016" cy="238.964" r="0.497508" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1272" type="ecoli" dead="false" >
+  <circle cx="251.881" cy="242.185" r="0.396794" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1274" type="ecoli" dead="false" >
+  <circle cx="240.636" cy="259.607" r="0.776741" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1276" type="ecoli" dead="false" >
+  <circle cx="249.868" cy="250.429" r="0.70423" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1284" type="ecoli" dead="false" >
+  <circle cx="254.069" cy="245.166" r="0.705528" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1288" type="ecoli" dead="false" >
+  <circle cx="258.847" cy="254.424" r="0.766817" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1291" type="ecoli" dead="false" >
+  <circle cx="263.586" cy="247.524" r="0.73522" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1298" type="ecoli" dead="false" >
+  <circle cx="254.989" cy="238.019" r="0.75256" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1313" type="ecoli" dead="false" >
+  <circle cx="249.903" cy="252.299" r="0.655074" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1322" type="ecoli" dead="false" >
+  <circle cx="237.852" cy="239.753" r="0.769875" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1323" type="ecoli" dead="false" >
+  <circle cx="242.102" cy="249.429" r="0.772258" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1327" type="ecoli" dead="false" >
+  <circle cx="253.613" cy="238.597" r="0.74616" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1330" type="ecoli" dead="false" >
+  <circle cx="259.655" cy="243.445" r="0.511911" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1334" type="ecoli" dead="false" >
+  <circle cx="240.38" cy="240.764" r="0.775484" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1337" type="ecoli" dead="false" >
+  <circle cx="236.428" cy="250.846" r="0.772232" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1341" type="ecoli" dead="false" >
+  <circle cx="236.355" cy="244.4" r="0.769971" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1344" type="ecoli" dead="false" >
+  <circle cx="249.818" cy="244.301" r="0.670521" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1350" type="ecoli" dead="false" >
+  <circle cx="246.186" cy="235.228" r="0.360361" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1369" type="ecoli" dead="false" >
+  <circle cx="239.96" cy="251.948" r="0.760059" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1372" type="ecoli" dead="false" >
+  <circle cx="240.264" cy="239.217" r="0.774991" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1375" type="ecoli" dead="false" >
+  <circle cx="249.869" cy="247.097" r="0.321116" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1376" type="ecoli" dead="false" >
+  <circle cx="252.537" cy="261.146" r="0.689568" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1378" type="ecoli" dead="false" >
+  <circle cx="247.847" cy="260.75" r="0.733237" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1380" type="ecoli" dead="false" >
+  <circle cx="260.056" cy="259.383" r="0.456136" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1387" type="ecoli" dead="false" >
+  <circle cx="248.501" cy="251.058" r="0.397805" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1390" type="ecoli" dead="false" >
+  <circle cx="242.232" cy="244.139" r="0.54095" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1399" type="ecoli" dead="false" >
+  <circle cx="245.795" cy="251.45" r="0.608233" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1411" type="ecoli" dead="false" >
+  <circle cx="254.421" cy="262.86" r="0.638078" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1415" type="ecoli" dead="false" >
+  <circle cx="252.933" cy="258.617" r="0.633348" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1419" type="ecoli" dead="false" >
+  <circle cx="258.465" cy="243.556" r="0.678962" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1424" type="ecoli" dead="false" >
+  <circle cx="256.615" cy="241.569" r="0.57072" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1426" type="ecoli" dead="false" >
+  <circle cx="239.191" cy="247.148" r="0.576707" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1427" type="ecoli" dead="false" >
+  <circle cx="250.354" cy="264.185" r="0.629845" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1428" type="ecoli" dead="false" >
+  <circle cx="250.337" cy="253.746" r="0.206052" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1430" type="ecoli" dead="false" >
+  <circle cx="252.647" cy="236.619" r="0.59108" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1432" type="ecoli" dead="false" >
+  <circle cx="245.969" cy="253.443" r="0.772254" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1434" type="ecoli" dead="false" >
+  <circle cx="254.588" cy="253.523" r="0.390291" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1440" type="ecoli" dead="false" >
+  <circle cx="253.305" cy="254.785" r="0.267596" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1447" type="ecoli" dead="false" >
+  <circle cx="245.357" cy="243.664" r="0.337905" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1457" type="ecoli" dead="false" >
+  <circle cx="234.506" cy="247.65" r="0.316495" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1459" type="ecoli" dead="false" >
+  <circle cx="249.121" cy="240.709" r="0.585536" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1460" type="ecoli" dead="false" >
+  <circle cx="247.703" cy="259.417" r="0.605164" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1463" type="ecoli" dead="false" >
+  <circle cx="238.702" cy="244.567" r="0.15096" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1466" type="ecoli" dead="false" >
+  <circle cx="246.955" cy="252.431" r="0.398424" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1469" type="ecoli" dead="false" >
+  <circle cx="259.459" cy="260.565" r="0.758483" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1480" type="ecoli" dead="false" >
+  <circle cx="254.28" cy="242.462" r="0.587518" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1482" type="ecoli" dead="false" >
+  <circle cx="244.278" cy="251.38" r="0.727295" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1483" type="ecoli" dead="false" >
+  <circle cx="264.229" cy="253.012" r="0.776001" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1494" type="ecoli" dead="false" >
+  <circle cx="238.883" cy="240.827" r="0.714037" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1496" type="ecoli" dead="false" >
+  <circle cx="265.344" cy="247.212" r="0.626896" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1497" type="ecoli" dead="false" >
+  <circle cx="246.294" cy="248.43" r="0.756362" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1499" type="ecoli" dead="false" >
+  <circle cx="247.321" cy="253.182" r="0.293854" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1500" type="ecoli" dead="false" >
+  <circle cx="252.799" cy="242.034" r="0.419554" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1502" type="ecoli" dead="false" >
+  <circle cx="244.999" cy="258.049" r="0.59715" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1508" type="ecoli" dead="false" >
+  <circle cx="236.753" cy="253.657" r="0.770483" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1510" type="ecoli" dead="false" >
+  <circle cx="242.627" cy="255.366" r="0.321752" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1516" type="ecoli" dead="false" >
+  <circle cx="249.362" cy="242.202" r="0.738001" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1518" type="ecoli" dead="false" >
+  <circle cx="264.807" cy="248.463" r="0.725661" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1521" type="ecoli" dead="false" >
+  <circle cx="243.2" cy="243.038" r="0.773498" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1525" type="ecoli" dead="false" >
+  <circle cx="237.217" cy="245.668" r="0.719284" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1526" type="ecoli" dead="false" >
+  <circle cx="243.607" cy="246.814" r="0.733479" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1534" type="ecoli" dead="false" >
+  <circle cx="242.319" cy="251.164" r="0.678087" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1535" type="ecoli" dead="false" >
+  <circle cx="258.847" cy="252.463" r="0.616595" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1538" type="ecoli" dead="false" >
+  <circle cx="237.22" cy="242.154" r="0.768629" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1542" type="ecoli" dead="false" >
+  <circle cx="250.695" cy="242.106" r="0.590389" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1544" type="ecoli" dead="false" >
+  <circle cx="240.769" cy="243.692" r="0.528403" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1547" type="ecoli" dead="false" >
+  <circle cx="242.574" cy="261.38" r="0.27249" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1551" type="ecoli" dead="false" >
+  <circle cx="238.196" cy="246.561" r="0.602676" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1552" type="ecoli" dead="false" >
+  <circle cx="253.845" cy="257.636" r="0.724514" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1553" type="ecoli" dead="false" >
+  <circle cx="240.668" cy="246.253" r="0.553996" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1558" type="ecoli" dead="false" >
+  <circle cx="251.736" cy="245.605" r="0.617596" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1559" type="ecoli" dead="false" >
+  <circle cx="246.521" cy="260.421" r="0.624477" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1560" type="ecoli" dead="false" >
+  <circle cx="256.15" cy="242.938" r="0.777805" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1566" type="ecoli" dead="false" >
+  <circle cx="249.62" cy="255.101" r="0.633131" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1568" type="ecoli" dead="false" >
+  <circle cx="246.127" cy="244.908" r="0.742857" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1569" type="ecoli" dead="false" >
+  <circle cx="240.59" cy="247.777" r="0.462359" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1575" type="ecoli" dead="false" >
+  <circle cx="251.758" cy="243.207" r="0.62199" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1578" type="ecoli" dead="false" >
+  <circle cx="241.3" cy="254.6" r="0.499921" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1582" type="ecoli" dead="false" >
+  <circle cx="248.184" cy="238.252" r="0.209556" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1584" type="ecoli" dead="false" >
+  <circle cx="260.36" cy="252.163" r="0.710563" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1586" type="ecoli" dead="false" >
+  <circle cx="258.426" cy="262.616" r="0.763277" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1600" type="ecoli" dead="false" >
+  <circle cx="257.94" cy="249.251" r="0.743242" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1606" type="ecoli" dead="false" >
+  <circle cx="234.371" cy="250.41" r="0.153411" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1609" type="ecoli" dead="false" >
+  <circle cx="264.86" cy="250.038" r="0.494812" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1621" type="ecoli" dead="false" >
+  <circle cx="262.635" cy="257.909" r="0.747625" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1639" type="ecoli" dead="false" >
+  <circle cx="240.277" cy="256.812" r="0.579805" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1641" type="ecoli" dead="false" >
+  <circle cx="248.045" cy="257.667" r="0.760024" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1652" type="ecoli" dead="false" >
+  <circle cx="237.166" cy="252.223" r="0.568316" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1653" type="ecoli" dead="false" >
+  <circle cx="258.363" cy="245.058" r="0.433706" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1659" type="ecoli" dead="false" >
+  <circle cx="239.326" cy="244.212" r="0.504359" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+   <g id="cell1666" type="ecoli" dead="false" >
+  <circle cx="257.314" cy="252.55" r="0.687147" stroke-width="0.5" stroke="black" fill="rgb(31, 255, 31)"/>
+   </g>
+  </g>
+ </g>
+  <rect x="287.5" y="517.5" width="200" height="5" stroke-width="1" stroke="rgb(255,255,255)" fill="rgb(0,0,0)"/>
+  <text x="290.625" y="514.375"
+   font-family="Arial" font-size="12.5" fill="black" >
+   200 &#956;m
+  </text>
+  <text x="12.5" y="522.5"
+   font-family="Arial" font-size="9.375" fill="black" >
+   0 days, 2 hours, 32 minutes, and 52.7251 seconds
+  </text>
+  <rect x="0" y="35" width="500" height="500" stroke-width="1" stroke="rgb(0,0,0)" fill="none"/>
+  <rect x="525" y="35" width="25" height="475" stroke-width="1" stroke="black" fill="none"/>
+</svg>

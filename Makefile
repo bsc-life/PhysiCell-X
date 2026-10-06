@@ -67,6 +67,7 @@ list-projects:
 	@echo ""
 	@echo "Sample intracellular projects: ode-energy-sample physiboss-cell-lines-sample cancer-metabolism-sample"
 	@echo "physiboss-cell-lines-mpi physiboss-spatial-mpi physiboss-tnf-model physiboss-tnf-model-mpi"
+	@echo "		PhysiCellDFBA:  bacterial-colony"
 	@echo ""
 	
 # ---- non-intracellular projects 	
@@ -235,6 +236,14 @@ cancer-metabolism-sample:
 	cp ./sample_projects_intracellular/fba/cancer_metabolism/Makefile ./
 	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml
 	cp ./sample_projects_intracellular/fba/cancer_metabolism/config/* ./config/
+bacterial-colony:
+	cp ./sample_projects_intracellular/fba/bacterial_colony/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects_intracellular/fba/bacterial_colony/main.cpp ./main.cpp
+	cp Makefile Makefile-backup
+	cp ./sample_projects_intracellular/fba/bacterial_colony/Makefile ./
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml
+	cp ./sample_projects_intracellular/fba/bacterial_colony/config/* ./config/
 test-case-mpi:
 	cp ./sample_projects/test_case/custom_modules/* ./custom_modules/
 	touch main.cpp && cp main.cpp main-backup.cpp

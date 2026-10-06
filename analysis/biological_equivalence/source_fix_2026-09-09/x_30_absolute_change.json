@@ -1,0 +1,37 @@
+[
+  {
+    "substrate": "oxygen",
+    "time_min": 30,
+    "corrected_x_integrated_change": -7970.636357762918,
+    "previous_x_integrated_change": -79700.8634829863,
+    "corrected_over_previous": 0.10000690092227678
+  },
+  {
+    "substrate": "glucose",
+    "time_min": 30,
+    "corrected_x_integrated_change": -10625.878114221801,
+    "previous_x_integrated_change": -106246.3194384123,
+    "corrected_over_previous": 0.10001172906870712
+  },
+  {
+    "substrate": "acetate",
+    "time_min": 30,
+    "corrected_x_integrated_change": 1412.1667992472492,
+    "previous_x_integrated_change": 14120.166153408407,
+    "corrected_over_previous": 0.10001063612883707
+  },
+  {
+    "substrate": "lactate",
+    "time_min": 30,
+    "corrected_x_integrated_change": 0.0,
+    "previous_x_integrated_change": 0.0,
+    "corrected_over_previous": null
+  },
+  {
+    "substrate": "CO2",
+    "time_min": 30,
+    "corrected_x_integrated_change": 9513.829245279325,
+    "previous_x_integrated_change": 95132.82446465282,
+    "corrected_over_previous": 0.10000574774077317
+  }
+]

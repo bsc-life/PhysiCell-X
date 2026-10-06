@@ -1,0 +1,338 @@
+[
+  {
+    "case": "source_reference_t112_lock0_part-1",
+    "substrate": "oxygen",
+    "mean_error_percent": -0.018957330682932445,
+    "minimum_error_percent": -0.47393473283685456,
+    "maximum_error_percent": 7.890188131299089e-13
+  },
+  {
+    "case": "source_reference_t112_lock0_part-1",
+    "substrate": "glucose",
+    "mean_error_percent": -0.004739338341325785,
+    "minimum_error_percent": -0.4739338341013343,
+    "maximum_error_percent": -3.155953553130897e-13
+  },
+  {
+    "case": "source_reference_t112_lock0_part-1",
+    "substrate": "acetate",
+    "mean_error_percent": -0.009478639030275397,
+    "minimum_error_percent": -0.4739374198245397,
+    "maximum_error_percent": 0.0
+  },
+  {
+    "case": "source_reference_t112_lock0_part-1",
+    "substrate": "CO2",
+    "mean_error_percent": -0.004739344567794749,
+    "minimum_error_percent": -0.47393445676643275,
+    "maximum_error_percent": -1.317379760803054e-13
+  },
+  {
+    "case": "source_reference_t112_lock1_part-1",
+    "substrate": "oxygen",
+    "mean_error_percent": 7.42466703155244e-13,
+    "minimum_error_percent": 7.10116931816918e-13,
+    "maximum_error_percent": 7.890188131299089e-13
+  },
+  {
+    "case": "source_reference_t112_lock1_part-1",
+    "substrate": "glucose",
+    "mean_error_percent": -3.1559535531308965e-13,
+    "minimum_error_percent": -3.155953553130897e-13,
+    "maximum_error_percent": -3.155953553130897e-13
+  },
+  {
+    "case": "source_reference_t112_lock1_part-1",
+    "substrate": "acetate",
+    "mean_error_percent": -3.0067704910438472e-15,
+    "minimum_error_percent": -1.3667138595653852e-14,
+    "maximum_error_percent": 0.0
+  },
+  {
+    "case": "source_reference_t112_lock1_part-1",
+    "substrate": "CO2",
+    "mean_error_percent": -1.3173797608030542e-13,
+    "minimum_error_percent": -1.317379760803054e-13,
+    "maximum_error_percent": -1.317379760803054e-13
+  },
+  {
+    "case": "source_reference_t1_lock0_part-1",
+    "substrate": "oxygen",
+    "mean_error_percent": 7.890188131299088e-13,
+    "minimum_error_percent": 7.890188131299089e-13,
+    "maximum_error_percent": 7.890188131299089e-13
+  },
+  {
+    "case": "source_reference_t1_lock0_part-1",
+    "substrate": "glucose",
+    "mean_error_percent": -3.1559535531308965e-13,
+    "minimum_error_percent": -3.155953553130897e-13,
+    "maximum_error_percent": -3.155953553130897e-13
+  },
+  {
+    "case": "source_reference_t1_lock0_part-1",
+    "substrate": "acetate",
+    "mean_error_percent": -1.366713859565385e-14,
+    "minimum_error_percent": -1.3667138595653852e-14,
+    "maximum_error_percent": -1.3667138595653852e-14
+  },
+  {
+    "case": "source_reference_t1_lock0_part-1",
+    "substrate": "CO2",
+    "mean_error_percent": -1.3173797608030542e-13,
+    "minimum_error_percent": -1.317379760803054e-13,
+    "maximum_error_percent": -1.317379760803054e-13
+  },
+  {
+    "case": "source_reference_t2_lock0_part-1",
+    "substrate": "oxygen",
+    "mean_error_percent": -0.6824642521031311,
+    "minimum_error_percent": -4.739334803243571,
+    "maximum_error_percent": 7.890188131299089e-13
+  },
+  {
+    "case": "source_reference_t2_lock0_part-1",
+    "substrate": "glucose",
+    "mean_error_percent": -0.6729857217658878,
+    "minimum_error_percent": -4.73933592433465,
+    "maximum_error_percent": -3.155953553130897e-13
+  },
+  {
+    "case": "source_reference_t2_lock0_part-1",
+    "substrate": "acetate",
+    "mean_error_percent": -0.6777267380474232,
+    "minimum_error_percent": -4.739348923652337,
+    "maximum_error_percent": -1.3667138595653852e-14
+  },
+  {
+    "case": "source_reference_t2_lock0_part-1",
+    "substrate": "CO2",
+    "mean_error_percent": -0.6777249255013214,
+    "minimum_error_percent": -4.739337574237109,
+    "maximum_error_percent": -1.317379760803054e-13
+  },
+  {
+    "case": "source_reference_t8_lock0_part-1",
+    "substrate": "oxygen",
+    "mean_error_percent": -0.3696677539281481,
+    "minimum_error_percent": -2.3696665967207338,
+    "maximum_error_percent": 7.890188131299089e-13
+  },
+  {
+    "case": "source_reference_t8_lock0_part-1",
+    "substrate": "glucose",
+    "mean_error_percent": -0.2606634151561601,
+    "minimum_error_percent": -2.369667629495421,
+    "maximum_error_percent": -3.155953553130897e-13
+  },
+  {
+    "case": "source_reference_t8_lock0_part-1",
+    "substrate": "acetate",
+    "mean_error_percent": -0.24644752266283934,
+    "minimum_error_percent": -2.369681398829827,
+    "maximum_error_percent": 0.0
+  },
+  {
+    "case": "source_reference_t8_lock0_part-1",
+    "substrate": "CO2",
+    "mean_error_percent": -0.24170592707923613,
+    "minimum_error_percent": -2.3696666148376755,
+    "maximum_error_percent": -1.317379760803054e-13
+  },
+  {
+    "case": "source_x_t112_lock0_part-1",
+    "substrate": "oxygen",
+    "mean_error_percent": -0.06161126014752775,
+    "minimum_error_percent": -0.9478662593546066,
+    "maximum_error_percent": 7.890188131299089e-13
+  },
+  {
+    "case": "source_x_t112_lock0_part-1",
+    "substrate": "glucose",
+    "mean_error_percent": -0.056871980624077216,
+    "minimum_error_percent": -0.9478670696833358,
+    "maximum_error_percent": -3.155953553130897e-13
+  },
+  {
+    "case": "source_x_t112_lock0_part-1",
+    "substrate": "acetate",
+    "mean_error_percent": -0.06161227053185578,
+    "minimum_error_percent": -0.9478861624638975,
+    "maximum_error_percent": 1.3667138595653852e-14
+  },
+  {
+    "case": "source_x_t112_lock0_part-1",
+    "substrate": "CO2",
+    "mean_error_percent": -0.07108989845245833,
+    "minimum_error_percent": -1.421798766318308,
+    "maximum_error_percent": -7.527884347446022e-14
+  },
+  {
+    "case": "source_x_t112_lock1_part-1",
+    "substrate": "oxygen",
+    "mean_error_percent": 7.322094585845553e-13,
+    "minimum_error_percent": 7.10116931816918e-13,
+    "maximum_error_percent": 7.890188131299089e-13
+  },
+  {
+    "case": "source_x_t112_lock1_part-1",
+    "substrate": "glucose",
+    "mean_error_percent": -3.1559535531308965e-13,
+    "minimum_error_percent": -3.155953553130897e-13,
+    "maximum_error_percent": -3.155953553130897e-13
+  },
+  {
+    "case": "source_x_t112_lock1_part-1",
+    "substrate": "acetate",
+    "mean_error_percent": 1.366713859565385e-14,
+    "minimum_error_percent": 1.3667138595653852e-14,
+    "maximum_error_percent": 1.3667138595653852e-14
+  },
+  {
+    "case": "source_x_t112_lock1_part-1",
+    "substrate": "CO2",
+    "mean_error_percent": -7.527884347446021e-14,
+    "minimum_error_percent": -7.527884347446022e-14,
+    "maximum_error_percent": -7.527884347446022e-14
+  },
+  {
+    "case": "source_x_t1_lock0_part-1",
+    "substrate": "oxygen",
+    "mean_error_percent": 7.890188131299088e-13,
+    "minimum_error_percent": 7.890188131299089e-13,
+    "maximum_error_percent": 7.890188131299089e-13
+  },
+  {
+    "case": "source_x_t1_lock0_part-1",
+    "substrate": "glucose",
+    "mean_error_percent": -3.1559535531308965e-13,
+    "minimum_error_percent": -3.155953553130897e-13,
+    "maximum_error_percent": -3.155953553130897e-13
+  },
+  {
+    "case": "source_x_t1_lock0_part-1",
+    "substrate": "acetate",
+    "mean_error_percent": 1.366713859565385e-14,
+    "minimum_error_percent": 1.3667138595653852e-14,
+    "maximum_error_percent": 1.3667138595653852e-14
+  },
+  {
+    "case": "source_x_t1_lock0_part-1",
+    "substrate": "CO2",
+    "mean_error_percent": -7.527884347446021e-14,
+    "minimum_error_percent": -7.527884347446022e-14,
+    "maximum_error_percent": -7.527884347446022e-14
+  },
+  {
+    "case": "source_x_t2_lock0_part-1",
+    "substrate": "oxygen",
+    "mean_error_percent": -0.1800947944843664,
+    "minimum_error_percent": -3.7914690372882287,
+    "maximum_error_percent": 7.890188131299089e-13
+  },
+  {
+    "case": "source_x_t2_lock0_part-1",
+    "substrate": "glucose",
+    "mean_error_percent": -0.17535546424904394,
+    "minimum_error_percent": -3.7914692234536798,
+    "maximum_error_percent": -3.155953553130897e-13
+  },
+  {
+    "case": "source_x_t2_lock0_part-1",
+    "substrate": "acetate",
+    "mean_error_percent": -0.17535545748459047,
+    "minimum_error_percent": -3.791471607690702,
+    "maximum_error_percent": 1.3667138595653852e-14
+  },
+  {
+    "case": "source_x_t2_lock0_part-1",
+    "substrate": "CO2",
+    "mean_error_percent": -0.18009480141626133,
+    "minimum_error_percent": -3.7914690396809774,
+    "maximum_error_percent": -7.527884347446022e-14
+  },
+  {
+    "case": "source_x_t2_lock0_part0",
+    "substrate": "oxygen",
+    "mean_error_percent": -0.027777744574949432,
+    "minimum_error_percent": -0.9259249978707733,
+    "maximum_error_percent": 5.009905045842293e-13
+  },
+  {
+    "case": "source_x_t2_lock0_part0",
+    "substrate": "glucose",
+    "mean_error_percent": 6.551161154125574e-13,
+    "minimum_error_percent": 6.551161154125573e-13,
+    "maximum_error_percent": 6.551161154125573e-13
+  },
+  {
+    "case": "source_x_t2_lock0_part0",
+    "substrate": "acetate",
+    "mean_error_percent": -0.01851867760331272,
+    "minimum_error_percent": -0.9259341033868478,
+    "maximum_error_percent": 4.005227568526247e-14
+  },
+  {
+    "case": "source_x_t2_lock0_part0",
+    "substrate": "CO2",
+    "mean_error_percent": -0.009259251206878517,
+    "minimum_error_percent": -0.9259251206914919,
+    "maximum_error_percent": 3.676814515457121e-14
+  },
+  {
+    "case": "source_x_t2_lock0_part1",
+    "substrate": "oxygen",
+    "mean_error_percent": -0.07766975127116334,
+    "minimum_error_percent": -0.9708718910541252,
+    "maximum_error_percent": 1.0910289710924859e-12
+  },
+  {
+    "case": "source_x_t2_lock0_part1",
+    "substrate": "glucose",
+    "mean_error_percent": -0.06796109068272366,
+    "minimum_error_percent": -0.9708727241587587,
+    "maximum_error_percent": -1.4344458571965158e-12
+  },
+  {
+    "case": "source_x_t2_lock0_part1",
+    "substrate": "acetate",
+    "mean_error_percent": -0.06796179755684126,
+    "minimum_error_percent": -0.9708828223795303,
+    "maximum_error_percent": 0.0
+  },
+  {
+    "case": "source_x_t2_lock0_part1",
+    "substrate": "CO2",
+    "mean_error_percent": -0.08737847662023904,
+    "minimum_error_percent": -0.9708724283541454,
+    "maximum_error_percent": 0.0
+  },
+  {
+    "case": "source_x_t8_lock0_part-1",
+    "substrate": "oxygen",
+    "mean_error_percent": -0.40284353754806146,
+    "minimum_error_percent": -2.843603107229835,
+    "maximum_error_percent": 7.890188131299089e-13
+  },
+  {
+    "case": "source_x_t8_lock0_part-1",
+    "substrate": "glucose",
+    "mean_error_percent": -0.4265402903137253,
+    "minimum_error_percent": -2.843602487367574,
+    "maximum_error_percent": -3.155953553130897e-13
+  },
+  {
+    "case": "source_x_t8_lock0_part-1",
+    "substrate": "acetate",
+    "mean_error_percent": -0.4075831394113238,
+    "minimum_error_percent": -2.8435953893047947,
+    "maximum_error_percent": 1.3667138595653852e-14
+  },
+  {
+    "case": "source_x_t8_lock0_part-1",
+    "substrate": "CO2",
+    "mean_error_percent": -0.40758295107829556,
+    "minimum_error_percent": -2.8436026062570545,
+    "maximum_error_percent": -7.527884347446022e-14
+  }
+]

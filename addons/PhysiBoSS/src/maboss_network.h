@@ -72,8 +72,9 @@ class MaBoSSNetwork {
 		/** 
 		 * \brief Class initializer 
 		 * \param networkFile,configFile MaBoSS configutation files
+		 * \param draw_random_seed Whether to draw the engine seed from PhysiCell's RNG
 		 */
-		void init_maboss( std::string networkFile, std::string configFile);
+		void init_maboss( std::string networkFile, std::string configFile, bool draw_random_seed = true);
 
 		bool has_init() const { return network != NULL && config != NULL && engine != NULL; }
 		void mutate(std::map<std::string, double> mutations);

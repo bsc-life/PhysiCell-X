@@ -1,0 +1,94 @@
+[
+  {
+    "solver": "serial",
+    "fixed_sources": false,
+    "steps": 100,
+    "step_minutes": 0.001,
+    "bitwise_identical": true,
+    "max_absolute_error_by_substrate": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "paths": [
+      "/tmp/biological-transport-x-replay0_0.bin"
+    ],
+    "reference": "/tmp/biological-transport-reference-replay0_0.bin",
+    "file_sha256": {
+      "/tmp/biological-transport-x-replay0_0.bin": "57e413ea9382882abcb1f11b4af572fcc0aa83336c02817909f71044411e922c",
+      "/tmp/biological-transport-reference-replay0_0.bin": "0e33dd9b71eda4389ab49ec697359773962bdf137babee45755aecd682871fe5"
+    }
+  },
+  {
+    "solver": "blocking2",
+    "fixed_sources": false,
+    "steps": 100,
+    "step_minutes": 0.001,
+    "bitwise_identical": true,
+    "max_absolute_error_by_substrate": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "paths": [
+      "/tmp/biological-transport-blocking2_0.bin",
+      "/tmp/biological-transport-blocking2_1.bin"
+    ],
+    "reference": "/tmp/biological-transport-reference-replay0_0.bin",
+    "file_sha256": {
+      "/tmp/biological-transport-blocking2_0.bin": "a66b76a254644414887121361f3acc29c4a9fda209587f6e7c4f1af5d6e2f70c",
+      "/tmp/biological-transport-blocking2_1.bin": "b1cfac9fc9a23d8d90fbc2c5f59579a06e34e2120acbe4df5a5947f59a8a5ed7",
+      "/tmp/biological-transport-reference-replay0_0.bin": "0e33dd9b71eda4389ab49ec697359773962bdf137babee45755aecd682871fe5"
+    }
+  },
+  {
+    "solver": "serial",
+    "fixed_sources": true,
+    "steps": 100,
+    "step_minutes": 0.001,
+    "bitwise_identical": true,
+    "max_absolute_error_by_substrate": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "paths": [
+      "/tmp/biological-transport-x-replay1_0.bin"
+    ],
+    "reference": "/tmp/biological-transport-reference-replay1_0.bin",
+    "file_sha256": {
+      "/tmp/biological-transport-x-replay1_0.bin": "921c529ec1246f08f170666252c0e0e0272f939da409db3a1d87ce15d3e9aaf8",
+      "/tmp/biological-transport-reference-replay1_0.bin": "b8ea7124fb34d0a6fc819e931addb422cea6fb10defe77dc8f932624e943d70e"
+    }
+  },
+  {
+    "solver": "blocking2",
+    "fixed_sources": true,
+    "steps": 100,
+    "step_minutes": 0.001,
+    "bitwise_identical": true,
+    "max_absolute_error_by_substrate": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "paths": [
+      "/tmp/biological-transport-blocking2-replay1_0.bin",
+      "/tmp/biological-transport-blocking2-replay1_1.bin"
+    ],
+    "reference": "/tmp/biological-transport-reference-replay1_0.bin",
+    "file_sha256": {
+      "/tmp/biological-transport-blocking2-replay1_0.bin": "ae935a339697e5689cef932d428d1fba9bdf9566ee80b7fad4a5dd58f3372d54",
+      "/tmp/biological-transport-blocking2-replay1_1.bin": "c4d1d21b60911eeac619f89bd1834bfdbfe06b57ff5fca61414d9c9322921cb5",
+      "/tmp/biological-transport-reference-replay1_0.bin": "b8ea7124fb34d0a6fc819e931addb422cea6fb10defe77dc8f932624e943d70e"
+    }
+  }
+]

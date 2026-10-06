@@ -1,0 +1,66 @@
+[
+  {
+    "command": [
+      "/tmp/biological-transport-probe-reference",
+      "serial",
+      "/tmp/biological-transport-initial.bin",
+      "analysis/biological_equivalence/reassessment_2026-09-09/transport_diagnosis/cells30.txt",
+      "/tmp/biological-transport-reference-replay0",
+      "1",
+      "100",
+      "0",
+      "-1"
+    ],
+    "returncode": 0,
+    "stdout": "\nUsing method diffusion_decay_solver__constant_coefficients_LOD_3D (implicit 3-D LOD with Thomas Algorithm) ... \n\nmode=serial rank=0 steps=100 source_replay=0\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/tmp/biological-transport-probe-reference",
+      "serial",
+      "/tmp/biological-transport-initial.bin",
+      "analysis/biological_equivalence/reassessment_2026-09-09/transport_diagnosis/cells30.txt",
+      "/tmp/biological-transport-reference-replay1",
+      "1",
+      "100",
+      "1",
+      "-1"
+    ],
+    "returncode": 0,
+    "stdout": "\nUsing method diffusion_decay_solver__constant_coefficients_LOD_3D (implicit 3-D LOD with Thomas Algorithm) ... \n\nmode=serial rank=0 steps=100 source_replay=1\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/tmp/biological-transport-probe-x",
+      "serial",
+      "/tmp/biological-transport-initial.bin",
+      "analysis/biological_equivalence/reassessment_2026-09-09/transport_diagnosis/cells30.txt",
+      "/tmp/biological-transport-x-replay0",
+      "1",
+      "100",
+      "0",
+      "-1"
+    ],
+    "returncode": 0,
+    "stdout": "\nUsing method diffusion_decay_solver__constant_coefficients_LOD_3D (implicit 3-D LOD with Thomas Algorithm) ... \n\nmode=serial rank=0 steps=100 source_replay=0\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/tmp/biological-transport-probe-x",
+      "serial",
+      "/tmp/biological-transport-initial.bin",
+      "analysis/biological_equivalence/reassessment_2026-09-09/transport_diagnosis/cells30.txt",
+      "/tmp/biological-transport-x-replay1",
+      "1",
+      "100",
+      "1",
+      "-1"
+    ],
+    "returncode": 0,
+    "stdout": "\nUsing method diffusion_decay_solver__constant_coefficients_LOD_3D (implicit 3-D LOD with Thomas Algorithm) ... \n\nmode=serial rank=0 steps=100 source_replay=1\n",
+    "stderr": ""
+  }
+]

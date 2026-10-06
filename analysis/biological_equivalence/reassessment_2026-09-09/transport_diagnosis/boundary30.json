@@ -1,0 +1,146 @@
+[
+  {
+    "project": "x",
+    "axis": 0,
+    "coordinate": -249,
+    "max_departure_from_initial": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "project": "x",
+    "axis": 0,
+    "coordinate": 249,
+    "max_departure_from_initial": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "project": "x",
+    "axis": 1,
+    "coordinate": -249,
+    "max_departure_from_initial": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "project": "x",
+    "axis": 1,
+    "coordinate": 249,
+    "max_departure_from_initial": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "project": "x",
+    "axis": 2,
+    "coordinate": -3,
+    "max_departure_from_initial": [
+      0.2170453000397039,
+      0.36520427806909694,
+      0.04629064357922703,
+      0.0,
+      0.27183464679731356
+    ]
+  },
+  {
+    "project": "x",
+    "axis": 2,
+    "coordinate": 3,
+    "max_departure_from_initial": [
+      0.21962426614777186,
+      0.3730595144856821,
+      0.04715658419932402,
+      0.0,
+      0.27543142940193294
+    ]
+  },
+  {
+    "project": "reference",
+    "axis": 0,
+    "coordinate": -249,
+    "max_departure_from_initial": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "project": "reference",
+    "axis": 0,
+    "coordinate": 249,
+    "max_departure_from_initial": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "project": "reference",
+    "axis": 1,
+    "coordinate": -249,
+    "max_departure_from_initial": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "project": "reference",
+    "axis": 1,
+    "coordinate": 249,
+    "max_departure_from_initial": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "project": "reference",
+    "axis": 2,
+    "coordinate": -3,
+    "max_departure_from_initial": [
+      0.1760588339148299,
+      0.2961112691791925,
+      0.03751163659545853,
+      0.0,
+      0.22057283314228987
+    ]
+  },
+  {
+    "project": "reference",
+    "axis": 2,
+    "coordinate": 3,
+    "max_departure_from_initial": [
+      0.17813593058723498,
+      0.302498370927168,
+      0.038208752353454854,
+      0.0,
+      0.2234480891265743
+    ]
+  }
+]

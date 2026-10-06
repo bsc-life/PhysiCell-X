@@ -1,0 +1,52 @@
+[
+  {
+    "command": [
+      "mpirun",
+      "--allow-run-as-root",
+      "--oversubscribe",
+      "-n",
+      "2",
+      "/tmp/biological-transport-probe-x",
+      "blocking",
+      "/tmp/biological-transport-initial.bin",
+      "analysis/biological_equivalence/reassessment_2026-09-09/transport_diagnosis/cells30.txt",
+      "/tmp/biological-transport-blocking2",
+      "1",
+      "100",
+      "0",
+      "-1"
+    ],
+    "returncode": 0,
+    "completed_ranks": [
+      0,
+      1
+    ],
+    "steps": 100,
+    "source_replay": false
+  },
+  {
+    "command": [
+      "mpirun",
+      "--allow-run-as-root",
+      "--oversubscribe",
+      "-n",
+      "2",
+      "/tmp/biological-transport-probe-x",
+      "blocking",
+      "/tmp/biological-transport-initial.bin",
+      "analysis/biological_equivalence/reassessment_2026-09-09/transport_diagnosis/cells30.txt",
+      "/tmp/biological-transport-blocking2-replay1",
+      "1",
+      "100",
+      "1",
+      "-1"
+    ],
+    "returncode": 0,
+    "completed_ranks": [
+      0,
+      1
+    ],
+    "steps": 100,
+    "source_replay": true
+  }
+]

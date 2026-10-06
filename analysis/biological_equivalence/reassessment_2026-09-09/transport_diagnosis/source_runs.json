@@ -1,0 +1,200 @@
+{
+  "environment": {
+    "OMP_WAIT_POLICY": "PASSIVE",
+    "available_cpus": 8
+  },
+  "calls": [
+    {
+      "command": [
+        "/tmp/biological-transport-probe-reference",
+        "source",
+        "/tmp/biological-transport-initial.bin",
+        "analysis/biological_equivalence/reassessment_2026-09-09/transport_diagnosis/cells30.txt",
+        "analysis/biological_equivalence/reassessment_2026-09-09/transport_diagnosis/source_reference_t1_lock0_part-1",
+        "1",
+        "100",
+        "0",
+        "-1"
+      ],
+      "returncode": 0,
+      "stdout": "agents=211 occupied_voxels=120 threads=1 locked=0 trials=100\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/biological-transport-probe-reference",
+        "source",
+        "/tmp/biological-transport-initial.bin",
+        "analysis/biological_equivalence/reassessment_2026-09-09/transport_diagnosis/cells30.txt",
+        "analysis/biological_equivalence/reassessment_2026-09-09/transport_diagnosis/source_reference_t2_lock0_part-1",
+        "2",
+        "100",
+        "0",
+        "-1"
+      ],
+      "returncode": 0,
+      "stdout": "agents=211 occupied_voxels=120 threads=2 locked=0 trials=100\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/biological-transport-probe-reference",
+        "source",
+        "/tmp/biological-transport-initial.bin",
+        "analysis/biological_equivalence/reassessment_2026-09-09/transport_diagnosis/cells30.txt",
+        "analysis/biological_equivalence/reassessment_2026-09-09/transport_diagnosis/source_reference_t8_lock0_part-1",
+        "8",
+        "100",
+        "0",
+        "-1"
+      ],
+      "returncode": 0,
+      "stdout": "agents=211 occupied_voxels=120 threads=8 locked=0 trials=100\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/biological-transport-probe-reference",
+        "source",
+        "/tmp/biological-transport-initial.bin",
+        "analysis/biological_equivalence/reassessment_2026-09-09/transport_diagnosis/cells30.txt",
+        "analysis/biological_equivalence/reassessment_2026-09-09/transport_diagnosis/source_reference_t112_lock0_part-1",
+        "112",
+        "100",
+        "0",
+        "-1"
+      ],
+      "returncode": 0,
+      "stdout": "agents=211 occupied_voxels=120 threads=112 locked=0 trials=100\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/biological-transport-probe-reference",
+        "source",
+        "/tmp/biological-transport-initial.bin",
+        "analysis/biological_equivalence/reassessment_2026-09-09/transport_diagnosis/cells30.txt",
+        "analysis/biological_equivalence/reassessment_2026-09-09/transport_diagnosis/source_reference_t112_lock1_part-1",
+        "112",
+        "100",
+        "1",
+        "-1"
+      ],
+      "returncode": 0,
+      "stdout": "agents=211 occupied_voxels=120 threads=112 locked=1 trials=100\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/biological-transport-probe-x",
+        "source",
+        "/tmp/biological-transport-initial.bin",
+        "analysis/biological_equivalence/reassessment_2026-09-09/transport_diagnosis/cells30.txt",
+        "analysis/biological_equivalence/reassessment_2026-09-09/transport_diagnosis/source_x_t1_lock0_part-1",
+        "1",
+        "100",
+        "0",
+        "-1"
+      ],
+      "returncode": 0,
+      "stdout": "agents=211 occupied_voxels=120 threads=1 locked=0 trials=100\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/biological-transport-probe-x",
+        "source",
+        "/tmp/biological-transport-initial.bin",
+        "analysis/biological_equivalence/reassessment_2026-09-09/transport_diagnosis/cells30.txt",
+        "analysis/biological_equivalence/reassessment_2026-09-09/transport_diagnosis/source_x_t2_lock0_part-1",
+        "2",
+        "100",
+        "0",
+        "-1"
+      ],
+      "returncode": 0,
+      "stdout": "agents=211 occupied_voxels=120 threads=2 locked=0 trials=100\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/biological-transport-probe-x",
+        "source",
+        "/tmp/biological-transport-initial.bin",
+        "analysis/biological_equivalence/reassessment_2026-09-09/transport_diagnosis/cells30.txt",
+        "analysis/biological_equivalence/reassessment_2026-09-09/transport_diagnosis/source_x_t8_lock0_part-1",
+        "8",
+        "100",
+        "0",
+        "-1"
+      ],
+      "returncode": 0,
+      "stdout": "agents=211 occupied_voxels=120 threads=8 locked=0 trials=100\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/biological-transport-probe-x",
+        "source",
+        "/tmp/biological-transport-initial.bin",
+        "analysis/biological_equivalence/reassessment_2026-09-09/transport_diagnosis/cells30.txt",
+        "analysis/biological_equivalence/reassessment_2026-09-09/transport_diagnosis/source_x_t112_lock0_part-1",
+        "112",
+        "100",
+        "0",
+        "-1"
+      ],
+      "returncode": 0,
+      "stdout": "agents=211 occupied_voxels=120 threads=112 locked=0 trials=100\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/biological-transport-probe-x",
+        "source",
+        "/tmp/biological-transport-initial.bin",
+        "analysis/biological_equivalence/reassessment_2026-09-09/transport_diagnosis/cells30.txt",
+        "analysis/biological_equivalence/reassessment_2026-09-09/transport_diagnosis/source_x_t112_lock1_part-1",
+        "112",
+        "100",
+        "1",
+        "-1"
+      ],
+      "returncode": 0,
+      "stdout": "agents=211 occupied_voxels=120 threads=112 locked=1 trials=100\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/biological-transport-probe-x",
+        "source",
+        "/tmp/biological-transport-initial.bin",
+        "analysis/biological_equivalence/reassessment_2026-09-09/transport_diagnosis/cells30.txt",
+        "analysis/biological_equivalence/reassessment_2026-09-09/transport_diagnosis/source_x_t2_lock0_part0",
+        "2",
+        "100",
+        "0",
+        "0"
+      ],
+      "returncode": 0,
+      "stdout": "agents=108 occupied_voxels=60 threads=2 locked=0 trials=100\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/biological-transport-probe-x",
+        "source",
+        "/tmp/biological-transport-initial.bin",
+        "analysis/biological_equivalence/reassessment_2026-09-09/transport_diagnosis/cells30.txt",
+        "analysis/biological_equivalence/reassessment_2026-09-09/transport_diagnosis/source_x_t2_lock0_part1",
+        "2",
+        "100",
+        "0",
+        "1"
+      ],
+      "returncode": 0,
+      "stdout": "agents=103 occupied_voxels=60 threads=2 locked=0 trials=100\n",
+      "stderr": ""
+    }
+  ]
+}

@@ -1691,6 +1691,7 @@ Cell_Functions::Cell_Functions()
 	
 	update_phenotype = NULL; 
 	custom_cell_rule = NULL; 
+	custom_optimization = NULL;
 	
 	update_velocity = NULL;
 	

@@ -98,6 +98,10 @@ int main( int argc, char* argv[] )
 	cart_topo.Find_Left_Right_Neighbours( world );
 
 	// load and parse settings file(s)
+	#ifdef SCALABILITY
+	std::string  report = "./scalability_" + std::to_string(world.Size()) + ".csv";
+	std::ofstream file(report, std::ios::app);
+	#endif
 	
 	bool XML_status = false; 
 	char copy_command [1024]; 
@@ -209,6 +213,10 @@ int main( int argc, char* argv[] )
 	}
 	
 	// main loop 
+	#ifdef SCALABILITY
+	int steps = 0;
+	auto start = std::chrono::high_resolution_clock::now();
+	#endif
 	
 	try 
 	{		
@@ -217,7 +225,19 @@ int main( int argc, char* argv[] )
 			// save data if it's time. 
 			if( fabs( PhysiCell_globals.current_time - PhysiCell_globals.next_full_save_time ) < 0.01 * diffusion_dt )
 			{
+				#ifdef SCALABILITY
+				auto end = std::chrono::high_resolution_clock::now();
+				std::chrono::duration<double> elapsed = end - start;
+				file << steps << "," << elapsed.count() << std::endl;
+				++steps;
+				#endif
+
 				display_simulation_status( std::cout , world , cart_topo ); 
+				#ifdef SCALABILITY
+				start = std::chrono::high_resolution_clock::now();
+				#endif
+
+				#ifndef SCALABILITY
 				if( PhysiCell_settings.enable_legacy_saves == true )
 				{	
 					log_output(
@@ -232,7 +252,7 @@ int main( int argc, char* argv[] )
 					save_PhysiCell_to_MultiCellDS_v2(
 						filename, microenvironment, PhysiCell_globals.current_time, world, cart_topo ); 
 				}
-				
+				#endif
 				PhysiCell_globals.full_output_index++; 
 				PhysiCell_globals.next_full_save_time += PhysiCell_settings.full_save_interval;
 			}
@@ -240,6 +260,7 @@ int main( int argc, char* argv[] )
 			// save SVG plot if it's time
 			if( fabs( PhysiCell_globals.current_time - PhysiCell_globals.next_SVG_save_time  ) < 0.01 * diffusion_dt )
 			{
+				#ifndef SCALABILITY
 				if( PhysiCell_settings.enable_SVG_saves == true )
 				{	
 					sprintf( filename , "%s/snapshot%08u.svg" , PhysiCell_settings.folder.c_str() , PhysiCell_globals.SVG_output_index ); 
@@ -250,6 +271,7 @@ int main( int argc, char* argv[] )
 					PhysiCell_globals.SVG_output_index++; 
 					PhysiCell_globals.next_SVG_save_time  += PhysiCell_settings.SVG_save_interval;
 				}
+				#endif
 			}
 
 			// Configure treatments
@@ -311,6 +333,10 @@ int main( int argc, char* argv[] )
 		std::cout << std::endl << "Total simulation runtime: " << std::endl; 
 		BioFVM::display_stopwatch_value( std::cout , BioFVM::runtime_stopwatch_value() ); 
 	}
+
+	#ifdef SCALABILITY
+	file.close();
+	#endif
 
 	world.Finalize();
 

@@ -69,6 +69,7 @@
 #include "PhysiCell_constants.h"
 #include "../BioFVM/BioFVM_vector.h"
 #include "PhysiCell_cell.h"
+#include "PhysiCell_cell_sources.h"
 
 #include <algorithm>
 #include <iterator> 
@@ -187,6 +188,16 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 	static double phenotype_dt_tolerance = 0.001 * phenotype_dt_;
 	static double mechanics_dt_tolerance = 0.001 * mechanics_dt_;
 
+	#pragma omp parallel for
+	for( int i=0; i < (*all_cells).size(); i++ )
+	{
+		if( (*all_cells)[i]->is_out_of_domain == false )
+		{
+			(*all_cells)[i]->phenotype.secretion.advance(
+				(*all_cells)[i], (*all_cells)[i]->phenotype, diffusion_dt_ );
+		}
+	}
+
 	// intracellular update. called for every diffusion_dt, but actually depends on the intracellular_dt of each cell (as it can be noisy)
 
 	double interval_maboss_time = 0.0;
@@ -225,15 +236,6 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 	count_maboss_updates += interval_maboss_updates;
 
 	// secretions and uptakes. Syncing with BioFVM is automated.
-
-	#pragma omp parallel for
-	for( int i=0; i < (*all_cells).size(); i++ )
-	{
-		if( (*all_cells)[i]->is_out_of_domain == false )
-		{
-			(*all_cells)[i]->phenotype.secretion.advance( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
-		}
-	}
 
 	if( time_since_last_cycle > phenotype_dt_ - 0.5 * diffusion_dt_ || !initialzed)
 	{
@@ -417,6 +419,21 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 	static double mechanics_dt_tolerance = 0.001 * mechanics_dt_;
 
 	auto start = std::chrono::high_resolution_clock::now();
+	#pragma omp parallel for
+	for( int i=0; i < (*all_cells).size(); i++ )
+	{
+		if( (*all_cells)[i]->is_out_of_domain == false )
+		{
+			(*all_cells)[i]->phenotype.secretion.advance(
+				(*all_cells)[i], (*all_cells)[i]->phenotype, diffusion_dt_ );
+		}
+	}
+	auto end = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double, std::micro> duration = end - start;
+	time_diff += duration.count();
+
+
+	start = std::chrono::high_resolution_clock::now();
 	double interval_maboss_time = 0.0;
 	unsigned long long interval_maboss_updates = 0;
 	#pragma omp parallel for reduction(+:interval_maboss_time,interval_maboss_updates)
@@ -449,8 +466,8 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 			}
 		}
 	}
-	auto end = std::chrono::high_resolution_clock::now();
-	std::chrono::duration<double, std::micro> duration = end - start;
+	end = std::chrono::high_resolution_clock::now();
+	duration = end - start;
 	time_intracell += duration.count();
 	time_maboss_update += interval_maboss_time;
 	count_maboss_updates += interval_maboss_updates;
@@ -460,25 +477,12 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 	/*===============================================================================*/
 	/* Nothing to be parallelized in phenotype.secretion.advance(...) function below */
 	/*===============================================================================*/
-	start = std::chrono::high_resolution_clock::now();
-	#pragma omp parallel for
-	for( int i=0; i < (*all_cells).size(); i++ )
-	{
-		if( (*all_cells)[i]->is_out_of_domain == false )
-		{
-			Cell* pC = (*all_cells)[i];
-			pC->phenotype.secretion.advance( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
-		}
-	}
-	end = std::chrono::high_resolution_clock::now();
-	duration = end - start;
-	time_diff += duration.count();
-
+	
 	if( time_since_last_cycle > phenotype_dt_ - 0.5 * diffusion_dt_ || !initialzed )
 	{
 		// Reset the max_radius in each voxel. It will be filled in set_total_volume
 		// It might be better if we calculate it before mechanics each time
-		std::fill(max_cell_interactive_distance_in_voxel.begin(), max_cell_interactive_distance_in_voxel.end(), 0.0);
+		//std::fill(max_cell_interactive_distance_in_voxel.begin(), max_cell_interactive_distance_in_voxel.end(), 0.0);
 
 		if(!initialzed)
 		{
@@ -634,13 +638,20 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 
 		start_part = std::chrono::high_resolution_clock::now();
 		#endif
-		#pragma omp parallel for
+		#pragma omp parallel for schedule(static)
 		for( int i=0; i < (*all_cells).size(); i++ )
 		{
-			Cell* pC = (*all_cells)[i];
+			Cell* const pC = (*all_cells)[i];
 			if(pC->is_out_of_domain == false && pC->is_movable)
 			{
 				pC->update_position(time_since_last_mechanics, world, cart_topo);
+				// This only updates cell-local BioFVM state. Migrating cells are
+				// indexed on arrival by assign_position(); agent_grid stays serial.
+				if(!pC->is_out_of_domain && !pC->crossed_to_left_subdomain &&
+					!pC->crossed_to_right_subdomain)
+				{
+					pC->update_voxel_index(world, cart_topo);
+				}
 			}
 		}
 		/*
@@ -725,9 +736,22 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 	#ifdef MECHS_TIME
 	start_part = std::chrono::high_resolution_clock::now();
 	#endif
-	for( int i=0; i < (*all_cells).size(); i++ )
-		if(!(*all_cells)[i]->is_out_of_domain && (*all_cells)[i]->is_movable)
-			(*all_cells)[i]->update_voxel_in_container(world, cart_topo);
+	// Shared voxel vectors must be updated serially. BioFVM indices were
+	// already updated in the position loop or when received cells were assigned.
+	const auto& cells = *all_cells;
+	for( Cell* const pC : cells )
+	{
+		if(!pC->is_out_of_domain && pC->is_movable)
+		{
+			pC->update_voxel_in_container(world, cart_topo, false);
+		}
+		else if(pC->is_out_of_domain && pC->get_current_mechanics_voxel_index() >= 0)
+		{
+			// Escaping cells became immovable in update_position(), but still
+			// need removal from agent_grid and an invalid BioFVM voxel index.
+			pC->update_voxel_in_container(world, cart_topo);
+		}
+	}
 		#ifdef MECHS_TIME
 		end_part = std::chrono::high_resolution_clock::now();
 		duration_part = std::chrono::duration_cast<std::chrono::microseconds>(end_part - start_part);

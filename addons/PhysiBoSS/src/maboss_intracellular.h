@@ -53,7 +53,7 @@ class MaBoSSIntracellular : public PhysiCell::Intracellular { //UPDATED
 	MaBoSSIntracellular(std::vector<char>& buffer, int& len_buffer, int& position);
 	void pack(std::vector<char>& buffer, int& len_buffer, int& position);
 	void unpack(std::vector<char>& buffer, int len_buffer, int& position);
-	void initialize_maboss();
+	void initialize_maboss(bool draw_random_seed = true);
 	
 	Intracellular* clone() {
 		return static_cast<Intracellular*>(new MaBoSSIntracellular(this));

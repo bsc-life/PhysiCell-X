@@ -713,7 +713,8 @@ void dFBAIntracellular::update_dfba_outputs(PhysiCell::Cell* pCell, PhysiCell::P
         phenotype.secretion.net_export_rates[density_index] = net_export_rate_mmol_per_min;
 
         // phenotype.secretion.net_export_rates[density_index] = net_export_rate;
-        pCell->set_internal_uptake_constants(this->dfba_time_step); // Update internal uptake constants based on the new volume and rates
+        // Legacy reference behavior: cache the increment using the FBA interval.
+        pCell->set_internal_uptake_constants(this->dfba_time_step);
         if (default_microenvironment_options.track_internalized_substrates_in_each_agent)
         {
             phenotype.molecular.internalized_total_substrates[density_index] = 0;

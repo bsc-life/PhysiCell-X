@@ -1,0 +1,93 @@
+{
+  "time_min": 150,
+  "steps": 100,
+  "dt_min": 0.001,
+  "solver": "reference serial",
+  "common_rate_per_volume": [
+    -86.63180044677519,
+    -43.31746601749532,
+    7.8143504576023375,
+    0.0,
+    90.8012330265107
+  ],
+  "cells": {
+    "x": 1315,
+    "reference": 1293
+  },
+  "outside_cells": {
+    "x": 0,
+    "reference": 2
+  },
+  "binary_sha256": "26d44059a2f4c065f50c632f2e6e3e90890a938c0cd8408c692c7d9bec708403",
+  "calls": [
+    {
+      "command": [
+        "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/transport_replay_120/probe_reference",
+        "serial",
+        "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/transport_replay_150/initial.bin",
+        "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/transport_replay_150/reference_serial_sources1.txt",
+        "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/transport_replay_150/reference_serial_sources1",
+        "1",
+        "100",
+        "1",
+        "-1"
+      ],
+      "returncode": 0,
+      "stdout": "\nUsing method diffusion_decay_solver__constant_coefficients_LOD_3D (implicit 3-D LOD with Thomas Algorithm) ... \n\nmode=serial rank=0 steps=100 source_replay=1\n",
+      "stderr": "",
+      "fixture_sha256": "ff4c08de396bfe0b29cb9954d5fb970a308d253de3e24c3ffa2837231a2b7e01"
+    },
+    {
+      "command": [
+        "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/transport_replay_120/probe_reference",
+        "serial",
+        "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/transport_replay_150/initial.bin",
+        "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/transport_replay_150/layout_x_actual_rate.txt",
+        "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/transport_replay_150/layout_x_actual_rate",
+        "1",
+        "100",
+        "1",
+        "-1"
+      ],
+      "returncode": 0,
+      "stdout": "\nUsing method diffusion_decay_solver__constant_coefficients_LOD_3D (implicit 3-D LOD with Thomas Algorithm) ... \n\nmode=serial rank=0 steps=100 source_replay=1\n",
+      "stderr": "",
+      "fixture_sha256": "0dc9f63aa72d32222bc877d682c1f1442d90e89826bb45269f700d2f9f941803"
+    },
+    {
+      "command": [
+        "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/transport_replay_120/probe_reference",
+        "serial",
+        "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/transport_replay_150/initial.bin",
+        "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/transport_replay_150/layout_x_common_rate.txt",
+        "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/transport_replay_150/layout_x_common_rate",
+        "1",
+        "100",
+        "1",
+        "-1"
+      ],
+      "returncode": 0,
+      "stdout": "\nUsing method diffusion_decay_solver__constant_coefficients_LOD_3D (implicit 3-D LOD with Thomas Algorithm) ... \n\nmode=serial rank=0 steps=100 source_replay=1\n",
+      "stderr": "",
+      "fixture_sha256": "4e03c3d5fa52628d47dd068a021a795ac55299fb92598033686f6a149db44f9d"
+    },
+    {
+      "command": [
+        "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/transport_replay_120/probe_reference",
+        "serial",
+        "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/transport_replay_150/initial.bin",
+        "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/transport_replay_150/layout_reference_common_rate.txt",
+        "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/transport_replay_150/layout_reference_common_rate",
+        "1",
+        "100",
+        "1",
+        "-1"
+      ],
+      "returncode": 0,
+      "stdout": "\nUsing method diffusion_decay_solver__constant_coefficients_LOD_3D (implicit 3-D LOD with Thomas Algorithm) ... \n\nmode=serial rank=0 steps=100 source_replay=1\n",
+      "stderr": "",
+      "fixture_sha256": "c7d37b87f2a1e9f5e6c3c6ebe2b7c65302bd4dd9deaa741f7f6f2fbcd419540e"
+    }
+  ],
+  "input_sha256": "974a27cd31091a9af8ca28af7028410e139a1e1452ae3896b999ed4983434812"
+}

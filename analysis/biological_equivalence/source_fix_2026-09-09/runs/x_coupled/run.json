@@ -1,0 +1,44 @@
+{
+  "case": {
+    "name": "x",
+    "label": "coupled",
+    "project": "/home/jose/GPFS/DFBA/PhysiCell-X",
+    "output": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/runs/x_coupled",
+    "config": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/x_coupled.xml",
+    "sha256": "88ad4996d5970f82c614de953e03ddc14cb4fcb22bf93d56848612843ff6bda5",
+    "mpi_ranks": 2,
+    "omp_threads": 2,
+    "minutes": 180.0,
+    "snapshot_interval_min": 30.0,
+    "executable": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/build_x/bacterial-colony",
+    "budget_prefix": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/runs/x_coupled/substrate_budget"
+  },
+  "command": [
+    "mpirun",
+    "--allow-run-as-root",
+    "--oversubscribe",
+    "--bind-to",
+    "none",
+    "-n",
+    "2",
+    "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/build_x/bacterial-colony",
+    "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/x_coupled.xml"
+  ],
+  "cwd": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/runs/x_coupled/work",
+  "started_utc": "2026-09-10T07:41:26.073247+00:00",
+  "environment": {
+    "OMP_NUM_THREADS": "2",
+    "OPENBLAS_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "OMP_WAIT_POLICY": "PASSIVE",
+    "PHYSICELL_SUBSTRATE_BUDGET_PREFIX": "/home/jose/GPFS/DFBA/PhysiCell-X/analysis/biological_equivalence/source_fix_2026-09-09/runs/x_coupled/substrate_budget",
+    "PHYSICELL_SUBSTRATE_BUDGET_EVERY": "1000"
+  },
+  "pid": 9881,
+  "returncode": 0,
+  "elapsed_seconds": 5426.0746827600005,
+  "finished_utc": "2026-09-10T09:11:52.161764+00:00",
+  "final_time_min": 180.001,
+  "missing_snapshot_files": [],
+  "passed": true
+}

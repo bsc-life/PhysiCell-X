@@ -1,5 +1,6 @@
 VERSION := $(shell grep . VERSION.txt | cut -f1 -d:)
 PROGRAM_NAME := heterogeneity.exe
+PROGRAM_NAME_SCALA := heterogeneity_scalability.exe
 
 CC := mpic++
 
@@ -59,7 +60,10 @@ name:
 	@echo "\n\nExecutable name is " $(PROGRAM_NAME) " \n"
 	
 all: main.cpp $(ALL_OBJECTS)
-	$(COMPILE_COMMAND) -o $(PROGRAM_NAME) $(ALL_OBJECTS) main.cpp 
+	$(COMPILE_COMMAND) -o $(PROGRAM_NAME) $(ALL_OBJECTS) main.cpp
+
+scalability: main.cpp $(ALL_OBJECTS)
+	$(COMPILE_COMMAND) -DSCALABILITY -o $(PROGRAM_NAME_SCALA) $(ALL_OBJECTS) main.cpp 
 
 # PhysiCell core components	
 DistPhy_Environment.o: ./DistPhy/DistPhy_Environment.cpp
