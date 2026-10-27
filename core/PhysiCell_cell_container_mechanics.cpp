@@ -64,8 +64,9 @@ inline std::size_t ghost_cell_bytes(int substrates, bool interactions_active)
     std::size_t bytes = 2 * sizeof(std::int32_t) + 8 * sizeof(double);
     if (interactions_active)
     {
-        // dead, number_of_nuclei, seven volume fields and two substrate vectors.
-        bytes += sizeof(std::uint8_t) + sizeof(std::int32_t);
+        // dead, death model code, number_of_nuclei, seven volume fields and
+        // two substrate vectors.
+        bytes += sizeof(std::uint8_t) + 2 * sizeof(std::int32_t);
         bytes += (7 + 2 * static_cast<std::size_t>(substrates)) * sizeof(double);
     }
     return bytes;
@@ -80,6 +81,7 @@ inline int checked_mpi_count(std::size_t bytes)
     return static_cast<int>(bytes);
 }
 
+//check if any of interaction rates are active
 bool interaction_rates_active(const Cell_Interactions& interactions)
 {
     if (interactions.apoptotic_phagocytosis_rate > 0.0 ||
@@ -138,8 +140,18 @@ void serialize_ghost_voxel(Cell_Container& container, int voxel_index,
         if (interactions_active)
         {
             const std::uint8_t dead = cell->phenotype.death.dead ? 1u : 0u;
+            std::int32_t death_model_code = -1;
+            const int death_model_index = cell->phenotype.death.current_death_model_index;
+            if (dead != 0 && death_model_index >= 0 &&
+                death_model_index < static_cast<int>(cell->phenotype.death.models.size()) &&
+                cell->phenotype.death.models[death_model_index] != NULL)
+            {
+                death_model_code = static_cast<std::int32_t>(
+                    cell->phenotype.death.models[death_model_index]->code);
+            }
             const std::int32_t nuclei = static_cast<std::int32_t>(cell->state.number_of_nuclei);
             ghost_write(cursor, dead);
+            ghost_write(cursor, death_model_code);
             ghost_write(cursor, nuclei);
             ghost_write(cursor, cell->phenotype.volume.total);
             ghost_write(cursor, cell->phenotype.volume.cytoplasmic_fluid);
@@ -227,10 +239,13 @@ void deserialize_ghost_voxel(const std::vector<char>& buffer, std::size_t offset
         if (interactions_active)
         {
             std::uint8_t dead = 0;
+            std::int32_t death_model_code = -1;
             std::int32_t nuclei = 0;
             ghost_read(cursor, dead);
+            ghost_read(cursor, death_model_code);
             ghost_read(cursor, nuclei);
             cell.dead = (dead != 0);
+            cell.death_model_code = death_model_code;
             cell.number_of_nuclei = nuclei;
             ghost_read(cursor, cell.phenotype_volume);
             ghost_read(cursor, cell.cytoplasmic_fluid);
@@ -524,6 +539,7 @@ void Cell_Container::ghost_exchange(mpi_Environment &world, mpi_Cartesian &cart_
     std::size_t total_right = 0;
     std::size_t boundary_cell_count = 0;
 
+    //Compute buffer offsets
     for (int j = 0; j < y_dim; ++j)
     {
         for (int k = 0; k < z_dim; ++k)
@@ -618,6 +634,7 @@ void Cell_Container::ghost_exchange(mpi_Environment &world, mpi_Cartesian &cart_
         }
     }
 
+    //check if the number of bytes to send is within the MPI int limit
     int send_left_bytes = checked_mpi_count(total_left);
     int send_right_bytes = checked_mpi_count(total_right);
     int receive_right_bytes = 0;

@@ -8,6 +8,12 @@
 *.o
 *.obj
 
+# Sample-project working copies installed at the repository root
+/main.cpp
+/main-backup.cpp
+/custom_modules/*
+!/custom_modules/empty.txt
+
 # Executables
 *.exe
 *.out
@@ -25,6 +31,10 @@ core/doubts.txt
 
 #configuration files
 config/
+!sample_projects_intracellular/boolean/spatial_mpi/config/
+!sample_projects_intracellular/boolean/spatial_mpi/config/**
+!sample_projects_intracellular/fba/bacterial_colony/config/
+!sample_projects_intracellular/fba/bacterial_colony/config/**
 #Results
 output/
 logs/

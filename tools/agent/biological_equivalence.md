@@ -1,4 +1,4 @@
-Assess the biological equivalence of the latest simulations in PhysiCell-X and ****../PhysiCelldFBA, treating PhysiCelldFBA as the reference. My objective is for PhysiCell-X to reproduce its biological behavior.
+Assess the biological equivalence of the simulations commented by the user, that has to provides a reference output folder and a simulation to be compared. My objective is for PhysiCell-X to reproduce its biological behavior.
 1. Identify comparable runs
 - Verify run provenance using logs, timestamps, configurations, and XML metadata. Avoid mixing outputs from different runs or selecting stale files by their highest index.
 - Compare matched simulated times, including initial conditions, the latest shared snapshot, and intermediate times that locate the onset of divergence.

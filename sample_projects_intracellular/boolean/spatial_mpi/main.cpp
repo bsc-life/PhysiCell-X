@@ -80,7 +80,8 @@
 // put custom code modules here! 
 
 #include "./custom_modules/custom.h" 
-#include "./custom_modules/tnf_boolean_model_interface.h" 
+#include "./custom_modules/tnf_boolean_model_interface.h"
+#include "./custom_modules/log_paper.h"
 #include "./addons/PhysiBoSS/src/maboss_intracellular.h"	
 	
 using namespace BioFVM;
@@ -89,6 +90,9 @@ using namespace DistPhy::mpi;
 
 int main( int argc, char* argv[] )
 {
+	const bool paper_logging_enabled = argc > 2;
+	const std::string paper_csv_path = paper_logging_enabled ? argv[2] : "";
+
 	mpi_Environment world;
 	world.Initialize();
 
@@ -167,7 +171,7 @@ int main( int argc, char* argv[] )
 	
 	char filename[1024];
 	sprintf( filename , "%s/initial" , PhysiCell_settings.folder.c_str() ); 
-	save_PhysiCell_to_MultiCellDS_v2(
+	if( paper_logging_enabled == false ) save_PhysiCell_to_MultiCellDS_v2(
 		filename, microenvironment, PhysiCell_globals.current_time, world, cart_topo ); 
 	
 	// save a quick SVG cross section through z = 0, after setting its 
@@ -181,7 +185,7 @@ int main( int argc, char* argv[] )
 	std::string (*substrate_coloring_function)(double, double, double) = paint_by_density_percentage;
 	
 	sprintf( filename , "%s/initial.svg" , PhysiCell_settings.folder.c_str() ); 
-	SVG_plot_mpi(
+	if( paper_logging_enabled == false ) SVG_plot_mpi(
 		filename, microenvironment, 0.0, PhysiCell_globals.current_time,
 		cell_coloring_function, substrate_coloring_function, world, cart_topo );
 	
@@ -232,7 +236,14 @@ int main( int argc, char* argv[] )
 				++steps;
 				#endif
 
-				display_simulation_status( std::cout , world , cart_topo ); 
+				if( paper_logging_enabled )
+				{
+					log_paper( paper_csv_path, PhysiCell_globals.current_time, world, cart_topo );
+				}
+				else
+				{
+					display_simulation_status( std::cout, world, cart_topo );
+				}
 				#ifdef SCALABILITY
 				start = std::chrono::high_resolution_clock::now();
 				#endif
@@ -249,7 +260,7 @@ int main( int argc, char* argv[] )
 				{	
 					sprintf( filename , "%s/output%08u" , PhysiCell_settings.folder.c_str(),  PhysiCell_globals.full_output_index ); 
 					
-					save_PhysiCell_to_MultiCellDS_v2(
+					if( paper_logging_enabled == false ) save_PhysiCell_to_MultiCellDS_v2(
 						filename, microenvironment, PhysiCell_globals.current_time, world, cart_topo ); 
 				}
 				#endif
@@ -264,7 +275,7 @@ int main( int argc, char* argv[] )
 				if( PhysiCell_settings.enable_SVG_saves == true )
 				{	
 					sprintf( filename , "%s/snapshot%08u.svg" , PhysiCell_settings.folder.c_str() , PhysiCell_globals.SVG_output_index ); 
-					SVG_plot_mpi(
+					if( paper_logging_enabled == false ) SVG_plot_mpi(
 						filename, microenvironment, 0.0, PhysiCell_globals.current_time,
 						cell_coloring_function, substrate_coloring_function, world, cart_topo );
 					
@@ -318,11 +329,11 @@ int main( int argc, char* argv[] )
 	// save a final simulation snapshot 
 	
 	sprintf( filename , "%s/final" , PhysiCell_settings.folder.c_str() ); 
-	save_PhysiCell_to_MultiCellDS_v2(
+	if( paper_logging_enabled == false ) save_PhysiCell_to_MultiCellDS_v2(
 		filename, microenvironment, PhysiCell_globals.current_time, world, cart_topo ); 
 	
 	sprintf( filename , "%s/final.svg" , PhysiCell_settings.folder.c_str() ); 
-	SVG_plot_mpi(
+	if( paper_logging_enabled == false ) SVG_plot_mpi(
 		filename, microenvironment, 0.0, PhysiCell_globals.current_time,
 		cell_coloring_function, substrate_coloring_function, world, cart_topo );
 	

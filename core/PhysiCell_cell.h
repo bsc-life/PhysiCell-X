@@ -156,14 +156,14 @@ class Cell_State
 	std::vector<Cell*> attached_cells;
 	std::vector<Cell*> spring_attachments;  
 
-	std::vector<Cell*> neighbors; 
+	std::vector<Cell*> neighbors;
 	std::vector<double> orientation;
-	
-	double simple_pressure; 
+
+	double simple_pressure;
 	unsigned int mechanics_neighbor_candidates;
 	unsigned int mechanics_neighbor_interactions;
-	
-	int number_of_attached_cells( void ); 
+
+	int number_of_attached_cells( void );
 	
 	int number_of_nuclei; 
 
@@ -313,7 +313,9 @@ class Cell : public Basic_Agent
 /* Parallel prototype of update_voxel_in_container 											 */
 /*=======================================================================*/	
 	
-	void update_voxel_in_container(mpi_Environment &world, mpi_Cartesian &cart_topo); 
+	// Pass false only when the BioFVM voxel index is already current.
+	void update_voxel_in_container(mpi_Environment &world, mpi_Cartesian &cart_topo,
+		bool update_diffusion_voxel = true);
 	
 	void copy_data(Cell *);
 	

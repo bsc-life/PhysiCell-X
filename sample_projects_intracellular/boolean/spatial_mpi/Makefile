@@ -63,7 +63,7 @@ ARCH := native # best auto-tuning
 # ARCH := nocona #64-bit pentium 4 or later 
 
 # CFLAGS := -march=$(ARCH) -Ofast -s -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11
-CFLAGS := -march=$(ARCH) -O3 -fno-omit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g -DSCALABILITY
+CFLAGS := -march=$(ARCH) -O3 -fno-omit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g
 
 ifeq ($(OS),Windows_NT)
 else
@@ -99,7 +99,7 @@ MaBoSS := ./addons/PhysiBoSS/MaBoSS/engine/src/BooleanNetwork.h
 
 PhysiBoSS_OBJECTS := maboss_network.o maboss_intracellular.o
 
-PhysiCell_custom_module_OBJECTS := custom.o tnf_boolean_model_interface.o
+PhysiCell_custom_module_OBJECTS := custom.o tnf_boolean_model_interface.o log_paper.o
 
 pugixml_OBJECTS := pugixml.o
 
@@ -259,6 +259,8 @@ custom.o: ./custom_modules/custom.cpp $(MaBoSS)
 tnf_boolean_model_interface.o: ./custom_modules/tnf_boolean_model_interface.cpp $(MaBoSS)
 	$(COMPILE_COMMAND) $(INC)  -c ./custom_modules/tnf_boolean_model_interface.cpp $(MaBoSS)
 
+log_paper.o: ./custom_modules/log_paper.cpp
+	$(COMPILE_COMMAND) -c ./custom_modules/log_paper.cpp
 # cleanup
 
 reset:

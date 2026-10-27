@@ -1,5 +1,6 @@
 VERSION := $(shell grep . VERSION.txt | cut -f1 -d:)
 PROGRAM_NAME := bacterial-colony
+.DEFAULT_GOAL := all
 
 CC := mpic++
 
@@ -10,11 +11,11 @@ endif
 
 
 CUR_DIR = $(shell pwd)
-EXT_DIR = $(CUR_DIR)/addons/dFBA/ext
+EXT_DIR ?= $(CUR_DIR)/addons/dFBA/ext
 
-BZ2_STATIC_LIB ?= $(shell $(CC) -print-file-name=libbz2.a 2>/dev/null)
-
-LIB := -L$(EXT_DIR)/libsbml/lib  $(EXT_DIR)/coin-or/lib/libClp-static.a $(EXT_DIR)/coin-or/lib/libCoinUtils-static.a -lsbml-static -lxml2 $(BZ2_STATIC_LIB) -lz -ggdb -llapack -no-pie
+CLP_LIB = $(firstword $(wildcard $(EXT_DIR)/coin-or/lib/libClp-static.a $(EXT_DIR)/coin-or/lib/libClp.a) $(EXT_DIR)/coin-or/lib/libClp-static.a)
+COINUTILS_LIB = $(firstword $(wildcard $(EXT_DIR)/coin-or/lib/libCoinUtils-static.a $(EXT_DIR)/coin-or/lib/libCoinUtils.a) $(EXT_DIR)/coin-or/lib/libCoinUtils-static.a)
+LIB = -L$(EXT_DIR)/libsbml/lib $(CLP_LIB) $(COINUTILS_LIB) -lsbml-static -lxml2 -lbz2 -lz -ggdb -llapack -no-pie
 INC := -DADDON_PHYSIDFBA -I$(EXT_DIR)/libsbml/include -I$(EXT_DIR)/coin-or/include -I$(CUR_DIR)/addons/dFBA/src
 
 
@@ -77,7 +78,7 @@ PhysiCell_pugixml.o PhysiCell_settings.o PhysiCell_pathology_SVG.o PhysiCell_geo
 
 # put your custom objects here (they should be in the custom_modules directory)
 
-libFBA := ./addons/dFBA/ext/coin-or/include/coin/CoinPackedMatrix.hpp
+libFBA := $(EXT_DIR)/coin-or/include/coin/CoinPackedMatrix.hpp
 
 PhysiCelldFBA_OBJECTS := dfba_Metabolite.o dfba_Reaction.o dfba_Solution.o dfba_Model.o dfba_intracellular.o
 
@@ -88,22 +89,16 @@ pugixml_OBJECTS := pugixml.o
 PhysiCell_OBJECTS := $(BioFVM_OBJECTS)  $(pugixml_OBJECTS) $(PhysiCell_core_OBJECTS) $(PhysiCell_module_OBJECTS) $(DistPhy_OBJECTS)
 ALL_OBJECTS := $(PhysiCell_OBJECTS) $(PhysiCell_custom_module_OBJECTS) $(PhysiCelldFBA_OBJECTS) 
 
+# Parallel builds must finish dependency setup before compiling any objects.
+$(ALL_OBJECTS): | $(libFBA)
+
 SOME_OBJECTS := dfba_Metabolite.o dfba_Reaction.o dfba_Solution.o dfba_Model.o
 
 # compile the project
 
-.PHONY: check-static-bz2
-
-check-static-bz2:
-	@if [ "$(BZ2_STATIC_LIB)" = "libbz2.a" ] || [ ! -f "$(BZ2_STATIC_LIB)" ]; then \
-		echo "ERROR: static libbz2.a was not found by $(CC)."; \
-		echo "Load a bzip2 development module or run: make BZ2_STATIC_LIB=/path/to/libbz2.a"; \
-		exit 1; \
-	fi
-
 # all: libFBA main.cpp $(ALL_OBJECTS)
 
-all: check-static-bz2 main.cpp $(ALL_OBJECTS) $(libFBA)
+all: main.cpp $(ALL_OBJECTS) $(libFBA)
 	$(COMPILE_COMMAND) $(INC) -o $(PROGRAM_NAME) $(ALL_OBJECTS) main.cpp $(LIB)
 	make name
 
@@ -327,7 +322,7 @@ jpeg:
 	rm -f __H*.txt __W*.txt __resize.txt 
 	
 gif: 
-	magick convert $(OUTPUT)/s*.svg $(OUTPUT)/out.gif 
+	convert $(OUTPUT)/s*.svg $(OUTPUT)/out.gif
 	 
 movie:
 	ffmpeg -r $(FRAMERATE) -f image2 -i $(OUTPUT)/snapshot%08d.jpg -vcodec libx264 -pix_fmt yuv420p -strict -2 -tune animation -crf 15 -acodec none $(OUTPUT)/out.mp4

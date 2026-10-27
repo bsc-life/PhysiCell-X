@@ -146,7 +146,9 @@ public:
 class Interacting_Cell_Info : public Moore_Cell_Info
 {
 public:
-	bool dead;
+	bool dead = false;
+	// The Cycle_Model code, not the rank-local index in Death::models.
+	int death_model_code = -1;
 	//Attack info
 	bool attacked = false;
 	double damage_suffered = 0;

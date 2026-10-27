@@ -1,6 +1,7 @@
 VERSION := $(shell grep . VERSION.txt | cut -f1 -d:)
 PROGRAM_NAME := heterogeneity.exe
 PROGRAM_NAME_SCALA := heterogeneity_scalability.exe
+.DEFAULT_GOAL := all
 
 CC := mpic++
 
@@ -48,7 +49,7 @@ PhysiCell_pugixml.o PhysiCell_settings.o PhysiCell_pathology_SVG.o PhysiCell_geo
 
 # put your custom objects here (they should be in the custom_modules directory)
 
-PhysiCell_custom_module_OBJECTS := heterogeneity.o
+PhysiCell_custom_module_OBJECTS := heterogeneity.o log_paper.o
 
 pugixml_OBJECTS := pugixml.o
 
@@ -183,6 +184,9 @@ PhysiCell_settings.o: ./modules/PhysiCell_settings.cpp
 heterogeneity.o: ./custom_modules/heterogeneity.cpp 
 	$(COMPILE_COMMAND) -c ./custom_modules/heterogeneity.cpp
 
+log_paper.o: ./custom_modules/log_paper.cpp
+	$(COMPILE_COMMAND) -c ./custom_modules/log_paper.cpp
+
 # cleanup
 
 reset:
@@ -204,6 +208,9 @@ data-cleanup:
 	rm -f *.svg
 	rm -f ./output/*
 	touch ./output/empty.txt
+
+gif:
+	convert ./output/s*.svg ./output/out.gif
 	
 # archival 
 	

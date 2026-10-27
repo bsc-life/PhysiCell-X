@@ -87,6 +87,7 @@
 #include <iostream>
 #include <ctime>
 #include <cmath>
+#include <chrono>
 #include <omp.h>
 #include <fstream>
 #include <string> 
@@ -101,6 +102,7 @@
 //Custom user modules 
 
 #include "./custom_modules/heterogeneity.h" 
+#include "./custom_modules/log_paper.h"
 
 using namespace BioFVM;
 using namespace PhysiCell;
@@ -111,58 +113,10 @@ using namespace PhysiCell;
 
 using namespace DistPhy::mpi; 
 
-namespace
-{
-
-const int pre_simulation_density_steps = 100;
-
-void log_microenvironment_densities( Microenvironment& microenvironment, const std::string& filename ,
-	mpi_Environment& world, mpi_Cartesian& cart_topo )
-{
-	if( world.rank == 0 )
-	{
-		std::ofstream clear_file( filename.c_str() );
-	}
-	MPI_Barrier( cart_topo.mpi_cart_comm );
-
-	std::ofstream log_file( filename.c_str(), std::ios::app );
-	microenvironment.print_densities( log_file, world, cart_topo );
-	log_file.close();
-	MPI_Barrier( cart_topo.mpi_cart_comm );
-}
-
-void run_cell_sinks_and_uptakes_only( double dt)
-{
-	if( all_cells == NULL )
-	{
-		return;
-	}
-
-	#pragma omp parallel for
-	for( int i = 0; i < (int) (*all_cells).size(); i++ )
-	{
-		Cell* pCell = (*all_cells)[i];
-		if( pCell != NULL && pCell->is_out_of_domain == false )
-		{
-			pCell->phenotype.secretion.advance( pCell, pCell->phenotype, dt);
-		}
-	}
-}
-
-void run_pre_simulation_density_steps( Microenvironment& microenvironment, double dt,
-	mpi_Environment& world, mpi_Cartesian& cart_topo )
-{
-	for( int step = 0; step < pre_simulation_density_steps; step++ )
-	{
-		microenvironment.simulate_diffusion_decay( dt, world, cart_topo );
-		run_cell_sinks_and_uptakes_only( dt);
-	}
-}
-
-}
-
 int main( int argc, char* argv[] )
 {
+	const bool paper_logging_enabled = argc > 2;
+	const std::string paper_csv_path = paper_logging_enabled ? argv[2] : "";
     
 /*=======================================================================================*/
 /* Create mpi_Environment object, initialize it, then create Cartesian Topology          */
@@ -197,11 +151,6 @@ int main( int argc, char* argv[] )
 	{ 
         exit(-1); 
   }
-
-  	#ifdef SCALABILITY
-	std::string  report = "./scalability_" + std::to_string(world.Size()) + ".csv";
-	std::ofstream file(report, std::ios::app);
-	#endif
 
 	//Setting OpenMP threads, this takes precedence over OMP_NUM_THREADS so be careful
 	omp_set_num_threads(PhysiCell_settings.omp_num_threads);
@@ -251,8 +200,10 @@ int main( int argc, char* argv[] )
 	sprintf( filename , "%s/initial" , PhysiCell_settings.folder.c_str() ); 
 	
 	//Use the parallel version of the function for XML file writing
-	save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo ); 
-	
+	if( paper_logging_enabled == false )
+	{
+		save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo );
+	}
 	//Save a SVG cross section through z = 0, after setting its length bar to 200 microns 
 	PhysiCell_SVG_options.length_bar = 200; 
 
@@ -262,16 +213,10 @@ int main( int argc, char* argv[] )
 	
 	//Use the parallel version of the function for SVG file plotting
 	sprintf( filename , "%s/initial.svg" , PhysiCell_settings.folder.c_str() ); 
-    SVG_plot_mpi( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function, substrate_coloring_function, world, cart_topo );
-
-	#ifdef TEST_PRE_SIMULATION_DENSITY_STEPS
-	log_microenvironment_densities( microenvironment, PhysiCell_settings.folder + "/initial_dens.log", world, cart_topo );
-	run_pre_simulation_density_steps( microenvironment, diffusion_dt, world, cart_topo );
-	log_microenvironment_densities( microenvironment, PhysiCell_settings.folder + "/final_dens.log", world, cart_topo );
-	
-	MPI_Abort(cart_topo.mpi_cart_comm, 0); //This is just to test the pre-simulation density steps. Remove this line to run the full simulation.
-    #endif
-
+    if( paper_logging_enabled == false )
+	{
+		SVG_plot_mpi( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function, substrate_coloring_function, world, cart_topo );
+	}
 	
 	//Set the performance timers 
 	BioFVM::RUNTIME_TIC();
@@ -291,11 +236,6 @@ int main( int argc, char* argv[] )
 		std::cout   << "necrotic Code "<< PhysiCell_constants::necrotic  << std::endl;;
 	}
 	//Main loop of the program
-	// main loop 
-	#ifdef SCALABILITY
-	int steps = 0;
-	auto start = std::chrono::high_resolution_clock::now();
-	#endif
 	try 
 	{	
 		while( PhysiCell_globals.current_time < PhysiCell_settings.max_time + 0.1*diffusion_dt )
@@ -303,62 +243,77 @@ int main( int argc, char* argv[] )
 			//Save data if it is time. 
 			if( fabs( PhysiCell_globals.current_time - PhysiCell_globals.next_full_save_time ) < 0.01 * diffusion_dt )
 			{
-				
-				//Use the parallel version of the function to display total cells, time
-				#ifdef SCALABILITY
-				auto end = std::chrono::high_resolution_clock::now();
-				std::chrono::duration<double> elapsed = end - start;
-				double time = elapsed.count();
-				double time_max = 0.0;
-				MPI_Reduce(&time, &time_max, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
-				if (steps > 0 && IOProcessor( world ) )
-				{
-					file << steps << "," << time_max << std::endl;
-				}
-				++steps;
-				#endif
-				display_simulation_status( std::cout, world, cart_topo );
-				#ifdef SCALABILITY
-				MPI_Barrier(MPI_COMM_WORLD);
-				start = std::chrono::high_resolution_clock::now();
-				#endif
 
-				#ifndef SCALABILITY
+				// display_simulation_status resets PhysiCell-X's phase timers. When
+				// paper logging is enabled, log_paper consumes and resets them instead.
+				if( paper_logging_enabled )
+				{
+					log_paper( paper_csv_path, PhysiCell_globals.current_time, world, cart_topo );
+				}
+				else
+				{
+					display_simulation_status( std::cout, world, cart_topo );
+				}
+				
+                double timepoint        = PhysiCell_globals.current_time;
+				int basic_agents        = total_basic_agent_count(world, cart_topo);
+				int cell_agents         = total_cell_agent_count(world, cart_topo);
+                int alive               = total_live_cell_count(world, cart_topo);
+                int dead                = total_dead_cell_count(world, cart_topo);
+                int apoptotic           = total_apoptosis_cell_count(world, cart_topo);
+                int necrotic            = total_necrosis_cell_count(world, cart_topo);
+				int dead_but_ghost 		= total_dead_but_ghost(world, cart_topo);
+				int necrotic_ghost 		= total_necrotic_ghost(world, cart_topo);
+				// int apoptotic_dead_alive = total_apoptosis_and_codealive(world, cart_topo);
+				// int apoptotic_dead_not_alive = total_apoptosis_not_codealive(world, cart_topo);
+				if( world.rank == 0)
+				{
+                    report_file << PhysiCell_globals.current_time;
+                    report_file << "\t" << basic_agents <<"\t" << cell_agents << "\t" << alive;
+					report_file << "\t" << dead << "\t" << apoptotic << "\t" << necrotic << "\t" << dead_but_ghost << "\t" << necrotic_ghost <<std::endl;;
+					// report_file << "\t" << apoptotic_dead_alive << "\t" << apoptotic_dead_not_alive << std::endl;;
+
+				}
+
+
 				if( PhysiCell_settings.enable_full_saves == true )
 				{	
 					sprintf( filename , "%s/output%08u" , PhysiCell_settings.folder.c_str(),  PhysiCell_globals.full_output_index ); 
 					
 					//Use the parallel version of the function for XML file writing
-					save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo ); 
+					if( paper_logging_enabled == false )
+					{
+						save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo );
+					}
 				}
-				#endif
+
 				PhysiCell_globals.full_output_index++; 
 				PhysiCell_globals.next_full_save_time += PhysiCell_settings.full_save_interval;
 			}
 			
-			
-										
 			//Save SVG plot if it is time
 			if( fabs( PhysiCell_globals.current_time - PhysiCell_globals.next_SVG_save_time  ) < 0.01 * diffusion_dt )
 			{
-				#ifndef SCALABILITY
 				if( PhysiCell_settings.enable_SVG_saves == true )
 				{	
 										
 					//Use the parallel version of the function for SVG file plotting
 					sprintf( filename , "%s/snapshot%08u.svg" , PhysiCell_settings.folder.c_str() , PhysiCell_globals.SVG_output_index);
-					SVG_plot_mpi( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function,substrate_coloring_function, world, cart_topo);
-					
+					if( paper_logging_enabled == false )
+					{
+						SVG_plot_mpi( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function,substrate_coloring_function, world, cart_topo);
+					}
 					PhysiCell_globals.SVG_output_index++; 
 					PhysiCell_globals.next_SVG_save_time  += PhysiCell_settings.SVG_save_interval;
 				}
-				#endif
 			}
 			
-		
-			
 			//Update the microenvironment i.e. solve diffusion equations
+			auto diffusion_start = std::chrono::steady_clock::now();
 			microenvironment.simulate_diffusion_decay( diffusion_dt, world, cart_topo );
+			auto diffusion_end = std::chrono::steady_clock::now();
+			time_diff += std::chrono::duration<double, std::micro>(
+				diffusion_end - diffusion_start ).count();
 			
 			//Run PhysiCell/PhysiCell-X to update all cells 
 			((Cell_Container *)microenvironment.agent_container)->update_all_cells( PhysiCell_globals.current_time, world, cart_topo);
@@ -373,23 +328,23 @@ int main( int argc, char* argv[] )
 		//Reference to the base of a polymorphic object, information from length_error printed
 		std::cout << e.what();  
 	}
-	
+
+	if( paper_logging_enabled == false )
+	{
 	//Save a final simulation snapshot 
 	sprintf( filename , "%s/final" , PhysiCell_settings.folder.c_str() ); 
 	save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo ); 
 	
 	sprintf( filename , "%s/final.svg" , PhysiCell_settings.folder.c_str()); 
 	SVG_plot_mpi( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function, substrate_coloring_function, world, cart_topo );
-	
+	}
 	//Timer, printing is done ONLY through MPI process rank 0 i.e. the first MPI process 
 	if(IOProcessor(world))
 	{
 		std::cout << std::endl << "Total simulation runtime: " << std::endl; 
 		BioFVM::display_stopwatch_value( std::cout , BioFVM::runtime_stopwatch_value() ); 
 	}
-	#ifdef SCALABILITY
-	file.close();
-	#endif
+
 	//Gracefully shut-down MPI 
   	world.Finalize(); 
 

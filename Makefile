@@ -1,7 +1,9 @@
 VERSION := $(shell grep . VERSION.txt | cut -f1 -d:)
 PROGRAM_NAME := project
 
-CC := g++
+.PHONY: physiboss-spatial-mpi bacterial-colony
+
+CC := mpic++
 # CC := g++-mp-7 # typical macports compiler name
 # CC := g++-7 # typical homebrew compiler name 
 
@@ -57,8 +59,8 @@ EXAMPLES := ./examples/PhysiCell_test_mechanics_1.cpp ./examples/PhysiCell_test_
  ./examples/PhysiCell_test_cell_cycle.cpp ./examples/PhysiCell_test_volume.cpp 
 
 all: 
-	make heterogeneity-sample
-	make 
+	$(MAKE) heterogeneity-sample-mpi
+	$(MAKE)
 
 # sample projects 	
 list-projects:
@@ -119,9 +121,10 @@ cancer-biorobots-sample:
 	cp ./sample_projects/cancer_biorobots/config/* ./config/
 	
 heterogeneity-sample-mpi:
+	rm -f ./custom_modules/*
 	cp ./sample_projects/heterogeneity_mpi/custom_modules/* ./custom_modules/
 	touch main.cpp && cp main.cpp main-backup.cpp
-	cp ./sample_projects/heterogeneity_mpi/main-heterogeneity.cpp ./main.cpp 
+	cp ./sample_projects/heterogeneity_mpi/main.cpp ./main.cpp
 	cp Makefile Makefile-backup
 	cp ./sample_projects/heterogeneity_mpi/Makefile .
 	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
@@ -192,6 +195,7 @@ physiboss-cell-lines-mpi:
 	cp ./sample_projects_intracellular/boolean/physiboss_cell_lines_mpi/config/* ./config/
 
 physiboss-spatial-mpi:
+	rm -f ./custom_modules/*
 	cp ./sample_projects_intracellular/boolean/spatial_mpi/custom_modules/* ./custom_modules/
 	touch main.cpp && cp main.cpp main-backup.cpp
 	cp ./sample_projects_intracellular/boolean/spatial_mpi/main.cpp ./main.cpp
@@ -199,7 +203,6 @@ physiboss-spatial-mpi:
 	cp ./sample_projects_intracellular/boolean/spatial_mpi/Makefile .
 	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml
 	cp ./sample_projects_intracellular/boolean/spatial_mpi/config/* ./config/
-	cp ./sample_projects_intracellular/boolean/spatial_mpi/run.sh ./run-spatial-mpi.sh
 
 physiboss-tnf-model:
 	cp ./sample_projects_intracellular/boolean/spheroid_tnf_model/custom_modules/* ./custom_modules/
@@ -236,12 +239,14 @@ cancer-metabolism-sample:
 	cp ./sample_projects_intracellular/fba/cancer_metabolism/Makefile ./
 	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml
 	cp ./sample_projects_intracellular/fba/cancer_metabolism/config/* ./config/
+
 bacterial-colony:
+	rm -f ./custom_modules/*
 	cp ./sample_projects_intracellular/fba/bacterial_colony/custom_modules/* ./custom_modules/
 	touch main.cpp && cp main.cpp main-backup.cpp
 	cp ./sample_projects_intracellular/fba/bacterial_colony/main.cpp ./main.cpp
 	cp Makefile Makefile-backup
-	cp ./sample_projects_intracellular/fba/bacterial_colony/Makefile ./
+	cp ./sample_projects_intracellular/fba/bacterial_colony/Makefile .
 	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml
 	cp ./sample_projects_intracellular/fba/bacterial_colony/config/* ./config/
 test-case-mpi:
