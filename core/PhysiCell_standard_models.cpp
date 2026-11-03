@@ -772,9 +772,9 @@ void standard_update_cell_velocity( Cell* pCell, Phenotype& phenotype, double dt
 				if(!is_neighbor_voxel(pCell, my_voxel_center, other_voxel_center , mcidiv, world, cart_topo))
 					continue;
 					
-				for(int cell_ctr=0; cell_ctr<mvi.cells.size(); cell_ctr++) {
+				for(int cell_ctr=0; cell_ctr<mvi.moore_cells.size(); cell_ctr++) {
 					pCell->state.mechanics_neighbor_candidates += 1;
-					pCell->add_potentials(mvi.cells[cell_ctr], world, cart_topo); 
+					pCell->add_potentials(mvi.moore_cells[cell_ctr], world, cart_topo); 
 				}
 				
 			}
@@ -803,9 +803,9 @@ void standard_update_cell_velocity( Cell* pCell, Phenotype& phenotype, double dt
 				if(!is_neighbor_voxel(pCell, my_voxel_center, other_voxel_center , mcidiv, world, cart_topo))
 					continue;
 					
-				for(int cell_ctr=0; cell_ctr<mvi.cells.size(); cell_ctr++) {
+				for(int cell_ctr=0; cell_ctr<mvi.moore_cells.size(); cell_ctr++) {
 					pCell->state.mechanics_neighbor_candidates += 1;
-					pCell->add_potentials(mvi.cells[cell_ctr], world, cart_topo);
+					pCell->add_potentials(mvi.moore_cells[cell_ctr], world, cart_topo);
 				}
 					 
 			}

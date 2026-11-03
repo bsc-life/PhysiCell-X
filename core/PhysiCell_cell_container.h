@@ -140,14 +140,14 @@ public:
 	Moore_Voxel_Info(std::vector<char>& buffer, int size, int &pos);
 };
 
-class Interacting_Cell_Info
+class Interacting_Cell_Info : public Moore_Cell_Info
 {
 public:
-	int ID;
-	int type;
-	bool dead;
-	int phase_code;
-	std::vector<double> position;
+	bool dead = false;
+	// Retain the phase code used by the legacy interaction exchange and the
+	// death-model code used by the merged ghost exchange.
+	int phase_code = -1;
+	int death_model_code = -1;
 	//Attack info
 	bool attacked = false;
 	double damage_suffered = 0;

@@ -658,7 +658,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
                     MPI_Get_count(&status, MPI_DOUBLE, &received_count);
 
                     if (received_count != (int)M.rcv_data_size) {
-                        std::fprintf(stderr, "RANK %d: TRUNCATION? step=%u expected=%zu received=%d source=%d tag=%d\n",
+                        std::fprintf(stderr, "RANK %d: TRUNCATION? step=%u expected=%d received=%d source=%d tag=%d\n",
                                     rank, step, M.rcv_data_size, received_count, status.MPI_SOURCE, status.MPI_TAG);
                     }
 
@@ -823,7 +823,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
                 MPI_Get_count(&status, MPI_DOUBLE, &received_count);
 
                 if (received_count != (int)M.rcv_data_size) {
-                    std::fprintf(stderr, "RANK %d: TRUNCATION? step=%u expected=%zu received=%d source=%d tag=%d\n",
+                    std::fprintf(stderr, "RANK %d: TRUNCATION? step=%u expected=%d received=%d source=%d tag=%d\n",
                                 rank, step, M.rcv_data_size, received_count, status.MPI_SOURCE, status.MPI_TAG);
                 }
                 #pragma omp parallel for

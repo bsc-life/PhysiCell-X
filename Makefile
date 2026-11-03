@@ -103,6 +103,7 @@ pred-prey-mpi:
 # sample projects 
 
 biorobots-sample:
+	rm -f ./custom_modules/*
 	cp ./sample_projects/biorobots/custom_modules/* ./custom_modules/
 	touch main.cpp && cp main.cpp main-backup.cpp
 	cp ./sample_projects/biorobots/main-biorobots.cpp ./main.cpp 

@@ -8,6 +8,8 @@ import urllib.request
 import tarfile
 import zipfile
 import sys
+import shutil
+import subprocess
 
 def get_os_arch():
     """Determine the operating system and architecture."""
@@ -51,6 +53,8 @@ def download_and_extract(url, dest_path, is_zip=False):
     if is_zip:
         with zipfile.ZipFile(file_path, 'r') as zip_ref:
             zip_ref.extractall(dest_path)
+    elif filename.endswith(".deb"):
+        subprocess.run(["dpkg-deb", "-x", file_path, dest_path], check=True)
     else:
         with tarfile.open(file_path, 'r:gz') as tar_ref:
             tar_ref.extractall(dest_path)
@@ -58,6 +62,30 @@ def download_and_extract(url, dest_path, is_zip=False):
     # Clean up
     os.remove(file_path)
     print(f"{filename} installed successfully.\n")
+
+def normalize_libsbml_install(dest_path):
+    """Expose the include/lib layout used by the dFBA Makefiles."""
+    expected_header = os.path.join(dest_path, "include", "sbml", "SBMLTypes.h")
+    expected_library = os.path.join(dest_path, "lib", "libsbml-static.a")
+    if os.path.isfile(expected_header) and os.path.isfile(expected_library):
+        return
+
+    include_source = None
+    library_source = None
+    for root, _, files in os.walk(dest_path):
+        if os.path.basename(root) == "sbml" and "SBMLTypes.h" in files:
+            include_source = os.path.dirname(root)
+        if "libsbml-static.a" in files:
+            library_source = root
+
+    if include_source and library_source:
+        include_dest = os.path.join(dest_path, "include")
+        library_dest = os.path.join(dest_path, "lib")
+        if os.path.abspath(include_source) != os.path.abspath(include_dest):
+            shutil.copytree(include_source, include_dest, dirs_exist_ok=True)
+        if os.path.abspath(library_source) != os.path.abspath(library_dest):
+            shutil.copytree(library_source, library_dest,
+                            dirs_exist_ok=True, symlinks=True)
 
 def main():
     # Define paths
@@ -77,8 +105,17 @@ def main():
     for pkg in ("coin-or", "libsbml"):
         pkg_path = os.path.join(default_libs_path, pkg)
 
-        # Skip download if package folder already exists and is populated
-        if os.path.exists(pkg_path) and os.listdir(pkg_path):
+        if pkg == "libsbml":
+            normalize_libsbml_install(pkg_path)
+
+        if pkg == "coin-or":
+            installed = os.path.isfile(os.path.join(
+                pkg_path, "include", "coin", "CoinPackedMatrix.hpp"))
+        else:
+            installed = (os.path.isfile(os.path.join(
+                pkg_path, "include", "sbml", "SBMLTypes.h")) and
+                os.path.isfile(os.path.join(pkg_path, "lib", "libsbml-static.a")))
+        if installed:
             print(f"Package {pkg} is already installed. Skipping...")
             continue
 
@@ -93,6 +130,8 @@ def main():
         url = pkg_dict['url']
         is_zip = url.endswith("zip")
         download_and_extract(url, pkg_path, is_zip)
+        if pkg == "libsbml":
+            normalize_libsbml_install(pkg_path)
 
 if __name__ == "__main__":
     main()

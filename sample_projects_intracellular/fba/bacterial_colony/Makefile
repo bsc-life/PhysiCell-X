@@ -79,6 +79,7 @@ PhysiCell_pugixml.o PhysiCell_settings.o PhysiCell_pathology_SVG.o PhysiCell_geo
 # put your custom objects here (they should be in the custom_modules directory)
 
 libFBA := $(EXT_DIR)/coin-or/include/coin/CoinPackedMatrix.hpp
+libSBML := $(EXT_DIR)/libsbml/include/sbml/SBMLTypes.h
 
 PhysiCelldFBA_OBJECTS := dfba_Metabolite.o dfba_Reaction.o dfba_Solution.o dfba_Model.o dfba_intracellular.o
 
@@ -90,7 +91,7 @@ PhysiCell_OBJECTS := $(BioFVM_OBJECTS)  $(pugixml_OBJECTS) $(PhysiCell_core_OBJE
 ALL_OBJECTS := $(PhysiCell_OBJECTS) $(PhysiCell_custom_module_OBJECTS) $(PhysiCelldFBA_OBJECTS) 
 
 # Parallel builds must finish dependency setup before compiling any objects.
-$(ALL_OBJECTS): | $(libFBA)
+$(ALL_OBJECTS): | $(libFBA) $(libSBML)
 
 SOME_OBJECTS := dfba_Metabolite.o dfba_Reaction.o dfba_Solution.o dfba_Model.o
 
@@ -98,7 +99,7 @@ SOME_OBJECTS := dfba_Metabolite.o dfba_Reaction.o dfba_Solution.o dfba_Model.o
 
 # all: libFBA main.cpp $(ALL_OBJECTS)
 
-all: main.cpp $(ALL_OBJECTS) $(libFBA)
+all: main.cpp $(ALL_OBJECTS) $(libFBA) $(libSBML)
 	$(COMPILE_COMMAND) $(INC) -o $(PROGRAM_NAME) $(ALL_OBJECTS) main.cpp $(LIB)
 	make name
 
@@ -224,7 +225,7 @@ PhysiCell_geometry.o: ./modules/PhysiCell_geometry.cpp
 # user-defined PhysiCell modules
 
 # PhysiFBA addon modules
-$(libFBA): 
+$(libFBA) $(libSBML):
 	python3 beta/setup_fba.py
 	
 dfba_intracellular.o: addons/dFBA/src/dfba_intracellular.cpp $(libFBA)

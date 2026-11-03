@@ -49,7 +49,7 @@ PhysiCell_pugixml.o PhysiCell_settings.o PhysiCell_pathology_SVG.o PhysiCell_geo
 
 # put your custom objects here (they should be in the custom_modules directory)
 
-PhysiCell_custom_module_OBJECTS := custom.o
+PhysiCell_custom_module_OBJECTS := biorobots.o
 
 pugixml_OBJECTS := pugixml.o
 
@@ -182,8 +182,8 @@ PhysiCell_geometry.o: ./modules/PhysiCell_geometry.cpp
 	
 # user-defined PhysiCell modules
 
-custom.o: ./custom_modules/custom.cpp 
-	$(COMPILE_COMMAND) -c ./custom_modules/custom.cpp
+biorobots.o: ./custom_modules/biorobots.cpp ./custom_modules/biorobots.h
+	$(COMPILE_COMMAND) -c ./custom_modules/biorobots.cpp
 
 # cleanup
 

@@ -208,7 +208,7 @@ void setup_tissue( DistPhy::mpi::mpi_Environment &world, DistPhy::mpi::mpi_Carte
 	std::cout << std::endl; 
 	
 	// load cells from your CSV file (if enabled)
-	load_cells_from_pugixml();
+	load_cells_from_pugixml(world, cart_topo);
 	set_parameters_from_distributions();
 	
 	return; 
