@@ -140,15 +140,14 @@ public:
 	Moore_Voxel_Info(std::vector<char>& buffer, int size, int &pos);
 };
 
-// Canonical cross-rank ghost-cell record. The Moore_Cell_Info base contains
-// fields shared by mechanics and cell interactions (ID, type, position and
-// mechanical parameters), so the merged ghost exchange transmits them once.
-class Interacting_Cell_Info : public Moore_Cell_Info
+class Interacting_Cell_Info
 {
 public:
-	bool dead = false;
-	// The Cycle_Model code, not the rank-local index in Death::models.
-	int death_model_code = -1;
+	int ID;
+	int type;
+	bool dead;
+	int phase_code;
+	std::vector<double> position;
 	//Attack info
 	bool attacked = false;
 	double damage_suffered = 0;

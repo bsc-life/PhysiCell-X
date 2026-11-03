@@ -77,6 +77,10 @@
 
 namespace PhysiCell{
 
+// Freeze contact data while phenotype updates run in parallel.
+void prepare_contact_signal_snapshot( const std::vector<Cell*>& cells );
+void clear_contact_signal_snapshot( void );
+
 // scales for the signals 
 extern std::vector<double> signal_scales; 
 // easy access to get or set scales 

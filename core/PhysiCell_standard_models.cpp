@@ -33,7 +33,7 @@
 #                                                                             #
 # BSD 3-Clause License (see https://opensource.org/licenses/BSD-3-Clause)     #
 #                                                                             #
-# Copyright (c) 2015-2018, Paul Macklin and the PhysiCell Project             #
+# Copyright (c) 2015-2025, Paul Macklin and the PhysiCell Project             #
 # All rights reserved.                                                        #
 #                                                                             #
 # Redistribution and use in source and binary forms, with or without          #
@@ -529,7 +529,7 @@ void standard_volume_update_function( Cell* pCell, Phenotype& phenotype, double 
 	if( phenotype.volume.fluid < 0.0 )
 	{ phenotype.volume.fluid = 0.0; }
 		
-	phenotype.volume.nuclear_fluid = (phenotype.volume.nuclear / phenotype.volume.total + 1e-16) * 
+	phenotype.volume.nuclear_fluid = (phenotype.volume.nuclear / (phenotype.volume.total+1e-16) ) * 
 		( phenotype.volume.fluid );
 	phenotype.volume.cytoplasmic_fluid = phenotype.volume.fluid - phenotype.volume.nuclear_fluid; 
 
@@ -551,7 +551,7 @@ void standard_volume_update_function( Cell* pCell, Phenotype& phenotype, double 
 	phenotype.volume.nuclear = phenotype.volume.nuclear_solid + phenotype.volume.nuclear_fluid; 
 	phenotype.volume.cytoplasmic = phenotype.volume.cytoplasmic_solid + phenotype.volume.cytoplasmic_fluid; 
 	
-	phenotype.volume.calcified_fraction = dt * phenotype.volume.calcification_rate 
+	phenotype.volume.calcified_fraction += dt * phenotype.volume.calcification_rate 
 		* (1- phenotype.volume.calcified_fraction);
    
 	phenotype.volume.total = phenotype.volume.cytoplasmic + phenotype.volume.nuclear; 
@@ -760,10 +760,10 @@ void standard_update_cell_velocity( Cell* pCell, Phenotype& phenotype, double dt
 			std::vector<int> moore_list = pCell->get_container()->underlying_mesh.moore_connected_voxel_global_indices_left[yx_index];
 			for(int i=0; i<moore_list.size(); i++)
 			{
-				auto mvi_iter = pCell->get_container()->ghost_voxel_from_left.find(moore_list[i]);
-				if( mvi_iter == pCell->get_container()->ghost_voxel_from_left.end() )
+				auto mvi_iter = pCell->get_container()->um_mbfl.find(moore_list[i]);
+				if( mvi_iter == pCell->get_container()->um_mbfl.end() )
 				{ continue; }
-				Interacting_Voxel &mvi = pCell->get_container()->ivfl[mvi_iter->second];
+				Moore_Voxel_Info &mvi = mvi_iter->second;
 
 				std::vector<double> my_voxel_center 	 = pCell->get_container()->underlying_mesh.voxels[pCell->get_current_mechanics_voxel_index()].center;
 				std::vector<double> other_voxel_center = mvi.center;
@@ -791,10 +791,10 @@ void standard_update_cell_velocity( Cell* pCell, Phenotype& phenotype, double dt
 			std::vector<int> moore_list = pCell->get_container()->underlying_mesh.moore_connected_voxel_global_indices_right[yx_index];
 			for(int i=0; i<moore_list.size(); i++)
 			{
-				auto mvi_iter = pCell->get_container()->ghost_voxel_from_right.find(moore_list[i]);
-				if( mvi_iter == pCell->get_container()->ghost_voxel_from_right.end() )
+				auto mvi_iter = pCell->get_container()->um_mbfr.find(moore_list[i]);
+				if( mvi_iter == pCell->get_container()->um_mbfr.end() )
 				{ continue; }
-				Interacting_Voxel &mvi = pCell->get_container()->ivfr[mvi_iter->second];
+				Moore_Voxel_Info &mvi = mvi_iter->second;
 
 				std::vector<double> my_voxel_center 	 = pCell->get_container()->underlying_mesh.voxels[pCell->get_current_mechanics_voxel_index()].center;
 				std::vector<double> other_voxel_center = mvi.center;

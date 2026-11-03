@@ -1493,12 +1493,12 @@ void Cell::update_voxel_in_container()
 /*------------------------------------------------------------------*/
 
 void Cell::update_voxel_in_container(mpi_Environment &world, mpi_Cartesian &cart_topo,
-	bool update_diffusion_voxel)
+	bool update_microenvironment_voxel)
 {
 
-	if(update_diffusion_voxel)
+	if( update_microenvironment_voxel )
 	{
-		update_voxel_index(world, cart_topo);
+		update_voxel_index(world, cart_topo); // This is in BioFVM_basic_agent.cpp
 	}
 
 	// Check to see if we need to remove agents that are pushed out of boundary
@@ -2563,63 +2563,45 @@ void Cell::ingest_cell( Interacting_Cell_Info* pCell_to_eat )
 	// make this thread safe 
 	#pragma omp critical
 	{
-		bool volume_was_zero = false; 
-		if( pCell_to_eat->phenotype_volume < 1e-15 )
+		bool volume_was_zero = ( pCell_to_eat->phenotype_volume < 1e-15 );
+		if( volume_was_zero == false )
 		{
-			volume_was_zero = true; 
-			std::cout << this << " " << this->type_name << " ingests " 
-			<< pCell_to_eat << " " << pCell_to_eat->type << std::endl; 
-		}
-		// absorb all the volume(s)
+			// absorb all the volume(s)
 
-		// absorb fluid volume (all into the cytoplasm) 
-		phenotype.volume.cytoplasmic_fluid += pCell_to_eat->cytoplasmic_fluid + pCell_to_eat->nuclear_fluid; 
-		
-		// absorb nuclear and cyto solid volume (into the cytoplasm) 
-		phenotype.volume.cytoplasmic_solid += pCell_to_eat->cytoplasmic_solid; 
-		
-		phenotype.volume.cytoplasmic_solid += pCell_to_eat->nuclear_solid; 
-		
-		// consistency calculations 
-		
-		phenotype.volume.fluid = phenotype.volume.nuclear_fluid + 
-			phenotype.volume.cytoplasmic_fluid; 
-		
-		phenotype.volume.solid = phenotype.volume.cytoplasmic_solid + 
-			phenotype.volume.nuclear_solid;  
-		
-		phenotype.volume.cytoplasmic = phenotype.volume.cytoplasmic_solid + 
-			phenotype.volume.cytoplasmic_fluid; 
-		
-		phenotype.volume.total = phenotype.volume.nuclear + 
-			phenotype.volume.cytoplasmic; 
-
-		phenotype.volume.fluid_fraction = phenotype.volume.fluid / 
-			(  phenotype.volume.total + 1e-16 ); 
-
-		phenotype.volume.cytoplasmic_to_nuclear_ratio = phenotype.volume.cytoplasmic_solid / 
-			( phenotype.volume.nuclear_solid + 1e-16 );
+			// absorb fluid volume (all into the cytoplasm) 
+			phenotype.volume.cytoplasmic_fluid += pCell_to_eat->cytoplasmic_fluid + pCell_to_eat->nuclear_fluid; 
 			
-		// update corresponding BioFVM parameters (self-consistency) 
-		set_total_volume( phenotype.volume.total ); 
-		
-		// absorb the internalized substrates 
-		
-		// multiply by the fraction that is supposed to be ingested (for each substrate) 
-		pCell_to_eat->internalized_substrates *= 
-			pCell_to_eat->fraction_transferred_when_ingested; // 
-		
-		*internalized_substrates += pCell_to_eat->internalized_substrates; 
-		
-		// trigger removal from the simulation 
-		// pCell_to_eat->die(); // I don't think this is safe if it's in an OpenMP loop 
-		
-		// flag it for removal 
-		// pCell_to_eat->flag_for_removal(); 
-		// mark it as dead 
-		pCell_to_eat->dead = true; 
-		pCell_to_eat->ingested = true;
-	
+			// absorb nuclear and cyto solid volume (into the cytoplasm) 
+			phenotype.volume.cytoplasmic_solid += pCell_to_eat->cytoplasmic_solid; 
+			phenotype.volume.cytoplasmic_solid += pCell_to_eat->nuclear_solid; 
+			
+			// consistency calculations 
+			phenotype.volume.fluid = phenotype.volume.nuclear_fluid + 
+				phenotype.volume.cytoplasmic_fluid; 
+			phenotype.volume.solid = phenotype.volume.cytoplasmic_solid + 
+				phenotype.volume.nuclear_solid;  
+			phenotype.volume.cytoplasmic = phenotype.volume.cytoplasmic_solid + 
+				phenotype.volume.cytoplasmic_fluid; 
+			phenotype.volume.total = phenotype.volume.nuclear + 
+				phenotype.volume.cytoplasmic; 
+			phenotype.volume.fluid_fraction = phenotype.volume.fluid / 
+				( phenotype.volume.total + 1e-16 ); 
+			phenotype.volume.cytoplasmic_to_nuclear_ratio = phenotype.volume.cytoplasmic_solid / 
+				( phenotype.volume.nuclear_solid + 1e-16 );
+			
+			// update corresponding BioFVM parameters (self-consistency) 
+			set_total_volume( phenotype.volume.total ); 
+			
+			// absorb the internalized substrates 
+			pCell_to_eat->internalized_substrates *= 
+				pCell_to_eat->fraction_transferred_when_ingested;
+			*internalized_substrates += pCell_to_eat->internalized_substrates; 
+			
+			// mark the halo copy so no second phagocyte can ingest it
+			pCell_to_eat->phenotype_volume = 0.0;
+			pCell_to_eat->dead = true;
+			pCell_to_eat->ingested = true;
+		}
 	}
 	
 	return; 

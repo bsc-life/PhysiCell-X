@@ -36,7 +36,7 @@ config/
 !sample_projects_intracellular/fba/bacterial_colony/config/
 !sample_projects_intracellular/fba/bacterial_colony/config/**
 #Results
-output/
+output/*
 logs/
 output*
 

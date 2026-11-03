@@ -313,9 +313,8 @@ class Cell : public Basic_Agent
 /* Parallel prototype of update_voxel_in_container 											 */
 /*=======================================================================*/	
 	
-	// Pass false only when the BioFVM voxel index is already current.
 	void update_voxel_in_container(mpi_Environment &world, mpi_Cartesian &cart_topo,
-		bool update_diffusion_voxel = true);
+		bool update_microenvironment_voxel = true); 
 	
 	void copy_data(Cell *);
 	
