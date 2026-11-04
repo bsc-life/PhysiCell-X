@@ -69,6 +69,8 @@
 #include "PhysiCell_constants.h"
 #include "../BioFVM/BioFVM_vector.h"
 #include "PhysiCell_cell.h"
+#include "PhysiCell_cell_sources.h"
+#include "PhysiCell_signal_behavior.h"
 
 #include <algorithm>
 #include <iterator> 
@@ -187,6 +189,16 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 	static double phenotype_dt_tolerance = 0.001 * phenotype_dt_;
 	static double mechanics_dt_tolerance = 0.001 * mechanics_dt_;
 
+	#pragma omp parallel for
+	for( int i=0; i < (*all_cells).size(); i++ )
+	{
+		if( (*all_cells)[i]->is_out_of_domain == false )
+		{
+			(*all_cells)[i]->phenotype.secretion.advance(
+				(*all_cells)[i], (*all_cells)[i]->phenotype, diffusion_dt_ );
+		}
+	}
+
 	// intracellular update. called for every diffusion_dt, but actually depends on the intracellular_dt of each cell (as it can be noisy)
 
 	double interval_maboss_time = 0.0;
@@ -248,6 +260,7 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 
 		// new as of 1.2.1 -- bundles cell phenotype parameter update, volume update, geometry update,
 		// checking for death, and advancing the cell cycle. Not motility, though. (that's in mechanics)
+		prepare_contact_signal_snapshot( *all_cells );
 		#pragma omp parallel for
 		for( int i=0; i < (*all_cells).size(); i++ )
 		{
@@ -256,6 +269,7 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 				(*all_cells)[i]->advance_bundled_phenotype_functions( time_since_last_cycle );
 			}
 		}
+		clear_contact_signal_snapshot();
 
 
 		// process divides / removes
@@ -478,7 +492,7 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 	{
 		// Reset the max_radius in each voxel. It will be filled in set_total_volume
 		// It might be better if we calculate it before mechanics each time
-		std::fill(max_cell_interactive_distance_in_voxel.begin(), max_cell_interactive_distance_in_voxel.end(), 0.0);
+		//std::fill(max_cell_interactive_distance_in_voxel.begin(), max_cell_interactive_distance_in_voxel.end(), 0.0);
 
 		if(!initialzed)
 		{
@@ -492,6 +506,7 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 		/* Nothing to be parallelized in advance_bundled_phenotype_functions(...) */
 		/*========================================================================*/
 		start = std::chrono::high_resolution_clock::now();
+		prepare_contact_signal_snapshot( *all_cells );
 		#pragma omp parallel for
 		for( int i=0; i < (*all_cells).size(); i++ )
 		{
@@ -500,6 +515,7 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 				(*all_cells)[i]->advance_bundled_phenotype_functions( time_since_last_cycle, world, cart_topo );
 			}
 		}
+		clear_contact_signal_snapshot();
 		/*=====================================================================================*/
 		/* (1) Division(), (2) Death(), (3) compute_gradients(), (4) evaluate_interactions(),  */ 
 		/* (5) custom_cell_rule (6) update_velocity() (7) and update_position() 							 */
@@ -634,13 +650,20 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 
 		start_part = std::chrono::high_resolution_clock::now();
 		#endif
-		#pragma omp parallel for
+		#pragma omp parallel for schedule(static)
 		for( int i=0; i < (*all_cells).size(); i++ )
 		{
-			Cell* pC = (*all_cells)[i];
+			Cell* const pC = (*all_cells)[i];
 			if(pC->is_out_of_domain == false && pC->is_movable)
 			{
 				pC->update_position(time_since_last_mechanics, world, cart_topo);
+				// This only updates cell-local BioFVM state. Migrating cells are
+				// indexed on arrival by assign_position(); agent_grid stays serial.
+				if(!pC->is_out_of_domain && !pC->crossed_to_left_subdomain &&
+					!pC->crossed_to_right_subdomain)
+				{
+					pC->update_voxel_index(world, cart_topo);
+				}
 			}
 		}
 		/*
@@ -725,9 +748,22 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 	#ifdef MECHS_TIME
 	start_part = std::chrono::high_resolution_clock::now();
 	#endif
-	for( int i=0; i < (*all_cells).size(); i++ )
-		if(!(*all_cells)[i]->is_out_of_domain && (*all_cells)[i]->is_movable)
-			(*all_cells)[i]->update_voxel_in_container(world, cart_topo);
+	// Shared voxel vectors must be updated serially. BioFVM indices were
+	// already updated in the position loop or when received cells were assigned.
+	const auto& cells = *all_cells;
+	for( Cell* const pC : cells )
+	{
+		if(!pC->is_out_of_domain && pC->is_movable)
+		{
+			pC->update_voxel_in_container(world, cart_topo, false);
+		}
+		else if(pC->is_out_of_domain && pC->get_current_mechanics_voxel_index() >= 0)
+		{
+			// Escaping cells became immovable in update_position(), but still
+			// need removal from agent_grid and an invalid BioFVM voxel index.
+			pC->update_voxel_in_container(world, cart_topo);
+		}
+	}
 		#ifdef MECHS_TIME
 		end_part = std::chrono::high_resolution_clock::now();
 		duration_part = std::chrono::duration_cast<std::chrono::microseconds>(end_part - start_part);
@@ -1028,22 +1064,18 @@ void Cell_Container::pack_cell_interact_info(mpi_Environment &world, mpi_Cartesi
 	int y_dim = underlying_mesh.y_coordinates.size();
 	int x_dim = underlying_mesh.x_coordinates.size();
 
-	std::vector<int> snd_buf_left_sizes(y_dim * z_dim, 0);
-	std::vector<int> snd_buf_right_sizes(y_dim * z_dim, 0);	
-	std::vector<vector<char>> snd_buf_left_per_voxel(y_dim * z_dim);
-	std::vector<vector<char>> snd_buf_right_per_voxel(y_dim * z_dim);
-
 	int len_snd_buf_left  	 = 0;
 	int len_snd_buf_right 	 = 0;
 
 	auto start = std::chrono::high_resolution_clock::now();
 
 	const size_t header_voxel = 2 * sizeof(int); // global_mesh_index
-	const size_t per_cell_bytes = 3 * sizeof(int) + 1 * sizeof(bool) + 10 * sizeof(double) + 2 * underlying_mesh.n_substrates * sizeof(double);
+	const size_t per_cell_bytes = 4 * sizeof(int) + 1 * sizeof(bool) + 10 * sizeof(double) + 2 * underlying_mesh.n_substrates * sizeof(double);
 	// Reserve enough space up-front to avoid repeated reallocations while packing.
 
-	std::vector<int> offsets_left((y_dim * z_dim)+1, 0);
-	std::vector<int> offsets_right((y_dim * z_dim)+1, 0);
+	const size_t offsets_count = static_cast<size_t>(y_dim) * z_dim + 1;
+	std::vector<int> offsets_left(offsets_count, 0);
+	std::vector<int> offsets_right(offsets_count, 0);
 
 
 	auto start_offsets = std::chrono::high_resolution_clock::now();
@@ -1117,6 +1149,8 @@ void Cell_Container::pack_cell_interact_info(mpi_Environment &world, mpi_Cartesi
 					MPI_Pack(&pCell->ID, 1, MPI_INT, snd_buf_left.data(), len_snd_buf_left, &thd_offset, MPI_COMM_WORLD);
 					MPI_Pack(&pCell->type, 1, MPI_INT, snd_buf_left.data(), len_snd_buf_left, &thd_offset, MPI_COMM_WORLD);
 					MPI_Pack(&pCell->phenotype.death.dead, 1, MPI_C_BOOL, snd_buf_left.data(), len_snd_buf_left, &thd_offset, MPI_COMM_WORLD);
+					int phase_code = pCell->phenotype.cycle.current_phase().code;
+					MPI_Pack(&phase_code, 1, MPI_INT, snd_buf_left.data(), len_snd_buf_left, &thd_offset, MPI_COMM_WORLD);
 					if (pCell->position.size() != 3) std::cout << "Ghost cell rank " << world.rank << " ID " << pCell->ID << std::endl;
  					MPI_Pack(&pCell->position[0] , 3, MPI_DOUBLE, snd_buf_left.data(), len_snd_buf_left, &thd_offset, MPI_COMM_WORLD);
 					MPI_Pack(&pCell->state.number_of_nuclei, 1, MPI_INT, snd_buf_left.data(), len_snd_buf_left, &thd_offset, MPI_COMM_WORLD);
@@ -1158,6 +1192,8 @@ if(world.rank < world.size-1)
 					MPI_Pack(&pCell->ID, 1, MPI_INT, snd_buf_right.data(), len_snd_buf_right, &thd_offset, MPI_COMM_WORLD);
 					MPI_Pack(&pCell->type, 1, MPI_INT, snd_buf_right.data(), len_snd_buf_right, &thd_offset, MPI_COMM_WORLD);
 					MPI_Pack(&pCell->phenotype.death.dead, 1, MPI_C_BOOL, snd_buf_right.data(), len_snd_buf_right, &thd_offset, MPI_COMM_WORLD);
+					int phase_code = pCell->phenotype.cycle.current_phase().code;
+					MPI_Pack(&phase_code, 1, MPI_INT, snd_buf_right.data(), len_snd_buf_right, &thd_offset, MPI_COMM_WORLD);
 					if (pCell->position.size() != 3) std::cout << "Ghost cell rank " << world.rank << " ID " << pCell->ID << std::endl;
 					MPI_Pack(&pCell->position[0] , 3, MPI_DOUBLE, snd_buf_right.data(), len_snd_buf_right, &thd_offset, MPI_COMM_WORLD);
 					MPI_Pack(&pCell->state.number_of_nuclei, 1, MPI_INT, snd_buf_right.data(), len_snd_buf_right, &thd_offset, MPI_COMM_WORLD);
@@ -1184,8 +1220,6 @@ if(world.rank < world.size-1)
 	/* Send to MPI_PROC_NULL as well, don't use 'if'	 */
 	/*---------------------------------------------------*/
 
-	std::vector<int> offsets_from_left_process(y_dim * z_dim + 1, 0); // +1 for sentinel
-	std::vector<int> offsets_from_right_process(y_dim * z_dim + 1, 0); // +1 for sentinel
 	int size_of_data_recvd_from_right_process = 0;
 	int size_of_data_recvd_from_left_process  = 0;
 	MPI_Request snd_req[2], rcv_req[2];
@@ -1292,6 +1326,7 @@ if(world.rank < world.size-1)
 				MPI_Unpack(&rcv_buf_right[0], size_right, &thd_offset, &ivfr[vxl_ctr].cells[cell_ctr].ID, 1, MPI_INT, MPI_COMM_WORLD);
 				MPI_Unpack(&rcv_buf_right[0], size_right, &thd_offset, &ivfr[vxl_ctr].cells[cell_ctr].type, 1, MPI_INT, MPI_COMM_WORLD);
 				MPI_Unpack(&rcv_buf_right[0], size_right, &thd_offset, &ivfr[vxl_ctr].cells[cell_ctr].dead, 1, MPI_C_BOOL, MPI_COMM_WORLD);
+				MPI_Unpack(&rcv_buf_right[0], size_right, &thd_offset, &ivfr[vxl_ctr].cells[cell_ctr].phase_code, 1, MPI_INT, MPI_COMM_WORLD);
 				ivfr[vxl_ctr].cells[cell_ctr].position.resize(3);
 				MPI_Unpack(&rcv_buf_right[0], size_right, &thd_offset, &ivfr[vxl_ctr].cells[cell_ctr].position[0], 3, MPI_DOUBLE, MPI_COMM_WORLD);
 				MPI_Unpack(&rcv_buf_right[0], size_right, &thd_offset, &ivfr[vxl_ctr].cells[cell_ctr].number_of_nuclei, 1, MPI_INT, MPI_COMM_WORLD);
@@ -1338,6 +1373,7 @@ if(world.rank < world.size-1)
 				MPI_Unpack(&rcv_buf_left[0], size_left, &thd_offset, &ivfl[vxl_ctr].cells[cell_ctr].ID, 1, MPI_INT, MPI_COMM_WORLD);
 				MPI_Unpack(&rcv_buf_left[0], size_left, &thd_offset, &ivfl[vxl_ctr].cells[cell_ctr].type, 1, MPI_INT, MPI_COMM_WORLD);
 				MPI_Unpack(&rcv_buf_left[0], size_left, &thd_offset, &ivfl[vxl_ctr].cells[cell_ctr].dead, 1, MPI_C_BOOL, MPI_COMM_WORLD);
+				MPI_Unpack(&rcv_buf_left[0], size_left, &thd_offset, &ivfl[vxl_ctr].cells[cell_ctr].phase_code, 1, MPI_INT, MPI_COMM_WORLD);
 				ivfl[vxl_ctr].cells[cell_ctr].position.resize(3);
 				MPI_Unpack(&rcv_buf_left[0], size_left, &thd_offset, &ivfl[vxl_ctr].cells[cell_ctr].position[0], 3, MPI_DOUBLE, MPI_COMM_WORLD);
 				MPI_Unpack(&rcv_buf_left[0], size_left, &thd_offset, &ivfl[vxl_ctr].cells[cell_ctr].number_of_nuclei, 1, MPI_INT, MPI_COMM_WORLD);

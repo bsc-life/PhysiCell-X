@@ -16,8 +16,8 @@
 // #define STATIC_RRC
 // #include "rrc_api.h"
 // #include "rrc_types.h"
-#include "../roadrunner/include/rr/C/rrc_api.h"
-#include "../roadrunner/include/rr/C/rrc_types.h"
+#include "rrc_api.h"
+#include "rrc_types.h"
 // #include "rrc_utilities.h"
 extern "C" rrc::RRHandle createRRInstance();
 // #endif
@@ -88,8 +88,13 @@ class RoadRunnerIntracellular : public PhysiCell::Intracellular
 
     // Need 'int' return type to avoid bizarre compile errors.
 	void update();
+	void update(PhysiCell::Cell* cell, PhysiCell::Phenotype& phenotype, double dt) {
+		update();
+		update_phenotype_parameters(phenotype);
+	}
     
-    
+	void inherit(PhysiCell::Cell * cell) {}
+	
     int update_phenotype_parameters(PhysiCell::Phenotype& phenotype);
     int validate_PhysiCell_tokens(PhysiCell::Phenotype& phenotype);
     int validate_SBML_species();
@@ -99,12 +104,15 @@ class RoadRunnerIntracellular : public PhysiCell::Intracellular
 	void set_parameter_value(std::string name, double value);
 	
 	std::string get_state();
-
+	void display(std::ostream&os) {}
     // for now, define dummy methods for these in the abstract parent class
     bool has_variable(std::string name) { return false; }
 	bool get_boolean_variable_value(std::string name) { return false; }
 	void set_boolean_variable_value(std::string name, bool value)  {}
     void print_current_nodes() {}
+
+	double get_flux_value(std::string name);
+	double get_growth_rate();
 
 	static void save_libRR(std::string path, std::string index);
 };

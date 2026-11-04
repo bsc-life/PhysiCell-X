@@ -62,6 +62,7 @@
 #include <string.h>
 #include <string>
 #include <iostream>
+#include <sstream>
 #include <random>
 #include <exception>
 #include "maboss-config.h"
@@ -373,6 +374,32 @@ class MT19937RandomGenerator : public RandomGenerator
   virtual void setSeed(int seed) {
     this->seed = seed;
     mt19937_srand(seed);
+  }
+
+  // Preserve the exact random stream when a PhysiBoSS cell migrates between
+  // MPI ranks. These methods are deliberately non-virtual: PhysiBoSS forces
+  // MaBoSS to use MT19937, and keeping the base-class vtable unchanged avoids
+  // an ABI change in the vendored MaBoSS static library.
+  std::string serializeState() const {
+    std::ostringstream output;
+    output << seed << '\n' << generator << '\n' << dis;
+    return output.str();
+  }
+
+  bool restoreState(const std::string& serialized_state) {
+    int restored_seed;
+    std::mt19937 restored_generator;
+    std::uniform_real_distribution<double> restored_distribution;
+    std::istringstream input(serialized_state);
+
+    if (!(input >> restored_seed >> restored_generator >> restored_distribution)) {
+      return false;
+    }
+
+    seed = restored_seed;
+    generator = restored_generator;
+    dis = restored_distribution;
+    return true;
   }
 
 };

@@ -67,6 +67,7 @@
  
 #include "./PhysiCell_signal_behavior.h"
 
+#include <unordered_map>
 #include <unordered_set>
 
 using namespace BioFVM; 
@@ -74,6 +75,17 @@ using namespace BioFVM;
 namespace PhysiCell{
 
 namespace {
+
+struct Contact_Signal_State
+{
+	int cell_definition_index = -1;
+	bool dead = false;
+	bool phase_code_valid = false;
+	int phase_code = -1;
+};
+
+std::unordered_map<const Cell*,Contact_Signal_State> contact_signal_snapshot;
+bool contact_signal_snapshot_active = false;
 
 int current_signal_behavior_rank( void )
 {
@@ -125,6 +137,31 @@ void log_invalid_contact_neighbor_cycle( Cell* pOwner, Cell* pNeighbor , const c
 	}
 }
 
+void log_neighbor_missing_from_contact_snapshot( Cell* pOwner, Cell* pNeighbor )
+{
+	static std::unordered_set<const Cell*> logged_neighbor_pointers;
+	bool should_log = false;
+
+	#pragma omp critical(physicell_contact_signal_snapshot_log)
+	{
+		should_log = logged_neighbor_pointers.insert( pNeighbor ).second;
+		if( should_log )
+		{
+			std::cerr << "Warning: skipping neighbor absent from contact signal snapshot"
+			          << " rank=" << current_signal_behavior_rank();
+			if( pOwner != NULL )
+			{
+				std::cerr << " owner_ID=" << pOwner->ID
+				          << " owner_type=" << pOwner->type
+				          << " owner_type_name=" << pOwner->type_name;
+			}
+			// Do not dereference pNeighbor: it may be a dangling pointer.
+			std::cerr << " neighbor_ptr=" << static_cast<const void*>(pNeighbor)
+			          << std::endl;
+		}
+	}
+}
+
 bool get_safe_dead_neighbor_phase_code( Cell* pOwner, Cell* pNeighbor , int& phase_code )
 {
 	if( pNeighbor == NULL )
@@ -165,19 +202,22 @@ bool get_safe_dead_neighbor_phase_code( Cell* pOwner, Cell* pNeighbor , int& pha
 		return false;
 	}
 
-	if( cycle.data.current_phase_index < 0 )
+	// Read once. During legacy live lookups another thread may advance this cell's
+	// cycle; using the checked value again prevents a check/use race.
+	const int phase_index = cycle.data.current_phase_index;
+	if( phase_index < 0 )
 	{
 		log_invalid_contact_neighbor_cycle( pOwner, pNeighbor , "negative current phase index" , repaired );
 		return false;
 	}
 
-	if( cycle.data.current_phase_index >= static_cast<int>(pModel->phases.size()) )
+	if( phase_index >= static_cast<int>(pModel->phases.size()) )
 	{
 		log_invalid_contact_neighbor_cycle( pOwner, pNeighbor , "current phase index out of bounds" , repaired );
 		return false;
 	}
 
-	phase_code = pModel->phases[cycle.data.current_phase_index].code;
+	phase_code = pModel->phases[phase_index].code;
 	if( repaired )
 	{
 		log_invalid_contact_neighbor_cycle( pOwner, pNeighbor , "restored missing cycle model pointer" , true );
@@ -186,7 +226,75 @@ bool get_safe_dead_neighbor_phase_code( Cell* pOwner, Cell* pNeighbor , int& pha
 	return true;
 }
 
+bool get_contact_signal_state( Cell* pOwner, Cell* pNeighbor, Contact_Signal_State& state )
+{
+	if( pNeighbor == NULL )
+	{
+		log_invalid_contact_neighbor_cycle( pOwner, pNeighbor, "null neighbor pointer", false );
+		return false;
+	}
+
+	if( contact_signal_snapshot_active )
+	{
+		auto found = contact_signal_snapshot.find( pNeighbor );
+		if( found == contact_signal_snapshot.end() )
+		{
+			// Do not dereference pNeighbor here: absence from the snapshot can mean
+			// that this is a dangling pointer.
+			log_neighbor_missing_from_contact_snapshot( pOwner, pNeighbor );
+			return false;
+		}
+		state = found->second;
+		return true;
+	}
+
+	auto type = cell_definition_indices_by_type.find( pNeighbor->type );
+	if( type == cell_definition_indices_by_type.end() )
+	{ return false; }
+	state.cell_definition_index = type->second;
+	state.dead = pNeighbor->phenotype.death.dead;
+	if( state.dead )
+	{
+		state.phase_code_valid = get_safe_dead_neighbor_phase_code(
+			pOwner, pNeighbor, state.phase_code );
+	}
+	return true;
+}
+
 } // namespace
+
+void prepare_contact_signal_snapshot( const std::vector<Cell*>& cells )
+{
+	contact_signal_snapshot_active = false;
+	contact_signal_snapshot.clear();
+	contact_signal_snapshot.reserve( cells.size() );
+
+	for( Cell* pCell : cells )
+	{
+		if( pCell == NULL )
+		{ continue; }
+
+		Contact_Signal_State state;
+		auto type = cell_definition_indices_by_type.find( pCell->type );
+		if( type == cell_definition_indices_by_type.end() )
+		{ continue; }
+		state.cell_definition_index = type->second;
+		state.dead = pCell->phenotype.death.dead;
+		if( state.dead )
+		{
+			state.phase_code_valid = get_safe_dead_neighbor_phase_code(
+				NULL, pCell, state.phase_code );
+		}
+		contact_signal_snapshot.emplace( pCell, state );
+	}
+
+	contact_signal_snapshot_active = true;
+}
+
+void clear_contact_signal_snapshot( void )
+{
+	contact_signal_snapshot_active = false;
+}
 
 std::vector<double> signal_scales; 
 
@@ -903,33 +1011,29 @@ std::vector<double> get_signals( Cell* pCell )
 	static int contact_ind = find_signal_index( "contact with " + cell_definitions_by_type[0]->name ); 
 	for( int i=0; i < pCell->state.neighbors.size(); i++ )
 	{
-		Cell* pC = pCell->state.neighbors[i]; 
-		if( pC == NULL )
-		{
-			log_invalid_contact_neighbor_cycle( pCell, pC , "null neighbor pointer" , false );
-			continue;
-		}
+		Cell* pC = pCell->state.neighbors[i];
+		Contact_Signal_State contact_state;
+		if( !get_contact_signal_state( pCell, pC, contact_state ) )
+		{ continue; }
 
-		if( pC->phenotype.death.dead == true )
+		if( contact_state.dead )
 		{
 			dead_cells++;
 
-			int phase_code = -1;
-			if( get_safe_dead_neighbor_phase_code( pCell, pC, phase_code ) )
+			if( contact_state.phase_code_valid )
 			{
-	            if( phase_code == PhysiCell_constants::apoptotic )
+	            if( contact_state.phase_code == PhysiCell_constants::apoptotic )
 	            { apop_cells++; }
 
-	            if( phase_code == PhysiCell_constants::necrotic_swelling || 
-	                phase_code == PhysiCell_constants::necrotic_lysed || 
-	                phase_code == PhysiCell_constants::necrotic )
+	            if( contact_state.phase_code == PhysiCell_constants::necrotic_swelling ||
+	                contact_state.phase_code == PhysiCell_constants::necrotic_lysed ||
+	                contact_state.phase_code == PhysiCell_constants::necrotic )
 	            { necro_cells++; }
 			}
 		} 
 		else
 		{ live_cells++; } 
-		int nCT = cell_definition_indices_by_type[pC->type]; 
-		signals[contact_ind+nCT] += 1; 
+		signals[contact_ind+contact_state.cell_definition_index] += 1;
 	}
 	other_dead_cells = dead_cells - apop_cells - necro_cells; 
 
@@ -1036,33 +1140,29 @@ std::vector<double> get_cell_contact_signals( Cell* pCell )
 
 	for( int i=0; i < pCell->state.neighbors.size(); i++ )
 	{
-		Cell* pC = pCell->state.neighbors[i]; 
-		if( pC == NULL )
-		{
-			log_invalid_contact_neighbor_cycle( pCell, pC , "null neighbor pointer" , false );
-			continue;
-		}
+		Cell* pC = pCell->state.neighbors[i];
+		Contact_Signal_State contact_state;
+		if( !get_contact_signal_state( pCell, pC, contact_state ) )
+		{ continue; }
 
-		if( pC->phenotype.death.dead == true )
+		if( contact_state.dead )
 		{
 			dead_cells++;
 
-			int phase_code = -1;
-			if( get_safe_dead_neighbor_phase_code( pCell, pC, phase_code ) )
+			if( contact_state.phase_code_valid )
 			{
-	            if( phase_code == PhysiCell_constants::apoptotic )
+	            if( contact_state.phase_code == PhysiCell_constants::apoptotic )
 	            { apop_cells++; }
 
-	            if( phase_code == PhysiCell_constants::necrotic_swelling || 
-	                phase_code == PhysiCell_constants::necrotic_lysed || 
-	                phase_code == PhysiCell_constants::necrotic )
+	            if( contact_state.phase_code == PhysiCell_constants::necrotic_swelling ||
+	                contact_state.phase_code == PhysiCell_constants::necrotic_lysed ||
+	                contact_state.phase_code == PhysiCell_constants::necrotic )
 	            { necro_cells++; }
 			}
 		} 
 		else
 		{ live_cells++; } 
-		int nCT = cell_definition_indices_by_type[pC->type]; 
-		output[nCT] += 1; 
+		output[contact_state.cell_definition_index] += 1;
 	}
     other_dead_cells = dead_cells - apop_cells - necro_cells; 
 
@@ -1185,35 +1285,30 @@ double get_single_signal( Cell* pCell, int index )
 		int apop_cells = 0;
 		int necro_cells = 0; 
 		int other_dead_cells = 0; 
-		int live_cells = 0; 
-			for( int i=0; i < pCell->state.neighbors.size(); i++ )
+		int live_cells = 0;
+		for( int i=0; i < pCell->state.neighbors.size(); i++ )
+		{
+			Cell* pC = pCell->state.neighbors[i];
+			Contact_Signal_State contact_state;
+			if( !get_contact_signal_state( pCell, pC, contact_state ) )
+			{ continue; }
+
+			if( contact_state.dead )
 			{
-				Cell* pC = pCell->state.neighbors[i]; 
-				if( pC == NULL )
+				dead_cells++;
+				if( contact_state.phase_code_valid )
 				{
-					log_invalid_contact_neighbor_cycle( pCell, pC , "null neighbor pointer" , false );
-					continue;
+					if( contact_state.phase_code == PhysiCell_constants::apoptotic )
+					{ apop_cells++; }
+					if( contact_state.phase_code == PhysiCell_constants::necrotic_swelling ||
+						contact_state.phase_code == PhysiCell_constants::necrotic_lysed ||
+						contact_state.phase_code == PhysiCell_constants::necrotic )
+					{ necro_cells++; }
 				}
-
-				if( pC->phenotype.death.dead == true )
-				{
-					dead_cells++;
-
-					int phase_code = -1;
-					if( get_safe_dead_neighbor_phase_code( pCell, pC, phase_code ) )
-					{
-						if( phase_code == PhysiCell_constants::apoptotic )
-						{ apop_cells++; }
-						if( phase_code == PhysiCell_constants::necrotic_swelling || 
-							phase_code == PhysiCell_constants::necrotic_lysed || 
-							phase_code == PhysiCell_constants::necrotic )
-						{ necro_cells++; }
-					}
-				} 
-				else
-				{ live_cells++; } 
-			int nCT = cell_definition_indices_by_type[pC->type]; 
-			counts[nCT] += 1; 
+			}
+			else
+			{ live_cells++; }
+			counts[contact_state.cell_definition_index] += 1;
 		}
 		other_dead_cells = dead_cells - apop_cells - necro_cells; 		
 

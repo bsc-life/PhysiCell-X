@@ -479,6 +479,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
                     {
                         MPI_Request send_req;
                         MPI_Isend(&(M.thomas_cx[M.mesh.x_coordinates.size() - 1][0]), M.thomas_cx[M.mesh.x_coordinates.size() - 1].size(), MPI_DOUBLE, ser_ctr + 1, 1111, cart_topo.mpi_cart_comm, &send_req);
+                        MPI_Wait(&send_req, MPI_STATUS_IGNORE);
                     }
                 }
 
@@ -546,11 +547,12 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
 
         uint32_t n_req = granurality;
         if (M.last_iteration > 0) n_req+=1;
-        MPI_Request send_req[n_req];
+        std::vector<MPI_Request> send_req(n_req, MPI_REQUEST_NULL);
         MPI_Request recv_req[n_req];
         std::vector<double> block3d(M.thomas_i_jump); //The message to send is of the size Y_voxels * Z_voxels * Substrates
 
         M.apply_dirichlet_boundaries_conditions(rank, size);
+        M.apply_internal_dirichlet_conditions();
 
         /*-----------------------------------------------------------------------------------*/
         /*                        FORWARD ELIMINATION - x DIRECTION/DECOMPOSITION            */
@@ -656,7 +658,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
                     MPI_Get_count(&status, MPI_DOUBLE, &received_count);
 
                     if (received_count != (int)M.rcv_data_size) {
-                        std::fprintf(stderr, "RANK %d: TRUNCATION? step=%u expected=%zu received=%d source=%d tag=%d\n",
+                        std::fprintf(stderr, "RANK %d: TRUNCATION? step=%u expected=%d received=%d source=%d tag=%d\n",
                                     rank, step, M.rcv_data_size, received_count, status.MPI_SOURCE, status.MPI_TAG);
                     }
 
@@ -744,6 +746,8 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
                 }
             }
         }
+        // Complete sends before reusing requests or modifying their density buffers.
+         MPI_Waitall(static_cast<int>(send_req.size()), send_req.data(), MPI_STATUSES_IGNORE);
         MPI_Barrier(cart_topo.mpi_cart_comm);
         /*-----------------------------------------------------------------------------------*/
         /*                         CODE FOR BACK SUBSITUTION                                 */
@@ -819,7 +823,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
                 MPI_Get_count(&status, MPI_DOUBLE, &received_count);
 
                 if (received_count != (int)M.rcv_data_size) {
-                    std::fprintf(stderr, "RANK %d: TRUNCATION? step=%u expected=%zu received=%d source=%d tag=%d\n",
+                    std::fprintf(stderr, "RANK %d: TRUNCATION? step=%u expected=%d received=%d source=%d tag=%d\n",
                                 rank, step, M.rcv_data_size, received_count, status.MPI_SOURCE, status.MPI_TAG);
                 }
                 #pragma omp parallel for
@@ -885,9 +889,12 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
                 }
             }
         }
+        // Complete sends before reusing requests or modifying their density buffers.
+        MPI_Waitall(static_cast<int>(send_req.size()), send_req.data(), MPI_STATUSES_IGNORE);
         MPI_Barrier(cart_topo.mpi_cart_comm);
 
         M.apply_dirichlet_boundaries_conditions(rank, size);
+        M.apply_internal_dirichlet_conditions();
 
         #pragma omp parallel for collapse(2)
         for (uint32_t i = 0; i < M.mesh.x_size; i++)
@@ -937,6 +944,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
         }
 
         M.apply_dirichlet_boundaries_conditions(rank, size);
+        M.apply_internal_dirichlet_conditions();
 
         #pragma omp parallel for collapse(2)
         for (uint32_t i = 0; i < M.mesh.x_size; i++)
@@ -984,6 +992,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
             }
         }
         M.apply_dirichlet_boundaries_conditions(rank, size);
+        M.apply_internal_dirichlet_conditions();
         return;
     }
 
@@ -1278,6 +1287,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
         double block3d[M.thomas_i_jump]; //Aux structure of the size: Y*Z*Substrates
 
         M.apply_dirichlet_boundaries_conditions(rank, size);
+        M.apply_internal_dirichlet_conditions();
 
         if (rank == 0)
         {
@@ -1716,6 +1726,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
         }
 
     M.apply_dirichlet_boundaries_conditions(rank, size);
+    M.apply_internal_dirichlet_conditions();
 
     #pragma omp parallel for
     for (int i = 0; i < M.mesh.x_size; i++)
@@ -1824,6 +1835,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
     }
 
     M.apply_dirichlet_boundaries_conditions(rank, size);
+    M.apply_internal_dirichlet_conditions();
 
     #pragma omp parallel for collapse(2)
     for (int i = 0; i < M.mesh.x_size; i++)
@@ -1870,7 +1882,8 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
             }
         }
     }
-}   
+    M.apply_internal_dirichlet_conditions();
+}
 
 //BioFVM-B: need to include communication 
 void diffusion_decay_solver__constant_coefficients_LOD_2D( Microenvironment& M, double dt )

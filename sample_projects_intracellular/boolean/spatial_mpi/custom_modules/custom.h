@@ -1,5 +1,3 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!--
 /*
 ###############################################################################
 # If you use PhysiCell in your project, please cite PhysiCell and the version #
@@ -35,7 +33,7 @@
 #                                                                             #
 # BSD 3-Clause License (see https://opensource.org/licenses/BSD-3-Clause)     #
 #                                                                             #
-# Copyright (c) 2015-2018, Paul Macklin and the PhysiCell Project             #
+# Copyright (c) 2015-2021, Paul Macklin and the PhysiCell Project             #
 # All rights reserved.                                                        #
 #                                                                             #
 # Redistribution and use in source and binary forms, with or without          #
@@ -66,78 +64,67 @@
 #                                                                             #
 ###############################################################################
 */
---> 
 
-<!--
-<user_details />
--->
+#include "../core/PhysiCell.h"
+#include "../modules/PhysiCell_standard_modules.h" 
+#include "../DistPhy/DistPhy_Utils.h"
+#include "../DistPhy/DistPhy_Collective.h"
 
-<PhysiCell_settings version="devel-version">
-	<domain>
-		<x_min>-100</x_min>
-		<x_max>100</x_max>
-		<y_min>-100</y_min>
-		<y_max>100</y_max>
-		<z_min>-10</z_min>
-		<z_max>10</z_max>
-		<dx>10</dx>
-		<dy>10</dy>
-		<dz>10</dz>
-		<use_2D>true</use_2D>
-	</domain>
-	
-	<overall>
-		<max_time units="min">1080</max_time> 
-		<time_units>min</time_units>
-		<space_units>micron</space_units>
-	</overall>
-	
-	<parallel>
-		<omp_num_threads>4</omp_num_threads>
-	</parallel> 
-	
-	<save>
-		<folder>output</folder>
-		<full_data>
-			<interval units="min">5</interval>
-			<enable>true</enable>
-		</full_data>
-		
-		<SVG>
-			<interval units="min">5</interval>
-			<enable>true</enable>
-		</SVG>
-		
-		<legacy_data>
-			<enable>false</enable>
-		</legacy_data>
-	</save>
-	
-	<user_parameters>
-		<random_seed type="int" units="dimensionless">50</random_seed> 
-		
-		<fluid_fraction type="double" units="dimensionless">0.75</fluid_fraction>
-		<cytoplasmic_biomass_change_rate type="double" units="1/min">0.15</cytoplasmic_biomass_change_rate>
-        <fluid_change_rate type="double" units="1/min">0.15</fluid_change_rate>
-		<birth_rate type="double" units="1/min">0.00833333</birth_rate>
-        <cell_volume type="double" units="micron^3">20.0</cell_volume>
-		
-        <!-- PhysiFBA parameters --> 
-        <sbml_model type="string" units="">./config/Ecoli_core.xml</sbml_model>
+#include "./tnf_boolean_model_interface.h"
 
-        <glucose_Km>1</glucose_Km>
-        <glucose_Vmax>1</glucose_Vmax>
-        
-        <acetate_Km>1</acetate_Km>
-        <acetate_Vmax>1</acetate_Vmax>
-        
-        <oxygen_Km>1</oxygen_Km>
-        <oxygen_Vmax>1</oxygen_Vmax>
-        
-		
-		
-		
-	</user_parameters>
-	
-	
-</PhysiCell_settings>
+using namespace BioFVM; 
+using namespace PhysiCell;
+using namespace DistPhy::mpi;
+
+// setup functions to help us along 
+
+void create_cell_types( mpi_Environment& world, mpi_Cartesian& cart_topo );
+void setup_tissue( mpi_Environment& world, mpi_Cartesian& cart_topo ); 
+
+// set up the BioFVM microenvironment 
+void setup_microenvironment( mpi_Environment& world, mpi_Cartesian& cart_topo ); 
+
+
+void change_dirichlet_nodes( mpi_Environment& world );
+
+// helper function to read init files
+std::vector<std::vector<double>>  read_cells_positions(std::string filename, char delimiter, bool header);
+
+// custom pathology coloring function 
+
+std::vector<std::string> my_coloring_function( Cell* );
+
+// custom functions can go here 
+
+void phenotype_function( Cell* pCell, Phenotype& phenotype, double dt );
+void custom_function( Cell* pCell, Phenotype& phenotype , double dt );
+
+void contact_function( Cell* pMe, Phenotype& phenoMe , Cell* pOther, Phenotype& phenoOther , double dt ); 
+
+void treatment_function( mpi_Environment& world );
+
+
+// helper function to remove a density
+void remove_density( int density_index );
+
+// custom pathology coloring function 
+std::vector<std::string> my_coloring_function( Cell* );
+
+std::vector<std::string> regular_colors( Cell* );
+
+double total_live_cell_count();
+
+// count the number of total dead cells at current time step
+double total_dead_cell_count();
+
+// count the number of necrotic cells at current time step
+double total_necrosis_cell_count();
+
+// ecm interaction
+
+static const double EPSILON = std::numeric_limits<double>::epsilon();
+void set_substrate_density( mpi_Environment& world );
+void add_ecm_interaction ( Cell* pC, int index_ecm, int index_voxel );
+void custom_update_velocity ( Cell* pCell, Phenotype& phenotype, double dt );
+
+double current_value( double min, double max, double percent );

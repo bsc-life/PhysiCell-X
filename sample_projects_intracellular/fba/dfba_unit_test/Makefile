@@ -1,5 +1,6 @@
 VERSION := $(shell grep . VERSION.txt | cut -f1 -d:)
 PROGRAM_NAME := dfba-unit-test
+.DEFAULT_GOAL := all
 
 CC := mpic++
 
@@ -14,7 +15,9 @@ EXT_DIR = $(CUR_DIR)/addons/dFBA/ext
 
 BZ2_STATIC_LIB ?= $(shell $(CC) -print-file-name=libbz2.a 2>/dev/null)
 
-LIB := -L$(EXT_DIR)/libsbml/lib  $(EXT_DIR)/coin-or/lib/libClp-static.a $(EXT_DIR)/coin-or/lib/libCoinUtils-static.a -lsbml-static -lxml2 $(BZ2_STATIC_LIB) -lz -ggdb -llapack -no-pie
+CLP_LIB = $(firstword $(wildcard $(EXT_DIR)/coin-or/lib/libClp-static.a $(EXT_DIR)/coin-or/lib/libClp.a) $(EXT_DIR)/coin-or/lib/libClp-static.a)
+COINUTILS_LIB = $(firstword $(wildcard $(EXT_DIR)/coin-or/lib/libCoinUtils-static.a $(EXT_DIR)/coin-or/lib/libCoinUtils.a) $(EXT_DIR)/coin-or/lib/libCoinUtils-static.a)
+LIB := -L$(EXT_DIR)/libsbml/lib $(CLP_LIB) $(COINUTILS_LIB) -lsbml-static -lxml2 $(BZ2_STATIC_LIB) -lz -ggdb -llapack -no-pie
 INC := -DADDON_PHYSIDFBA -I$(EXT_DIR)/libsbml/include -I$(EXT_DIR)/coin-or/include -I$(CUR_DIR)/addons/dFBA/src
 
 
@@ -77,7 +80,8 @@ PhysiCell_pugixml.o PhysiCell_settings.o PhysiCell_pathology_SVG.o PhysiCell_geo
 
 # put your custom objects here (they should be in the custom_modules directory)
 
-libFBA := ./addons/dFBA/ext/coin-or/include/coin/CoinPackedMatrix.hpp
+libFBA := $(EXT_DIR)/coin-or/include/coin/CoinPackedMatrix.hpp
+libSBML := $(EXT_DIR)/libsbml/include/sbml/SBMLTypes.h
 
 PhysiCelldFBA_OBJECTS := dfba_Metabolite.o dfba_Reaction.o dfba_Solution.o dfba_Model.o dfba_intracellular.o
 
@@ -87,6 +91,8 @@ pugixml_OBJECTS := pugixml.o
 
 PhysiCell_OBJECTS := $(BioFVM_OBJECTS)  $(pugixml_OBJECTS) $(PhysiCell_core_OBJECTS) $(PhysiCell_module_OBJECTS) $(DistPhy_OBJECTS)
 ALL_OBJECTS := $(PhysiCell_OBJECTS) $(PhysiCell_custom_module_OBJECTS) $(PhysiCelldFBA_OBJECTS)
+
+$(ALL_OBJECTS): | $(libFBA) $(libSBML)
 
 SOME_OBJECTS := dfba_Metabolite.o dfba_Reaction.o dfba_Solution.o dfba_Model.o
 
@@ -103,7 +109,7 @@ check-static-bz2:
 
 # all: libFBA main.cpp $(ALL_OBJECTS)
 
-all: check-static-bz2 main.cpp $(ALL_OBJECTS) $(libFBA)
+all: check-static-bz2 main.cpp $(ALL_OBJECTS) $(libFBA) $(libSBML)
 	$(COMPILE_COMMAND) $(INC) -o $(PROGRAM_NAME) $(ALL_OBJECTS) main.cpp $(LIB)
 	make name
 
@@ -229,6 +235,9 @@ PhysiCell_settings.o: ./modules/PhysiCell_settings.cpp
 
 # PhysiFBA addon modules
 $(libFBA):
+	python3 beta/setup_fba.py
+
+$(libSBML): $(libFBA)
 	python3 beta/setup_fba.py
 
 dfba_intracellular.o: addons/dFBA/src/dfba_intracellular.cpp $(libFBA)

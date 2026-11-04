@@ -894,9 +894,12 @@ void Cartesian_Mesh::create_moore_neighborhood(mpi_Environment &world, mpi_Carte
 	moore_connected_voxel_global_indices_right.resize(y_coordinates.size() * z_coordinates.size());
 	
 	
-	int x_nodes = (bounding_box[3]-bounding_box[0])/dx;
-	int y_nodes = (bounding_box[4]-bounding_box[1])/dy;
-	int z_nodes = (bounding_box[5]-bounding_box[2])/dz;
+	int x_nodes = static_cast<int>(
+    std::ceil(1e-16 + (bounding_box[3] - bounding_box[0]) / dx));
+int y_nodes = static_cast<int>(
+    std::ceil(1e-16 + (bounding_box[4] - bounding_box[1]) / dy));
+int z_nodes = static_cast<int>(
+    std::ceil(1e-16 + (bounding_box[5] - bounding_box[2]) / dz));
 	
 	int global_z_jump = 1;
 	int global_y_jump = z_nodes; 
@@ -1878,13 +1881,15 @@ int Cartesian_Mesh::nearest_voxel_local_index( std::vector<double>& position, mp
 	int y_vox = (int) floor( (position[1]-local_bounding_box[1])/dy ); 
 	int z_vox = (int) floor( (position[2]-local_bounding_box[2])/dz );
 
-	if( x_vox >= x_coordinates.size() ){x_vox = x_coordinates.size()-1;}
+	// Compare signed indices with signed sizes: a negative index must clamp to zero,
+	// not convert to size_t and incorrectly clamp to the far side of the subdomain.
+	if( x_vox >= x_size ){x_vox = x_size-1;}
     if( x_vox < 0 ){x_vox = 0;}
 
-	if( y_vox >= y_coordinates.size() ){y_vox = y_coordinates.size()-1;}
+	if( y_vox >= y_size ){y_vox = y_size-1;}
     if( y_vox < 0 ){y_vox = 0;}
 
-	if( z_vox >= z_coordinates.size() ){z_vox = z_coordinates.size()-1;}
+	if( z_vox >= z_size ){z_vox = z_size-1;}
     if( z_vox < 0 ){ z_vox = 0;}
     
 	int local_voxel = (x_vox * y_size * z_size) + (y_vox * z_size) + z_vox;

@@ -33,7 +33,7 @@
 #                                                                             #
 # BSD 3-Clause License (see https://opensource.org/licenses/BSD-3-Clause)     #
 #                                                                             #
-# Copyright (c) 2015-2018, Paul Macklin and the PhysiCell Project             #
+# Copyright (c) 2015-2025, Paul Macklin and the PhysiCell Project             #
 # All rights reserved.                                                        #
 #                                                                             #
 # Redistribution and use in source and binary forms, with or without          #
@@ -529,7 +529,7 @@ void standard_volume_update_function( Cell* pCell, Phenotype& phenotype, double 
 	if( phenotype.volume.fluid < 0.0 )
 	{ phenotype.volume.fluid = 0.0; }
 		
-	phenotype.volume.nuclear_fluid = (phenotype.volume.nuclear / phenotype.volume.total + 1e-16) * 
+	phenotype.volume.nuclear_fluid = (phenotype.volume.nuclear / (phenotype.volume.total+1e-16) ) * 
 		( phenotype.volume.fluid );
 	phenotype.volume.cytoplasmic_fluid = phenotype.volume.fluid - phenotype.volume.nuclear_fluid; 
 
@@ -551,7 +551,7 @@ void standard_volume_update_function( Cell* pCell, Phenotype& phenotype, double 
 	phenotype.volume.nuclear = phenotype.volume.nuclear_solid + phenotype.volume.nuclear_fluid; 
 	phenotype.volume.cytoplasmic = phenotype.volume.cytoplasmic_solid + phenotype.volume.cytoplasmic_fluid; 
 	
-	phenotype.volume.calcified_fraction = dt * phenotype.volume.calcification_rate 
+	phenotype.volume.calcified_fraction += dt * phenotype.volume.calcification_rate 
 		* (1- phenotype.volume.calcified_fraction);
    
 	phenotype.volume.total = phenotype.volume.cytoplasmic + phenotype.volume.nuclear; 

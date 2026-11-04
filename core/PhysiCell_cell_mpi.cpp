@@ -600,7 +600,7 @@ void unpack_intracellular_light(Phenotype& phenotype, std::vector<char>& buffer,
 			}
 		}
 
-		intracellular->initialize_maboss();
+		intracellular->initialize_maboss(false);
 		intracellular->maboss.unpack( buffer, len_buffer, position );
 		unpack_buff( intracellular->next_physiboss_run , buffer, len_buffer, position );
 		return;
@@ -858,6 +858,15 @@ void Cell::pack_light(std::vector<char>& snd_buffer, int& len_buffer, int& posit
 	pack_buff( this->displacement , snd_buffer, len_buffer, position );
 	pack_buff( this->get_previous_velocity() , snd_buffer, len_buffer, position );
 	pack_buff( this->velocity , snd_buffer, len_buffer, position );
+
+	// Migration must not change the timestep encoded in the exchange cache.
+	// Rates alone cannot reconstruct it: dFBA and diffusion can use different dt.
+	pack_buff( this->get_total_volume(), snd_buffer, len_buffer, position );
+	pack_buff( this->get_is_volume_changed(), snd_buffer, len_buffer, position );
+	pack_buff( this->get_cell_source_sink_solver_temp1(), snd_buffer, len_buffer, position );
+	pack_buff( this->get_cell_source_sink_solver_temp2(), snd_buffer, len_buffer, position );
+	pack_buff( this->get_cell_source_sink_solver_temp_export1(), snd_buffer, len_buffer, position );
+	pack_buff( this->get_cell_source_sink_solver_temp_export2(), snd_buffer, len_buffer, position );
 }
 
 void Cell::unpack_light(std::vector<char>& rcv_buffer, int& len_buffer, int& position)
@@ -883,7 +892,19 @@ void Cell::unpack_light(std::vector<char>& rcv_buffer, int& len_buffer, int& pos
 
 	apply_cycle_model_safety_net( this , pCD );
 	this->set_total_volume( this->phenotype.volume.total );
-	this->set_is_volume_changed( true );
+
+	double cached_volume;
+	bool volume_changed;
+	unpack_buff( cached_volume, rcv_buffer, len_buffer, position );
+	unpack_buff( volume_changed, rcv_buffer, len_buffer, position );
+	unpack_buff( this->get_cell_source_sink_solver_temp1(), rcv_buffer, len_buffer, position );
+	unpack_buff( this->get_cell_source_sink_solver_temp2(), rcv_buffer, len_buffer, position );
+	unpack_buff( this->get_cell_source_sink_solver_temp_export1(), rcv_buffer, len_buffer, position );
+	unpack_buff( this->get_cell_source_sink_solver_temp_export2(), rcv_buffer, len_buffer, position );
+	// Restore after geometry synchronization, which invalidates the cache.
+	// Keep a dirty sender dirty, so its next exchange still rebuilds the cache.
+	this->Basic_Agent::set_total_volume( cached_volume );
+	this->set_is_volume_changed( volume_changed );
 }
 
 

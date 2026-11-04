@@ -1,4 +1,3 @@
-
 #include "./PhysiCell_pathology.h"
 
 #include "./PhysiCell_SVG.h"
@@ -450,14 +449,18 @@ void SVG_plot_mpi( std::string filename , Microenvironment& M, double z_slice , 
 
 	//last rank tell to first rank where it ended
 	int offset_ecm;
-	if (world.rank == world.size -1) {
+	// last rank tells the root where the first pass ended so the second pass can be appended after the valid SVG header/ECM section
+	if (world.size == 1) {
+		offset_ecm = offset + local_chars;
+	}
+	else if (world.rank == world.size - 1) {
 		offset_ecm = offset + local_chars;
 		MPI_Send(&offset_ecm, 1, MPI_INT, 0, 2, cart_topo.mpi_cart_comm);
 	}
 	else if (world.rank == 0) {
-		MPI_Recv(&offset_ecm, 1, MPI_INT, world.rank -1, 2, cart_topo.mpi_cart_comm, MPI_STATUS_IGNORE);
-	} 
-
+		MPI_Recv(&offset_ecm, 1, MPI_INT, world.size - 1, 2, cart_topo.mpi_cart_comm, MPI_STATUS_IGNORE);
+	}
+	
 	local_chars = file_str.size();
 	data = new char[file_str.size()];
 	if(local_chars > 0) memcpy(data, file_str.data(), local_chars);

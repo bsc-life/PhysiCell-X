@@ -3,6 +3,19 @@
 
 namespace PhysiCell{
 
+static double dead_phagocytosis_rate( Phenotype& phenotype, int phase_code )
+{
+	if( phase_code == PhysiCell_constants::apoptotic )
+	{ return phenotype.cell_interactions.apoptotic_phagocytosis_rate; }
+
+	if( phase_code == PhysiCell_constants::necrotic_swelling ||
+		phase_code == PhysiCell_constants::necrotic_lysed ||
+		phase_code == PhysiCell_constants::necrotic )
+	{ return phenotype.cell_interactions.necrotic_phagocytosis_rate; }
+
+	return phenotype.cell_interactions.other_dead_phagocytosis_rate;
+}
+
 void standard_elastic_contact_function( Cell* pC1, Phenotype& p1, std::vector<double> neighbour, double, mpi_Environment&, mpi_Cartesian& )
 {
 	if( pC1->position.size() != 3 || neighbour.size() != 3 )
@@ -17,7 +30,6 @@ void standard_elastic_contact_function( Cell* pC1, Phenotype& p1, std::vector<do
 }
 
 //MPI parallel version
-//TODO: Encapsulate left and right neighbor interactions
 void standard_cell_cell_interactions( Cell* pCell, Phenotype& phenotype, double dt , mpi_Environment &world, mpi_Cartesian &cart_topo )
 {
 	if( phenotype.death.dead == true )
@@ -29,7 +41,8 @@ void standard_cell_cell_interactions( Cell* pCell, Phenotype& phenotype, double 
 
 	// std::cout << "testing against " << pCell->state.neighbors.size() << " cells " << std::endl; 
 
-	bool attacked = false; 
+	bool attacked = false;
+	bool phagocytosed = false;
 	for( int n=0; n < pCell->state.neighbors.size(); n++ )
 	{
 		pC = pCell->state.neighbors[n]; 
@@ -37,10 +50,11 @@ void standard_cell_cell_interactions( Cell* pCell, Phenotype& phenotype, double 
 		if (std::isnan(pC->position[0])) std::cout << "Error in line " << __func__ << " " << __LINE__ << std::endl;
 		if( pC->phenotype.death.dead == true )
 		{
-			// dead phagocytosis 
-			probability = phenotype.cell_interactions.other_dead_phagocytosis_rate * dt; 
-			if( UniformRandom() <= probability ) 
+			probability = dead_phagocytosis_rate(
+				phenotype, pC->phenotype.cycle.current_phase().code) * dt;
+			if( UniformRandom() < probability && phagocytosed == false )
 			{ pCell->ingest_cell(pC); 
+			  phagocytosed = true;
 			  //std::cout << "		Rank " << world.rank << " Cell with ID " << pC->ID << " is ingested " << std::endl;
 			  if (std::isnan(pCell->position[0])) std::cout << "Error in line " << __func__ << " " << __LINE__ << std::endl;
 			} 
@@ -51,8 +65,9 @@ void standard_cell_cell_interactions( Cell* pCell, Phenotype& phenotype, double 
 			probability = phenotype.cell_interactions.live_phagocytosis_rates[type] * dt;
 			if (std::isnan(pC->position[0])) std::cout << "Error in line " << __func__ << " " << __LINE__ << std::endl;
 			if (std::isnan(pCell->position[0])) std::cout << "Error in line " << __func__ << " " << __LINE__ << std::endl;
-			if( UniformRandom() <= probability ) 
+			if( UniformRandom() < probability && phagocytosed == false )
 			{ pCell->ingest_cell(pC); 
+			  phagocytosed = true;
 			  //std::cout << "		Rank " << world.rank << " Cell with ID " << pC->ID << " is ingested " << std::endl;
 			 if (std::isnan(pCell->position[0])) std::cout << "Error in line " << __func__ << " " << __LINE__ << std::endl;
 			} 
@@ -84,9 +99,10 @@ void standard_cell_cell_interactions( Cell* pCell, Phenotype& phenotype, double 
 //	std::cout << std::endl; 
 	
 	
-	int x_dim = pCell->get_container()->underlying_mesh.x_coordinates.size(); 
-	int y_dim = pCell->get_container()->underlying_mesh.y_coordinates.size();
-	int z_dim = pCell->get_container()->underlying_mesh.z_coordinates.size();
+	Cell_Container* container = pCell->get_container();
+	int x_dim = container->underlying_mesh.x_coordinates.size();
+	int y_dim = container->underlying_mesh.y_coordinates.size();
+	int z_dim = container->underlying_mesh.z_coordinates.size();
 	
 	int local_vxl_inex = pCell->get_current_mechanics_voxel_index();
 	//int position_voxel = (local_vxl_inex % (x_dim * y_dim)) % x_dim;  Layout warning!
@@ -115,10 +131,10 @@ void standard_cell_cell_interactions( Cell* pCell, Phenotype& phenotype, double 
 					int type = pC->type; 
 					if( pC->dead == true )
 					{
-						// dead phagocytosis 
-						probability = 0; //phenotype.cell_interactions.dead_phagocytosis_rate * dt; 
-						if( UniformRandom() <= probability ) 
+						probability = dead_phagocytosis_rate(phenotype, pC->phase_code) * dt;
+						if( UniformRandom() < probability && phagocytosed == false )
 						{ pCell->ingest_cell(pC); 
+						  phagocytosed = true;
 						  //std::cout << "		Rank " << world.rank << " remote Cell with ID " << pC->ID << " is ingested " << std::endl;
 						} 
 					}
@@ -126,8 +142,9 @@ void standard_cell_cell_interactions( Cell* pCell, Phenotype& phenotype, double 
 					{
 						// live phagocytosis
 						probability = phenotype.cell_interactions.live_phagocytosis_rates[type] * dt;  
-						if( UniformRandom() <= probability ) 
+						if( UniformRandom() < probability && phagocytosed == false )
 						{ pCell->ingest_cell(pC); 
+						  phagocytosed = true;
 						  //std::cout << "		Rank " << world.rank << " remote Cell with ID " << pC->ID << " is ingested " << std::endl;
 						} 
 
@@ -171,11 +188,11 @@ void standard_cell_cell_interactions( Cell* pCell, Phenotype& phenotype, double 
 					int type = pC->type; 
 					if( pC->dead == true )
 					{
-						// dead phagocytosis 
-						probability = 0; // phenotype.cell_interactions.dead_phagocytosis_rate * dt; 
-						if( UniformRandom() <= probability ) 
+						probability = dead_phagocytosis_rate(phenotype, pC->phase_code) * dt;
+						if( UniformRandom() < probability && phagocytosed == false )
 						{ 
 						  pCell->ingest_cell(pC); 
+						  phagocytosed = true;
 						  //std::cout << "		Rank " << world.rank << " remote Cell with ID " << pC->ID << " is ingested " << std::endl;
 						} 
 					}
@@ -183,9 +200,10 @@ void standard_cell_cell_interactions( Cell* pCell, Phenotype& phenotype, double 
 					{
 						// live phagocytosis
 						probability = phenotype.cell_interactions.live_phagocytosis_rates[type] * dt;  
-						if( UniformRandom() <= probability ) 
+						if( UniformRandom() < probability && phagocytosed == false )
 						{ 
 						  pCell->ingest_cell(pC); 
+						  phagocytosed = true;
 						  //std::cout << "		Rank " << world.rank << " remote Cell with ID " << pC->ID << " is ingested " << std::endl;
 						} 
 

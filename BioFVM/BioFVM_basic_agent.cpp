@@ -511,6 +511,7 @@ void Basic_Agent::simulate_secretion_and_uptake( Microenvironment* pS, double dt
 	if(!is_active)
 	{ return; }
 	
+	// Legacy reference behavior: retain cached increments until volume changes.
 	if( volume_is_changed )
 	{
 		set_internal_uptake_constants(dt);

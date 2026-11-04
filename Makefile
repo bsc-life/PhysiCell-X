@@ -1,7 +1,9 @@
 VERSION := $(shell grep . VERSION.txt | cut -f1 -d:)
 PROGRAM_NAME := project
 
-CC := g++
+.PHONY: physiboss-spatial-mpi bacterial-colony dfba-unit-test dfba_unit_test
+
+CC := mpic++
 # CC := g++-mp-7 # typical macports compiler name
 # CC := g++-7 # typical homebrew compiler name 
 
@@ -57,8 +59,8 @@ EXAMPLES := ./examples/PhysiCell_test_mechanics_1.cpp ./examples/PhysiCell_test_
  ./examples/PhysiCell_test_cell_cycle.cpp ./examples/PhysiCell_test_volume.cpp 
 
 all: 
-	make heterogeneity-sample
-	make 
+	$(MAKE) heterogeneity-sample-mpi
+	$(MAKE)
 
 # sample projects 	
 list-projects:
@@ -66,7 +68,8 @@ list-projects:
 	@echo "                 cancer-immune-sample virus-macrophage-sample pred-prey-mpi pred-prey-farmer"
 	@echo ""
 	@echo "Sample intracellular projects: ode-energy-sample physiboss-cell-lines-sample cancer-metabolism-sample"
-	@echo "physiboss-cell-lines-mpi physiboss-tnf-model physiboss-tnf-model-mpi"
+	@echo "physiboss-cell-lines-mpi physiboss-spatial-mpi physiboss-tnf-model physiboss-tnf-model-mpi"
+	@echo "		PhysiCellDFBA: bacterial-colony cancer-metabolism-sample dfba-unit-test"
 	@echo ""
 	
 # ---- non-intracellular projects 	
@@ -100,6 +103,7 @@ pred-prey-mpi:
 # sample projects 
 
 biorobots-sample:
+	rm -f ./custom_modules/*
 	cp ./sample_projects/biorobots/custom_modules/* ./custom_modules/
 	touch main.cpp && cp main.cpp main-backup.cpp
 	cp ./sample_projects/biorobots/main-biorobots.cpp ./main.cpp 
@@ -118,9 +122,10 @@ cancer-biorobots-sample:
 	cp ./sample_projects/cancer_biorobots/config/* ./config/
 	
 heterogeneity-sample-mpi:
+	rm -f ./custom_modules/*
 	cp ./sample_projects/heterogeneity_mpi/custom_modules/* ./custom_modules/
 	touch main.cpp && cp main.cpp main-backup.cpp
-	cp ./sample_projects/heterogeneity_mpi/main-heterogeneity.cpp ./main.cpp 
+	cp ./sample_projects/heterogeneity_mpi/main.cpp ./main.cpp
 	cp Makefile Makefile-backup
 	cp ./sample_projects/heterogeneity_mpi/Makefile .
 	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
@@ -161,6 +166,15 @@ beta-testing:
 	cp ./sample_projects/beta_testing/Makefile .
 	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
 	cp ./sample_projects/beta_testing/config/* ./config/
+
+knee-joint-sample:
+	cp ./sample_projects/knee-joint-sample/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects/knee-joint-sample/main.cpp ./main.cpp 
+	cp Makefile Makefile-backup
+	cp ./sample_projects/knee-joint-sample/Makefile .
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
+	cp ./sample_projects/knee-joint-sample/config/* ./config/
 	
 # ---- intracellular projects 
 ode-energy-sample:
@@ -190,6 +204,16 @@ physiboss-cell-lines-mpi:
 	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
 	cp ./sample_projects_intracellular/boolean/physiboss_cell_lines_mpi/config/* ./config/
 
+physiboss-spatial-mpi:
+	rm -f ./custom_modules/*
+	cp ./sample_projects_intracellular/boolean/spatial_mpi/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects_intracellular/boolean/spatial_mpi/main.cpp ./main.cpp
+	cp Makefile Makefile-backup
+	cp ./sample_projects_intracellular/boolean/spatial_mpi/Makefile .
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml
+	cp ./sample_projects_intracellular/boolean/spatial_mpi/config/* ./config/
+
 physiboss-tnf-model:
 	cp ./sample_projects_intracellular/boolean/spheroid_tnf_model/custom_modules/* ./custom_modules/
 	touch main.cpp && cp main.cpp main-backup.cpp
@@ -218,6 +242,7 @@ ecoli-acetic-switch-sample:
 	cp ./sample_projects_intracellular/fba/ecoli_acetic_switch/config/* ./config/
 
 cancer-metabolism-sample:
+	rm -f ./custom_modules/*
 	cp ./sample_projects_intracellular/fba/cancer_metabolism/custom_modules/* ./custom_modules/
 	touch main.cpp && cp main.cpp main-backup.cpp
 	cp ./sample_projects_intracellular/fba/cancer_metabolism/main.cpp ./main.cpp
@@ -225,6 +250,30 @@ cancer-metabolism-sample:
 	cp ./sample_projects_intracellular/fba/cancer_metabolism/Makefile ./
 	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml
 	cp ./sample_projects_intracellular/fba/cancer_metabolism/config/* ./config/
+
+dfba-unit-test:
+	rm -f ./custom_modules/*
+	cp ./sample_projects_intracellular/fba/dfba_unit_test/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects_intracellular/fba/dfba_unit_test/main.cpp ./main.cpp
+	cp Makefile Makefile-backup
+	cp ./sample_projects_intracellular/fba/dfba_unit_test/Makefile ./
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml
+	cp -r ./sample_projects_intracellular/fba/dfba_unit_test/config/* ./config/
+	mkdir -p ./scripts/
+	cp ./sample_projects_intracellular/fba/dfba_unit_test/scripts/* ./scripts/
+
+dfba_unit_test: dfba-unit-test
+
+bacterial-colony:
+	rm -f ./custom_modules/*
+	cp ./sample_projects_intracellular/fba/bacterial_colony/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects_intracellular/fba/bacterial_colony/main.cpp ./main.cpp
+	cp Makefile Makefile-backup
+	cp ./sample_projects_intracellular/fba/bacterial_colony/Makefile .
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml
+	cp ./sample_projects_intracellular/fba/bacterial_colony/config/* ./config/
 test-case-mpi:
 	cp ./sample_projects/test_case/custom_modules/* ./custom_modules/
 	touch main.cpp && cp main.cpp main-backup.cpp

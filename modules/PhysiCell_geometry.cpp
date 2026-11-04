@@ -910,7 +910,8 @@ Cell* process_csv_v2_line( std::string line , std::vector<std::string> labels, m
 
 	// Check if x position is within range
 	double x = position[0];
-	if( x < x_range.first || x > x_range.second )
+	if( x < x_range.first || x > x_range.second ||
+		( cart_topo.X_RIGHT != MPI_PROC_NULL && x >= x_range.second ) )
 	{
 		return NULL;
 	}
@@ -1016,7 +1017,8 @@ void load_cells_csv_v1( std::string filename, mpi_Environment &world, mpi_Cartes
 
 		// Check if x position is within range
 		double x = position[0];
-		if( x < x_range.first || x > x_range.second )
+		if( x < x_range.first || x > x_range.second ||
+			( cart_topo.X_RIGHT != MPI_PROC_NULL && x >= x_range.second ) )
 		{
 			continue;
 		}
