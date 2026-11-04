@@ -66,13 +66,31 @@
 */
 
 #include "custom.h"
+#include <set>
 //#include "../addons/dFBA/src/dfba_intracellular.h"
 
+static void set_custom_data(PhysiCell::Cell* pCell, const std::string& name, double value)
+{
+	const int index = pCell->custom_data.find_variable_index(name);
+	if( index < 0 )
+	{
+		static std::set<std::string> reported;
+		#pragma omp critical(dfba_custom_data_warn)
+		{
+			if( reported.insert(name).second )
+			{
+				std::cout << "WARNING: custom_data variable \"" << name
+				          << "\" is not declared in the XML; skipping the write."
+				          << std::endl;
+			}
+		}
+		return;
+	}
+	pCell->custom_data[index] = value;
+}
 
 void create_cell_types( mpi_Environment& world, mpi_Cartesian& cart_topo )
 {
-	SeedRandom(parameters.ints("random_seed"));
-
 	initialize_default_cell_definition();
 
 	/*  This parses the cell definitions in the XML config file.  */
@@ -160,18 +178,12 @@ void post_update_intracellular(PhysiCell::Cell* pCell, PhysiCell::Phenotype& phe
 
 	for (const auto& exchange : dfba_model->substrate_exchanges) {
 		const PhysiCelldFBA::ExchangeFluxData& ex = exchange.second;
-		int flux_index = pCell->custom_data.find_variable_index(ex.fba_flux_id);
-		if( flux_index >= 0 )
-		{
-			pCell->custom_data[flux_index] = dfba_model->get_flux_value(ex.fba_flux_id);
-		}
+		set_custom_data(pCell, ex.fba_flux_id, dfba_model->get_flux_value(ex.fba_flux_id));
+		set_custom_data(pCell, ex.fba_flux_id + "_lb",
+			dfba_model->sbml_model.getReactionLowerBound(ex.fba_flux_id));
 	}
 
-	int growth_rate_index = pCell->custom_data.find_variable_index("growth_rate");
-	if( growth_rate_index >= 0 )
-	{
-		pCell->custom_data[growth_rate_index] = dfba_model->get_growth_rate();
-	}
+	set_custom_data(pCell, "growth_rate", dfba_model->get_growth_rate());
 
 	return;
 }

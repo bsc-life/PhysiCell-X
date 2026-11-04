@@ -35,6 +35,12 @@ config/
 !sample_projects_intracellular/boolean/spatial_mpi/config/**
 !sample_projects_intracellular/fba/bacterial_colony/config/
 !sample_projects_intracellular/fba/bacterial_colony/config/**
+!sample_projects_intracellular/fba/cancer_metabolism/config/
+!sample_projects_intracellular/fba/cancer_metabolism/config/**
+!sample_projects_intracellular/fba/dfba_unit_test/config/
+!sample_projects_intracellular/fba/dfba_unit_test/config/**
+!sample_projects_intracellular/fba/dfba_unit_test/scripts/
+!sample_projects_intracellular/fba/dfba_unit_test/scripts/**
 #Results
 output/*
 logs/

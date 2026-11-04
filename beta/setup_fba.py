@@ -54,7 +54,17 @@ def download_and_extract(url, dest_path, is_zip=False):
         with zipfile.ZipFile(file_path, 'r') as zip_ref:
             zip_ref.extractall(dest_path)
     elif filename.endswith(".deb"):
-        subprocess.run(["dpkg-deb", "-x", file_path, dest_path], check=True)
+        result = subprocess.run(["dpkg-deb", "-x", file_path, dest_path])
+        if result.returncode != 0:
+            # Some shared filesystems reject timestamp updates on dangling
+            # symlinks from split Debian development packages.  The dFBA build
+            # only needs the headers and static archive, which dpkg-deb has
+            # already extracted before reporting that metadata error.
+            header = os.path.join(dest_path, "usr", "include", "sbml", "SBMLTypes.h")
+            library = os.path.join(dest_path, "usr", "lib", "x86_64-linux-gnu",
+                                   "libsbml-static.a")
+            if not (os.path.isfile(header) and os.path.isfile(library)):
+                result.check_returncode()
     else:
         with tarfile.open(file_path, 'r:gz') as tar_ref:
             tar_ref.extractall(dest_path)
@@ -84,8 +94,13 @@ def normalize_libsbml_install(dest_path):
         if os.path.abspath(include_source) != os.path.abspath(include_dest):
             shutil.copytree(include_source, include_dest, dirs_exist_ok=True)
         if os.path.abspath(library_source) != os.path.abspath(library_dest):
-            shutil.copytree(library_source, library_dest,
-                            dirs_exist_ok=True, symlinks=True)
+            ensure_directory_exists(library_dest)
+            # Only this archive is used by the dFBA Makefiles.  Copying the
+            # complete Debian lib directory also copies libsbml.so, a dangling
+            # link whose target belongs to the separate runtime package and
+            # fails on some shared filesystems.
+            shutil.copy2(os.path.join(library_source, "libsbml-static.a"),
+                         expected_library)
 
 def main():
     # Define paths

@@ -70,13 +70,31 @@
 #endif
 
 #include "custom.h"
+#include <set>
 //#include "../addons/dFBA/src/dfba_intracellular.h"
 
+static void set_custom_data(PhysiCell::Cell* pCell, const std::string& name, double value)
+{
+	const int index = pCell->custom_data.find_variable_index(name);
+	if( index < 0 )
+	{
+		static std::set<std::string> reported;
+		#pragma omp critical(dfba_custom_data_warn)
+		{
+			if( reported.insert(name).second )
+			{
+				std::cout << "WARNING: custom_data variable \"" << name
+				          << "\" is not declared in the XML; skipping the write."
+				          << std::endl;
+			}
+		}
+		return;
+	}
+	pCell->custom_data[index] = value;
+}
 
 void create_cell_types( mpi_Environment& world, mpi_Cartesian& cart_topo)
 {
-	SeedRandom(parameters.ints("random_seed"));
-
 	initialize_default_cell_definition();
 
 	/*  This parses the cell definitions in the XML config file.  */
@@ -174,20 +192,18 @@ void setup_tissue(mpi_Environment& world, mpi_Cartesian& cart_topo)
 }
 
 void post_update_intracellular(PhysiCell::Cell* pCell, PhysiCell::Phenotype& phenotype, double dt ){
-#ifdef ADDON_PHYSIDFBA
-	cout << "post_update_intracellular: " << pCell->ID << endl;
-	if( pCell->phenotype.intracellular != NULL &&
-		pCell->phenotype.intracellular->intracellular_type == "dfba" )
+	if( phenotype.intracellular != NULL &&
+		phenotype.intracellular->intracellular_type == "dfba" )
 	{
-		PhysiCelldFBA::dFBAIntracellular* dfba =
-			static_cast<PhysiCelldFBA::dFBAIntracellular*>( pCell->phenotype.intracellular );
-
-		pCell->custom_data["growth_rate"] = dfba->get_growth_rate();
-		pCell->custom_data["oxygen_flux"] = dfba->get_flux_value("R_EX_o2_e");
-		pCell->custom_data["glucose_flux"] = dfba->get_flux_value("R_EX_glc_e");
-		pCell->custom_data["lactate_flux"] = dfba->get_flux_value("R_EX_lac_D_e");
+		PhysiCelldFBA::dFBAIntracellular* dfba = static_cast<PhysiCelldFBA::dFBAIntracellular*>(phenotype.intracellular);
+		set_custom_data(pCell, "growth_rate", dfba->get_growth_rate());
+		for( const auto& exchange : dfba->substrate_exchanges )
+		{
+			const std::string& id = exchange.second.fba_flux_id;
+			set_custom_data(pCell, id, dfba->get_flux_value(id));
+			set_custom_data(pCell, id + "_lb", dfba->sbml_model.getReactionLowerBound(id));
+		}
 	}
-#endif
 	return;
 }
 

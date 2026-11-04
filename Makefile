@@ -1,7 +1,7 @@
 VERSION := $(shell grep . VERSION.txt | cut -f1 -d:)
 PROGRAM_NAME := project
 
-.PHONY: physiboss-spatial-mpi bacterial-colony
+.PHONY: physiboss-spatial-mpi bacterial-colony dfba-unit-test dfba_unit_test
 
 CC := mpic++
 # CC := g++-mp-7 # typical macports compiler name
@@ -69,7 +69,7 @@ list-projects:
 	@echo ""
 	@echo "Sample intracellular projects: ode-energy-sample physiboss-cell-lines-sample cancer-metabolism-sample"
 	@echo "physiboss-cell-lines-mpi physiboss-spatial-mpi physiboss-tnf-model physiboss-tnf-model-mpi"
-	@echo "		PhysiCellDFBA:  bacterial-colony"
+	@echo "		PhysiCellDFBA: bacterial-colony cancer-metabolism-sample dfba-unit-test"
 	@echo ""
 	
 # ---- non-intracellular projects 	
@@ -242,6 +242,7 @@ ecoli-acetic-switch-sample:
 	cp ./sample_projects_intracellular/fba/ecoli_acetic_switch/config/* ./config/
 
 cancer-metabolism-sample:
+	rm -f ./custom_modules/*
 	cp ./sample_projects_intracellular/fba/cancer_metabolism/custom_modules/* ./custom_modules/
 	touch main.cpp && cp main.cpp main-backup.cpp
 	cp ./sample_projects_intracellular/fba/cancer_metabolism/main.cpp ./main.cpp
@@ -249,6 +250,20 @@ cancer-metabolism-sample:
 	cp ./sample_projects_intracellular/fba/cancer_metabolism/Makefile ./
 	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml
 	cp ./sample_projects_intracellular/fba/cancer_metabolism/config/* ./config/
+
+dfba-unit-test:
+	rm -f ./custom_modules/*
+	cp ./sample_projects_intracellular/fba/dfba_unit_test/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects_intracellular/fba/dfba_unit_test/main.cpp ./main.cpp
+	cp Makefile Makefile-backup
+	cp ./sample_projects_intracellular/fba/dfba_unit_test/Makefile ./
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml
+	cp -r ./sample_projects_intracellular/fba/dfba_unit_test/config/* ./config/
+	mkdir -p ./scripts/
+	cp ./sample_projects_intracellular/fba/dfba_unit_test/scripts/* ./scripts/
+
+dfba_unit_test: dfba-unit-test
 
 bacterial-colony:
 	rm -f ./custom_modules/*
