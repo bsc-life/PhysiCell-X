@@ -164,7 +164,7 @@ void bacteria_phenotype( Cell* pCell, Phenotype& phenotype, double dt )
 	return; 
 }
 
-void create_cell_types( void )
+void create_cell_types( mpi_Environment &world, mpi_Cartesian &cart_topo )
 {
 	// Use the same random seed so that future experiments have the 
 	// same initial histogram of oncoprotein, even if threading means 
@@ -200,7 +200,7 @@ void create_cell_types( void )
 	cell_defaults.parameters.o2_proliferation_saturation = 38.0;  
 	cell_defaults.parameters.o2_reference = 38.0; 
 
-	initialize_cell_definitions_from_pugixml(); 
+	initialize_cell_definitions_from_pugixml( world, cart_topo );
 	
 	// Set default uptake and secretion 
 	

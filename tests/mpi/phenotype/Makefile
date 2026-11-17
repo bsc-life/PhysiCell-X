@@ -1,4 +1,4 @@
-VERSION := $(shell grep . VERSION.txt | cut -f1 -d:)
+VERSION := $(shell grep . ../../../VERSION.txt | cut -f1 -d:)
 PROGRAM_NAME := mechanics
 PROGRAM_NAME_VAL := mechanics_val
 

@@ -72,7 +72,7 @@ using namespace BioFVM;
 using namespace PhysiCell;
 
 void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &cart_topo);
-void create_cell_types( void );
+void create_cell_types( mpi_Environment &world, mpi_Cartesian &cart_topo );
 void setup_tissue( void );
 
 void setup_microenvironment(mpi_Environment &world, mpi_Cartesian &cart_topo);

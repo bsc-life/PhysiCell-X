@@ -1422,7 +1422,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
                         __m256d denomy1 = _mm256_loadu_pd(&M.gthomas_denomx[0][gd]);
                 
 
-                        density_curr1 = _mm256_fmadd_pd(constant1, density_curr1, density_inc1);
+                        density_curr1 = _mm256_fmadd_pd(constant1, density_inc1, density_curr1);
             
                         //_mm256_storeu_pd(&microenvironment[index_inc + zd], density_curr);
             
@@ -1642,7 +1642,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironm
                     __m256d density_curr1 = _mm256_loadu_pd(&(*M.p_density_vectors)[index_aux]);
                     __m256d density_dec1 = _mm256_loadu_pd(&block3d[index_3d]);
 
-                    density_curr1 = _mm256_fnmadd_pd(cy1, density_curr1, density_dec1);
+                    density_curr1 = _mm256_fnmadd_pd(cy1, density_dec1, density_curr1);
 
                     _mm256_storeu_pd(&(*M.p_density_vectors)[index_aux], density_curr1);
 

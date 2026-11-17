@@ -3,6 +3,7 @@
 #include <vector>
 #include <omp.h>
 #include <filesystem>
+#include <cmath>
 
 #include "../../../core/PhysiCell.h"
 #include "../../../modules/PhysiCell_standard_modules.h" 
@@ -16,7 +17,16 @@ void create_cells(std::vector<Cell>& cells, int n_cells){
     cells.clear();
     cells.resize(n_cells);
     for(int i = 0; i < n_cells; ++i){
-        cells[i].initialize_random();
+        // Use a realistic cell-definition-backed fixture. initialize_random()
+        // deliberately constructs arbitrary, internally inconsistent models and
+        // types, which cannot be restored through the normal MPI receive path.
+        cells[i].ID = i + 1000;
+        cells[i].position = {0.25 * i, -0.5 * i, 0.75 * i};
+        cells[i].velocity = {0.01 * i, 0.02 * i, -0.03 * i};
+        cells[i].displacement = {0.04 * i, -0.05 * i, 0.06 * i};
+        cells[i].state.simple_pressure = 0.125 * i;
+        cells[i].phenotype.volume.total += i;
+        cells[i].custom_data["serialization_marker"] = 1.5 + i;
     }
 }
 
@@ -53,7 +63,29 @@ void snd_cells_parallel(std::vector<Cell>& cells){
     std::cout << "[Rank 0] Packed " << cells.size() << " cells  ("<< total_bytes/1024 <<"KB) in " << duration.count() << " us\n"; 
 }
 
-void rcv_cells_parallel_v2(std::vector<Cell>& cells, int n_cells) {
+bool cell_matches_fixture(Cell& cell, int index) {
+    const auto close = [](double first, double second) {
+        return std::fabs(first - second) <= 1e-12;
+    };
+    return cell.ID == index + 1000 &&
+           cell.type == cell_defaults.type &&
+           cell.type_name == cell_defaults.name &&
+           close(cell.position[0], 0.25 * index) &&
+           close(cell.position[1], -0.5 * index) &&
+           close(cell.position[2], 0.75 * index) &&
+           close(cell.velocity[0], 0.01 * index) &&
+           close(cell.velocity[1], 0.02 * index) &&
+           close(cell.velocity[2], -0.03 * index) &&
+           close(cell.displacement[0], 0.04 * index) &&
+           close(cell.displacement[1], -0.05 * index) &&
+           close(cell.displacement[2], 0.06 * index) &&
+           close(cell.state.simple_pressure, 0.125 * index) &&
+           close(cell.custom_data["serialization_marker"], 1.5 + index) &&
+           close(cell.phenotype.volume.total,
+                 cell_defaults.phenotype.volume.total + index);
+}
+
+int rcv_cells_parallel_v2(std::vector<Cell>& cells, int n_cells) {
     int n_threads = omp_get_max_threads();
     cells.resize(n_cells);
 
@@ -63,7 +95,8 @@ void rcv_cells_parallel_v2(std::vector<Cell>& cells, int n_cells) {
     auto start = std::chrono::high_resolution_clock::now();
 
     // 2. Unpack buffers in parallel
-    #pragma omp parallel
+    int validation_failed = 0;
+    #pragma omp parallel reduction(max:validation_failed)
     {
         int tid = omp_get_thread_num();
         int size;
@@ -81,12 +114,18 @@ void rcv_cells_parallel_v2(std::vector<Cell>& cells, int n_cells) {
             Cell cell;
             cell.unpack(bf, length, position);
             cells[i] = std::move(cell);
+#ifdef VALIDATE
+            if (!cell_matches_fixture(cells[i], i)) {
+                validation_failed = 1;
+            }
+#endif
         }
     }
 
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
     std::cout << "[Rank 1] Unpacked " << cells.size() << " cells in " << duration.count() << " us\n";
+    return validation_failed;
 }
 
 //This one is slower!
@@ -218,6 +257,10 @@ int main(int argc, char** argv) {
     int rank = 0;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
+    initialize_default_cell_definition();
+    cell_defaults.custom_data.add_variable("serialization_marker", "dimensionless", 1.5);
+    build_cell_definitions_maps();
+
     int n_cells;
     if (argc != 2) {
         if (rank == 0) std::cout << "Error: expercted 1 argument: number of cells" << std::endl;
@@ -231,10 +274,11 @@ int main(int argc, char** argv) {
     int buffer_len = 0;
     int position = 0;
 
+    int validation_failed = 0;
+
     if (rank == 0) {
         
         vector<Cell> cells;
-        
         auto start = std::chrono::high_resolution_clock::now();
         create_cells(cells, n_cells);
         auto end = std::chrono::high_resolution_clock::now();
@@ -249,57 +293,36 @@ int main(int argc, char** argv) {
         std::cout << "[Rank 0] Packed " << cells.size() << " cells in " << duration.count() << " us \n";
         
         
-        #ifdef VALIDATE
-            create_directory("./tmp_cells/");
-            for (int i = 0; i < n_cells; i++){
-                std::string path = "./tmp_cells/snd_" + to_string(i) + ".cell";
-                std::ofstream outFile(path);
-                cells[i].print_parameters(outFile); 
-            }
-        #endif
+#ifdef VALIDATE
+        MPI_Recv(&validation_failed, 1, MPI_INT, 1, 1000, MPI_COMM_WORLD,
+                 MPI_STATUS_IGNORE);
+#endif
     }
     else if (rank == 1) {
        
         vector<Cell> cells;
         auto start = std::chrono::high_resolution_clock::now();
         //unpack_cells(cells);
-        rcv_cells_parallel_v2(cells, n_cells);
+        validation_failed = rcv_cells_parallel_v2(cells, n_cells);
         auto end = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
         std::cout << "[Rank 1] Unpacked " << cells.size() << " cells in " << duration.count() << " us" << std::endl;
         std::cout << "Test completed!" << std::endl;
 
-        #ifdef VALIDATE
-            create_directory("./tmp_cells/");
-            for (int i = 0; i < n_cells; i++){
-                std::string path = "./tmp_cells/rcv_" + to_string(i) + ".cell";
-                std::ofstream outFile(path);
-                cells[i].print_parameters(outFile); 
-            }
-        #endif
+#ifdef VALIDATE
+        MPI_Send(&validation_failed, 1, MPI_INT, 0, 1000, MPI_COMM_WORLD);
+#endif
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
 
-    #ifdef VALIDATE
-    if (rank == 0) {
-        int cells_different = 0;
-        for (int i = 0; i < n_cells; ++i){
-            std::string cell_snd = "./tmp_cells/snd_" + to_string(i) + ".cell";
-            std::string cell_rcv = "./tmp_cells/rcv_" + to_string(i) + ".cell";
-
-            bool equal = files_are_equal(cell_snd, cell_rcv);
-            if (equal){
-                std::remove(cell_snd.c_str());
-                std::remove(cell_rcv.c_str());
-            } else {
-                ++cells_different;
-            }
-        }
-        if (cells_different == 0) std::cout << "Validation succesful: no cells have been corrupted" << std::endl;
-        else std::cout << "Validation error! Cells that have been corrupted: "<< cells_different << std::endl;
+#ifdef VALIDATE
+    MPI_Bcast(&validation_failed, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    if (rank == 0 && validation_failed == 0) {
+        std::cout << "PASS: every serialized cell preserved its identity, kinematics, phenotype, and custom data"
+                  << std::endl;
     }
-    #endif
+#endif
     MPI_Finalize();
-    return 0;
+    return validation_failed;
 }

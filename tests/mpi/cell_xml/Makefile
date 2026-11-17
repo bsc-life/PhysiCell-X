@@ -1,4 +1,4 @@
-VERSION := $(shell grep . VERSION.txt | cut -f1 -d:)
+VERSION := $(shell grep . ../../../VERSION.txt | cut -f1 -d:)
 PROGRAM_NAME := cellxml
 PROGRAM_NAME_VAL := cellxml_val
 
@@ -42,14 +42,14 @@ BioFVM_utilities.o BioFVM_basic_agent.o BioFVM_MultiCellDS.o BioFVM_agent_contai
 
 PhysiCell_core_OBJECTS := PhysiCell_phenotype.o PhysiCell_cell_container.o PhysiCell_standard_models.o PhysiCell_cell.o \
 PhysiCell_custom.o PhysiCell_utilities.o PhysiCell_constants.o PhysiCell_cell_mpi.o PhysiCell_signal_behavior.o \
-PhysiCell_rules.o PhysiCell_basic_signaling.o 
+PhysiCell_rules.o PhysiCell_basic_signaling.o PhysiCell_cell_container_mechanics.o PhysiCell_standard_models_mpi.o
 
 PhysiCell_module_OBJECTS := PhysiCell_SVG.o PhysiCell_pathology.o PhysiCell_MultiCellDS.o PhysiCell_various_outputs.o \
 PhysiCell_pugixml.o PhysiCell_settings.o
 
 pugixml_OBJECTS := pugixml.o
 
-PhysiCell_custom_module_OBJECTS := heterogeneity.o
+PhysiCell_custom_module_OBJECTS :=
 
 
 PhysiCell_OBJECTS := $(BioFVM_OBJECTS)  $(pugixml_OBJECTS) $(PhysiCell_core_OBJECTS) $(PhysiCell_module_OBJECTS) $(DistPhy_OBJECTS)
@@ -116,6 +116,12 @@ PhysiCell_rules.o: ../../../core/PhysiCell_rules.cpp
 
 PhysiCell_basic_signaling.o: ../../../core/PhysiCell_basic_signaling.cpp
 	$(COMPILE_COMMAND) -c ../../../core/PhysiCell_basic_signaling.cpp  
+
+PhysiCell_cell_container_mechanics.o: ../../../core/PhysiCell_cell_container_mechanics.cpp
+	$(COMPILE_COMMAND) -c ../../../core/PhysiCell_cell_container_mechanics.cpp
+
+PhysiCell_standard_models_mpi.o: ../../../core/PhysiCell_standard_models_mpi.cpp
+	$(COMPILE_COMMAND) -c ../../../core/PhysiCell_standard_models_mpi.cpp
 	
 # BioFVM core components (needed by PhysiCell)
 	

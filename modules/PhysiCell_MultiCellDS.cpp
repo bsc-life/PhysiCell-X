@@ -829,7 +829,7 @@ void add_PhysiCell_cells_to_open_xml_pugi_v2( pugi::xml_document& xml_dom, std::
 
 	// next, filename 
 	char filename [1024]; 
-	sprintf( filename , "%s_cells.mat" , filename_base.c_str() ); 
+	sprintf( filename , "%s_cells.mat" , filename_base.c_str() );
 	
 	/* store filename without the relative pathing (if any) */ 
 	char filename_without_pathing [1024];
@@ -1912,7 +1912,7 @@ void add_PhysiCell_cells_to_open_xml_pugi_v2( pugi::xml_document& xml_dom, std::
                0,                 // root process
                MPI_COMM_WORLD);   // communicator
 		
-	sprintf( filename , "./%s_cells.mat" , filename_base.c_str() ); 
+	sprintf( filename , "%s_cells.mat" , filename_base.c_str() );
 	
 	
 	//std::cout << "Rank " << world.rank << " rows: " << size_of_each_datum << " columns: " << global_number_of_data_entries <<  std::endl;

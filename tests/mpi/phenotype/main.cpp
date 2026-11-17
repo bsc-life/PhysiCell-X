@@ -82,6 +82,7 @@
 /*=======================================*/
 
 #include <mpi.h>
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
@@ -89,6 +90,7 @@
 #include <cmath>
 #include <omp.h>
 #include <fstream>
+#include <filesystem>
 #include <string>
 #include <chrono>
 
@@ -109,6 +111,62 @@ using namespace PhysiCell;
 /*============================*/
 
 using namespace DistPhy::mpi; 
+
+namespace
+{
+
+void configure_validation_problem( void )
+{
+	PhysiCell_settings.omp_num_threads = 1;
+	PhysiCell_settings.max_time = 12.0;
+	diffusion_dt = 1.0;
+	mechanics_dt = 1.0;
+	phenotype_dt = 6.0;
+	default_microenvironment_options.X_range = { -80.0, 80.0 };
+	default_microenvironment_options.Y_range = { -60.0, 60.0 };
+	default_microenvironment_options.Z_range = { -60.0, 60.0 };
+	default_microenvironment_options.dx = 20.0;
+	default_microenvironment_options.dy = 20.0;
+	default_microenvironment_options.dz = 20.0;
+	parameters.doubles( "tumor_radius" ) = 30.0;
+	parameters.doubles( "oncoprotein_mean" ) = 1.0;
+	parameters.doubles( "oncoprotein_sd" ) = 0.0;
+	parameters.doubles( "oncoprotein_min" ) = 1.0;
+	parameters.doubles( "oncoprotein_max" ) = 1.0;
+}
+
+void disable_stochastic_population_events( void )
+{
+	for( Cell_Definition* definition : cell_definitions_by_index )
+	{
+		for( auto& row : definition->phenotype.cycle.data.transition_rates )
+		{
+			std::fill( row.begin(), row.end(), 0.0 );
+		}
+		std::fill( definition->phenotype.death.rates.begin(),
+			definition->phenotype.death.rates.end(), 0.0 );
+		definition->phenotype.motility.is_motile = false;
+		Cell_Interactions& interactions = definition->phenotype.cell_interactions;
+		interactions.apoptotic_phagocytosis_rate = 0.0;
+		interactions.necrotic_phagocytosis_rate = 0.0;
+		interactions.other_dead_phagocytosis_rate = 0.0;
+		std::fill( interactions.live_phagocytosis_rates.begin(), interactions.live_phagocytosis_rates.end(), 0.0 );
+		std::fill( interactions.attack_rates.begin(), interactions.attack_rates.end(), 0.0 );
+		std::fill( interactions.fusion_rates.begin(), interactions.fusion_rates.end(), 0.0 );
+		std::fill( definition->phenotype.cell_transformations.transformation_rates.begin(),
+			definition->phenotype.cell_transformations.transformation_rates.end(), 0.0 );
+	}
+}
+
+int global_owned_cell_count( mpi_Cartesian& cart_topo )
+{
+	const int local_count = static_cast<int>( all_cells->size() );
+	int global_count = 0;
+	MPI_Allreduce( &local_count, &global_count, 1, MPI_INT, MPI_SUM, cart_topo.mpi_cart_comm );
+	return global_count;
+}
+
+}
 
 
 int main( int argc, char* argv[] )
@@ -131,9 +189,12 @@ int main( int argc, char* argv[] )
 /*====================================================================================*/    
 	bool XML_status = false;
 
+	const std::string config_path = argc > 1 ? argv[1] : "./config/PhysiCell_settings.xml";
+	const std::string output_folder = argc > 2 ? argv[2] : "";
+	const bool validate = argc > 3 && std::string( argv[3] ) == "--validate";
 	if( argc > 1 )
 	{ 
-        XML_status = load_PhysiCell_config_file( argv[1], world ); 
+		XML_status = load_PhysiCell_config_file( config_path, world );
         
   	}
 	else
@@ -146,6 +207,20 @@ int main( int argc, char* argv[] )
 	{ 
         exit(-1); 
   	}
+
+	if( !output_folder.empty() )
+	{
+		PhysiCell_settings.folder = output_folder;
+	}
+	if( validate )
+	{
+		configure_validation_problem();
+	}
+	if( world.rank == 0 )
+	{
+		std::filesystem::create_directories( PhysiCell_settings.folder );
+	}
+	MPI_Barrier( cart_topo.mpi_cart_comm );
     
 	
 
@@ -176,9 +251,14 @@ int main( int argc, char* argv[] )
     
 	Cell_Container* cell_container = create_cell_container_for_microenvironment( microenvironment, mechanics_voxel_size, world, cart_topo);
 	
-	create_cell_types();
+	create_cell_types( world, cart_topo );
+	if( validate )
+	{
+		disable_stochastic_population_events();
+	}
     
 	setup_tissue(microenvironment, world, cart_topo);      //ADD N NUMBER OF CELLS TO all_cells
+	const int initial_global_cells = validate ? global_owned_cell_count( cart_topo ) : 0;
 	
 	/* Users typically start modifying here. START USERMODS */ 
 	
@@ -200,9 +280,10 @@ int main( int argc, char* argv[] )
 	//save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo );  //Jose: por aqui
 	save_PhysiCell_to_MultiCellDS_v2( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo );
 
+	int runtime_failed = 0;
 	try 
 	{		
-		while( PhysiCell_globals.current_time < PhysiCell_settings.max_time + 0.1*diffusion_dt )
+		while( PhysiCell_globals.current_time < PhysiCell_settings.max_time - 0.5*diffusion_dt )
 		{
 			
 			// update the microenvironment
@@ -222,7 +303,15 @@ int main( int argc, char* argv[] )
 	}
 	catch( const std::exception& e )
 	{ // reference to the base of a polymorphic object
-		std::cout << e.what(); // information from length_error printed
+		std::cerr << e.what() << std::endl; // information from length_error printed
+		runtime_failed = 1;
+	}
+	int any_runtime_failed = 0;
+	MPI_Allreduce( &runtime_failed, &any_runtime_failed, 1, MPI_INT, MPI_MAX, cart_topo.mpi_cart_comm );
+	if( any_runtime_failed )
+	{
+		world.Finalize();
+		return 1;
 	}
 	sprintf( filename , "%s/final" , PhysiCell_settings.folder.c_str() ); 
 	
@@ -230,11 +319,24 @@ int main( int argc, char* argv[] )
 	//save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo );  //Jose: por aqui
 	save_PhysiCell_to_MultiCellDS_v2( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo );
 
+	int validation_failed = 0;
+	if( validate )
+	{
+		const int final_global_cells = global_owned_cell_count( cart_topo );
+		validation_failed = initial_global_cells > 0 && final_global_cells == initial_global_cells ? 0 : 1;
+		if( world.rank == 0 )
+		{
+			std::cout << ( validation_failed == 0 ? "PASS" : "FAIL" )
+				<< ": deterministic phenotype integration retained " << final_global_cells
+				<< " of " << initial_global_cells << " cells" << std::endl;
+		}
+	}
+
 	std::cout << std::endl << "Total simulation runtime: " << std::endl; 
 	BioFVM::display_stopwatch_value( std::cout , BioFVM::runtime_stopwatch_value() ); 
 
 	//Gracefully shut-down MPI 
   	world.Finalize(); 
 
-	return 0; 
+	return validation_failed;
 }

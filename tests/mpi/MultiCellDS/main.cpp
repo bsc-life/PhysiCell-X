@@ -89,6 +89,7 @@
 #include <cmath>
 #include <omp.h>
 #include <fstream>
+#include <filesystem>
 #include <string> 
 
 /*=============================*/
@@ -131,9 +132,12 @@ int main( int argc, char* argv[] )
 /*====================================================================================*/    
 
     
+	const std::string config_path = argc > 1 ? argv[1] : "./config/PhysiCell_settings.xml";
+	const std::string output_folder = argc > 2 ? argv[2] : "";
+	const bool validate = argc > 3 && std::string( argv[3] ) == "--validate";
 	if( argc > 1 )
 	{ 
-        XML_status = load_PhysiCell_config_file( argv[1], world ); //Jose: por aqui
+	        XML_status = load_PhysiCell_config_file( config_path, world ); //Jose: por aqui
         
   }
 	else
@@ -146,6 +150,32 @@ int main( int argc, char* argv[] )
 	{ 
         exit(-1); 
   }
+
+	if( !output_folder.empty() )
+	{
+		PhysiCell_settings.folder = output_folder;
+	}
+	if( validate )
+	{
+		PhysiCell_settings.omp_num_threads = 1;
+		default_microenvironment_options.X_range = { -80.0, 80.0 };
+		default_microenvironment_options.Y_range = { -60.0, 60.0 };
+		default_microenvironment_options.Z_range = { -60.0, 60.0 };
+		default_microenvironment_options.dx = 20.0;
+		default_microenvironment_options.dy = 20.0;
+		default_microenvironment_options.dz = 20.0;
+		parameters.doubles( "tumor_radius" ) = 30.0;
+		parameters.doubles( "oncoprotein_mean" ) = 1.0;
+		parameters.doubles( "oncoprotein_sd" ) = 0.0;
+		parameters.doubles( "oncoprotein_min" ) = 1.0;
+		parameters.doubles( "oncoprotein_max" ) = 1.0;
+	}
+
+	if( world.rank == 0 )
+	{
+		std::filesystem::create_directories( PhysiCell_settings.folder );
+	}
+	MPI_Barrier( cart_topo.mpi_cart_comm );
 
 	//Setting OpenMP threads, this takes precedence over OMP_NUM_THREADS so be careful
 	omp_set_num_threads(PhysiCell_settings.omp_num_threads);
@@ -174,9 +204,26 @@ int main( int argc, char* argv[] )
     
 	Cell_Container* cell_container = create_cell_container_for_microenvironment( microenvironment, mechanics_voxel_size, world, cart_topo);
 	
-	create_cell_types();
+	create_cell_types( world, cart_topo );
     
 	setup_tissue(microenvironment, world, cart_topo);      //Custom parallel function 
+
+	int validation_failed = 0;
+	if( validate )
+	{
+		const int local_cells = static_cast<int>( all_cells->size() );
+		int global_cells = 0;
+		MPI_Allreduce( &local_cells, &global_cells, 1, MPI_INT, MPI_SUM, cart_topo.mpi_cart_comm );
+		const int expected_cells = static_cast<int>( create_cell_sphere_positions(
+			cell_defaults.phenotype.geometry.radius, parameters.doubles( "tumor_radius" ) ).size() );
+		validation_failed = global_cells == expected_cells && global_cells > 0 ? 0 : 1;
+		if( world.rank == 0 )
+		{
+			std::cout << ( validation_failed == 0 ? "PASS" : "FAIL" )
+				<< ": distributed initial population count=" << global_cells
+				<< ", expected=" << expected_cells << std::endl;
+		}
+	}
 	
 	/* Users typically start modifying here. START USERMODS */ 
 	
@@ -202,5 +249,5 @@ int main( int argc, char* argv[] )
 	//Gracefully shut-down MPI 
   	world.Finalize(); 
 
-	return 0; 
+	return validation_failed;
 }

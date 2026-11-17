@@ -76,7 +76,7 @@ void tumor_cell_phenotype_with_oncoprotein( Cell* pCell, Phenotype& phenotype, d
 
 // set the tumor cell properties, then call the function 
 // to set up the tumor cells 
-void create_cell_types( void );
+void create_cell_types( mpi_Environment &world, mpi_Cartesian &cart_topo );
 
 void setup_tissue();
 
@@ -108,4 +108,4 @@ void macrophage_phenotype( Cell* pCell, Phenotype& phenotype, double dt ); // fi
 void CD8Tcell_phenotype( Cell* pCell, Phenotype& phenotype, double dt );
 void neutrophil_phenotype( Cell* pCell, Phenotype& phenotype, double dt );
 
-void stem_cell_phenotype( Cell* pCell, Phenotype& phenotype, double dt ); // final 
+void stem_cell_phenotype( Cell* pCell, Phenotype& phenotype, double dt ); // final

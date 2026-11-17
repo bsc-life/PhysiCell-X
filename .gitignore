@@ -19,6 +19,7 @@
 *.out
 *.app
 *.sh 
+!tests/mpi/run_all_tests.sh
 
 # Downloaded libraries
 addons/PhysiBoSS/MaBoSS-env-2.0/

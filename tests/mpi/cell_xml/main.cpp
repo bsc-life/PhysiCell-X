@@ -89,6 +89,8 @@
 #include <cmath>
 #include <omp.h>
 #include <fstream>
+#include <iomanip>
+#include <sstream>
 #include <string> 
 
 /*=============================*/
@@ -108,6 +110,74 @@ using namespace PhysiCell;
 /*============================*/
 
 using namespace DistPhy::mpi; 
+
+namespace
+{
+
+unsigned long long definition_fingerprint( void )
+{
+	std::ostringstream stream;
+	stream << std::setprecision( 17 );
+	for( Cell_Definition* definition : cell_definitions_by_index )
+	{
+		stream << definition->name << "|" << definition->type << "|"
+			<< definition->phenotype.cycle.model().code << "|";
+		for( const auto& row : definition->phenotype.cycle.data.transition_rates )
+		{
+			for( double value : row )
+			{
+				stream << value << ",";
+			}
+		}
+		for( double value : definition->phenotype.cycle.asymmetric_division.asymmetric_division_probabilities )
+		{
+			stream << value << ",";
+		}
+		for( double value : definition->phenotype.death.rates )
+		{
+			stream << value << ",";
+		}
+		stream << ";";
+	}
+
+	unsigned long long hash = 1469598103934665603ULL;
+	for( unsigned char value : stream.str() )
+	{
+		hash ^= value;
+		hash *= 1099511628211ULL;
+	}
+	return hash;
+}
+
+bool close_enough( double left, double right )
+{
+	return std::fabs( left - right ) <= 1e-12;
+}
+
+bool validate_asymmetric_division_config( void )
+{
+	if( cell_definitions_by_index.size() != 3 )
+	{
+		return false;
+	}
+
+	Cell_Definition* stem = find_cell_definition( "stem" );
+	Cell_Definition* progenitor_1 = find_cell_definition( "progenitor_1" );
+	Cell_Definition* progenitor_2 = find_cell_definition( "progenitor_2" );
+	if( stem == NULL || progenitor_1 == NULL || progenitor_2 == NULL )
+	{
+		return false;
+	}
+
+	const std::vector<double>& probabilities =
+		stem->phenotype.cycle.asymmetric_division.asymmetric_division_probabilities;
+	return probabilities.size() == 3
+		&& close_enough( probabilities[0], 0.0 )
+		&& close_enough( probabilities[1], 1.0 )
+		&& close_enough( probabilities[2], 0.0 );
+}
+
+}
 
 
 int main( int argc, char* argv[] )
@@ -131,6 +201,7 @@ int main( int argc, char* argv[] )
 /*====================================================================================*/    
 
     
+	const bool validate = argc > 2 && std::string( argv[2] ) == "--validate";
 	if( argc > 1 )
 	{ 
         XML_status = load_PhysiCell_config_file( argv[1], world ); //Jose: por aqui
@@ -147,13 +218,43 @@ int main( int argc, char* argv[] )
         exit(-1); 
   	}
 
-  	initialize_cell_definitions_from_pugixml();
+	initialize_cell_definitions_from_pugixml( world, cart_topo );
+		build_cell_definitions_maps();
 
-	if (world.rank == 0 )
-		display_cell_definitions( std::cout );
+		int validation_failed = 0;
+		if( validate )
+		{
+			validation_failed = validate_asymmetric_division_config() ? 0 : 1;
+
+			const unsigned long long local_fingerprint = definition_fingerprint();
+			unsigned long long minimum_fingerprint = 0;
+			unsigned long long maximum_fingerprint = 0;
+			MPI_Allreduce( &local_fingerprint, &minimum_fingerprint, 1,
+				MPI_UNSIGNED_LONG_LONG, MPI_MIN, cart_topo.mpi_cart_comm );
+			MPI_Allreduce( &local_fingerprint, &maximum_fingerprint, 1,
+				MPI_UNSIGNED_LONG_LONG, MPI_MAX, cart_topo.mpi_cart_comm );
+			if( minimum_fingerprint != maximum_fingerprint )
+			{
+				validation_failed = 1;
+			}
+
+			int any_validation_failed = 0;
+			MPI_Allreduce( &validation_failed, &any_validation_failed, 1,
+				MPI_INT, MPI_MAX, cart_topo.mpi_cart_comm );
+			validation_failed = any_validation_failed;
+			if( world.rank == 0 )
+			{
+				std::cout << ( validation_failed == 0 ? "PASS" : "FAIL" )
+					<< ": XML cell definitions and asymmetric-division probabilities"
+					<< ( validation_failed == 0 ? " agree across all MPI ranks" : " are invalid or rank-dependent" )
+					<< std::endl;
+			}
+		}
+
+	display_cell_definitions( std::cout, world, cart_topo );
 	
 	//Gracefully shut-down MPI 
   	world.Finalize(); 
 
-	return 0; 
+	return validation_failed;
 }

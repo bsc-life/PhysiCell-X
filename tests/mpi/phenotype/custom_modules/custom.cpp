@@ -93,7 +93,7 @@ void custom_function( Cell* pCell, Phenotype& phenotype , double dt )
 void contact_function( Cell* pMe, Phenotype& phenoMe , Cell* pOther, Phenotype& phenoOther , double dt )
 { return; } 
 
-void create_cell_types( void )
+void create_cell_types( mpi_Environment &world, mpi_Cartesian &cart_topo )
 {
 	// set the random seed 
 	if (parameters.ints.find_index("random_seed") != -1)
@@ -126,7 +126,7 @@ void create_cell_types( void )
 	   This parses the cell definitions in the XML config file. 
 	*/
 	
-	initialize_cell_definitions_from_pugixml(); 
+	initialize_cell_definitions_from_pugixml( world, cart_topo );
 
 	/*
 	   This builds the map of cell definitions and summarizes the setup. 
@@ -138,7 +138,7 @@ void create_cell_types( void )
 	   This intializes cell signal and response dictionaries 
 	*/
 
-	setup_signal_behavior_dictionaries(); 	
+	setup_signal_behavior_dictionaries( world, cart_topo );
 
 	/* 
 	   Put any modifications to individual cell definitions here. 
