@@ -1219,6 +1219,9 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
 	bounding_box[4] = y_end; 
 	bounding_box[2] = z_start; 
 	bounding_box[5] = z_end; 
+	// A serial mesh owns the complete domain. nearest_voxel_index() uses the
+	// local x bound, so keep it synchronized with the global bounds.
+	local_bounding_box = bounding_box;
 
 	dV = dx*dy*dz; 
 	dS = dx*dy; 
@@ -1341,6 +1344,9 @@ void Cartesian_Mesh::resize( double x_start, double x_end, double y_start, doubl
 	bounding_box[4] = y_end; 
 	bounding_box[2] = z_start; 
 	bounding_box[5] = z_end; 
+	// A serial mesh owns the complete domain. nearest_voxel_index() uses the
+	// local x bound, so keep it synchronized with the global bounds.
+	local_bounding_box = bounding_box;
 
 	dV = dx*dy*dz; 
 	dS = dx*dy; 

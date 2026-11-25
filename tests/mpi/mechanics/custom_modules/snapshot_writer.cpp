@@ -25,6 +25,9 @@ struct SnapshotRecord
 	double vx = 0.0;
 	double vy = 0.0;
 	double vz = 0.0;
+	double pressure = 0.0;
+	unsigned int mechanics_neighbor_candidates = 0;
+	unsigned int mechanics_neighbor_interactions = 0;
 	double radius = 0.0;
 	double relative_maximum_adhesion_distance = 0.0;
 };
@@ -53,6 +56,9 @@ std::vector<SnapshotRecord> collect_local_snapshot_records( void )
 		record.vx = cell->velocity[0];
 		record.vy = cell->velocity[1];
 		record.vz = cell->velocity[2];
+		record.pressure = cell->state.simple_pressure;
+		record.mechanics_neighbor_candidates = cell->state.mechanics_neighbor_candidates;
+		record.mechanics_neighbor_interactions = cell->state.mechanics_neighbor_interactions;
 		record.radius = cell->phenotype.geometry.radius;
 		record.relative_maximum_adhesion_distance = cell->phenotype.mechanics.relative_maximum_adhesion_distance;
 		records.push_back( record );
@@ -97,6 +103,9 @@ std::vector<SnapshotRecord> collect_owned_mpi_snapshot_records( DistPhy::mpi::mp
 		record.vx = cell->velocity[0];
 		record.vy = cell->velocity[1];
 		record.vz = cell->velocity[2];
+		record.pressure = cell->state.simple_pressure;
+		record.mechanics_neighbor_candidates = cell->state.mechanics_neighbor_candidates;
+		record.mechanics_neighbor_interactions = cell->state.mechanics_neighbor_interactions;
 		record.radius = cell->phenotype.geometry.radius;
 		record.relative_maximum_adhesion_distance = cell->phenotype.mechanics.relative_maximum_adhesion_distance;
 		records.push_back( record );
@@ -118,6 +127,9 @@ std::string serialize_records( const std::vector<SnapshotRecord>& records )
 			<< record.vx << ","
 			<< record.vy << ","
 			<< record.vz << ","
+			<< record.pressure << ","
+			<< record.mechanics_neighbor_candidates << ","
+			<< record.mechanics_neighbor_interactions << ","
 			<< record.radius << ","
 			<< record.relative_maximum_adhesion_distance << "\n";
 	}
@@ -144,7 +156,7 @@ std::vector<SnapshotRecord> parse_records( const std::string& payload )
 			fields.push_back( token );
 		}
 
-		if( fields.size() != 9 )
+		if( fields.size() != 12 )
 		{
 			throw std::runtime_error( "Malformed snapshot payload row: " + line );
 		}
@@ -157,8 +169,11 @@ std::vector<SnapshotRecord> parse_records( const std::string& payload )
 		record.vx = std::stod( fields[4] );
 		record.vy = std::stod( fields[5] );
 		record.vz = std::stod( fields[6] );
-		record.radius = std::stod( fields[7] );
-		record.relative_maximum_adhesion_distance = std::stod( fields[8] );
+		record.pressure = std::stod( fields[7] );
+		record.mechanics_neighbor_candidates = static_cast<unsigned int>( std::stoul( fields[8] ) );
+		record.mechanics_neighbor_interactions = static_cast<unsigned int>( std::stoul( fields[9] ) );
+		record.radius = std::stod( fields[10] );
+		record.relative_maximum_adhesion_distance = std::stod( fields[11] );
 		records.push_back( record );
 	}
 
@@ -252,6 +267,9 @@ void append_snapshot_rows( const std::string& path, int iteration, double time,
 			<< record.vx << ","
 			<< record.vy << ","
 			<< record.vz << ","
+			<< record.pressure << ","
+			<< record.mechanics_neighbor_candidates << ","
+			<< record.mechanics_neighbor_interactions << ","
 			<< join_neighbor_ids( neighbors.at( record.cell_id ) ) << "\n";
 	}
 }
@@ -266,7 +284,8 @@ void initialize_snapshot_csv( const std::string& path )
 		throw std::runtime_error( "Unable to create mechanics snapshot file: " + path );
 	}
 
-	stream << "iteration,time,cell_id,x,y,z,vx,vy,vz,neighbor_ids\n";
+	stream << "iteration,time,cell_id,x,y,z,vx,vy,vz,pressure,"
+		<< "mechanics_neighbor_candidates,mechanics_neighbor_interactions,neighbor_ids\n";
 }
 
 void append_serial_snapshot( const std::string& path, int iteration, double time )

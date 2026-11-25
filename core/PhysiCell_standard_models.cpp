@@ -745,13 +745,6 @@ void standard_update_cell_velocity( Cell* pCell, Phenotype& phenotype, double dt
 	/* I am assuming x_dim = 8 (i.e. local x voxels), thus using the above pattern, we get 						*/
 	/* moore_list index = local_vxl_inex % (x_dim-1) 																									*/
 	/*------------------------------------------------------------------------------------------------*/
-	unsigned int i = (unsigned int) floor( (pCell->position[0]- pCell->get_container()->underlying_mesh.local_bounding_box[0])/20 ); 
-	unsigned int j = (unsigned int) floor( (pCell->position[1]-pCell->get_container()->underlying_mesh.bounding_box[1])/20 ); 
-	unsigned int k = (unsigned int) floor( (pCell->position[2]-pCell->get_container()->underlying_mesh.bounding_box[2])/20 ); 
-	//cout << "(" << i << "," << j << "," << k << ")" << endl;
-	int real_voxel_index = pCell->get_container()->underlying_mesh.nearest_voxel_index(pCell->position);
-	//if (local_vxl_inex != real_voxel_index) std::cout << local_vxl_inex << " vs " << real_voxel_index << "(" << pCell->position[0] 
-	//		<< "," << pCell->position[1] << "," << pCell->position[2] << ")" << std::endl;
 	if(position_voxel == 0)
 	{
 		if(world.rank > 0)
@@ -760,10 +753,10 @@ void standard_update_cell_velocity( Cell* pCell, Phenotype& phenotype, double dt
 			std::vector<int> moore_list = pCell->get_container()->underlying_mesh.moore_connected_voxel_global_indices_left[yx_index];
 			for(int i=0; i<moore_list.size(); i++)
 			{
-				auto mvi_iter = pCell->get_container()->um_mbfl.find(moore_list[i]);
-				if( mvi_iter == pCell->get_container()->um_mbfl.end() )
+				auto mvi_iter = pCell->get_container()->ghost_voxel_from_left.find(moore_list[i]);
+				if( mvi_iter == pCell->get_container()->ghost_voxel_from_left.end() )
 				{ continue; }
-				Moore_Voxel_Info &mvi = mvi_iter->second;
+				Interacting_Voxel &mvi = pCell->get_container()->ivfl[mvi_iter->second];
 
 				std::vector<double> my_voxel_center 	 = pCell->get_container()->underlying_mesh.voxels[pCell->get_current_mechanics_voxel_index()].center;
 				std::vector<double> other_voxel_center = mvi.center;
@@ -772,9 +765,9 @@ void standard_update_cell_velocity( Cell* pCell, Phenotype& phenotype, double dt
 				if(!is_neighbor_voxel(pCell, my_voxel_center, other_voxel_center , mcidiv, world, cart_topo))
 					continue;
 					
-				for(int cell_ctr=0; cell_ctr<mvi.moore_cells.size(); cell_ctr++) {
+				for(int cell_ctr=0; cell_ctr<mvi.cells.size(); cell_ctr++) {
 					pCell->state.mechanics_neighbor_candidates += 1;
-					pCell->add_potentials(mvi.moore_cells[cell_ctr], world, cart_topo); 
+					pCell->add_potentials(static_cast<Moore_Cell_Info&>(mvi.cells[cell_ctr]), world, cart_topo); 
 				}
 				
 			}
@@ -791,10 +784,10 @@ void standard_update_cell_velocity( Cell* pCell, Phenotype& phenotype, double dt
 			std::vector<int> moore_list = pCell->get_container()->underlying_mesh.moore_connected_voxel_global_indices_right[yx_index];
 			for(int i=0; i<moore_list.size(); i++)
 			{
-				auto mvi_iter = pCell->get_container()->um_mbfr.find(moore_list[i]);
-				if( mvi_iter == pCell->get_container()->um_mbfr.end() )
+				auto mvi_iter = pCell->get_container()->ghost_voxel_from_right.find(moore_list[i]);
+				if( mvi_iter == pCell->get_container()->ghost_voxel_from_right.end() )
 				{ continue; }
-				Moore_Voxel_Info &mvi = mvi_iter->second;
+				Interacting_Voxel &mvi = pCell->get_container()->ivfr[mvi_iter->second];
 
 				std::vector<double> my_voxel_center 	 = pCell->get_container()->underlying_mesh.voxels[pCell->get_current_mechanics_voxel_index()].center;
 				std::vector<double> other_voxel_center = mvi.center;
@@ -803,9 +796,9 @@ void standard_update_cell_velocity( Cell* pCell, Phenotype& phenotype, double dt
 				if(!is_neighbor_voxel(pCell, my_voxel_center, other_voxel_center , mcidiv, world, cart_topo))
 					continue;
 					
-				for(int cell_ctr=0; cell_ctr<mvi.moore_cells.size(); cell_ctr++) {
+				for(int cell_ctr=0; cell_ctr<mvi.cells.size(); cell_ctr++) {
 					pCell->state.mechanics_neighbor_candidates += 1;
-					pCell->add_potentials(mvi.moore_cells[cell_ctr], world, cart_topo);
+					pCell->add_potentials(static_cast<Moore_Cell_Info&>(mvi.cells[cell_ctr]), world, cart_topo);
 				}
 					 
 			}

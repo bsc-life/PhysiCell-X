@@ -66,6 +66,7 @@
 */
 
 #include "./PhysiCell_geometry.h"
+#include <algorithm>
 
 namespace PhysiCell{
 
@@ -892,7 +893,24 @@ void load_cells_csv( std::string filename )
 
 // New functions with x_range filtering
 
-Cell* process_csv_v2_line( std::string line , std::vector<std::string> labels, mpi_Environment &world, mpi_Cartesian &cart_topo, std::pair<double,double> x_range )
+namespace
+{
+// All ranks read the same CSV. Reserve IDs by file row before filtering by
+// ownership, so the assignment does not depend on the MPI decomposition.
+int next_csv_cell_ID( mpi_Cartesian& cart_topo )
+{
+	int local_next_ID = Basic_Agent::get_max_ID_in_parallel();
+	for( Cell* pCell : *all_cells )
+	{ local_next_ID = std::max( local_next_ID, pCell->ID + 1 ); }
+
+	int global_next_ID;
+	MPI_Allreduce( &local_next_ID, &global_next_ID, 1, MPI_INT, MPI_MAX,
+		cart_topo.mpi_cart_comm );
+	return global_next_ID;
+}
+}
+
+Cell* process_csv_v2_line( std::string line , std::vector<std::string> labels, mpi_Environment &world, mpi_Cartesian &cart_topo, std::pair<double,double> x_range, int cell_ID )
 {
 	// split the line into tokens 
 	std::vector< std::string > tokens; 
@@ -927,7 +945,7 @@ Cell* process_csv_v2_line( std::string line , std::vector<std::string> labels, m
 	}
 
 	// create the cell IF the definition was found 
-	Cell* pCell = create_cell( *pCD ); 
+	Cell* pCell = create_cell( *pCD, cell_ID );
 	pCell->assign_position( position, world, cart_topo ); 
 
 	// now write any extra data 
@@ -1001,9 +1019,11 @@ void load_cells_csv_v1( std::string filename, mpi_Environment &world, mpi_Cartes
 			<< x_range.first << ", " << x_range.second << "]) ... " << std::endl; 
 	}
 
+	int next_cell_ID = next_csv_cell_ID( cart_topo );
 	std::string line;
 	while (std::getline(file, line))
 	{
+		const int cell_ID = next_cell_ID++;
 		std::vector<double> data;
 		csv_to_vector( line.c_str() , data ); 
 
@@ -1027,7 +1047,7 @@ void load_cells_csv_v1( std::string filename, mpi_Environment &world, mpi_Cartes
 		Cell_Definition* pCD = find_cell_definition( my_type );
 		if( pCD != NULL )
 		{
-			Cell* pCell = create_cell( *pCD ); 
+			Cell* pCell = create_cell( *pCD, cell_ID );
 			pCell->assign_position( position, world, cart_topo ); 
 		}
 		else
@@ -1037,7 +1057,9 @@ void load_cells_csv_v1( std::string filename, mpi_Environment &world, mpi_Cartes
 		}
 	}
 
-	file.close(); 	
+	file.close();
+	// Keep future division IDs above every reserved CSV row on every rank.
+	Basic_Agent::set_max_ID_in_parallel( next_cell_ID );
 }
 
 void load_cells_csv_v2( std::string filename, mpi_Environment &world, mpi_Cartesian &cart_topo, std::pair<double,double> x_range )
@@ -1063,11 +1085,13 @@ void load_cells_csv_v2( std::string filename, mpi_Environment &world, mpi_Cartes
 	std::vector<std::string> labels = split_csv_labels( line ); 
 
 	// process all remaining lines 
+	int next_cell_ID = next_csv_cell_ID( cart_topo );
 	while (std::getline(file, line))
-	{ process_csv_v2_line(line, labels, world, cart_topo, x_range); }	
+	{ process_csv_v2_line(line, labels, world, cart_topo, x_range, next_cell_ID++); }
 
 	// close the file 
-	file.close(); 
+	file.close();
+	Basic_Agent::set_max_ID_in_parallel( next_cell_ID );
 	std::cout << "Done! " << std::endl << std::endl; 
 
 	return; 

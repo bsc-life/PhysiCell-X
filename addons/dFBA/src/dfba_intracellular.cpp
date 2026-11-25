@@ -106,6 +106,9 @@ dFBAIntracellular::dFBAIntracellular() : Intracellular()
     intracellular_type = "dfba";
     objective_reaction = "";
     sbml_filename = "";
+    use_secondary_objective = false;
+    secondary_objective_type = "parsimonious";
+    secondary_fraction_of_optimum = 1.0;
     cell_density = 0.0;
     reference_volume = 0.0;
     max_growth_rate = 0.0;
@@ -126,6 +129,9 @@ dFBAIntracellular::dFBAIntracellular(pugi::xml_node& node)
     intracellular_type = "dfba";
     objective_reaction = "";
     sbml_filename = "";
+    use_secondary_objective = false;
+    secondary_objective_type = "parsimonious";
+    secondary_fraction_of_optimum = 1.0;
     cell_density = 0.0;
     reference_volume = 0.0;
     max_growth_rate = 0.0;
@@ -148,6 +154,9 @@ dFBAIntracellular::dFBAIntracellular(const dFBAIntracellular& copy) : Intracellu
     intracellular_type = copy.intracellular_type;
     objective_reaction = copy.objective_reaction;
     sbml_filename = copy.sbml_filename;
+    use_secondary_objective = copy.use_secondary_objective;
+    secondary_objective_type = copy.secondary_objective_type;
+    secondary_fraction_of_optimum = copy.secondary_fraction_of_optimum;
     cell_density = copy.cell_density;
     reference_volume = copy.reference_volume;
     max_growth_rate = copy.max_growth_rate;
@@ -381,6 +390,9 @@ void dFBAIntracellular::initialize_intracellular_from_pugixml(pugi::xml_node& no
     cell_density = 0.0;
     max_growth_rate = 0.0;
     current_growth_rate = 0.0;
+    use_secondary_objective = false;
+    secondary_objective_type = "parsimonious";
+    secondary_fraction_of_optimum = 1.0;
     use_metabolic_death = false;
 	death_type = "";
 	death_trigger_flux = "";
@@ -471,6 +483,26 @@ void dFBAIntracellular::initialize_intracellular_from_pugixml(pugi::xml_node& no
         exit(-1); 
     }
 
+    // parsing the optional second optimisation stage. It belongs to the growth model
+    // (<growth_model><secondary_objective .../>); the earlier position, directly under
+    // <intracellular>, is still read with a deprecation warning.
+    pugi::xml_node node_secondary = node_growth_model.child( "secondary_objective" );
+    pugi::xml_node node_secondary_legacy = node.child( "secondary_objective" );
+    if ( node_secondary && node_secondary_legacy )
+    {
+        std::cout << "Error: <secondary_objective> is given both inside <growth_model> and directly under <intracellular>." << std::endl;
+        std::cout << "Keep only the one inside <growth_model>." << std::endl;
+        exit(-1);
+    }
+    if ( node_secondary_legacy )
+    {
+        std::cout << "[Warning] <secondary_objective> directly under <intracellular> is deprecated. "
+                  << "Move it inside <growth_model>." << std::endl;
+        node_secondary = node_secondary_legacy;
+    }
+    if ( node_secondary )
+        parse_secondary_objective(node_secondary);
+
     // parsing the death model
     pugi::xml_node node_death_model = node.child( "death_model" ); 
     if ( node_death_model )
@@ -524,8 +556,18 @@ void dFBAIntracellular::initialize_intracellular_from_pugixml(pugi::xml_node& no
         }
     }
 
+    if (this->use_secondary_objective)
+    {
+        // only meaningful once the LP exists, so this happens after initModel
+        this->sbml_model.enableParsimonious(this->secondary_fraction_of_optimum);
+        std::cout << "Secondary objective enabled: " << this->secondary_objective_type
+                  << ", fraction_of_optimum = " << this->secondary_fraction_of_optimum
+                  << std::endl;
+    }
+
     // Save original objective state after model is loaded
     this->sbml_model.saveObjectiveState();
+    this->is_initialized = this->sbml_model.isInitialized();
 
     std::cout << "Done!" << std::endl;
     std::cout << "===================================================" << std::endl;
@@ -651,6 +693,10 @@ void dFBAIntracellular::update(){
     dFBASolution solution = this->sbml_model.optimize();
     //next_dfba_run = PhysiCell::PhysiCell_globals.current_time + dfba_time_step;
     if (solution.status == "optimal"){
+        // One call, whatever the model is configured to do. When a second
+        // optimisation stage is configured, optimize() has already run it and
+        // the fluxes below are the parsimonious ones; objective_value is the
+        // stage-one growth rate either way. See dFBAModel::optimize().
         this->current_growth_rate = solution.getObjectiveValue();
         this->flag_for_death = false;
     }
@@ -940,6 +986,50 @@ void dFBAIntracellular::save_dFBA(std::string path, std::string index)
 	
 }
 
+void dFBAIntracellular::parse_secondary_objective(pugi::xml_node& parent)
+{
+    const bool enabled = parent.attribute("enabled").as_bool(true);
+    if (!enabled)
+    {
+        this->use_secondary_objective = false;
+        return;
+    }
+
+    std::string type = parent.attribute("type").value();
+    if (type.empty())
+        type = "parsimonious";
+
+    if (type != "parsimonious")
+    {
+        std::cout << "Error: unknown secondary_objective type \"" << type << "\"."
+                  << std::endl
+                  << "       The implemented type is \"parsimonious\"." << std::endl;
+        exit(-1);
+    }
+
+    double fraction = 1.0;
+    pugi::xml_attribute attr = parent.attribute("fraction_of_optimum");
+    if (attr)
+        fraction = attr.as_double();
+    else
+    {
+        pugi::xml_node node_fraction = parent.child("fraction_of_optimum");
+        if (node_fraction)
+            fraction = PhysiCell::xml_get_my_double_value(node_fraction);
+    }
+
+    if (fraction <= 0.0 || fraction > 1.0)
+    {
+        std::cout << "Error: secondary_objective fraction_of_optimum must be in (0, 1], got "
+                  << fraction << "." << std::endl;
+        exit(-1);
+    }
+
+    this->use_secondary_objective = true;
+    this->secondary_objective_type = type;
+    this->secondary_fraction_of_optimum = fraction;
+}
+
 void dFBAIntracellular::pack(std::vector<char>& buffer, int& len_buffer, int& position){
 
     pack_buff(this->current_growth_rate,buffer, len_buffer, position);
@@ -959,7 +1049,9 @@ void dFBAIntracellular::unpack(std::vector<char>& buffer, int& len_buffer, int& 
     unpack_buff(this->flag_for_death, buffer, len_buffer, position);
 
 
-    if (!this->sbml_model.isInitialized()){
+    const bool rebuilt_model = !this->sbml_model.isInitialized();
+
+    if (rebuilt_model){
         this->sbml_model.initModel(this->sbml_filename.c_str());
         this->sbml_model.setReactionUpperBound(this->objective_reaction, this->max_growth_rate);
 
@@ -967,10 +1059,24 @@ void dFBAIntracellular::unpack(std::vector<char>& buffer, int& len_buffer, int& 
         {
             this->sbml_model.setReactionLowerBound(this->death_trigger_flux, this->death_flux_threshold);
         }
-
-        this->sbml_model.saveObjectiveState();
-        this->is_initialized = true;
     }
+
+    // The secondary objective is fixed by the Cell_Definition and therefore is
+    // not packed as per-cell state. Ensure that a reconstructed model, or a
+    // clone made by an older copy path, has the same solver configuration.
+    if (this->use_secondary_objective &&
+        (!this->sbml_model.isParsimoniousEnabled() ||
+         this->sbml_model.getParsimoniousFraction() != this->secondary_fraction_of_optimum))
+    {
+        this->sbml_model.enableParsimonious(this->secondary_fraction_of_optimum);
+    }
+
+    if (rebuilt_model)
+    {
+        this->sbml_model.saveObjectiveState();
+    }
+
+    this->is_initialized = this->sbml_model.isInitialized();
 }
 
 }
